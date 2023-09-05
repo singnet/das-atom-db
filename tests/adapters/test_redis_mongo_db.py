@@ -6,25 +6,24 @@ import pytest
 from pymongo import MongoClient as MongoDBClient
 from redis import Redis
 
-from das_atom_db.adapters.redis_mongo.db import RedisMongoDB
-from das_atom_db.adapters.redis_mongo.schemas import (
+from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.constants.redis_mongo_db import (
     MongoCollectionNames,
     MongoFieldNames,
 )
-from das_atom_db.adapters.redis_mongo.schemas import (
+from hyperon_das_atomdb.constants.redis_mongo_db import (
     RedisCollectionNames as KeyPrefix,
 )
-from das_atom_db.adapters.redis_mongo.schemas import build_redis_key
-from das_atom_db.i_database import IAtomDB
+from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
+from hyperon_das_atomdb.i_database import IAtomDB
 
 
 @pytest.fixture()
 def mongo_db():
     hostname = os.environ.get('DAS_MONGODB_HOSTNAME')
-    print(f'*¨&¨*¨&¨*¨&¨*¨&¨*¨&\n\n\n\n\n{hostname}\n\n\n\n')
     port = os.environ.get('DAS_MONGODB_PORT')
-    username = os.environ.get('DAS_DATABASE_USERNAME')
-    password = os.environ.get('DAS_DATABASE_PASSWORD')
+    username = os.environ.get('DAS_MONGODB_USERNAME')
+    password = os.environ.get('DAS_MONGODB_PASSWORD')
     mongo_db = MongoDBClient(
         f'mongodb://{username}:{password}@{hostname}:{port}'
     )['das']
@@ -40,8 +39,8 @@ def redis_db():
 
 
 @pytest.fixture()
-def db(redis_db, mongo_db):
-    db = RedisMongoDB(redis_db, mongo_db)
+def db():
+    db = RedisMongoDB()
     db.prefetch()
     return db
 
@@ -78,9 +77,9 @@ def _add_node_names(db, txt):
     return txt
 
 
-def test_db_creation(db: IAtomDB):
-    assert db.redis
-    assert db.mongo_db
+def test_db_creation(db: RedisMongoDB):
+    assert db.redis is not None
+    assert db.mongo_db is not None
     assert db.node_documents.size() == 14
     assert len(db.named_type_hash) == 18
     assert len(db.named_type_hash_reverse) == 18

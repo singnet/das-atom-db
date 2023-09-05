@@ -1,19 +1,27 @@
+import os
 import pickle
 from typing import Any, Dict, List, Tuple, Union
 
-from pymongo.database import Database
+from pymongo import MongoClient
 from redis import Redis
+from redis.cluster import RedisCluster
 
-from das_atom_db.adapters.redis_mongo.schemas import (
+from hyperon_das_atomdb.constants.redis_mongo_db import (
     MongoCollectionNames,
     MongoFieldNames,
 )
-from das_atom_db.adapters.redis_mongo.schemas import (
+from hyperon_das_atomdb.constants.redis_mongo_db import (
     RedisCollectionNames as KeyPrefix,
 )
-from das_atom_db.adapters.redis_mongo.schemas import build_redis_key
-from das_atom_db.i_database import UNORDERED_LINK_TYPES, WILDCARD, IAtomDB
-from das_atom_db.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
+from hyperon_das_atomdb.exceptions import ConnectionMongoDBException
+from hyperon_das_atomdb.i_database import (
+    UNORDERED_LINK_TYPES,
+    WILDCARD,
+    IAtomDB,
+)
+from hyperon_das_atomdb.logger import logger
+from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 USE_CACHED_NODES = True
 USE_CACHED_LINK_TYPES = True
@@ -57,16 +65,13 @@ class NodeDocuments:
 class RedisMongoDB(IAtomDB):
     """A concrete implementation using Redis and Mongo database"""
 
-    def __init__(self, redis: Redis, mongo_db: Database) -> None:
+    def __init__(self, database_name: str = 'das') -> None:
         """
-        Initialize an instance of a custom class with Redis and MongoDB connections.
-
-        Args:
-            redis (Redis): A Redis client instance used for caching and data storage.
-            mongo_db (Database): A MongoDB database instance for storing and retrieving data.
+        Initialize an instance of a custom class with Redis
+        and MongoDB connections.
         """
-        self.redis = redis
-        self.mongo_db = mongo_db
+        self.database_name = database_name
+        self._setup_databases()
         self.mongo_link_collection = {
             '1': self.mongo_db.get_collection(
                 MongoCollectionNames.LINKS_ARITY_1
@@ -104,6 +109,46 @@ class RedisMongoDB(IAtomDB):
             ]
         )
         self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
+        self.prefetch()
+        logger().info("Prefetching data")
+        logger().info("Database setup finished")
+
+    def _setup_databases(self) -> None:
+        mongo_hostname = os.environ.get('DAS_MONGODB_HOSTNAME')
+        mongo_port = os.environ.get('DAS_MONGODB_PORT')
+        mongo_username = os.environ.get('DAS_MONGODB_USERNAME')
+        mongo_password = os.environ.get('DAS_MONGODB_PASSWORD')
+        redis_hostname = os.environ.get('DAS_REDIS_HOSTNAME')
+        redis_port = os.environ.get('DAS_REDIS_PORT')
+
+        logger().info(
+            f"Connecting to MongoDB at {mongo_hostname}:{mongo_port}"
+        )
+
+        try:
+            self.mongo_db = MongoClient(
+                f'mongodb://{mongo_username}:{mongo_password}@{mongo_hostname}:{mongo_port}'
+            )[self.database_name]
+        except ValueError as e:
+            raise ConnectionMongoDBException(
+                message='error creating a MongoClient', details=str(e)
+            )
+
+        # TODO fix this to use a proper parameter
+        if redis_port == "7000":
+            logger().info(
+                f"Connecting to Redis cluster at {redis_hostname}:{redis_port}"
+            )
+            self.redis = RedisCluster(
+                host=redis_hostname, port=redis_port, decode_responses=False
+            )
+        else:
+            logger().info(
+                f"Connecting to standalone Redis at {redis_hostname}:{redis_port}"
+            )
+            self.redis = Redis(
+                host=redis_hostname, port=redis_port, decode_responses=False
+            )
 
     def _get_atom_type_hash(self, atom_type):
         # TODO: implement a proper mongo collection to atom types so instead

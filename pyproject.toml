@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "das-atom-db"
+name = "hyperon-das-atomdb"
 version = "0.1.0"
 description = ""
 authors = ["marcocapozzoli <marcocapozzoli90@gmail.com>"]
 readme = "README.md"
-packages = [{include = "das_atom_db"}]
+packages = [{include = "hyperon_das_atomdb"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
