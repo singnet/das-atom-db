@@ -6,14 +6,16 @@ import pytest
 from pymongo import MongoClient as MongoDBClient
 from redis import Redis
 
-from src.adapters.redis_mongo.db import RedisMongoDB
-from src.adapters.redis_mongo.schemas import (
+from das_atom_db.adapters.redis_mongo.db import RedisMongoDB
+from das_atom_db.adapters.redis_mongo.schemas import (
     MongoCollectionNames,
     MongoFieldNames,
 )
-from src.adapters.redis_mongo.schemas import RedisCollectionNames as KeyPrefix
-from src.adapters.redis_mongo.schemas import build_redis_key
-from src.i_database import IAtomDB
+from das_atom_db.adapters.redis_mongo.schemas import (
+    RedisCollectionNames as KeyPrefix,
+)
+from das_atom_db.adapters.redis_mongo.schemas import build_redis_key
+from das_atom_db.i_database import IAtomDB
 
 
 @pytest.fixture()
