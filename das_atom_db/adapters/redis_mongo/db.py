@@ -55,9 +55,16 @@ class NodeDocuments:
 
 
 class RedisMongoDB(IAtomDB):
-    """A concrete implementation using Redis database and Mongodb"""
+    """A concrete implementation using Redis and Mongo database"""
 
     def __init__(self, redis: Redis, mongo_db: Database) -> None:
+        """
+        Initialize an instance of a custom class with Redis and MongoDB connections.
+
+        Args:
+            redis (Redis): A Redis client instance used for caching and data storage.
+            mongo_db (Database): A MongoDB database instance for storing and retrieving data.
+        """
         self.redis = redis
         self.mongo_db = mongo_db
         self.mongo_link_collection = {

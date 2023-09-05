@@ -7,7 +7,7 @@ UNORDERED_LINK_TYPES = ['Similarity', 'Set']
 
 class IAtomDB(ABC):
     def __repr__(self) -> str:
-        return "<DBInterface>"
+        return "<Atom database interface>"
 
     @abstractmethod
     def node_exists(self, node_type: str, node_name: str) -> bool:
