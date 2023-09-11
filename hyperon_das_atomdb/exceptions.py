@@ -12,3 +12,11 @@ class BaseException(Exception):
 
 class ConnectionMongoDBException(BaseException):
     ...  # pragma no cover
+
+
+class NodeDoesNotExistException(BaseException):
+    ...  # pragma no cover
+
+
+class LinkDoesNotExistException(BaseException):
+    ...  # pragma no cover

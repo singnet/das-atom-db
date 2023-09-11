@@ -14,7 +14,11 @@ from hyperon_das_atomdb.constants.redis_mongo_db import (
     RedisCollectionNames as KeyPrefix,
 )
 from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
-from hyperon_das_atomdb.exceptions import ConnectionMongoDBException
+from hyperon_das_atomdb.exceptions import (
+    ConnectionMongoDBException,
+    LinkDoesNotExistException,
+    NodeDoesNotExistException,
+)
 from hyperon_das_atomdb.i_database import (
     UNORDERED_LINK_TYPES,
     WILDCARD,
@@ -294,33 +298,59 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
+    def _create_node_handle(self, node_type: str, node_name: str) -> str:
+        return ExpressionHasher.terminal_hash(node_type, node_name)
+
+    def _create_link_handle(
+        self, link_type: str, target_handles: List[str]
+    ) -> str:
+        return ExpressionHasher.expression_hash(
+            self._get_atom_type_hash(link_type), target_handles
+        )
+
     # DB interface methods
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
-        node_handle = ExpressionHasher.terminal_hash(node_type, node_name)
-        # TODO: use a specific query to nodes table
-        document = self._retrieve_mongo_document(node_handle, 0)
-        return document is not None
+        try:
+            self.get_node_handle(node_type, node_name)
+            return True
+        except NodeDoesNotExistException:
+            return False
 
     def link_exists(self, link_type: str, target_handles: List[str]) -> bool:
-        link_handle = ExpressionHasher.expression_hash(
+        try:
+            self.get_link_handle(link_type, target_handles)
+            return True
+        except LinkDoesNotExistException:
+            return False
+
+    def get_node_handle(self, node_type: str, node_name: str) -> str:
+        node_handle = self._create_node_handle(node_type, node_name)
+        document = self._retrieve_mongo_document(node_handle, 0)
+        if document is not None:
+            return document['_id']
+        else:
+            raise NodeDoesNotExistException(
+                message=f'This node does not exist',
+                details=f'{node_type}:{node_name}',
+            )
+
+    def get_link_handle(
+        self, link_type: str, target_handles: List[str]
+    ) -> str:
+        link_handle = self._create_link_handle(
             self._get_atom_type_hash(link_type), target_handles
         )
         document = self._retrieve_mongo_document(
             link_handle, len(target_handles)
         )
-        return document is not None
-
-    def get_node_handle(self, node_type: str, node_name: str) -> str:
-        return ExpressionHasher.terminal_hash(node_type, node_name)
-
-    def get_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
-        link_handle = ExpressionHasher.expression_hash(
-            self._get_atom_type_hash(link_type), target_handles
-        )
-        return link_handle
+        if document is not None:
+            return document
+        else:
+            raise LinkDoesNotExistException(
+                message=f'This link does not exist',
+                details=f'{link_type}:{target_handles}',
+            )
 
     def get_link_targets(self, link_handle: str) -> List[str]:
         answer = self._retrieve_key_value(KeyPrefix.OUTGOING_SET, link_handle)
@@ -451,3 +481,17 @@ class RedisMongoDB(IAtomDB):
         for collection in self.mongo_link_collection.values():
             link_count += collection.estimated_document_count()
         return (node_count, link_count)
+
+    def clear_database(self) -> None:
+        """
+        from the connected MongoDB and Redis databases.
+
+        This method drops all collections in the MongoDB database and flushes all data
+        from the Redis cache, effectively wiping the databases clean.
+        """
+        collections = self.mongo_db.list_collection_names()
+
+        for collection in collections:
+            self.mongo_db[collection].drop()
+
+        self.redis.flushall()

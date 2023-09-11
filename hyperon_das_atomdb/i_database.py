@@ -28,7 +28,7 @@ class IAtomDB(ABC):
         pass
 
     @abstractmethod
-    def get_link_targets(self, handle: str) -> List[str]:
+    def get_link_targets(self, link_handle: str) -> List[str]:
         pass
 
     @abstractmethod
@@ -59,6 +59,18 @@ class IAtomDB(ABC):
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         pass
 
+    @abstractmethod
+    def add_node(self, node_type: str, node_name: str) -> None:
+        pass
+
+    @abstractmethod
+    def add_atom(self, atom_type: str) -> None:
+        pass
+
+    @abstractmethod
+    def add_link(self, link_type: str, targets: List[str]) -> None:
+        pass
+
     def get_atom_as_dict(self, handle: str, arity: int):
         pass
 
@@ -66,4 +78,7 @@ class IAtomDB(ABC):
         pass
 
     def count_atoms(self):
+        pass
+
+    def clear_database(self) -> None:
         pass
