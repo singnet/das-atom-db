@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hyperon-das-atomdb"
-version = "0.1.1"
+version = "0.1.3"
 description = ""
 authors = ["marcocapozzoli <marcocapozzoli90@gmail.com>"]
 readme = "README.md"
@@ -17,6 +17,7 @@ flake8 = "^6.1.0"
 isort = "^5.12.0"
 black = "^23.7.0"
 pytest = "^7.4.2"
+pytest-cov = "^4.1.0"
 
 
 [build-system]

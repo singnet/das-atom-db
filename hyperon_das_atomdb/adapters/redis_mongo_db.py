@@ -3,6 +3,7 @@ import pickle
 from typing import Any, Dict, List, Tuple, Union
 
 from pymongo import MongoClient
+from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
 
@@ -118,12 +119,14 @@ class RedisMongoDB(IAtomDB):
         logger().info("Database setup finished")
 
     def _setup_databases(self) -> None:
+        self.mongo_db = self._connection_mongo_db()
+        self.redis = self._connection_redis()
+
+    def _connection_mongo_db(self) -> Database:
         mongo_hostname = os.environ.get('DAS_MONGODB_HOSTNAME')
         mongo_port = os.environ.get('DAS_MONGODB_PORT')
         mongo_username = os.environ.get('DAS_MONGODB_USERNAME')
         mongo_password = os.environ.get('DAS_MONGODB_PASSWORD')
-        redis_hostname = os.environ.get('DAS_REDIS_HOSTNAME')
-        redis_port = os.environ.get('DAS_REDIS_PORT')
 
         logger().info(
             f"Connecting to MongoDB at {mongo_hostname}:{mongo_port}"
@@ -133,12 +136,16 @@ class RedisMongoDB(IAtomDB):
             self.mongo_db = MongoClient(
                 f'mongodb://{mongo_username}:{mongo_password}@{mongo_hostname}:{mongo_port}'
             )[self.database_name]
+            return self.mongo_db
         except ValueError as e:
             raise ConnectionMongoDBException(
                 message='error creating a MongoClient', details=str(e)
             )
 
-        # TODO fix this to use a proper parameter
+    def _connection_redis(self) -> Redis:
+        redis_hostname = os.environ.get('DAS_REDIS_HOSTNAME')
+        redis_port = os.environ.get('DAS_REDIS_PORT')
+
         if redis_port == "7000":
             logger().info(
                 f"Connecting to Redis cluster at {redis_hostname}:{redis_port}"
@@ -153,6 +160,8 @@ class RedisMongoDB(IAtomDB):
             self.redis = Redis(
                 host=redis_hostname, port=redis_port, decode_responses=False
             )
+
+        return self.redis
 
     def _get_atom_type_hash(self, atom_type):
         # TODO: implement a proper mongo collection to atom types so instead
@@ -338,9 +347,7 @@ class RedisMongoDB(IAtomDB):
     def get_link_handle(
         self, link_type: str, target_handles: List[str]
     ) -> str:
-        link_handle = self._create_link_handle(
-            self._get_atom_type_hash(link_type), target_handles
-        )
+        link_handle = self._create_link_handle(link_type, target_handles)
         document = self._retrieve_mongo_document(
             link_handle, len(target_handles)
         )
@@ -356,7 +363,6 @@ class RedisMongoDB(IAtomDB):
         answer = self._retrieve_key_value(KeyPrefix.OUTGOING_SET, link_handle)
         if not answer:
             raise ValueError(f"Invalid handle: {link_handle}")
-        # return answer[1:]
         return [h.decode() for h in answer]
 
     def is_ordered(self, link_handle: str) -> bool:
