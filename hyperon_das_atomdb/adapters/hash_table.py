@@ -395,6 +395,8 @@ class InMemoryDB(IAtomDB):
         link_type = link_params.pop('type')
         targets = link_params.pop('targets')
         
+        data = {'type': link_type, 'targets': targets}
+        
         for target in targets:
             if 'targets' not in target.keys():
                 self.add_node(target.copy())
@@ -406,10 +408,11 @@ class InMemoryDB(IAtomDB):
         
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         
-        composite_type = []
-        composite_type.append(link_type_hash)
-        for target in targets:
-            composite_type.append(ExpressionHasher.named_type_hash(target['type']))
+        composite_type = self._calculate_composite_type(data)
+        
+        # composite_type.insert(0, link_type_hash)
+        # for target in targets:
+        #     composite_type.append(ExpressionHasher.named_type_hash(target['type']))
 
         targets_hash = [ExpressionHasher.terminal_hash(target['type'], target['name']) for target in targets]
         key = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
@@ -491,55 +494,64 @@ if __name__ == '__main__':
         ]
     }
     
-    # resp = db.add_link({
-    #                         'type': 'Set',
-    #                         'targets': [
-    #                             {
-    #                                 'type': 'Reactome',
-    #                                 'name': 'Reactome:R-HSA-164843'   
-    #                             },
-    #                             {
-    #                                 'type': 'Concept',
-    #                                 'name': 'Concept:2-LTR circle formation'            
-    #                             }
-    #                         ]
-    #                     })
+    resp = db.add_link(
+        {
+            'type': 'Evaluation',
+            'targets': [
+                {
+                    'type': 'Predicate',
+                    'name': 'Predicate:has_name'                           
+                },
+                {
+                    'type': 'Set',
+                    'targets': [
+                        {
+                            'type': 'Reactome',
+                            'name': 'Reactome:R-HSA-164843'   
+                        },
+                        {
+                            'type': 'Concept',
+                            'name': 'Concept:2-LTR circle formation'            
+                        }
+                    ]
+                }
+            ]
+        }
+    )
     
-    # resp = db.add_node({'name':'human','type':'Concept'})
+    # data = 	{
+    #     'type': 'Evaluation',
+	#     'targets': [
+	# 	    {'type': 'Predicate'},
+    #         {
+    #             'type': 'Evaluation',
+    #             'targets': [
+    #                 {'type': 'Predicate'},
+    #                 {
+    #                     'type': 'Set',
+    #                     'targets': [
+    #                         {'type': 'Reactome'},
+    #                         {'type': 'Concept'}
+    #                     ]
+    #                 }
+    #             ]
+    #         }
+    #     ]
+    # }
     
-    data = 	{
-        'type': 'Evaluation',
-	    'targets': [
-		    {'type': 'Predicate'},
-            {
-                'type': 'Evaluation',
-                'targets': [
-                    {'type': 'Predicate'},
-                    {
-                        'type': 'Set',
-                        'targets': [
-                            {'type': 'Reactome'},
-                            {'type': 'Concept'}
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
-    
-    def link(data):
-        result = []
-        if 'targets' in data:   
-            for target in data['targets']:
-                if 'targets' in target:
-                    result.append(link(target.copy()))
-                else:
-                    result.append(ExpressionHasher.named_type_hash(target.get('type')))
+    # def link(data):
+    #     result = []
+    #     if 'targets' in data:   
+    #         for target in data['targets']:
+    #             if 'targets' in target:
+    #                 result.append(link(target.copy()))
+    #             else:
+    #                 result.append(ExpressionHasher.named_type_hash(target.get('type')))
         
-        result.insert(0, ExpressionHasher.named_type_hash(data.get('type')))      
+    #     result.insert(0, ExpressionHasher.named_type_hash(data.get('type')))      
 
-        return result
+    #     return result
     
-    resp = link(data)    
+    # resp = db.add_link(data2)    
     
     print(resp)
