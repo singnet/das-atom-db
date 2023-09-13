@@ -50,6 +50,7 @@ class NodeDocuments:
         else:
             mongo_filter = {MongoFieldNames.ID_HASH: handle}
             node = self.mongo_collection.find_one(mongo_filter)
+            print(f'\n\n++>>node:{node}')
             return node if node else default_value
 
     def size(self):
@@ -245,13 +246,14 @@ class RedisMongoDB(IAtomDB):
         return None
 
     def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
+        members = self.redis.smembers(build_redis_key(prefix, key))
         if prefix in self.use_targets:
             return [
                 pickle.loads(t)
-                for t in self.redis.smembers(build_redis_key(prefix, key))
+                for t in members
             ]
         else:
-            return [*self.redis.smembers(build_redis_key(prefix, key))]
+            return [*members]
 
     def _build_named_type_hash_template(
         self, template: Union[str, List[Any]]
@@ -269,7 +271,8 @@ class RedisMongoDB(IAtomDB):
         self, template: Union[str, List[Any]]
     ) -> List[Any]:
         if isinstance(template, str):
-            return self.named_type_hash_reverse.get(template, None)
+            ret = self.named_type_hash_reverse.get(template, None)
+            return ret
         else:
             answer = []
             for element in template:
@@ -284,7 +287,7 @@ class RedisMongoDB(IAtomDB):
         answer = []
         index = 0
         while True:
-            key = document.get(f'{MongoFieldNames.KEY_PREFIX}_{index}', None)
+            key = document.get(f'{MongoFieldNames.KEY_PREFIX.value}_{index}', None)
             if key is None:
                 return answer
             else:
@@ -352,7 +355,7 @@ class RedisMongoDB(IAtomDB):
             link_handle, len(target_handles)
         )
         if document is not None:
-            return document
+            return document['_id']
         else:
             raise LinkDoesNotExistException(
                 message=f'This link does not exist',
@@ -381,17 +384,22 @@ class RedisMongoDB(IAtomDB):
                 return [link_handle] if document else []
             except ValueError:
                 return []
+        
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
         else:
             link_type_hash = self._get_atom_type_hash(link_type)
+        
         if link_type_hash is None:
             return []
+        
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
+        
         pattern_hash = ExpressionHasher.composite_hash(
             [link_type_hash, *target_handles]
         )
+        
         return self._retrieve_key_value(KeyPrefix.PATTERNS, pattern_hash)
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
@@ -415,9 +423,9 @@ class RedisMongoDB(IAtomDB):
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-        except KeyError as exception:
-            raise ValueError(f'{exception}\nInvalid type')
-        return self._retrieve_key_value(KeyPrefix.TEMPLATES, template_hash)
+            return self._retrieve_key_value(KeyPrefix.TEMPLATES, template_hash)
+        except Exception as exception:
+            raise ValueError(str(exception))
 
     def get_matched_type(self, link_type: str) -> List[str]:
         named_type_hash = self._get_atom_type_hash(link_type)
@@ -442,14 +450,13 @@ class RedisMongoDB(IAtomDB):
             for document in self.mongo_nodes_collection.find(mongo_filter)
         ]
 
-    #################################
-
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
         document = (
             self.node_documents.get(handle, None) if arity <= 0 else None
         )
         if document is None:
+            print("\n\nHERE-1")
             document = self._retrieve_mongo_document(handle, arity)
             if document:
                 answer["handle"] = document[MongoFieldNames.ID_HASH]
@@ -469,7 +476,10 @@ class RedisMongoDB(IAtomDB):
 
     def get_link_type(self, link_handle: str) -> str:
         if USE_CACHED_LINK_TYPES:
-            return self.link_type_cache[link_handle]
+            print('>>>>>>>>>>>>>>>>>>>>AQUI')
+            print(f'elf.link_type_cache: {self.link_type_cache}')
+            ret = self.link_type_cache[link_handle]
+            return ret
         else:
             document = self.get_atom_as_dict(link_handle)
             return document["type"]
