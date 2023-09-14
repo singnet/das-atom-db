@@ -248,10 +248,7 @@ class RedisMongoDB(IAtomDB):
     def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
         members = self.redis.smembers(build_redis_key(prefix, key))
         if prefix in self.use_targets:
-            return [
-                pickle.loads(t)
-                for t in members
-            ]
+            return [pickle.loads(t) for t in members]
         else:
             return [*members]
 
@@ -287,7 +284,9 @@ class RedisMongoDB(IAtomDB):
         answer = []
         index = 0
         while True:
-            key = document.get(f'{MongoFieldNames.KEY_PREFIX.value}_{index}', None)
+            key = document.get(
+                f'{MongoFieldNames.KEY_PREFIX.value}_{index}', None
+            )
             if key is None:
                 return answer
             else:
@@ -384,22 +383,22 @@ class RedisMongoDB(IAtomDB):
                 return [link_handle] if document else []
             except ValueError:
                 return []
-        
+
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
         else:
             link_type_hash = self._get_atom_type_hash(link_type)
-        
+
         if link_type_hash is None:
             return []
-        
+
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
-        
+
         pattern_hash = ExpressionHasher.composite_hash(
             [link_type_hash, *target_handles]
         )
-        
+
         return self._retrieve_key_value(KeyPrefix.PATTERNS, pattern_hash)
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:

@@ -21,6 +21,7 @@ class NodeDoesNotExistException(BaseException):
 class LinkDoesNotExistException(BaseException):
     ...  # pragma no cover
 
+
 class AddNodeException(BaseException):
     ...  # pragma no cover
 

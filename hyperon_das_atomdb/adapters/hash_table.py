@@ -1,5 +1,4 @@
-import copy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from hyperon_das_atomdb.constants.redis_mongo_db import MongoFieldNames
 from hyperon_das_atomdb.entity import Database, Link
@@ -16,140 +15,6 @@ from hyperon_das_atomdb.i_database import (
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-"""
- 
-        {
-            'atom_type': {
-                {
-                    '_id': '0cc896470995bd4187a844163b6f1012',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc'
-                },
-                {
-                    '_id': '01959fba970d810fdc38bf0c6b4884db',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Concept',
-                    'named_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3'
-                },
-                {
-                    '_id': '3e419e4d468bdac682103ea2615d0902',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Inheritance',
-                    'named_type_hash': 'e40489cd1e7102e35469c937e05c8bba'
-                }
-            },
-            'node': [
-                {
-                    '_id': 'af12f10f9ae2002a1607ba0b47ba8407',
-                    'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
-                    'name': 'human',
-                    'named_type': 'Concept'
-                },
-                {
-                    '_id': '1cdffc6b0b89ff41d68bec237481d1e1',
-                    'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
-                    'name': 'monkey',
-                    'named_type': 'Concept'
-                }
-            ],
-            'link': [
-                {
-                    '_id': '2e9c59947cae7dd133af21bbfcf79902',
-                    'composite_type_hash': 'db6163e5526ce17d293f16fe88a9948c',
-                    'is_toplevel': True,
-                    'composite_type': [
-                        'a9dea78180588431ec64d6bc4872fdbc',
-                        '99e9bae675b12967251c175696f00a70',
-                        'd0763edaa9d9bd2a9516280e9044d885'
-                    ],
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc',
-                    'key_0': 'bd497eb24420dd50fed5f3d2e6cdd7c1',
-                    'key_1': '305e7d502a0ce80b94374ff0d79a6464'
-                },
-                {
-                    '_id': 'a0b576b9ce2d3b4d0a1528c8db300d5a',
-                    'composite_type_hash': 'aed5c623856552ad33861b7bb7e39d47',
-                    'is_toplevel': True,
-                    'composite_type': [
-                        'a9dea78180588431ec64d6bc4872fdbc',
-                        '99e9bae675b12967251c175696f00a70',
-                        '46bdd2ce40657500dcb21ca51d22b29f'
-                    ],
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc',
-                    'key_0': 'bd497eb24420dd50fed5f3d2e6cdd7c1',
-                    'key_1': 'a1fb3a4de5c459bfa4bd87dc423019c3'
-                },
-            ],}
-        
-        o = {    
-            'outgoing_set': [
-                {
-                    'outgoing_set:062558af0dc7bd964acec001e694c984': [
-                        [   
-                           'a1fb3a4de5c459bfa4bd87dc423019c3',
-                           'bd497eb24420dd50fed5f3d2e6cdd7c1'
-                        ]
-                    ],
-                    'outgoing_set:3afd51603c2d1b64c5b9455ec5a8c166': [
-                        [   
-                           'd1ec11ec366a1deb24a079dc39863c68',
-                           'c90242e2dbece101813762cc2a83d726'
-                        ]
-                    ]
-                }
-            ],
-        #     'incomming_set': [
-        #         {
-        #             'incomming_set:e2d9b15ab3461228d75502e754137caa': [
-        #                 [   
-        #                    'b40e1aa0ffb4b30df8b08e1b70554cfa',
-        #                    '2b8838a60dcc3be433c258d61f62a215',
-        #                    'be02e317942f1c218dfaeb1ca22c5722',
-        #                    '51266232a5ebdf68da3f237bc9462277',
-        #                    '062558af0dc7bd964acec001e694c984',
-        #                 ]
-        #             ],
-        #             'incomming_set:d1ec11ec366a1deb24a079dc39863c68': [
-        #                 [   
-        #                    '3afd51603c2d1b64c5b9455ec5a8c166',
-        #                    '85366aa321bd5a01774da82563460bc1'
-        #                 ]
-        #             ]
-        #         }
-        #     ],
-        #     'patterns': [
-        #         {
-        #             'patterns:7d51188687cfbc9dbbf0470f9a4e87d2': [
-        #                 '��n� bcd9571e92e117d511052270c94ffb17�� a1fb3a4de5c459bfa4bd87dc423019c3�� bd497eb24420dd50fed5f3d2e6cdd7c1�����.'
-        #             ]
-        #         }
-        #     ],
-        #     'templates': [
-        #         {
-        #            'templates:23884923c039ec963b4b9939eb6fa660': [
-        #                '0cc896470995bd4187a844163b6f1012',
-        #                 [   
-        #                    '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-        #                    'e40489cd1e7102e35469c937e05c8bba'
-        #                 ]
-        #             ]
-        #         }
-        #     ],
-        #     'names': {
-        #         'names:bdfe4e7a431f73386f37c6448afe5840': 'mammal',
-        #         'names:af12f10f9ae2002a1607ba0b47ba8407': 'human',
-        #         'names:80aff30094874e75028033a38ce677bb': 'plant',
-        #     }
-        # }
-        
-
-
-
-"""
-
 
 class InMemoryDB(IAtomDB):
     """A concrete implementation using hashtable (dict)"""
@@ -164,7 +29,7 @@ class InMemoryDB(IAtomDB):
             ingoing_set={},
             patterns={},
             templates={},
-            names={}
+            names={},
         )
 
     def _create_node_handle(self, node_type: str, node_name: str) -> str:
@@ -314,65 +179,71 @@ class InMemoryDB(IAtomDB):
             for key, value in self.db.node.items()
             if substring in value['name']
             and node_type_hash == value['composite_type_hash']
-        ]        
+        ]
 
     def add_node(self, node_params: Dict[str, Any]) -> None:
         keys = node_params.keys()
-        
+
         if 'type' not in keys or 'name' not in keys:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
-                details=node_params
-            )       
+                details=node_params,
+            )
 
         node_type = node_params.pop('type')
         node_name = node_params.pop('name')
 
         key = self._create_node_handle(node_type, node_name)
-        
+
         try:
             node = self.db.node[key]
-        except KeyError:    
+        except KeyError:
             self.db.node[key] = {
                 '_id': key,
-                'composite_type_hash': ExpressionHasher.named_type_hash(node_type),
+                'composite_type_hash': ExpressionHasher.named_type_hash(
+                    node_type
+                ),
                 'name': node_name,
-                'named_type': node_type
+                'named_type': node_type,
             }
             self.db.node[key].update(node_params)
             node = self.db.node[key]
 
         # self._add_atom_type(_name=node_name, _type=node_type)
         self._add_atom_type(_name=node_type)
-        self._add_names(_name=node_name, _type=node_type)        
+        self._add_names(_name=node_name, _type=node_type)
 
         return node
-    
+
     def _add_atom_type(self, _name: str, _type: Optional[str] = 'Type'):
         name_hash = ExpressionHasher.named_type_hash(_name)
         type_hash = ExpressionHasher.named_type_hash(_type)
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
-        
-        key = ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
+
+        key = ExpressionHasher.expression_hash(
+            typedef_mark_hash, [name_hash, type_hash]
+        )
 
         try:
             atom = self.db.atom_type[key]
-        except KeyError:    
+        except KeyError:
             base_type_hash = ExpressionHasher.named_type_hash("Type")
-            composite_type = [typedef_mark_hash, type_hash, base_type_hash]    
-            composite_type_hash = ExpressionHasher.composite_hash(composite_type)
-        
+            composite_type = [typedef_mark_hash, type_hash, base_type_hash]
+            composite_type_hash = ExpressionHasher.composite_hash(
+                composite_type
+            )
+
             self.db.atom_type[key] = {
                 '_id': key,
                 'composite_type_hash': composite_type_hash,
                 'named_type': _name,
                 'named_type_hash': name_hash,
             }
-            
+
             atom = self.db.atom_type[key]
-            
+
         return atom
-    
+
     def _add_names(self, _name: str, _type: str):
         key = self._create_node_handle(_type, _name)
         try:
@@ -380,178 +251,142 @@ class InMemoryDB(IAtomDB):
         except KeyError:
             self.db.names[key] = _name
             name = self.db.names[key]
-        return name  
-        
-    def add_link(self, link_params: Dict[str, Any]) -> None:
+        return name
 
-        keys = link_params.keys()
-        
-        if 'type' not in keys or 'targets' not in keys:
+    def add_link(self, link_params: Dict[str, Any]) -> None:
+        if 'type' not in link_params or 'targets' not in link_params:
             raise AddLinkException(
                 message='The "type" and "targets" fields must be sent',
-                details=link_params
-            )        
-        
+                details=link_params,
+            )
+
         link_type = link_params.pop('type')
         targets = link_params.pop('targets')
-        
+
         data = {'type': link_type, 'targets': targets}
-        
+
         for target in targets:
             if 'targets' not in target.keys():
                 self.add_node(target.copy())
             else:
-                self.add_link(target.copy())        
-        
+                self.add_link(target.copy())
+
+        link_type_hash = ExpressionHasher.named_type_hash(link_type)
+        targets_hash = self._calculate_targets_hash(data)
+        key = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
+
+        composite_type = self._calculate_composite_type(data)
+        composite_type_copy = composite_type[:]
+
         arity_number = len(targets)
         link_db = self.db.link.get_arity(arity_number)
-        
-        link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        
-        composite_type = self._calculate_composite_type(data)
-        
-        # composite_type.insert(0, link_type_hash)
-        # for target in targets:
-        #     composite_type.append(ExpressionHasher.named_type_hash(target['type']))
-
-        targets_hash = [ExpressionHasher.terminal_hash(target['type'], target['name']) for target in targets]
-        key = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
         link_db[key] = {
             '_id': key,
-            'composite_type_hash': ExpressionHasher.composite_hash(composite_type),
+            'composite_type_hash': self._calculate_composite_type_hash(
+                composite_type_copy
+            ),
             'is_toplevel': True,
             'composite_type': composite_type,
             'named_type': link_type,
-            'named_type_hash': ExpressionHasher.named_type_hash(link_type)
+            'named_type_hash': ExpressionHasher.named_type_hash(link_type),
         }
-    
+
         for item in range(arity_number):
             link_db[key][f'key_{item}'] = targets_hash[item]
-        
-        # self._add_atom_type(_name=link_type)
-        
+
         link = link_db[key]
-        
+
         return link
-    
-    def _calculate_composite_type(self, data):
+
+    def _calculate_composite_type(self, data) -> list:
+        # Fix bug during calculate the composite_type to nested link with more than 1 level
         composite_type = []
-        if 'targets' in data:   
+        if 'targets' in data:
             for target in data['targets']:
                 if 'targets' in target:
-                    composite_type.append(self._calculate_composite_type(target.copy()))
+                    composite_type.append(
+                        self._calculate_composite_type(target.copy())
+                    )
                 else:
-                    composite_type.append(ExpressionHasher.named_type_hash(target.get('type')))
-        composite_type.insert(0, ExpressionHasher.named_type_hash(data.get('type')))
+                    composite_type.append(
+                        ExpressionHasher.named_type_hash(target.get('type'))
+                    )
+        composite_type.insert(
+            0, ExpressionHasher.named_type_hash(data.get('type'))
+        )
         return composite_type
+
+    def _calculate_targets_hash(self, data) -> List[str]:
+        target_type = data['type']
+        target_name = data.get('name')
+
+        if target_name is not None:
+            return ExpressionHasher.terminal_hash(target_type, target_name)
+
+        if 'targets' in data:
+            sub_targets = data['targets']
+            result = []
+            for sub_target in sub_targets:
+                ret = self._calculate_targets_hash(sub_target.copy())
+                result.append(ret)
+
+            for item in result:
+                if isinstance(item, list):
+                    index = result.index(item)
+                    result[index] = ExpressionHasher.expression_hash(
+                        ExpressionHasher.named_type_hash(sub_target['type']),
+                        item,
+                    )
+
+            return result
+
+    def _calculate_composite_type_hash(self, composite_type: list) -> str:
+        for _hash in composite_type:
+            if isinstance(_hash, list):
+                self._calculate_composite_type_hash(_hash)
+                index = composite_type.index(_hash)
+                composite_type[index] = ExpressionHasher.composite_hash(_hash)
+        return ExpressionHasher.composite_hash(composite_type)
+
 
 if __name__ == '__main__':
     db = InMemoryDB()
-    
+
     data1 = {
-            'type': 'Evaluation',
-            'targets': [
-                {
-                    'type': 'Predicate',
-                    'name': 'Predicate:has_name'
-                },
-                {
-                    'type': 'Evaluation',
-                    'targets': [
-                        {
-                            'type': 'Predicate',
-                            'name': 'Predicate:has_name'                           
-                        },
-                        {
-                            'type': 'Set',
-                            'targets': [
-                                {
-                                    'type': 'Reactome',
-                                    'name': 'Reactome:R-HSA-164843'   
-                                },
-                                {
-                                    'type': 'Concept',
-                                    'name': 'Concept:2-LTR circle formation'            
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
+        'type': 'Evaluation',
+        'targets': [
+            {'type': 'Predicate', 'name': 'Predicate:has_name'},
+            {
+                'type': 'Evaluation',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'targets': [
+                            {
+                                'type': 'Reactome',
+                                'name': 'Reactome:R-HSA-164843',
+                            },
+                            {
+                                'type': 'Concept',
+                                'name': 'Concept:2-LTR circle formation',
+                            },
+                        ],
+                        'type': 'Set',
+                    },
+                ],
+            },
+        ],
+    }
+
     data2 = {
         'type': 'Similarity',
         'targets': [
-            {
-                'type': 'Concept',
-                'name': 'human'
-            },
-            {
-                'type': 'Concept',
-                'name': 'monkey'
-            },      
-        ]
+            {'type': 'Concept', 'name': 'human'},
+            {'type': 'Concept', 'name': 'monkey'},
+        ],
     }
-    
-    resp = db.add_link(
-        {
-            'type': 'Evaluation',
-            'targets': [
-                {
-                    'type': 'Predicate',
-                    'name': 'Predicate:has_name'                           
-                },
-                {
-                    'type': 'Set',
-                    'targets': [
-                        {
-                            'type': 'Reactome',
-                            'name': 'Reactome:R-HSA-164843'   
-                        },
-                        {
-                            'type': 'Concept',
-                            'name': 'Concept:2-LTR circle formation'            
-                        }
-                    ]
-                }
-            ]
-        }
-    )
-    
-    # data = 	{
-    #     'type': 'Evaluation',
-	#     'targets': [
-	# 	    {'type': 'Predicate'},
-    #         {
-    #             'type': 'Evaluation',
-    #             'targets': [
-    #                 {'type': 'Predicate'},
-    #                 {
-    #                     'type': 'Set',
-    #                     'targets': [
-    #                         {'type': 'Reactome'},
-    #                         {'type': 'Concept'}
-    #                     ]
-    #                 }
-    #             ]
-    #         }
-    #     ]
-    # }
-    
-    # def link(data):
-    #     result = []
-    #     if 'targets' in data:   
-    #         for target in data['targets']:
-    #             if 'targets' in target:
-    #                 result.append(link(target.copy()))
-    #             else:
-    #                 result.append(ExpressionHasher.named_type_hash(target.get('type')))
-        
-    #     result.insert(0, ExpressionHasher.named_type_hash(data.get('type')))      
 
-    #     return result
-    
-    # resp = db.add_link(data2)    
-    
+    resp = db.add_link(data1)
+
     print(resp)
