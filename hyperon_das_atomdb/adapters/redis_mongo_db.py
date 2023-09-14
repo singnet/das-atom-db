@@ -501,8 +501,8 @@ class RedisMongoDB(IAtomDB):
         """
         from the connected MongoDB and Redis databases.
 
-        This method drops all collections in the MongoDB database and flushes all data
-        from the Redis cache, effectively wiping the databases clean.
+        This method drops all collections in the MongoDB database and flushes
+        all data from the Redis cache, effectively wiping the databases clean.
         """
         collections = self.mongo_db.list_collection_names()
 

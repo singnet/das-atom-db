@@ -21,7 +21,7 @@ class Link:
         all_arities = {}
         all_arities.update(self.arity_1)
         all_arities.update(self.arity_2)
-        all_arities.update(self.arity_3)
+        all_arities.update(self.arity_n)
         return all_arities
 
 
@@ -31,7 +31,7 @@ class Database:
     node: Dict[str, Any]
     link: Link
     outgoing_set: Dict[str, Any]
-    ingoing_set: Dict[str, Any]
+    incomming_set: Dict[str, Any]
     patterns: Dict[str, List[Tuple]]
     templates: Dict[str, List[Tuple]]
     names: Dict[str, str]
