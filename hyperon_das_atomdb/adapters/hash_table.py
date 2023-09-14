@@ -16,140 +16,6 @@ from hyperon_das_atomdb.i_database import (
 from hyperon_das_atomdb.utils.decorators import set_is_toplevel
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-"""
- 
-        {
-            'atom_type': {
-                {
-                    '_id': '0cc896470995bd4187a844163b6f1012',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc'
-                },
-                {
-                    '_id': '01959fba970d810fdc38bf0c6b4884db',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Concept',
-                    'named_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3'
-                },
-                {
-                    '_id': '3e419e4d468bdac682103ea2615d0902',
-                    'composite_type_hash': '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-                    'named_type': 'Inheritance',
-                    'named_type_hash': 'e40489cd1e7102e35469c937e05c8bba'
-                }
-            },
-            'node': [
-                {
-                    '_id': 'af12f10f9ae2002a1607ba0b47ba8407',
-                    'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
-                    'name': 'human',
-                    'named_type': 'Concept'
-                },
-                {
-                    '_id': '1cdffc6b0b89ff41d68bec237481d1e1',
-                    'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
-                    'name': 'monkey',
-                    'named_type': 'Concept'
-                }
-            ],
-            'link': [
-                {
-                    '_id': '2e9c59947cae7dd133af21bbfcf79902',
-                    'composite_type_hash': 'db6163e5526ce17d293f16fe88a9948c',
-                    'is_toplevel': True,
-                    'composite_type': [
-                        'a9dea78180588431ec64d6bc4872fdbc',
-                        '99e9bae675b12967251c175696f00a70',
-                        'd0763edaa9d9bd2a9516280e9044d885'
-                    ],
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc',
-                    'key_0': 'bd497eb24420dd50fed5f3d2e6cdd7c1',
-                    'key_1': '305e7d502a0ce80b94374ff0d79a6464'
-                },
-                {
-                    '_id': 'a0b576b9ce2d3b4d0a1528c8db300d5a',
-                    'composite_type_hash': 'aed5c623856552ad33861b7bb7e39d47',
-                    'is_toplevel': True,
-                    'composite_type': [
-                        'a9dea78180588431ec64d6bc4872fdbc',
-                        '99e9bae675b12967251c175696f00a70',
-                        '46bdd2ce40657500dcb21ca51d22b29f'
-                    ],
-                    'named_type': 'Similarity',
-                    'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc',
-                    'key_0': 'bd497eb24420dd50fed5f3d2e6cdd7c1',
-                    'key_1': 'a1fb3a4de5c459bfa4bd87dc423019c3'
-                },
-            ],}
-        
-        o = {    
-            'outgoing_set': [
-                {
-                    'outgoing_set:062558af0dc7bd964acec001e694c984': [
-                        [   
-                           'a1fb3a4de5c459bfa4bd87dc423019c3',
-                           'bd497eb24420dd50fed5f3d2e6cdd7c1'
-                        ]
-                    ],
-                    'outgoing_set:3afd51603c2d1b64c5b9455ec5a8c166': [
-                        [   
-                           'd1ec11ec366a1deb24a079dc39863c68',
-                           'c90242e2dbece101813762cc2a83d726'
-                        ]
-                    ]
-                }
-            ],
-        #     'incomming_set': [
-        #         {
-        #             'incomming_set:e2d9b15ab3461228d75502e754137caa': [
-        #                 [   
-        #                    'b40e1aa0ffb4b30df8b08e1b70554cfa',
-        #                    '2b8838a60dcc3be433c258d61f62a215',
-        #                    'be02e317942f1c218dfaeb1ca22c5722',
-        #                    '51266232a5ebdf68da3f237bc9462277',
-        #                    '062558af0dc7bd964acec001e694c984',
-        #                 ]
-        #             ],
-        #             'incomming_set:d1ec11ec366a1deb24a079dc39863c68': [
-        #                 [   
-        #                    '3afd51603c2d1b64c5b9455ec5a8c166',
-        #                    '85366aa321bd5a01774da82563460bc1'
-        #                 ]
-        #             ]
-        #         }
-        #     ],
-        #     'patterns': [
-        #         {
-        #             'patterns:7d51188687cfbc9dbbf0470f9a4e87d2': [
-        #                 '��n� bcd9571e92e117d511052270c94ffb17�� a1fb3a4de5c459bfa4bd87dc423019c3�� bd497eb24420dd50fed5f3d2e6cdd7c1�����.'
-        #             ]
-        #         }
-        #     ],
-        #     'templates': [
-        #         {
-        #            'templates:23884923c039ec963b4b9939eb6fa660': [
-        #                '0cc896470995bd4187a844163b6f1012',
-        #                 [   
-        #                    '26a3ccbc2d2c83e0e39a01e0eccc4fd1',
-        #                    'e40489cd1e7102e35469c937e05c8bba'
-        #                 ]
-        #             ]
-        #         }
-        #     ],
-        #     'names': {
-        #         'names:bdfe4e7a431f73386f37c6448afe5840': 'mammal',
-        #         'names:af12f10f9ae2002a1607ba0b47ba8407': 'human',
-        #         'names:80aff30094874e75028033a38ce677bb': 'plant',
-        #     }
-        # }
-        
-
-
-
-"""
-
 
 class InMemoryDB(IAtomDB):
     """A concrete implementation using hashtable (dict)"""
@@ -383,14 +249,8 @@ class InMemoryDB(IAtomDB):
 
         return self.db.node[key]
 
+    @set_is_toplevel
     def add_link(self, link_params: Dict[str, Any]) -> Dict[str, Any]:
-        # temporary_outgoing_set = {}
-        link = self._process_link(link_params)
-        link['is_toplevel'] = True
-        # self._add_incomming_set(temporary_outgoing_set)
-        return link
-
-    def _process_link(self, link_params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Adds a link to the in-memory database.
 
@@ -460,8 +320,8 @@ class InMemoryDB(IAtomDB):
                 self.add_node(target.copy())
             else:
                 # recursion without decorator
-                # self.add_link.__wrapped__(self, target.copy())
-                self._process_link(target.copy())
+                self.add_link.__wrapped__(self, target.copy())
+                # self._process_link(target.copy())
 
         targets_hash = self._calculate_targets_hash(data)
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -494,22 +354,9 @@ class InMemoryDB(IAtomDB):
 
             self._add_atom_type(_name=link_type)
 
-            # Add outgoing_set
-            outgoing_set = self.db.outgoing_set.get(key)
-            if outgoing_set is None:
-                self.db.outgoing_set[key] = targets_hash
-            else:
-                self.db.outgoing_set[key] + targets_hash
+            self._add_outgoing_set(key, targets_hash)
 
-            # Add incoming_set
-            for target_hash in targets_hash:
-                incomming_set = self.db.incomming_set.get(target_hash)
-                if incomming_set is None:
-                    self.db.incomming_set[target_hash] = [key]
-                else:
-                    self.db.incomming_set[target_hash].append(key)
-
-            # outgoing_set.update(self._add_outgoing_set(link_db[key]))
+            self._add_incomming_set(key, targets_hash)
 
         return link_db[key]
 
@@ -550,29 +397,24 @@ class InMemoryDB(IAtomDB):
             self.db.names[key] = _name
         return self.db.names[key]
 
-    def _add_outgoing_set(self, link: Dict[str, Any]) -> Dict[str, list]:
-        outgoing_set_key = link['_id']
-        result = {outgoing_set_key: []}
-        try:
-            self.db.outgoing_set[outgoing_set_key]
-        except KeyError:
-            outsets = []
-            for key, value in link.items():
-                if 'key' in key:
-                    outsets.append(value)
-                    result[outgoing_set_key].append(value)
+    def _add_outgoing_set(
+        self, key: str, targets_hash: Dict[str, Any]
+    ) -> None:
+        outgoing_set = self.db.outgoing_set.get(key)
+        if outgoing_set is None:
+            self.db.outgoing_set[key] = targets_hash
+        else:
+            self.db.outgoing_set[key] + targets_hash
 
-            self.db.outgoing_set[outgoing_set_key] = outsets
-
-        return result
-
-    def _add_incomming_set(self, outgoing_set: Dict[str, Any]) -> None:
-        for key, values in outgoing_set.items():
-            for value in values:
-                if value not in self.db.incomming_set:
-                    self.db.incomming_set[value] = [key]
-                else:
-                    self.db.incomming_set[value].append(key)
+    def _add_incomming_set(
+        self, key: str, targets_hash: Dict[str, Any]
+    ) -> None:
+        for target_hash in targets_hash:
+            incomming_set = self.db.incomming_set.get(target_hash)
+            if incomming_set is None:
+                self.db.incomming_set[target_hash] = [key]
+            else:
+                self.db.incomming_set[target_hash].append(key)
 
     def _add_templates(self):
         pass
@@ -631,139 +473,3 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
-
-
-if __name__ == '__main__':
-    db = InMemoryDB()
-
-    data1 = {
-        'type': 'Evaluation',
-        'targets': [
-            {'type': 'Predicate', 'name': 'Predicate:has_name'},
-            {
-                'type': 'Evaluation',
-                'targets': [
-                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
-                    {
-                        'targets': [
-                            {
-                                'type': 'Reactome',
-                                'name': 'Reactome:R-HSA-164843',
-                            },
-                            {
-                                'type': 'Concept',
-                                'name': 'Concept:2-LTR circle formation',
-                            },
-                        ],
-                        'type': 'Set',
-                    },
-                ],
-            },
-        ],
-    }
-
-    data2 = {
-        'type': 'Similarity',
-        'targets': [
-            {'type': 'Concept', 'name': 'human'},
-            {'type': 'Concept', 'name': 'monkey'},
-        ],
-    }
-
-    node_1 = {'type': 'Concept', 'name': 'human'}
-    node_2 = {'type': 'Concept', 'name': 'monkey'}
-    node_3 = {'type': 'Concept', 'name': 'chimp'}
-    node_4 = {'type': 'Concept', 'name': 'snake'}
-    node_5 = {'type': 'Concept', 'name': 'earthworm'}
-    node_6 = {'type': 'Concept', 'name': 'rhino'}
-    node_7 = {'type': 'Concept', 'name': 'triceratops'}
-    node_8 = {'type': 'Concept', 'name': 'vine'}
-    node_9 = {'type': 'Concept', 'name': 'ent'}
-    node_10 = {'type': 'Concept', 'name': 'mammal'}
-    node_11 = {'type': 'Concept', 'name': 'animal'}
-    node_12 = {'type': 'Concept', 'name': 'reptile'}
-    node_13 = {'type': 'Concept', 'name': 'dinosaur'}
-    node_14 = {'type': 'Concept', 'name': 'plant'}
-
-    link_1 = {'type': 'Similarity', 'targets': [node_1, node_2]}
-    link_2 = {'type': 'Similarity', 'targets': [node_1, node_3]}
-    link_3 = {'type': 'Similarity', 'targets': [node_3, node_2]}
-    link_4 = {'type': 'Similarity', 'targets': [node_4, node_5]}
-    link_5 = {'type': 'Similarity', 'targets': [node_6, node_7]}
-    link_6 = {'type': 'Similarity', 'targets': [node_4, node_8]}
-    link_7 = {'type': 'Similarity', 'targets': [node_1, node_9]}
-    link_8 = {'type': 'Inheritance', 'targets': [node_1, node_10]}
-    link_9 = {'type': 'Inheritance', 'targets': [node_2, node_10]}
-    link_10 = {'type': 'Inheritance', 'targets': [node_3, node_10]}
-    link_11 = {'type': 'Inheritance', 'targets': [node_10, node_11]}
-    link_12 = {'type': 'Inheritance', 'targets': [node_12, node_11]}
-    link_13 = {'type': 'Inheritance', 'targets': [node_4, node_12]}
-    link_14 = {'type': 'Inheritance', 'targets': [node_13, node_12]}
-    link_15 = {'type': 'Inheritance', 'targets': [node_7, node_13]}
-    link_16 = {'type': 'Inheritance', 'targets': [node_5, node_11]}
-    link_17 = {'type': 'Inheritance', 'targets': [node_6, node_10]}
-    link_18 = {'type': 'Inheritance', 'targets': [node_8, node_14]}
-    link_19 = {'type': 'Inheritance', 'targets': [node_9, node_14]}
-    link_20 = {'type': 'Similarity', 'targets': [node_2, node_1]}
-    link_21 = {'type': 'Similarity', 'targets': [node_3, node_1]}
-    link_22 = {'type': 'Similarity', 'targets': [node_2, node_3]}
-    link_23 = {'type': 'Similarity', 'targets': [node_5, node_4]}
-    link_24 = {'type': 'Similarity', 'targets': [node_7, node_6]}
-    link_25 = {'type': 'Similarity', 'targets': [node_8, node_4]}
-    link_26 = {'type': 'Similarity', 'targets': [node_9, node_1]}
-
-    all_nodes = [
-        node_1,
-        node_2,
-        node_3,
-        node_4,
-        node_5,
-        node_6,
-        node_7,
-        node_8,
-        node_9,
-        node_10,
-        node_11,
-        node_12,
-        node_13,
-        node_14,
-    ]
-    all_links = [
-        link_1,
-        link_2,
-        link_3,
-        link_4,
-        link_5,
-        link_6,
-        link_7,
-        link_8,
-        link_9,
-        link_10,
-        link_11,
-        link_12,
-        link_13,
-        link_14,
-        link_15,
-        link_16,
-        link_17,
-        link_18,
-        link_19,
-        link_20,
-        link_21,
-        link_22,
-        link_23,
-        link_24,
-        link_25,
-        link_26,
-    ]
-
-    for node in all_nodes:
-        db.add_node(node)
-
-    for link in all_links:
-        db.add_link(link)
-    # db.add_link(data1)
-
-    incoming_set = db.db.incomming_set
-
-    print('Acabou')
