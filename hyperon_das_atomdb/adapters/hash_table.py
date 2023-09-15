@@ -14,6 +14,7 @@ from hyperon_das_atomdb.i_database import (
 )
 from hyperon_das_atomdb.utils.decorators import set_is_toplevel
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils.patterns import build_patern_keys
 
 
 class InMemoryDB(IAtomDB):
@@ -363,6 +364,12 @@ class InMemoryDB(IAtomDB):
                 targets_hash,
             )
 
+            self._add_patterns(
+                link_db[key]['named_type_hash'],
+                link_db[key]['_id'],
+                targets_hash,
+            )
+
         return link_db[key]
 
     def _add_atom_type(
@@ -443,8 +450,17 @@ class InMemoryDB(IAtomDB):
         else:
             self.db.templates[named_type_hash] = [[key, targets_hash]]
 
-    def _add_patterns(self, link: Dict[str, Any]):
-        pass
+    def _add_patterns(
+        self, named_type_hash: str, key: str, targets_hash: List[str]
+    ):
+        pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
+
+        for pattern_key in pattern_keys:
+            pattern_key_hash = self.db.patterns.get(pattern_key)
+            if pattern_key_hash is not None:
+                pattern_key_hash.append([key, targets_hash])
+            else:
+                self.db.patterns[pattern_key] = [[key, targets_hash]]
 
     def _calculate_composite_type(self, data) -> list:
         composite_type = []
