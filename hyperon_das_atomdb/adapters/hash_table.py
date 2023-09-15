@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Union
 
-from hyperon_das_atomdb.constants.redis_mongo_db import MongoFieldNames
 from hyperon_das_atomdb.entity import Database, Link
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -321,7 +320,6 @@ class InMemoryDB(IAtomDB):
             else:
                 # recursion without decorator
                 self.add_link.__wrapped__(self, target.copy())
-                # self._process_link(target.copy())
 
         targets_hash = self._calculate_targets_hash(data)
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -357,6 +355,13 @@ class InMemoryDB(IAtomDB):
             self._add_outgoing_set(key, targets_hash)
 
             self._add_incomming_set(key, targets_hash)
+
+            self._add_templates(
+                link_db[key]['composite_type_hash'],
+                link_db[key]['named_type_hash'],
+                link_db[key]['_id'],
+                targets_hash,
+            )
 
         return link_db[key]
 
@@ -416,10 +421,29 @@ class InMemoryDB(IAtomDB):
             else:
                 self.db.incomming_set[target_hash].append(key)
 
-    def _add_templates(self):
-        pass
+    def _add_templates(
+        self,
+        composite_type_hash: str,
+        named_type_hash: str,
+        key: str,
+        targets_hash: List[str],
+    ) -> None:
+        template_composite_type_hash = self.db.templates.get(
+            composite_type_hash
+        )
+        template_named_type_hash = self.db.templates.get(named_type_hash)
 
-    def _add_patterns(self):
+        if template_composite_type_hash is not None:
+            template_composite_type_hash.append([key, targets_hash])
+        else:
+            self.db.templates[composite_type_hash] = [[key, targets_hash]]
+
+        if template_named_type_hash is not None:
+            template_named_type_hash.append([key, targets_hash])
+        else:
+            self.db.templates[named_type_hash] = [[key, targets_hash]]
+
+    def _add_patterns(self, link: Dict[str, Any]):
         pass
 
     def _calculate_composite_type(self, data) -> list:
