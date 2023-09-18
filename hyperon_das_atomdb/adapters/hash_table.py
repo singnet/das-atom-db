@@ -36,17 +36,6 @@ class InMemoryDB(IAtomDB):
             names={},
         )
 
-    def _create_node_handle(self, node_type: str, node_name: str) -> str:
-        return ExpressionHasher.terminal_hash(node_type, node_name)
-
-    def _create_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
-        named_type_hash = ExpressionHasher.named_type_hash(link_type)
-        return ExpressionHasher.expression_hash(
-            named_type_hash, target_handles
-        )
-
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self._create_node_handle(node_type, node_name)
         try:
@@ -143,18 +132,6 @@ class InMemoryDB(IAtomDB):
                 for key, value in self.db.node.items()
                 if value['composite_type_hash'] == node_type_hash
             ]
-
-    def _build_named_type_hash_template(
-        self, template: Union[str, List[Any]]
-    ) -> List[Any]:
-        if isinstance(template, str):
-            return self._get_atom_type_hash(template)
-        else:
-            answer = [
-                self._build_named_type_hash_template(element)
-                for element in template
-            ]
-            return answer
 
     def get_matched_type_template(self, template: List[Any]) -> List[str]:
         template = self._build_named_type_hash_template(template)
@@ -382,6 +359,29 @@ class InMemoryDB(IAtomDB):
 
         return link_db[key]
 
+    def _create_node_handle(self, node_type: str, node_name: str) -> str:
+        return ExpressionHasher.terminal_hash(node_type, node_name)
+
+    def _create_link_handle(
+        self, link_type: str, target_handles: List[str]
+    ) -> str:
+        named_type_hash = ExpressionHasher.named_type_hash(link_type)
+        return ExpressionHasher.expression_hash(
+            named_type_hash, target_handles
+        )
+
+    def _build_named_type_hash_template(
+        self, template: Union[str, List[Any]]
+    ) -> List[Any]:
+        if isinstance(template, str):
+            return ExpressionHasher.named_type_hash(template)
+        else:
+            answer = [
+                self._build_named_type_hash_template(element)
+                for element in template
+            ]
+            return answer
+
     def _add_atom_type(
         self, _name: str, _type: Optional[str] = 'Type'
     ) -> Dict[str, Any]:
@@ -451,14 +451,20 @@ class InMemoryDB(IAtomDB):
         template_named_type_hash = self.db.templates.get(named_type_hash)
 
         if template_composite_type_hash is not None:
-            template_composite_type_hash.append([key, targets_hash])
+            # template_composite_type_hash.append([key, targets_hash])
+            template_composite_type_hash.append((key, tuple(targets_hash)))
         else:
-            self.db.templates[composite_type_hash] = [[key, targets_hash]]
+            # self.db.templates[composite_type_hash] = [[key, targets_hash]]
+            self.db.templates[composite_type_hash] = [
+                (key, tuple(targets_hash))
+            ]
 
         if template_named_type_hash is not None:
-            template_named_type_hash.append([key, targets_hash])
+            # template_named_type_hash.append([key, targets_hash])
+            template_named_type_hash.append((key, tuple(targets_hash)))
         else:
-            self.db.templates[named_type_hash] = [[key, targets_hash]]
+            # self.db.templates[named_type_hash] = [[key, targets_hash]]
+            self.db.templates[named_type_hash] = [(key, tuple(targets_hash))]
 
     def _add_patterns(
         self, named_type_hash: str, key: str, targets_hash: List[str]
@@ -468,9 +474,11 @@ class InMemoryDB(IAtomDB):
         for pattern_key in pattern_keys:
             pattern_key_hash = self.db.patterns.get(pattern_key)
             if pattern_key_hash is not None:
-                pattern_key_hash.append([key, targets_hash])
+                # pattern_key_hash.append([key, targets_hash])
+                pattern_key_hash.append((key, tuple(targets_hash)))
             else:
-                self.db.patterns[pattern_key] = [[key, targets_hash]]
+                # self.db.patterns[pattern_key] = [[key, targets_hash]]
+                self.db.patterns[pattern_key] = [(key, tuple(targets_hash))]
 
     def _calculate_composite_type(self, data) -> list:
         composite_type = []
@@ -523,262 +531,3 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
-
-
-if __name__ == '__main__':
-    db = InMemoryDB()
-
-    data1 = {
-        'type': 'Evaluation',
-        'targets': [
-            {'type': 'Predicate', 'name': 'Predicate:has_name'},
-            {
-                'type': 'Evaluation',
-                'targets': [
-                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
-                    {
-                        'targets': [
-                            {
-                                'type': 'Reactome',
-                                'name': 'Reactome:R-HSA-164843',
-                            },
-                            {
-                                'type': 'Concept',
-                                'name': 'Concept:2-LTR circle formation',
-                            },
-                        ],
-                        'type': 'Set',
-                    },
-                ],
-            },
-        ],
-    }
-
-    data2 = {
-        'type': 'Similarity',
-        'targets': [
-            {'type': 'Concept', 'name': 'human'},
-            {'type': 'Concept', 'name': 'monkey'},
-        ],
-    }
-
-    all_nodes = [
-        {'type': 'Concept', 'name': 'human'},
-        {'type': 'Concept', 'name': 'monkey'},
-        {'type': 'Concept', 'name': 'chimp'},
-        {'type': 'Concept', 'name': 'snake'},
-        {'type': 'Concept', 'name': 'earthworm'},
-        {'type': 'Concept', 'name': 'rhino'},
-        {'type': 'Concept', 'name': 'triceratops'},
-        {'type': 'Concept', 'name': 'vine'},
-        {'type': 'Concept', 'name': 'ent'},
-        {'type': 'Concept', 'name': 'mammal'},
-        {'type': 'Concept', 'name': 'animal'},
-        {'type': 'Concept', 'name': 'reptile'},
-        {'type': 'Concept', 'name': 'dinosaur'},
-        {'type': 'Concept', 'name': 'plant'},
-    ]
-
-    all_links = [
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'human'},
-                {'type': 'Concept', 'name': 'monkey'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'human'},
-                {'type': 'Concept', 'name': 'chimp'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'chimp'},
-                {'type': 'Concept', 'name': 'monkey'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'snake'},
-                {'type': 'Concept', 'name': 'earthworm'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'rhino'},
-                {'type': 'Concept', 'name': 'triceratops'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'snake'},
-                {'type': 'Concept', 'name': 'vine'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'human'},
-                {'type': 'Concept', 'name': 'ent'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'human'},
-                {'type': 'Concept', 'name': 'mammal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'monkey'},
-                {'type': 'Concept', 'name': 'mammal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'chimp'},
-                {'type': 'Concept', 'name': 'mammal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'mammal'},
-                {'type': 'Concept', 'name': 'animal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'reptile'},
-                {'type': 'Concept', 'name': 'animal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'snake'},
-                {'type': 'Concept', 'name': 'reptile'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'dinosaur'},
-                {'type': 'Concept', 'name': 'reptile'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'triceratops'},
-                {'type': 'Concept', 'name': 'dinosaur'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'earthworm'},
-                {'type': 'Concept', 'name': 'animal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'rhino'},
-                {'type': 'Concept', 'name': 'mammal'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'vine'},
-                {'type': 'Concept', 'name': 'plant'},
-            ],
-        },
-        {
-            'type': 'Inheritance',
-            'targets': [
-                {'type': 'Concept', 'name': 'ent'},
-                {'type': 'Concept', 'name': 'plant'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'monkey'},
-                {'type': 'Concept', 'name': 'human'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'chimp'},
-                {'type': 'Concept', 'name': 'human'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'monkey'},
-                {'type': 'Concept', 'name': 'chimp'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'earthworm'},
-                {'type': 'Concept', 'name': 'snake'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'triceratops'},
-                {'type': 'Concept', 'name': 'rhino'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'vine'},
-                {'type': 'Concept', 'name': 'snake'},
-            ],
-        },
-        {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'ent'},
-                {'type': 'Concept', 'name': 'human'},
-            ],
-        },
-    ]
-
-    for node in all_nodes:
-        db.add_node(node)
-
-    for link in all_links:
-        db.add_link(link)
-
-    # db.add_link(data1)
-    # db.add_link(data2)
-    atoms_type = db.db.atom_type
-    nodes = db.db.node
-    links = db.db.link.arity_2
-    names = db.db.names
-    outgoing_set = db.db.outgoing_set
-    incomming_set = db.db.incomming_set
-    templates = db.db.templates
-    patterns = db.db.patterns
-
-    print('Acabou')

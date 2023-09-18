@@ -5,7 +5,7 @@ test:
 	@pytest -v
 
 test-coverage:
-	@py.test -sx ./tests --cov=./hyperon_das_atomdb/ --cov-report=term-missing --cov-report=xml --cov-fail-under=90 --cov-report=html:coverage_reports/all
+	@py.test -sx ./tests --cov=./hyperon_das_atomdb/ --cov-report=term-missing --cov-fail-under=90
 
 isort:
 	@isort ./hyperon_das_atomdb --multi-line=3 --trailing-comma --force-grid-wrap=0 --use-parentheses --line-width=79

@@ -2977,7 +2977,7 @@ class TestRedisMongoDB:
         human = database.get_node_handle('Concept', 'human')
         mammal = database.get_node_handle('Concept', 'mammal')
         handle = database.get_link_handle('Inheritance', [human, mammal])
-        database.get_link_targets(handle)
+        assert database.get_link_targets(handle)
 
     def test_get_link_targets_invalid(self, database):
         human = database.get_node_handle('Concept', 'human')

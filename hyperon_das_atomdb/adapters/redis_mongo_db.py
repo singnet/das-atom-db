@@ -50,7 +50,6 @@ class NodeDocuments:
         else:
             mongo_filter = {MongoFieldNames.ID_HASH: handle}
             node = self.mongo_collection.find_one(mongo_filter)
-            print(f'\n\n++>>node:{node}')
             return node if node else default_value
 
     def size(self):
@@ -460,7 +459,6 @@ class RedisMongoDB(IAtomDB):
             self.node_documents.get(handle, None) if arity <= 0 else None
         )
         if document is None:
-            print("\n\nHERE-1")
             document = self._retrieve_mongo_document(handle, arity)
             if document:
                 answer["handle"] = document[MongoFieldNames.ID_HASH]
@@ -480,8 +478,6 @@ class RedisMongoDB(IAtomDB):
 
     def get_link_type(self, link_handle: str) -> str:
         if USE_CACHED_LINK_TYPES:
-            print('>>>>>>>>>>>>>>>>>>>>AQUI')
-            print(f'elf.link_type_cache: {self.link_type_cache}')
             ret = self.link_type_cache[link_handle]
             return ret
         else:
