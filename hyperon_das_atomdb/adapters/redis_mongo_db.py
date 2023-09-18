@@ -137,8 +137,7 @@ class RedisMongoDB(IAtomDB):
 
         try:
             self.mongo_db = MongoClient(
-                f'mongodb://{mongo_username}:{mongo_password}@ '
-                f'{mongo_hostname}:{mongo_port}'
+                f'mongodb://{mongo_username}:{mongo_password}@{mongo_hostname}:{mongo_port}'
             )[self.database_name]
             return self.mongo_db
         except ValueError as e:

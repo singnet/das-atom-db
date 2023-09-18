@@ -17,6 +17,7 @@ pip install hyperon-das
 We use the [Poetry](https://python-poetry.org/) package to manage project dependencies and other things. So, if you have Poetry on your machine, you can run the commands below to prepare your environment
 
 **1. poetry install**
+
 **2. poetry shell** (activate virtual environment)
 
 ### Prepare environment
