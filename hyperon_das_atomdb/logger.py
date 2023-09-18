@@ -18,7 +18,8 @@ class Logger:
             raise Exception("Invalid re-instantiation of Logger")
         else:
             print(
-                f"Log initialized <Hyperon DAS AtomDB>. Log file: {LOG_FILE_NAME}"
+                "Log initialized <Hyperon DAS AtomDB>. "
+                f"Log file: {LOG_FILE_NAME}"
             )
             logging.basicConfig(
                 filename=LOG_FILE_NAME,

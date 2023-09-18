@@ -20,6 +20,9 @@ from hyperon_das_atomdb.utils.patterns import build_patern_keys
 class InMemoryDB(IAtomDB):
     """A concrete implementation using hashtable (dict)"""
 
+    def __repr__(self) -> str:
+        return "<Atom database InMemory>"  # pragma no cover
+
     def __init__(self, database_name: str = 'das') -> None:
         self.database_name = database_name
         self.db: Database = Database(
@@ -51,7 +54,7 @@ class InMemoryDB(IAtomDB):
             return node_handle
         except KeyError:
             raise NodeDoesNotExistException(
-                message=f'This node does not exist',
+                message='This node does not exist',
                 details=f'{node_type}:{node_name}',
             )
 
@@ -73,7 +76,7 @@ class InMemoryDB(IAtomDB):
             return link_handle
         except KeyError:
             raise LinkDoesNotExistException(
-                message=f'This link does not exist',
+                message='This link does not exist',
                 details=f'{link_type}:{target_handles}',
             )
 
@@ -90,7 +93,7 @@ class InMemoryDB(IAtomDB):
             return answer
         except KeyError:
             raise LinkDoesNotExistException(
-                message=f'This link does not exist',
+                message='This link does not exist',
                 details=f'link_handle: {link_handle}',
             )
 
@@ -168,7 +171,7 @@ class InMemoryDB(IAtomDB):
             return node['name']
         except KeyError:
             raise NodeDoesNotExistException(
-                message=f'This node does not exist',
+                message='This node does not exist',
                 details=f'node_handle: {node_handle}',
             )
 
@@ -193,8 +196,8 @@ class InMemoryDB(IAtomDB):
         'name' fields in the node_params dictionary.
 
         Args:
-            node_params (Dict[str, Any]): A dictionary containing node parameters.
-                It should have the following keys:
+            node_params (Dict[str, Any]): A dictionary containing
+                node parameters. It should have the following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
@@ -254,11 +257,14 @@ class InMemoryDB(IAtomDB):
         """
         Adds a link to the in-memory database.
 
-        This method allows to add a link to the database with the specified link parameters.
-        A link must have a 'type' and 'targets' field in the link_params dictionary.
+        This method allows to add a link to the database with the specified
+            link parameters.
+        A link must have a 'type' and 'targets' field
+            in the link_params dictionary.
 
         Args:
-            link_params (Dict[str, Any]): A dictionary containing link parameters.
+            link_params (Dict[str, Any]): A dictionary containing
+                link parameters.
                 It should have the following keys:
                 - 'type': The type of the link.
                 - 'targets': A list of target elements.
@@ -268,12 +274,16 @@ class InMemoryDB(IAtomDB):
                 including its unique key and other details.
 
         Raises:
-            AddLinkException: If the 'type' or 'targets' fields are missing in link_params.
+            AddLinkException: If the 'type' or 'targets' fields
+                are missing in link_params.
 
         Note:
-            This method supports recursion when a target element itself contains links.
-            It calculates a unique key for the link based on its type and targets.
-            If a link with the same key already exists, it just returns the link.
+            This method supports recursion when a target element
+                itself contains links.
+            It calculates a unique key for the link based on
+                its type and targets.
+            If a link with the same key already exists,
+                it just returns the link.
 
         Example:
             To add a link, use this method like this:
@@ -483,7 +493,7 @@ class InMemoryDB(IAtomDB):
         target_type = data['type']
         target_name = data.get('name')
 
-        if not 'targets' in data:
+        if 'targets' not in data:
             return ExpressionHasher.terminal_hash(target_type, target_name)
 
         if 'targets' in data:
@@ -513,3 +523,262 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
+
+
+if __name__ == '__main__':
+    db = InMemoryDB()
+
+    data1 = {
+        'type': 'Evaluation',
+        'targets': [
+            {'type': 'Predicate', 'name': 'Predicate:has_name'},
+            {
+                'type': 'Evaluation',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'targets': [
+                            {
+                                'type': 'Reactome',
+                                'name': 'Reactome:R-HSA-164843',
+                            },
+                            {
+                                'type': 'Concept',
+                                'name': 'Concept:2-LTR circle formation',
+                            },
+                        ],
+                        'type': 'Set',
+                    },
+                ],
+            },
+        ],
+    }
+
+    data2 = {
+        'type': 'Similarity',
+        'targets': [
+            {'type': 'Concept', 'name': 'human'},
+            {'type': 'Concept', 'name': 'monkey'},
+        ],
+    }
+
+    all_nodes = [
+        {'type': 'Concept', 'name': 'human'},
+        {'type': 'Concept', 'name': 'monkey'},
+        {'type': 'Concept', 'name': 'chimp'},
+        {'type': 'Concept', 'name': 'snake'},
+        {'type': 'Concept', 'name': 'earthworm'},
+        {'type': 'Concept', 'name': 'rhino'},
+        {'type': 'Concept', 'name': 'triceratops'},
+        {'type': 'Concept', 'name': 'vine'},
+        {'type': 'Concept', 'name': 'ent'},
+        {'type': 'Concept', 'name': 'mammal'},
+        {'type': 'Concept', 'name': 'animal'},
+        {'type': 'Concept', 'name': 'reptile'},
+        {'type': 'Concept', 'name': 'dinosaur'},
+        {'type': 'Concept', 'name': 'plant'},
+    ]
+
+    all_links = [
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'monkey'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'chimp'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'monkey'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'earthworm'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'rhino'},
+                {'type': 'Concept', 'name': 'triceratops'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'vine'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'ent'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'mammal'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'reptile'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'reptile'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'dinosaur'},
+                {'type': 'Concept', 'name': 'reptile'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'triceratops'},
+                {'type': 'Concept', 'name': 'dinosaur'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'earthworm'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'rhino'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'vine'},
+                {'type': 'Concept', 'name': 'plant'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'ent'},
+                {'type': 'Concept', 'name': 'plant'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'chimp'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'earthworm'},
+                {'type': 'Concept', 'name': 'snake'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'triceratops'},
+                {'type': 'Concept', 'name': 'rhino'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'vine'},
+                {'type': 'Concept', 'name': 'snake'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'ent'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+    ]
+
+    for node in all_nodes:
+        db.add_node(node)
+
+    for link in all_links:
+        db.add_link(link)
+
+    # db.add_link(data1)
+    # db.add_link(data2)
+    atoms_type = db.db.atom_type
+    nodes = db.db.node
+    links = db.db.link.arity_2
+    names = db.db.names
+    outgoing_set = db.db.outgoing_set
+    incomming_set = db.db.incomming_set
+    templates = db.db.templates
+    patterns = db.db.patterns
+
+    print('Acabou')

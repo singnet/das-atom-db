@@ -38,7 +38,8 @@ class ExpressionHasher:
                 )
         else:
             raise ValueError(
-                f"Invalid base to compute composite hash: {type(hash_base)}: {hash_base}"
+                "Invalid base to compute composite hash: "
+                f"{type(hash_base)}: {hash_base}"
             )
 
 

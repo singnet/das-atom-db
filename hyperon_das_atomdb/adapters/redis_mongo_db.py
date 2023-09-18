@@ -71,6 +71,9 @@ class NodeDocuments:
 class RedisMongoDB(IAtomDB):
     """A concrete implementation using Redis and Mongo database"""
 
+    def __repr__(self) -> str:
+        return "<Atom database RedisMongo>"  # pragma no cover
+
     def __init__(self, database_name: str = 'das') -> None:
         """
         Initialize an instance of a custom class with Redis
@@ -135,7 +138,8 @@ class RedisMongoDB(IAtomDB):
 
         try:
             self.mongo_db = MongoClient(
-                f'mongodb://{mongo_username}:{mongo_password}@{mongo_hostname}:{mongo_port}'
+                f'mongodb://{mongo_username}:{mongo_password}@ '
+                f'{mongo_hostname}:{mongo_port}'
             )[self.database_name]
             return self.mongo_db
         except ValueError as e:
@@ -156,7 +160,8 @@ class RedisMongoDB(IAtomDB):
             )
         else:
             logger().info(
-                f"Connecting to standalone Redis at {redis_hostname}:{redis_port}"
+                "Connecting to standalone Redis at "
+                f"{redis_hostname}:{redis_port}"
             )
             self.redis = Redis(
                 host=redis_hostname, port=redis_port, decode_responses=False
@@ -187,8 +192,8 @@ class RedisMongoDB(IAtomDB):
         if USE_CACHED_NODES:
             for document in self.mongo_nodes_collection.find():
                 node_id = document[MongoFieldNames.ID_HASH]
-                node_type = document[MongoFieldNames.TYPE_NAME]
-                node_name = document[MongoFieldNames.NODE_NAME]
+                document[MongoFieldNames.TYPE_NAME]
+                document[MongoFieldNames.NODE_NAME]
                 self.node_documents.add(node_id, document)
         else:
             self.node_documents.count = (
@@ -342,7 +347,7 @@ class RedisMongoDB(IAtomDB):
             return document['_id']
         else:
             raise NodeDoesNotExistException(
-                message=f'This node does not exist',
+                message='This node does not exist',
                 details=f'{node_type}:{node_name}',
             )
 
@@ -357,7 +362,7 @@ class RedisMongoDB(IAtomDB):
             return document['_id']
         else:
             raise LinkDoesNotExistException(
-                message=f'This link does not exist',
+                message='This link does not exist',
                 details=f'{link_type}:{target_handles}',
             )
 
