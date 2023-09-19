@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from hyperon_das_atomdb.entity import Database, Link
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
     AddNodeException,
+    AtomDoesNotExistException,
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
@@ -163,6 +164,70 @@ class InMemoryDB(IAtomDB):
             if substring in value['name']
             and node_type_hash == value['composite_type_hash']
         ]
+
+    def count_atoms(self) -> Tuple[int, int]:
+        nodes = self.db.node
+        links = self.db.link.all_arities()
+        return (len(nodes), len(links))
+
+    def get_atom_as_dict(
+        self, handle: str, arity: Optional[int] = 0
+    ) -> Dict[str, Any]:
+        try:
+            node = self.db.node[handle]
+            return {
+                'handle': node['_id'],
+                'type': node['named_type'],
+                'name': node['name'],
+            }
+        except KeyError:
+            try:
+                if arity > 0:
+                    arity_link = self.db.link.get_arity(arity)
+                else:
+                    arity_link = self.db.link.all_arities()
+
+                link = arity_link[handle]
+                return {
+                    'handle': link['_id'],
+                    'type': link['named_type'],
+                    'template': self._build_named_type_template(
+                        link['composite_type']
+                    ),
+                    'targets': self.get_link_targets(link['_id']),
+                }
+            except KeyError:
+                raise AtomDoesNotExistException(
+                    message='This atom does not exist',
+                    details=f'handle: {handle}',
+                )
+
+    def get_atom_as_deep_representation(
+        self, handle: str, arity: Optional[int] = 0
+    ) -> Dict[str, Any]:
+        try:
+            node = self.db.node[handle]
+            return {'type': node['named_type'], 'name': node['name']}
+        except KeyError:
+            try:
+                if arity > 0:
+                    arity_link = self.db.link.get_arity(arity)
+                else:
+                    arity_link = self.db.link.all_arities()
+
+                link = arity_link[handle]
+                return {
+                    'type': link['named_type'],
+                    'targets': [
+                        self.get_atom_as_deep_representation(target)
+                        for target in self.get_link_targets(link['_id'])
+                    ],
+                }
+            except KeyError:
+                raise AtomDoesNotExistException(
+                    message='This atom does not exist',
+                    details=f'handle: {handle}',
+                )
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -376,11 +441,24 @@ class InMemoryDB(IAtomDB):
         if isinstance(template, str):
             return ExpressionHasher.named_type_hash(template)
         else:
-            answer = [
+            return [
                 self._build_named_type_hash_template(element)
                 for element in template
             ]
-            return answer
+
+    def _build_named_type_template(
+        self, composite_type: Union[str, List[Any]]
+    ) -> List[Any]:
+        if isinstance(composite_type, str):
+            for key, values in self.db.atom_type.items():
+                if values['named_type_hash'] == composite_type:
+                    return values['named_type']
+            return ''
+        else:
+            return [
+                self._build_named_type_template(element)
+                for element in composite_type
+            ]
 
     def _add_atom_type(
         self, _name: str, _type: Optional[str] = 'Type'

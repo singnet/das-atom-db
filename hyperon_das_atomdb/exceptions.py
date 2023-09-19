@@ -22,6 +22,10 @@ class LinkDoesNotExistException(BaseException):
     ...  # pragma no cover
 
 
+class AtomDoesNotExistException(BaseException):
+    ...  # pragma no cover
+
+
 class AddNodeException(BaseException):
     ...  # pragma no cover
 
