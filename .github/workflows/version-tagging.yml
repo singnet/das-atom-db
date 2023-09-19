@@ -1,0 +1,20 @@
+name: Version Tagging
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag"
+        required: true
+
+jobs:
+  tag:
+    uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
+    with:
+      version: ${{ github.event.inputs.version }}
+      version-strategy: bump-version-from-variable-value
+      job-image-namespace: trueagi
+      job-image-version-semver: semantic-versioning
+      main-branch: master
+      version-tag-regex-pattern: /^v\d+\.\d+\.\d+$/
+      version-require-confirmation: "true"
