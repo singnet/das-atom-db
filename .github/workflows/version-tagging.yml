@@ -6,6 +6,10 @@ on:
       version:
         description: "Version to tag"
         required: true
+  workflow_run:
+    workflows: ["Publish to PyPI"]
+    types:
+      - completed
 
 jobs:
   tag:
