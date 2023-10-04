@@ -384,6 +384,18 @@ class TestInMemoryDB:
             database.get_node_name('handle-test')
         assert exc_info.type is NodeDoesNotExistException
         assert exc_info.value.args[0] == "This node does not exist"
+        
+    def test_get_node_type(self, database):
+        handle = database.get_node_handle('Concept', 'monkey')
+        db_type = database.get_node_type(handle)
+
+        assert db_type == 'Concept'
+    
+    def test_get_node_type_error(self, database):
+        with pytest.raises(NodeDoesNotExistException) as exc_info:
+            database.get_node_type('handle-test')
+        assert exc_info.type is NodeDoesNotExistException
+        assert exc_info.value.args[0] == "This node does not exist"
 
     def test_get_matched_node_name(self, database: InMemoryDB):
         expected = sorted(

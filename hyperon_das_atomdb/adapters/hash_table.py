@@ -153,6 +153,16 @@ class InMemoryDB(IAtomDB):
                 details=f'node_handle: {node_handle}',
             )
 
+    def get_node_type(self, node_handle: str) -> str:
+        try:
+            node = self.db.node[node_handle]
+            return node['named_type']
+        except KeyError:
+            raise NodeDoesNotExistException(
+                message='This node does not exist',
+                details=f'node_handle: {node_handle}',
+            )
+
     def get_matched_node_name(
         self, node_type: str, substring: Optional[str] = ''
     ) -> str:
@@ -609,3 +619,216 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
+
+
+if __name__ == '__main__':
+    db = InMemoryDB()
+    all_nodes = [
+        {'type': 'Concept', 'name': 'human'},
+        {'type': 'Concept', 'name': 'monkey'},
+        {'type': 'Concept', 'name': 'chimp'},
+        {'type': 'Concept', 'name': 'snake'},
+        {'type': 'Concept', 'name': 'earthworm'},
+        {'type': 'Concept', 'name': 'rhino'},
+        {'type': 'Concept', 'name': 'triceratops'},
+        {'type': 'Concept', 'name': 'vine'},
+        {'type': 'Concept', 'name': 'ent'},
+        {'type': 'Concept', 'name': 'mammal'},
+        {'type': 'Concept', 'name': 'animal'},
+        {'type': 'Concept', 'name': 'reptile'},
+        {'type': 'Concept', 'name': 'dinosaur'},
+        {'type': 'Concept', 'name': 'plant'},
+    ]
+
+    all_links = [
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'monkey'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'chimp'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'monkey'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'earthworm'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'rhino'},
+                {'type': 'Concept', 'name': 'triceratops'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'vine'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'ent'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'human'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'mammal'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'reptile'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'snake'},
+                {'type': 'Concept', 'name': 'reptile'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'dinosaur'},
+                {'type': 'Concept', 'name': 'reptile'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'triceratops'},
+                {'type': 'Concept', 'name': 'dinosaur'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'earthworm'},
+                {'type': 'Concept', 'name': 'animal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'rhino'},
+                {'type': 'Concept', 'name': 'mammal'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'vine'},
+                {'type': 'Concept', 'name': 'plant'},
+            ],
+        },
+        {
+            'type': 'Inheritance',
+            'targets': [
+                {'type': 'Concept', 'name': 'ent'},
+                {'type': 'Concept', 'name': 'plant'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'chimp'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'monkey'},
+                {'type': 'Concept', 'name': 'chimp'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'earthworm'},
+                {'type': 'Concept', 'name': 'snake'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'triceratops'},
+                {'type': 'Concept', 'name': 'rhino'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'vine'},
+                {'type': 'Concept', 'name': 'snake'},
+            ],
+        },
+        {
+            'type': 'Similarity',
+            'targets': [
+                {'type': 'Concept', 'name': 'ent'},
+                {'type': 'Concept', 'name': 'human'},
+            ],
+        },
+    ]
+
+    for node in all_nodes:
+        db.add_node(node)
+    for link in all_links:
+        db.add_link(link)
+
+    handle = db.get_node_handle('Concept', 'human')
+    db.get_node_type(handle)

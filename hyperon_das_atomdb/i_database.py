@@ -56,6 +56,10 @@ class IAtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
+    def get_node_type(self, node_handle: str) -> str:
+        ...  # pragma no cover
+
+    @abstractmethod
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         ...  # pragma no cover
 
