@@ -153,6 +153,16 @@ class InMemoryDB(IAtomDB):
                 details=f'node_handle: {node_handle}',
             )
 
+    def get_node_type(self, node_handle: str) -> str:
+        try:
+            node = self.db.node[node_handle]
+            return node['named_type']
+        except KeyError:
+            raise NodeDoesNotExistException(
+                message='This node does not exist',
+                details=f'node_handle: {node_handle}',
+            )
+
     def get_matched_node_name(
         self, node_type: str, substring: Optional[str] = ''
     ) -> str:
