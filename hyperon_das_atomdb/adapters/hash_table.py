@@ -434,6 +434,14 @@ class InMemoryDB(IAtomDB):
 
         return link_db[key]
 
+    def targets_is_toplevel(self, target_handles: List[str]) -> bool:
+        for link_handle, targets in self.db.outgoing_set.items():
+            if set(targets) == set(target_handles):
+                arity = len(target_handles)
+                links = self.db.link.get_arity(arity)
+                return links[link_handle]['is_toplevel']
+        return False
+
     def _create_node_handle(self, node_type: str, node_name: str) -> str:
         return ExpressionHasher.terminal_hash(node_type, node_name)
 

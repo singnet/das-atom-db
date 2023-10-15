@@ -69,6 +69,9 @@ class IAtomDB(ABC):
     def add_link(self, link_type: str, targets: List[str]) -> None:
         ...  # pragma no cover
 
+    def targets_is_toplevel(self, target_handles: List[str]) -> bool:
+        ...  # pragma no cover
+
     def get_atom_as_dict(self, handle: str, arity: int):
         ...  # pragma no cover
 

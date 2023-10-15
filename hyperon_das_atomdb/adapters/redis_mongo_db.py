@@ -510,3 +510,20 @@ class RedisMongoDB(IAtomDB):
             self.mongo_db[collection].drop()
 
         self.redis.flushall()
+
+    def targets_is_toplevel(self, target_handles: List[str]) -> bool:
+        answers = self.redis.keys(f'{KeyPrefix.OUTGOING_SET.value}:*')
+
+        if answers:
+            outgoing_sets_keys = [answer.decode() for answer in answers]
+
+            for key in outgoing_sets_keys:
+                members = self.redis.smembers(key)
+                if set([m.decode() for m in members]) == set(target_handles):
+                    handle = key.replace('outgoing_set:', '')
+                    document = self._retrieve_mongo_document(
+                        handle, len(target_handles)
+                    )
+                    return document['is_toplevel']
+
+        return False
