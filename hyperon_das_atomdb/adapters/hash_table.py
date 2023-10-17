@@ -651,29 +651,3 @@ class InMemoryDB(IAtomDB):
             if links[link_handle]['is_toplevel'] == False:
                 matches_copy.remove(match)
         return matches_copy
-
-
-if __name__ == '__main__':
-    api = InMemoryDB()
-    r = api.add_link(
-        {
-            'type': 'Evaluation',
-            'targets': [
-                {'type': 'Predicate', 'name': 'Predicate:has_name'},
-                {
-                    'type': 'Evaluation',
-                    'targets': [
-                        {
-                            'type': 'Reactome',
-                            'name': 'Reactome:R-HSA-164843',
-                        },
-                        {
-                            'type': 'Concept',
-                            'name': 'Concept:2-LTR circle formation',
-                        },
-                    ],
-                },
-            ],
-        }
-    )
-    print(r)
