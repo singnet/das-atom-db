@@ -95,7 +95,10 @@ class InMemoryDB(IAtomDB):
         return False
 
     def get_matched_links(
-        self, link_type: str, target_handles: List[str]
+        self,
+        link_type: str,
+        target_handles: List[str],
+        extra_parameters: Optional[Dict[str, Any]] = None,
     ) -> list:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
@@ -116,7 +119,13 @@ class InMemoryDB(IAtomDB):
             [link_type_hash, *target_handles]
         )
 
-        return self.db.patterns.get(pattern_hash, [])
+        patterns_matched = self.db.patterns.get(pattern_hash, [])
+
+        if len(patterns_matched) > 0:
+            if extra_parameters and extra_parameters.get('only_toplevel'):
+                return self._remove_links_not_toplevel(patterns_matched)
+
+        return patterns_matched
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
@@ -134,14 +143,28 @@ class InMemoryDB(IAtomDB):
                 if value['composite_type_hash'] == node_type_hash
             ]
 
-    def get_matched_type_template(self, template: List[Any]) -> List[str]:
+    def get_matched_type_template(
+        self,
+        template: List[Any],
+        extra_parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[str]:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
-        return self.db.templates.get(template_hash, [])
+        templates_matched = self.db.templates.get(template_hash, [])
+        if len(templates_matched) > 0:
+            if extra_parameters and extra_parameters.get('only_toplevel'):
+                return self._remove_links_not_toplevel(templates_matched)
+        return templates_matched
 
-    def get_matched_type(self, link_type: str) -> List[str]:
+    def get_matched_type(
+        self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        return self.db.templates.get(link_type_hash, [])
+        templates_matched = self.db.templates.get(link_type_hash, [])
+        if len(templates_matched) > 0:
+            if extra_parameters and extra_parameters.get('only_toplevel'):
+                return self._remove_links_not_toplevel(templates_matched)
+        return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
         try:
@@ -434,14 +457,6 @@ class InMemoryDB(IAtomDB):
 
         return link_db[key]
 
-    def targets_is_toplevel(self, target_handles: List[str]) -> bool:
-        for link_handle, targets in self.db.outgoing_set.items():
-            if set(targets) == set(target_handles):
-                arity = len(target_handles)
-                links = self.db.link.get_arity(arity)
-                return links[link_handle]['is_toplevel']
-        return False
-
     def _create_node_handle(self, node_type: str, node_name: str) -> str:
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
@@ -627,3 +642,12 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
+
+    def _remove_links_not_toplevel(self, matches: list) -> list:
+        matches_copy = matches[:]
+        for match in matches:
+            link_handle = match[0]
+            links = self.db.link.get_arity(len(match[-1]))
+            if links[link_handle]['is_toplevel'] == False:
+                matches_copy.remove(match)
+        return matches_copy

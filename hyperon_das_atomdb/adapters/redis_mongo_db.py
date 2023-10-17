@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -376,7 +376,12 @@ class RedisMongoDB(IAtomDB):
             raise ValueError(f'Invalid handle: {link_handle}')
         return True
 
-    def get_matched_links(self, link_type: str, target_handles: List[str]):
+    def get_matched_links(
+        self,
+        link_type: str,
+        target_handles: List[str],
+        extra_parameters: Optional[Dict[str, Any]] = None,
+    ):
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
@@ -402,7 +407,15 @@ class RedisMongoDB(IAtomDB):
             [link_type_hash, *target_handles]
         )
 
-        return self._retrieve_key_value(KeyPrefix.PATTERNS, pattern_hash)
+        patterns_matched = self._retrieve_key_value(
+            KeyPrefix.PATTERNS, pattern_hash
+        )
+
+        if len(patterns_matched) > 0:
+            if extra_parameters and extra_parameters.get('only_toplevel'):
+                return self._remove_links_not_toplevel(patterns_matched)
+
+        return patterns_matched
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -421,17 +434,35 @@ class RedisMongoDB(IAtomDB):
                 if document[MongoFieldNames.TYPE] == node_type_hash
             ]
 
-    def get_matched_type_template(self, template: List[Any]) -> List[str]:
+    def get_matched_type_template(
+        self,
+        template: List[Any],
+        extra_parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[str]:
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-            return self._retrieve_key_value(KeyPrefix.TEMPLATES, template_hash)
+            templates_matched = self._retrieve_key_value(
+                KeyPrefix.TEMPLATES, template_hash
+            )
+            if len(templates_matched) > 0:
+                if extra_parameters and extra_parameters.get('only_toplevel'):
+                    return self._remove_links_not_toplevel(templates_matched)
+            return templates_matched
         except Exception as exception:
             raise ValueError(str(exception))
 
-    def get_matched_type(self, link_type: str) -> List[str]:
+    def get_matched_type(
+        self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
         named_type_hash = self._get_atom_type_hash(link_type)
-        return self._retrieve_key_value(KeyPrefix.TEMPLATES, named_type_hash)
+        templates_matched = self._retrieve_key_value(
+            KeyPrefix.TEMPLATES, named_type_hash
+        )
+        if len(templates_matched) > 0:
+            if extra_parameters and extra_parameters.get('only_toplevel'):
+                return self._remove_links_not_toplevel(templates_matched)
+        return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
         answer = self._retrieve_key_value(
@@ -511,19 +542,19 @@ class RedisMongoDB(IAtomDB):
 
         self.redis.flushall()
 
-    def targets_is_toplevel(self, target_handles: List[str]) -> bool:
-        answers = self.redis.keys(f'{KeyPrefix.OUTGOING_SET.value}:*')
+    def _remove_links_not_toplevel(self, matches: list) -> list:
+        matches_copy = matches[:]
+        for match in matches:
+            link_handle = match[0]
+            link = self._retrieve_mongo_document(link_handle, len(match[-1]))
+            if link['is_toplevel'] == False:
+                matches_copy.remove(match)
+        return matches_copy
 
-        if answers:
-            outgoing_sets_keys = [answer.decode() for answer in answers]
 
-            for key in outgoing_sets_keys:
-                members = self.redis.smembers(key)
-                if set([m.decode() for m in members]) == set(target_handles):
-                    handle = key.replace('outgoing_set:', '')
-                    document = self._retrieve_mongo_document(
-                        handle, len(target_handles)
-                    )
-                    return document['is_toplevel']
-
-        return False
+if __name__ == '__main__':
+    api = RedisMongoDB()
+    ret = api.get_matched_links(
+        'Evaluation', ['*', '*'], {'only_toplevel': True}
+    )
+    print(ret)
