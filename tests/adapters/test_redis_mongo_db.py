@@ -589,6 +589,38 @@ arity_2_collection_mock_data = [
         'key_0': 'd03e59654221c1e8fcda404fd5c8d6cb',
         'key_1': '99d18c702e813b07260baf577c60c455',
     },
+    {
+        '_id': '1e8ba9639663105e6c735ba83174f789',
+        'composite_type': [
+            'b74a43dbb36287ea86eb5b0c7b86e8e8',
+            '79a5be2004199066acb26e7c1c963c29',
+            'd99a604c79ce3c2e76a2f43488d5d4c3',
+        ],
+        'composite_type_hash': '158e76774ba76f59ef774871252cfb7e',
+        'is_toplevel': False,
+        'key_0': '07508083e73bbc1e9ad513dd10a968ae',
+        'key_1': '24bc29bd87ecc3b3bc6c16c646506438',
+        'named_type': 'Evaluation',
+        'named_type_hash': 'b74a43dbb36287ea86eb5b0c7b86e8e8',
+    },
+    {
+        '_id': 'd542caa94b57219f1e489e3b03be7126',
+        'composite_type': [
+            'b74a43dbb36287ea86eb5b0c7b86e8e8',
+            '3b1b1a93a9b97ec3c8f2636fc6d54d0f',
+            [
+                'b74a43dbb36287ea86eb5b0c7b86e8e8',
+                '79a5be2004199066acb26e7c1c963c29',
+                'd99a604c79ce3c2e76a2f43488d5d4c3',
+            ],
+        ],
+        'composite_type_hash': '0ef46597d9234ad94b014af4a1997545',
+        'is_toplevel': True,
+        'key_0': 'a912032ece1826e55fa583dcaacdc4a9',
+        'key_1': '1e8ba9639663105e6c735ba83174f789',
+        'named_type': 'Evaluation',
+        'named_type_hash': 'b74a43dbb36287ea86eb5b0c7b86e8e8',
+    },
 ]
 
 outgoing_set_redis_mock_data = [
@@ -748,6 +780,24 @@ outgoing_set_redis_mock_data = [
             b'd03e59654221c1e8fcda404fd5c8d6cb',
         ]
     },
+    {
+        'outgoing_set:dc2891a1e8cb273c1c87b4b539615511': [
+            b'8a224e9b499baf68bf02a3f72335806c',
+            b'0ddefbdb97e354f36b694dfb5ae33922',
+        ]
+    },
+    {
+        'outgoing_set:ee8aa90f2f1b6eba761359fbf65ac39d': [
+            b'da8db3df47c6d03b44ed4d357715aeff',
+            b'dc2891a1e8cb273c1c87b4b539615511',
+        ]
+    },
+    {
+        'outgoing_set:b5c9e71594b40cd532b34baf0be29e11': [
+            b'da8db3df47c6d03b44ed4d357715aeff',
+            b'ee8aa90f2f1b6eba761359fbf65ac39d',
+        ]
+    },
 ]
 
 incomming_set_redis_mock_data = [
@@ -857,6 +907,32 @@ incomming_set_redis_mock_data = [
             '959924e3aab197af80a84c1ab261fd65',
             '116df61c01859c710d178ba14a483509',
             'b0f428929706d1d991e4d712ad08f9ab',
+        ]
+    },
+    {
+        'incomming_set:8a224e9b499baf68bf02a3f72335806c': [
+            'dc2891a1e8cb273c1c87b4b539615511'
+        ]
+    },
+    {
+        'incomming_set:0ddefbdb97e354f36b694dfb5ae33922': [
+            'dc2891a1e8cb273c1c87b4b539615511'
+        ]
+    },
+    {
+        'incomming_set:da8db3df47c6d03b44ed4d357715aeff': [
+            'ee8aa90f2f1b6eba761359fbf65ac39d',
+            'b5c9e71594b40cd532b34baf0be29e11',
+        ]
+    },
+    {
+        'incomming_set:dc2891a1e8cb273c1c87b4b539615511': [
+            'ee8aa90f2f1b6eba761359fbf65ac39d'
+        ]
+    },
+    {
+        'incomming_set:ee8aa90f2f1b6eba761359fbf65ac39d': [
+            'b5c9e71594b40cd532b34baf0be29e11'
         ]
     },
 ]
@@ -2316,6 +2392,128 @@ patterns_redis_mock_data = {
             ),
         )
     ],
+    "patterns:09d62c43e5ac4738fb2e38035d88cf79": [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
+    'patterns:22b109cd4b54e8bc27cd3c399436bc8f': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    'patterns:410fbee4b1683893342e748372cc0674': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    'patterns:55bf38e5e6ae7091f87c6f540bfc1896': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    'patterns:61e20b9d946843c0e391818f1a4e4fac': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    'patterns:6e644e70a9fe3145c88b5b6261af5754': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        ),
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        ),
+    ],
+    'patterns:7e4071137a69f147dde49f892cb8e61d': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    'patterns:8721a229b5cad6403828924cbdd726a4': [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
+    'patterns:bcc291dd0778be127bec52ee2e28ac84': [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
+    'patterns:d23673920e8289897273316a1331048e': [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
+    'patterns:e48c0b4d17a514cb58a75c789eb8bb14': [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
+    'patterns:fc55eaf3fe4af40321a3bec94e50fd5b': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        ),
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        ),
+    ],
 }
 
 templates_redis_mock_data = {
@@ -2691,6 +2889,40 @@ templates_redis_mock_data = {
             ),
         ),
     ],
+    'templates:158e76774ba76f59ef774871252cfb7e': [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        )
+    ],
+    "templates:b74a43dbb36287ea86eb5b0c7b86e8e8": [
+        (
+            '1e8ba9639663105e6c735ba83174f789',
+            (
+                '07508083e73bbc1e9ad513dd10a968ae',
+                '24bc29bd87ecc3b3bc6c16c646506438',
+            ),
+        ),
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        ),
+    ],
+    'templates:0ef46597d9234ad94b014af4a1997545': [
+        (
+            'd542caa94b57219f1e489e3b03be7126',
+            (
+                'a912032ece1826e55fa583dcaacdc4a9',
+                '1e8ba9639663105e6c735ba83174f789',
+            ),
+        )
+    ],
 }
 
 names_redis_mock_data = {
@@ -2782,13 +3014,15 @@ class TestRedisMongoDB:
                     ):
                         ret.append(node)
                 return ret
-            
+
         def estimated_document_count():
             return len(node_collection_mock_data)
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -2824,7 +3058,9 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -2850,7 +3086,9 @@ class TestRedisMongoDB:
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
 
         return collection
 
@@ -2871,7 +3109,9 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -3057,6 +3297,23 @@ class TestRedisMongoDB:
 
         assert expected == actual[0]
 
+    def test_get_matched_links_only_toplevel(self, database):
+        expected = [
+            (
+                'd542caa94b57219f1e489e3b03be7126',
+                (
+                    'a912032ece1826e55fa583dcaacdc4a9',
+                    '1e8ba9639663105e6c735ba83174f789',
+                ),
+            )
+        ]
+        actual = database.get_matched_links(
+            'Evaluation', ['*', '*'], {'only_toplevel': True}
+        )
+
+        assert expected == actual
+        assert len(actual) == 1
+
     def test_get_all_nodes(self, database):
         ret = database.get_all_nodes('Concept')
         assert len(ret) == 14
@@ -3114,6 +3371,14 @@ class TestRedisMongoDB:
         assert len(inheritance[0]) == 12
         assert len(similarity[0]) == 14
 
+    def test_get_matched_type_only_toplevel(self, database):
+        ret = database.get_matched_type('Evaluation')
+        assert len(ret[0]) == 2
+
+        ret = database.get_matched_type('Evaluation', {'only_toplevel': True})
+
+        assert len(ret) == 1
+
     def test_get_node_name(self, database):
         node_type = 'Concept'
         node_name = 'monkey'
@@ -3152,7 +3417,7 @@ class TestRedisMongoDB:
         expected = {'handle': human_handle, 'type': 'Concept', 'name': 'human'}
         actual = database.get_atom_as_dict(human_handle)
         assert expected == actual
-    
+
     # def test_get_atom_as_dict_node_without_cache(self, database):
     #     from hyperon_das_atomdb.adapters import redis_mongo_db
 
@@ -3211,7 +3476,7 @@ class TestRedisMongoDB:
         link_handle = database.get_link_handle('Similarity', [human, chimp])
         resp_link = database.get_link_type(link_handle)
         assert 'Similarity' == resp_link
-        
+
     def test_get_link_type_without_cache(self, database):
         from hyperon_das_atomdb.adapters import redis_mongo_db
 
@@ -3225,242 +3490,4 @@ class TestRedisMongoDB:
     def test_atom_count(self, database):
         node_count, link_count = database.count_atoms()
         assert node_count == 14
-        assert link_count == 26
-
-    # def test_db_creation(self, db: RedisMongoDB):
-    #     assert db.redis is not None
-    #     assert db.mongo_db is not None
-    #     assert db.node_documents.size() == 14
-    #     assert len(db.named_type_hash) == 18
-    #     assert len(db.named_type_hash_reverse) == 18
-    #     assert len(db.named_types) == 18
-    #     assert len(db.symbol_hash) == 18
-    #     assert len(db.parent_type) == 18
-
-    # NODE_SPECS = [
-    #     ('Concept', 'human'),
-    #     ('Concept', 'monkey'),
-    #     ('Concept', 'chimp'),
-    #     ('Concept', 'snake'),
-    #     ('Concept', 'earthworm'),
-    #     ('Concept', 'rhino'),
-    #     ('Concept', 'triceratops'),
-    #     ('Concept', 'vine'),
-    #     ('Concept', 'ent'),
-    #     ('Concept', 'mammal'),
-    #     ('Concept', 'animal'),
-    #     ('Concept', 'reptile'),
-    #     ('Concept', 'dinosaur'),
-    #     ('Concept', 'plant'),
-    # ]
-
-    # def _add_node_names(db, txt):
-    #     handles = re.findall("'[a-z0-9]{32}'", txt)
-    #     for quoted_handle in handles:
-    #         handle = quoted_handle[1:-1]
-    #         try:
-    #             node_name = db.get_node_name(handle)
-    #             txt = re.sub(
-    #                 quoted_handle, f'{quoted_handle} ({node_name})', txt, count=1
-    #             )
-    #         except Exception:
-    #             pass
-    #     return txt
-
-    # def test_node_exists(db: IAtomDB):
-    #     assert db.node_exists('Concept', 'human')
-    #     assert db.node_exists('Concept', 'monkey')
-    #     assert db.node_exists('Concept', 'chimp')
-    #     assert db.node_exists('Concept', 'snake')
-    #     assert db.node_exists('Concept', 'earthworm')
-    #     assert db.node_exists('Concept', 'rhino')
-    #     assert db.node_exists('Concept', 'triceratops')
-    #     assert db.node_exists('Concept', 'vine')
-    #     assert db.node_exists('Concept', 'ent')
-    #     assert db.node_exists('Concept', 'mammal')
-    #     assert db.node_exists('Concept', 'animal')
-    #     assert db.node_exists('Concept', 'reptile')
-    #     assert db.node_exists('Concept', 'dinosaur')
-    #     assert db.node_exists('Concept', 'plant')
-    #     assert not db.node_exists('blah', 'plant')
-    #     assert not db.node_exists('Concept', 'blah')
-
-    # def _check_link(
-    #     db: IAtomDB, handle: str, link_type: str, target1: str, target2: str
-    # ):
-    #     collection = db.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2)
-    #     document = collection.find_one({'_id': handle})
-    #     type_handle = db.named_type_hash[link_type]
-    #     assert document
-    #     assert document['named_type_hash'] == type_handle
-    #     assert document['key_0'] == target1
-    #     assert document['key_1'] == target2
-
-    # def _get_mongo_document(db: IAtomDB, handle: str):
-    #     collection = db.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2)
-    #     document = collection.find_one({'_id': handle})
-    #     return document
-
-    # def test_get_link_handle(db: IAtomDB):
-    #     human = db.get_node_handle('Concept', 'human')
-    #     monkey = db.get_node_handle('Concept', 'monkey')
-    #     mammal = db.get_node_handle('Concept', 'mammal')
-    #     handle = db.get_link_handle('Inheritance', [human, mammal])
-    #     _check_link(db, handle, 'Inheritance', human, mammal)
-    #     handle = db.get_link_handle('Inheritance', [monkey, mammal])
-    #     _check_link(db, handle, 'Inheritance', monkey, mammal)
-    #     handle = db.get_link_handle('Similarity', [human, monkey])
-    #     _check_link(db, handle, 'Similarity', human, monkey)
-    #     handle = db.get_link_handle('Similarity', [monkey, human])
-    #     _check_link(db, handle, 'Similarity', monkey, human)
-
-    # def test_link_exists(db: IAtomDB):
-    #     human = db.get_node_handle('Concept', 'human')
-    #     monkey = db.get_node_handle('Concept', 'monkey')
-    #     mammal = db.get_node_handle('Concept', 'mammal')
-    #     assert db.link_exists('Inheritance', [human, mammal])
-    #     assert db.link_exists('Inheritance', [monkey, mammal])
-    #     assert not db.link_exists('Inheritance', [monkey, human])
-    #     assert db.link_exists('Similarity', [human, monkey])
-    #     assert db.link_exists('Similarity', [monkey, human])
-    #     assert not db.link_exists('Similarity', [mammal, human])
-    #     assert not db.link_exists('Similarity', [human, mammal])
-
-    # def test_get_node_handle(db: IAtomDB):
-    #     node_names = [
-    #         'human',
-    #         'monkey',
-    #         'chimp',
-    #         'snake',
-    #         'earthworm',
-    #         'rhino',
-    #         'triceratops',
-    #         'vine',
-    #         'ent',
-    #         'mammal',
-    #         'animal',
-    #         'reptile',
-    #         'dinosaur',
-    #         'plant',
-    #     ]
-    #     for name in node_names:
-    #         handle = db.get_node_handle('Concept', name)
-    #         collection = db.mongo_db.get_collection(MongoCollectionNames.NODES)
-    #         document = collection.find_one({'_id': handle})
-    #         assert document[MongoFieldNames.NODE_NAME] == name
-
-    # def _check_link_targets(
-    #     db: IAtomDB, handle: str, target_handles: List[str], ordered: bool
-    # ):
-    #     assert len(target_handles) == 2
-    #     document = _get_mongo_document(db, handle)
-    #     if ordered:
-    #         assert document['key_0'] == target_handles[0]
-    #         assert document['key_1'] == target_handles[1]
-    #     else:
-    #         assert (
-    #             document['key_0'] == target_handles[0]
-    #             and document['key_1'] == target_handles[1]
-    #         ) or (
-    #             document['key_0'] == target_handles[1]
-    #             and document['key_1'] == target_handles[0]
-    #         )
-
-    # def test_get_link_targets(db: IAtomDB):
-    #     human = db.get_node_handle('Concept', 'human')
-    #     monkey = db.get_node_handle('Concept', 'monkey')
-    #     mammal = db.get_node_handle('Concept', 'mammal')
-    #     handle = db.get_link_handle('Inheritance', [human, mammal])
-    #     _check_link_targets(db, handle, [human, mammal], True)
-    #     with pytest.raises(AssertionError):
-    #         _check_link_targets(db, handle, [mammal, human], True)
-    #     handle = db.get_link_handle('Inheritance', [monkey, mammal])
-    #     _check_link_targets(db, handle, [monkey, mammal], True)
-    #     with pytest.raises(AssertionError):
-    #         _check_link_targets(db, handle, [mammal, monkey], True)
-    #     with pytest.raises(AssertionError):
-    #         _check_link_targets(db, handle, [monkey, monkey], True)
-    #     handle = db.get_link_handle('Similarity', [human, monkey])
-    #     _check_link_targets(db, handle, [human, monkey], False)
-    #     _check_link_targets(db, handle, [monkey, human], False)
-    #     handle = db.get_link_handle('Similarity', [monkey, human])
-    #     _check_link_targets(db, handle, [human, monkey], False)
-    #     _check_link_targets(db, handle, [monkey, human], False)
-    #     with pytest.raises(AssertionError):
-    #         _check_link_targets(db, handle, [monkey, mammal], False)
-    #     with pytest.raises(AssertionError):
-    #         _check_link_targets(db, handle, [mammal, monkey], False)
-
-    # def test_is_ordered(db: IAtomDB):
-    #     human = db.get_node_handle('Concept', 'human')
-    #     monkey = db.get_node_handle('Concept', 'monkey')
-    #     mammal = db.get_node_handle('Concept', 'mammal')
-    #     assert db.is_ordered(db.get_link_handle('Inheritance', [human, mammal]))
-    #     assert db.is_ordered(db.get_link_handle('Similarity', [human, monkey]))
-    #     with pytest.raises(ValueError):
-    #         db.is_ordered(db.get_link_handle('Inheritance', [human, monkey]))
-
-    # def test_get_all_nodes(db: IAtomDB):
-    #     nodes_in_db = db.get_all_nodes('Concept')
-    #     assert len(nodes_in_db) == 14
-    #     for node_type, node_name in NODE_SPECS:
-    #         node = db.get_node_handle(node_type, node_name)
-    #         assert node in nodes_in_db
-    #     nodes_in_db = db.get_all_nodes('blah')
-    #     assert len(nodes_in_db) == 0
-
-    # def test_get_matched_links(db: IAtomDB):
-    #     mammal = db.get_node_handle('Concept', 'mammal')
-    #     animal = db.get_node_handle('Concept', 'animal')
-    #     human = db.get_node_handle('Concept', 'human')
-    #     monkey = db.get_node_handle('Concept', 'monkey')
-    #     chimp = db.get_node_handle('Concept', 'chimp')
-    #     assert len(db.get_matched_links('Inheritance', ['*', '*'])) == 12
-    #     assert len(db.get_matched_links('Inheritance', ['*', mammal])) == 4
-    #     assert len(db.get_matched_links('Inheritance', [mammal, '*'])) == 1
-    #     assert len(db.get_matched_links('Inheritance', ['*', animal])) == 3
-    #     assert len(db.get_matched_links('Inheritance', [animal, '*'])) == 0
-    #     assert len(db.get_matched_links('Inheritance', [mammal, animal])) == 1
-    #     assert len(db.get_matched_links('Inheritance', [chimp, mammal])) == 1
-    #     assert len(db.get_matched_links('Inheritance', [animal, mammal])) == 0
-    #     assert len(db.get_matched_links('Similarity', ['*', '*'])) == 14
-    #     assert len(db.get_matched_links('Similarity', [human, '*'])) == 3
-    #     assert len(db.get_matched_links('Similarity', ['*', human])) == 3
-    #     assert len(db.get_matched_links('Similarity', [monkey, '*'])) == 2
-    #     assert len(db.get_matched_links('Similarity', ['*', monkey])) == 2
-    #     assert len(db.get_matched_links('Similarity', [chimp, '*'])) == 2
-    #     assert len(db.get_matched_links('Similarity', ['*', chimp])) == 2
-    #     assert len(db.get_matched_links('Similarity', [monkey, human])) == 1
-    #     assert len(db.get_matched_links('Similarity', [human, monkey])) == 1
-    #     assert len(db.get_matched_links('Similarity', [human, mammal])) == 0
-    #     assert len(db.get_matched_links('Similarity', [mammal, human])) == 0
-
-    # def test_build_hash_template(db: IAtomDB):
-    #     v1 = db._build_named_type_hash_template(
-    #         ['Inheritance', 'Concept', 'Concept']
-    #     )
-    #     v2 = db._build_named_type_hash_template(
-    #         ['Similarity', 'Concept', 'Concept']
-    #     )
-    #     v3 = db._build_named_type_hash_template(
-    #         ['Similarity', 'Concept', ['Inheritance', 'Concept', 'Concept']]
-    #     )
-    #     assert len(v1) == 3
-    #     assert len(v2) == 3
-    #     assert len(v3) == 3
-    #     assert len(v3[2]) == 3
-    #     assert v1[1] == v1[2] and v1[0] != v1[1]
-    #     assert v2[1] == v2[2] and v2[0] != v2[1]
-    #     assert v1[0] != v2[0] and v1[1] == v2[1]
-    #     assert v3[0] == v2[0]
-    #     assert v3[1] == v1[1]
-    #     assert v3[2][0] == v1[0]
-    #     assert v3[2][1] == v1[1]
-    #     assert v3[2][2] == v1[2]
-
-    # def test_get_node_name(db: IAtomDB):
-    #     for node_type, node_name in NODE_SPECS:
-    #         handle = db.get_node_handle(node_type, node_name)
-    #         db_name = db.get_node_name(handle)
-    #         assert db_name == node_name
-
+        assert link_count == 28

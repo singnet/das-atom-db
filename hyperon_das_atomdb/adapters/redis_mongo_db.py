@@ -543,6 +543,8 @@ class RedisMongoDB(IAtomDB):
         self.redis.flushall()
 
     def _remove_links_not_toplevel(self, matches: list) -> list:
+        if isinstance(matches[0], list):
+            matches = matches[0]
         matches_copy = matches[:]
         for match in matches:
             link_handle = match[0]
@@ -550,11 +552,3 @@ class RedisMongoDB(IAtomDB):
             if link['is_toplevel'] == False:
                 matches_copy.remove(match)
         return matches_copy
-
-
-if __name__ == '__main__':
-    api = RedisMongoDB()
-    ret = api.get_matched_links(
-        'Evaluation', ['*', '*'], {'only_toplevel': True}
-    )
-    print(ret)
