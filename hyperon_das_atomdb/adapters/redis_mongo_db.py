@@ -412,8 +412,8 @@ class RedisMongoDB(IAtomDB):
         )
 
         if len(patterns_matched) > 0:
-            if extra_parameters and extra_parameters.get('only_toplevel'):
-                return self._remove_links_not_toplevel(patterns_matched)
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_toplevel_matches(patterns_matched)
 
         return patterns_matched
 
@@ -446,8 +446,8 @@ class RedisMongoDB(IAtomDB):
                 KeyPrefix.TEMPLATES, template_hash
             )
             if len(templates_matched) > 0:
-                if extra_parameters and extra_parameters.get('only_toplevel'):
-                    return self._remove_links_not_toplevel(templates_matched)
+                if extra_parameters and extra_parameters.get('toplevel_only'):
+                    return self._filter_toplevel_matches(templates_matched)
             return templates_matched
         except Exception as exception:
             raise ValueError(str(exception))
@@ -460,8 +460,8 @@ class RedisMongoDB(IAtomDB):
             KeyPrefix.TEMPLATES, named_type_hash
         )
         if len(templates_matched) > 0:
-            if extra_parameters and extra_parameters.get('only_toplevel'):
-                return self._remove_links_not_toplevel(templates_matched)
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_toplevel_matches(templates_matched)
         return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
@@ -542,13 +542,13 @@ class RedisMongoDB(IAtomDB):
 
         self.redis.flushall()
 
-    def _remove_links_not_toplevel(self, matches: list) -> list:
+    def _filter_toplevel_matches(self, matches: list) -> list:
         if isinstance(matches[0], list):
             matches = matches[0]
-        matches_copy = matches[:]
+        matches_only_toplevel = []
         for match in matches:
             link_handle = match[0]
             link = self._retrieve_mongo_document(link_handle, len(match[-1]))
-            if link['is_toplevel'] == False:
-                matches_copy.remove(match)
-        return matches_copy
+            if link['is_toplevel']:
+                matches_only_toplevel.append(match)
+        return matches_only_toplevel

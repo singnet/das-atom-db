@@ -3297,7 +3297,7 @@ class TestRedisMongoDB:
 
         assert expected == actual[0]
 
-    def test_get_matched_links_only_toplevel(self, database):
+    def test_get_matched_links_toplevel_only(self, database):
         expected = [
             (
                 'd542caa94b57219f1e489e3b03be7126',
@@ -3308,7 +3308,7 @@ class TestRedisMongoDB:
             )
         ]
         actual = database.get_matched_links(
-            'Evaluation', ['*', '*'], {'only_toplevel': True}
+            'Evaluation', ['*', '*'], {'toplevel_only': True}
         )
 
         assert expected == actual
@@ -3371,11 +3371,11 @@ class TestRedisMongoDB:
         assert len(inheritance[0]) == 12
         assert len(similarity[0]) == 14
 
-    def test_get_matched_type_only_toplevel(self, database):
+    def test_get_matched_type_toplevel_only(self, database):
         ret = database.get_matched_type('Evaluation')
         assert len(ret[0]) == 2
 
-        ret = database.get_matched_type('Evaluation', {'only_toplevel': True})
+        ret = database.get_matched_type('Evaluation', {'toplevel_only': True})
 
         assert len(ret) == 1
 

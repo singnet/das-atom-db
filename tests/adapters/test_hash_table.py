@@ -363,7 +363,7 @@ class TestInMemoryDB:
         assert exc_info.type is LinkDoesNotExistException
         assert exc_info.value.args[0] == "This link does not exist"
 
-    def test_get_matched_links_only_toplevel(self, database: InMemoryDB):
+    def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
         database.add_link(
             {
                 'type': 'Evaluation',
@@ -404,7 +404,7 @@ class TestInMemoryDB:
             )
         ]
         actual = database.get_matched_links(
-            'Evaluation', ['*', '*'], {'only_toplevel': True}
+            'Evaluation', ['*', '*'], {'toplevel_only': True}
         )
 
         assert expected == actual
@@ -477,7 +477,7 @@ class TestInMemoryDB:
         assert v1 == v5
         assert v2 == v6
 
-    def test_get_matched_type_template_only_toplevel(
+    def test_get_matched_type_template_toplevel_only(
         self, database: InMemoryDB
     ):
         database.add_link(
@@ -503,13 +503,13 @@ class TestInMemoryDB:
         )
 
         ret = database.get_matched_type_template(
-            ['Evaluation', 'Reactome', 'Concept'], {'only_toplevel': True}
+            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': True}
         )
 
         assert len(ret) == 0
 
         ret = database.get_matched_type_template(
-            ['Evaluation', 'Reactome', 'Concept'], {'only_toplevel': False}
+            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': False}
         )
 
         assert len(ret) == 1
@@ -520,7 +520,7 @@ class TestInMemoryDB:
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
-    def test_get_matched_type_only_toplevel(self, database: InMemoryDB):
+    def test_get_matched_type_toplevel_only(self, database: InMemoryDB):
         database.add_link(
             {
                 'type': 'EvaluationLink',
@@ -546,7 +546,7 @@ class TestInMemoryDB:
         assert len(ret) == 2
 
         ret = database.get_matched_type(
-            'EvaluationLink', {'only_toplevel': True}
+            'EvaluationLink', {'toplevel_only': True}
         )
         assert len(ret) == 1
 

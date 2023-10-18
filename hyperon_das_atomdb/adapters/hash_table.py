@@ -122,8 +122,8 @@ class InMemoryDB(IAtomDB):
         patterns_matched = self.db.patterns.get(pattern_hash, [])
 
         if len(patterns_matched) > 0:
-            if extra_parameters and extra_parameters.get('only_toplevel'):
-                return self._remove_links_not_toplevel(patterns_matched)
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_toplevel_matches(patterns_matched)
 
         return patterns_matched
 
@@ -152,8 +152,8 @@ class InMemoryDB(IAtomDB):
         template_hash = ExpressionHasher.composite_hash(template)
         templates_matched = self.db.templates.get(template_hash, [])
         if len(templates_matched) > 0:
-            if extra_parameters and extra_parameters.get('only_toplevel'):
-                return self._remove_links_not_toplevel(templates_matched)
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_toplevel_matches(templates_matched)
         return templates_matched
 
     def get_matched_type(
@@ -162,8 +162,8 @@ class InMemoryDB(IAtomDB):
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self.db.templates.get(link_type_hash, [])
         if len(templates_matched) > 0:
-            if extra_parameters and extra_parameters.get('only_toplevel'):
-                return self._remove_links_not_toplevel(templates_matched)
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_toplevel_matches(templates_matched)
         return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
@@ -643,11 +643,11 @@ class InMemoryDB(IAtomDB):
                 )
         return ExpressionHasher.composite_hash(composite_type)
 
-    def _remove_links_not_toplevel(self, matches: list) -> list:
-        matches_copy = matches[:]
+    def _filter_toplevel_matches(self, matches: list) -> list:
+        matches_only_toplevel = []
         for match in matches:
             link_handle = match[0]
             links = self.db.link.get_arity(len(match[-1]))
-            if links[link_handle]['is_toplevel'] == False:
-                matches_copy.remove(match)
-        return matches_copy
+            if links[link_handle]['is_toplevel']:
+                matches_only_toplevel.append(match)
+        return matches_only_toplevel
