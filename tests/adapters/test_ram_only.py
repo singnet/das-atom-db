@@ -1,6 +1,6 @@
 import pytest
 
-from hyperon_das_atomdb.adapters.hash_table import InMemoryDB
+from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
     AddNodeException,
