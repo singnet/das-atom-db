@@ -123,7 +123,7 @@ class InMemoryDB(IAtomDB):
 
         if len(patterns_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_toplevel_matches(patterns_matched)
+                return self._filter_non_toplevel(patterns_matched)
 
         return patterns_matched
 
@@ -153,7 +153,7 @@ class InMemoryDB(IAtomDB):
         templates_matched = self.db.templates.get(template_hash, [])
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_toplevel_matches(templates_matched)
+                return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
     def get_matched_type(
@@ -163,7 +163,7 @@ class InMemoryDB(IAtomDB):
         templates_matched = self.db.templates.get(link_type_hash, [])
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_toplevel_matches(templates_matched)
+                return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
@@ -643,11 +643,11 @@ class InMemoryDB(IAtomDB):
                 )
         return ExpressionHasher.composite_hash(composite_type)
 
-    def _filter_toplevel_matches(self, matches: list) -> list:
-        matches_only_toplevel = []
+    def _filter_non_toplevel(self, matches: list) -> list:
+        matches_toplevel_only = []
         for match in matches:
             link_handle = match[0]
             links = self.db.link.get_arity(len(match[-1]))
             if links[link_handle]['is_toplevel']:
-                matches_only_toplevel.append(match)
-        return matches_only_toplevel
+                matches_toplevel_only.append(match)
+        return matches_toplevel_only
