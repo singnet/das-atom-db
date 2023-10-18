@@ -61,8 +61,8 @@ class InMemoryDB(IAtomDB):
         link_handle = self._create_link_handle(link_type, target_handles)
         arity = len(target_handles)
         try:
-            arity = self.db.link.get_arity(arity)
-            arity[link_handle]
+            table = self.db.link.get_table(arity)
+            table[link_handle]
             return link_handle
         except KeyError:
             raise LinkDoesNotExistException(
@@ -88,8 +88,8 @@ class InMemoryDB(IAtomDB):
             )
 
     def is_ordered(self, link_handle: str) -> bool:
-        all_arityes = self.db.link.all_arities()
-        data = all_arityes.get(link_handle)
+        tables = self.db.link.all_tables()
+        data = tables.get(link_handle)
         if data is not None:
             return True
         return False
@@ -200,7 +200,7 @@ class InMemoryDB(IAtomDB):
 
     def count_atoms(self) -> Tuple[int, int]:
         nodes = self.db.node
-        links = self.db.link.all_arities()
+        links = self.db.link.all_tables()
         return (len(nodes), len(links))
 
     def get_atom_as_dict(
@@ -216,11 +216,11 @@ class InMemoryDB(IAtomDB):
         except KeyError:
             try:
                 if arity > 0:
-                    arity_link = self.db.link.get_arity(arity)
+                    table = self.db.link.get_table(arity)
                 else:
-                    arity_link = self.db.link.all_arities()
+                    table = self.db.link.all_tables()
 
-                link = arity_link[handle]
+                link = table[handle]
                 return {
                     'handle': link['_id'],
                     'type': link['named_type'],
@@ -244,11 +244,11 @@ class InMemoryDB(IAtomDB):
         except KeyError:
             try:
                 if arity > 0:
-                    arity_link = self.db.link.get_arity(arity)
+                    table = self.db.link.get_table(arity)
                 else:
-                    arity_link = self.db.link.all_arities()
+                    table = self.db.link.all_tables()
 
-                link = arity_link[handle]
+                link = table[handle]
                 return {
                     'type': link['named_type'],
                     'targets': [
@@ -415,7 +415,7 @@ class InMemoryDB(IAtomDB):
         composite_type_copy = composite_type[:]
 
         arity_number = len(targets)
-        link_db = self.db.link.get_arity(arity_number)
+        link_db = self.db.link.get_table(arity_number)
 
         try:
             link_db[key]
@@ -647,7 +647,7 @@ class InMemoryDB(IAtomDB):
         matches_toplevel_only = []
         for match in matches:
             link_handle = match[0]
-            links = self.db.link.get_arity(len(match[-1]))
+            links = self.db.link.get_table(len(match[-1]))
             if links[link_handle]['is_toplevel']:
                 matches_toplevel_only.append(match)
         return matches_toplevel_only

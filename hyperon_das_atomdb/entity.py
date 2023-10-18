@@ -8,7 +8,7 @@ class Link:
     arity_2: Dict[str, Any]
     arity_n: Dict[str, Any]
 
-    def get_arity(self, arity: int):
+    def get_table(self, arity: int):
         if arity == 1:
             return self.arity_1
         if arity == 2:
@@ -16,8 +16,7 @@ class Link:
         if arity > 2:
             return self.arity_n
 
-    def all_arities(self) -> Dict[str, Any]:
-        # TODO: Validate if there is a possibility of duplicate keys
+    def all_tables(self) -> Dict[str, Any]:
         all_arities = {}
         all_arities.update(self.arity_1)
         all_arities.update(self.arity_2)
