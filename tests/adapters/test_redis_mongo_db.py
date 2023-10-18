@@ -2782,13 +2782,15 @@ class TestRedisMongoDB:
                     ):
                         ret.append(node)
                 return ret
-            
+
         def estimated_document_count():
             return len(node_collection_mock_data)
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -2824,7 +2826,9 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -2850,7 +2854,9 @@ class TestRedisMongoDB:
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
 
         return collection
 
@@ -2871,7 +2877,9 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
+        collection.estimated_document_count = mock.Mock(
+            side_effect=estimated_document_count
+        )
         return collection
 
     @pytest.fixture()
@@ -3152,7 +3160,7 @@ class TestRedisMongoDB:
         expected = {'handle': human_handle, 'type': 'Concept', 'name': 'human'}
         actual = database.get_atom_as_dict(human_handle)
         assert expected == actual
-    
+
     # def test_get_atom_as_dict_node_without_cache(self, database):
     #     from hyperon_das_atomdb.adapters import redis_mongo_db
 
@@ -3211,7 +3219,7 @@ class TestRedisMongoDB:
         link_handle = database.get_link_handle('Similarity', [human, chimp])
         resp_link = database.get_link_type(link_handle)
         assert 'Similarity' == resp_link
-        
+
     def test_get_link_type_without_cache(self, database):
         from hyperon_das_atomdb.adapters import redis_mongo_db
 
@@ -3463,4 +3471,3 @@ class TestRedisMongoDB:
     #         handle = db.get_node_handle(node_type, node_name)
     #         db_name = db.get_node_name(handle)
     #         assert db_name == node_name
-
