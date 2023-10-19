@@ -9,7 +9,7 @@ This package requires:
 #### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das/). If you want, you can install using the pip command
 
 ```
-pip install hyperon-das
+pip install hyperon-das-atomdb
 ```
 
 #### If you want to run it without installing it by pip, you can follow the following approach
