@@ -363,6 +363,90 @@ class TestInMemoryDB:
         assert exc_info.type is LinkDoesNotExistException
         assert exc_info.value.args[0] == "This link does not exist"
 
+    def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
+        database.add_link(
+            {
+                'type': 'Evaluation',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'type': 'Evaluation',
+                        'targets': [
+                            {
+                                'type': 'Predicate',
+                                'name': 'Predicate:has_name',
+                            },
+                            {
+                                'targets': [
+                                    {
+                                        'type': 'Reactome',
+                                        'name': 'Reactome:R-HSA-164843',
+                                    },
+                                    {
+                                        'type': 'Concept',
+                                        'name': 'Concept:2-LTR circle formation',
+                                    },
+                                ],
+                                'type': 'Set',
+                            },
+                        ],
+                    },
+                ],
+            }
+        )
+        expected = [
+            (
+                '661fb5a7c90faabfeada7e1f63805fc0',
+                (
+                    'a912032ece1826e55fa583dcaacdc4a9',
+                    '260e118be658feeeb612dcd56d270d77',
+                ),
+            )
+        ]
+        actual = database.get_matched_links(
+            'Evaluation', ['*', '*'], {'toplevel_only': True}
+        )
+
+        assert expected == actual
+        assert len(actual) == 1
+
+    def test_get_matched_links_wrong_parameter(self, database: InMemoryDB):
+        database.add_link(
+            {
+                'type': 'Evaluation',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'type': 'Evaluation',
+                        'targets': [
+                            {
+                                'type': 'Predicate',
+                                'name': 'Predicate:has_name',
+                            },
+                            {
+                                'targets': [
+                                    {
+                                        'type': 'Reactome',
+                                        'name': 'Reactome:R-HSA-164843',
+                                    },
+                                    {
+                                        'type': 'Concept',
+                                        'name': 'Concept:2-LTR circle formation',
+                                    },
+                                ],
+                                'type': 'Set',
+                            },
+                        ],
+                    },
+                ],
+            }
+        )
+        actual = database.get_matched_links(
+            'Evaluation', ['*', '*'], {'toplevel': True}
+        )
+
+        assert len(actual) == 2
+
     def test_get_all_nodes(self, database):
         ret = database.get_all_nodes('Concept')
         assert len(ret) == 14
@@ -393,11 +477,78 @@ class TestInMemoryDB:
         assert v1 == v5
         assert v2 == v6
 
+    def test_get_matched_type_template_toplevel_only(
+        self, database: InMemoryDB
+    ):
+        database.add_link(
+            {
+                'type': 'Evaluation',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'type': 'Evaluation',
+                        'targets': [
+                            {
+                                'type': 'Reactome',
+                                'name': 'Reactome:R-HSA-164843',
+                            },
+                            {
+                                'type': 'Concept',
+                                'name': 'Concept:2-LTR circle formation',
+                            },
+                        ],
+                    },
+                ],
+            }
+        )
+
+        ret = database.get_matched_type_template(
+            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': True}
+        )
+
+        assert len(ret) == 0
+
+        ret = database.get_matched_type_template(
+            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': False}
+        )
+
+        assert len(ret) == 1
+
     def test_get_matched_type(self, database: InMemoryDB):
         inheritance = database.get_matched_type('Inheritance')
         similarity = database.get_matched_type('Similarity')
         assert len(inheritance) == 12
         assert len(similarity) == 14
+
+    def test_get_matched_type_toplevel_only(self, database: InMemoryDB):
+        database.add_link(
+            {
+                'type': 'EvaluationLink',
+                'targets': [
+                    {'type': 'Predicate', 'name': 'Predicate:has_name'},
+                    {
+                        'type': 'EvaluationLink',
+                        'targets': [
+                            {
+                                'type': 'Reactome',
+                                'name': 'Reactome:R-HSA-164843',
+                            },
+                            {
+                                'type': 'Concept',
+                                'name': 'Concept:2-LTR circle formation',
+                            },
+                        ],
+                    },
+                ],
+            }
+        )
+        ret = database.get_matched_type('EvaluationLink')
+        assert len(ret) == 2
+
+        ret = database.get_matched_type(
+            'EvaluationLink', {'toplevel_only': True}
+        )
+        assert len(ret) == 1
 
     def test_get_node_name(self, database):
         handle = database.get_node_handle('Concept', 'monkey')

@@ -61,8 +61,8 @@ class InMemoryDB(IAtomDB):
         link_handle = self._create_link_handle(link_type, target_handles)
         arity = len(target_handles)
         try:
-            arity = self.db.link.get_arity(arity)
-            arity[link_handle]
+            table = self.db.link.get_table(arity)
+            table[link_handle]
             return link_handle
         except KeyError:
             raise LinkDoesNotExistException(
@@ -88,14 +88,17 @@ class InMemoryDB(IAtomDB):
             )
 
     def is_ordered(self, link_handle: str) -> bool:
-        all_arityes = self.db.link.all_arities()
-        data = all_arityes.get(link_handle)
+        tables = self.db.link.all_tables()
+        data = tables.get(link_handle)
         if data is not None:
             return True
         return False
 
     def get_matched_links(
-        self, link_type: str, target_handles: List[str]
+        self,
+        link_type: str,
+        target_handles: List[str],
+        extra_parameters: Optional[Dict[str, Any]] = None,
     ) -> list:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
@@ -116,7 +119,13 @@ class InMemoryDB(IAtomDB):
             [link_type_hash, *target_handles]
         )
 
-        return self.db.patterns.get(pattern_hash, [])
+        patterns_matched = self.db.patterns.get(pattern_hash, [])
+
+        if len(patterns_matched) > 0:
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_non_toplevel(patterns_matched)
+
+        return patterns_matched
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
@@ -134,14 +143,28 @@ class InMemoryDB(IAtomDB):
                 if value['composite_type_hash'] == node_type_hash
             ]
 
-    def get_matched_type_template(self, template: List[Any]) -> List[str]:
+    def get_matched_type_template(
+        self,
+        template: List[Any],
+        extra_parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[str]:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
-        return self.db.templates.get(template_hash, [])
+        templates_matched = self.db.templates.get(template_hash, [])
+        if len(templates_matched) > 0:
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_non_toplevel(templates_matched)
+        return templates_matched
 
-    def get_matched_type(self, link_type: str) -> List[str]:
+    def get_matched_type(
+        self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        return self.db.templates.get(link_type_hash, [])
+        templates_matched = self.db.templates.get(link_type_hash, [])
+        if len(templates_matched) > 0:
+            if extra_parameters and extra_parameters.get('toplevel_only'):
+                return self._filter_non_toplevel(templates_matched)
+        return templates_matched
 
     def get_node_name(self, node_handle: str) -> str:
         try:
@@ -177,7 +200,7 @@ class InMemoryDB(IAtomDB):
 
     def count_atoms(self) -> Tuple[int, int]:
         nodes = self.db.node
-        links = self.db.link.all_arities()
+        links = self.db.link.all_tables()
         return (len(nodes), len(links))
 
     def get_atom_as_dict(
@@ -193,11 +216,11 @@ class InMemoryDB(IAtomDB):
         except KeyError:
             try:
                 if arity > 0:
-                    arity_link = self.db.link.get_arity(arity)
+                    table = self.db.link.get_table(arity)
                 else:
-                    arity_link = self.db.link.all_arities()
+                    table = self.db.link.all_tables()
 
-                link = arity_link[handle]
+                link = table[handle]
                 return {
                     'handle': link['_id'],
                     'type': link['named_type'],
@@ -221,11 +244,11 @@ class InMemoryDB(IAtomDB):
         except KeyError:
             try:
                 if arity > 0:
-                    arity_link = self.db.link.get_arity(arity)
+                    table = self.db.link.get_table(arity)
                 else:
-                    arity_link = self.db.link.all_arities()
+                    table = self.db.link.all_tables()
 
-                link = arity_link[handle]
+                link = table[handle]
                 return {
                     'type': link['named_type'],
                     'targets': [
@@ -392,7 +415,7 @@ class InMemoryDB(IAtomDB):
         composite_type_copy = composite_type[:]
 
         arity_number = len(targets)
-        link_db = self.db.link.get_arity(arity_number)
+        link_db = self.db.link.get_table(arity_number)
 
         try:
             link_db[key]
@@ -619,3 +642,12 @@ class InMemoryDB(IAtomDB):
                     _hash_copy
                 )
         return ExpressionHasher.composite_hash(composite_type)
+
+    def _filter_non_toplevel(self, matches: list) -> list:
+        matches_toplevel_only = []
+        for match in matches:
+            link_handle = match[0]
+            links = self.db.link.get_table(len(match[-1]))
+            if links[link_handle]['is_toplevel']:
+                matches_toplevel_only.append(match)
+        return matches_toplevel_only
