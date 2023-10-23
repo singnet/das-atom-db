@@ -1,4 +1,5 @@
 # Hyperon DAS AtomDB
+
 Persistence layer for Distributed AtomSpace
 
 ## Installation
@@ -27,6 +28,7 @@ You must have Redis and MongoDB running in your environment
 
 **2.1 - Environments Variables**
 You must have the following variables set in your environment with their respective values:
+
 ```
 DAS_MONGODB_HOSTNAME=172.17.0.2
 DAS_MONGODB_PORT=27017
@@ -35,6 +37,7 @@ DAS_MONGODB_PASSWORD=mongo
 DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
 ```
+
 **2.2 or you can export necessary environment using the enviroment file**
 source environment
 
@@ -56,3 +59,7 @@ You can ran the command below to execute the unittests
 ```bash
 make test-coverage
 ```
+
+## Documentation References
+
+[Repositories documentation](https://docs.google.com/document/d/1njmP_oXw_0FLwoXY5ttGBMFGV2n60-ugAltWIuoQO10/)
