@@ -33,7 +33,8 @@ def retry(attempts: int, timeout_seconds: int):
                         return
                 except Exception as e:
                     raise ConnectionServerException(
-                        message='An error occurs while connecting to the server'
+                        message="An error occurs while connecting to the server",
+                        details=str(e),
                     )
                 else:
                     time.sleep(waiting_time_seconds)

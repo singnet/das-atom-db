@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from requests import exceptions, request
 
+from hyperon_das_atomdb.exceptions import ConnectionServerException
 from hyperon_das_atomdb.i_database import IAtomDB
 from hyperon_das_atomdb.utils.decorators import retry
 
@@ -21,24 +22,34 @@ class ServerDB(IAtomDB):
         ip_address: str = None,
         port: Optional[str] = None,
     ) -> None:
+        if not ip_address:
+            raise ConnectionServerException(
+                message='You must send ip_address parameter'
+            )
         self.database_name = database_name
         self.ip = ip_address
         self.port = port if port else '8080'
-        self.openfaas_uri = f'{self.ip}:{port}/ui/'
-        self.aws_lambda_uri = f'{self.ip}/prod'
+        self.openfaas_uri = f'http://{self.ip}:{self.port}/ui/'
+        self.aws_lambda_uri = f'https://{self.ip}/prod'
         self._connect_server()
 
     @retry(attempts=5, timeout_seconds=120)
-    def _connect_server(self) -> None:
+    def _connect_server(self) -> str | None:
         self.url = None
         if self._is_server_connect(self.openfaas_uri):
             self.url = self.openfaas_uri
         elif self._is_server_connect(self.aws_lambda_uri):
             self.url = self.aws_lambda_uri
+        return self.url
 
     def _is_server_connect(self, url: str) -> bool:
-        response = self._send_request({'action': 'healthy_check', 'url': url})
-        if response:
+        try:
+            response = request(
+                "POST", url=url, data=json.dumps({'action': 'healthy_check'})
+            )
+        except Exception as e:
+            raise e
+        if response.status_code == 200:
             return True
         return False
 
@@ -102,7 +113,9 @@ class ServerDB(IAtomDB):
 
         return self._send_request(payload)
 
-    def _get_atom_information(self, action: str, handle: str, arity: int = -1):
+    def _get_atom_information(
+        self, action: str, handle: str = None, arity: int = -1
+    ):
         payload = {'action': action, 'database_name': self.database_name}
         if action != 'count_atoms':
             payload['handle'] = handle
