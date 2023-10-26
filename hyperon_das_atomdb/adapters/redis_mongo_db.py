@@ -177,56 +177,6 @@ class RedisMongoDB(IAtomDB):
             self.named_type_hash_reverse[named_type_hash] = atom_type
         return named_type_hash
 
-    def prefetch(self) -> None:
-        self.named_type_hash = {}
-        self.named_type_hash_reverse = {}
-        self.named_types = {}
-        self.symbol_hash = {}
-        self.parent_type = {}
-        self.terminal_hash = {}
-        self.link_type_cache = {}
-        self.node_type_cache = {}
-        self.node_documents = NodeDocuments(self.mongo_nodes_collection)
-        if USE_CACHED_NODES:
-            for document in self.mongo_nodes_collection.find():
-                node_id = document[MongoFieldNames.ID_HASH]
-                document[MongoFieldNames.TYPE_NAME]
-                document[MongoFieldNames.NODE_NAME]
-                self.node_documents.add(node_id, document)
-        else:
-            self.node_documents.count = (
-                self.mongo_nodes_collection.count_documents({})
-            )
-        if USE_CACHED_LINK_TYPES:
-            for tag in ["1", "2", "N"]:
-                for document in self.mongo_link_collection[tag].find():
-                    self.link_type_cache[
-                        document[MongoFieldNames.ID_HASH]
-                    ] = document[MongoFieldNames.TYPE_NAME]
-        if USE_CACHED_NODE_TYPES:
-            for document in self.mongo_nodes_collection.find():
-                self.node_type_cache[
-                    document[MongoFieldNames.ID_HASH]
-                ] = document[MongoFieldNames.TYPE_NAME]
-        for document in self.mongo_types_collection.find():
-            hash_id = document[MongoFieldNames.ID_HASH]
-            named_type = document[MongoFieldNames.TYPE_NAME]
-            named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
-            composite_type_hash = document[MongoFieldNames.TYPE]
-            type_document = self.mongo_types_collection.find_one(
-                {MongoFieldNames.ID_HASH: composite_type_hash}
-            )
-            self.named_type_hash[named_type] = named_type_hash
-            self.named_type_hash_reverse[named_type_hash] = named_type
-            if type_document is not None:
-                self.named_types[named_type] = type_document[
-                    MongoFieldNames.TYPE_NAME
-                ]
-                self.parent_type[named_type_hash] = type_document[
-                    MongoFieldNames.TYPE_NAME_HASH
-                ]
-            self.symbol_hash[named_type] = hash_id
-
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
         mongo_filter = {"_id": handle}
         if arity >= 0:
@@ -312,31 +262,16 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
-    def _create_node_handle(self, node_type: str, node_name: str) -> str:
-        return ExpressionHasher.terminal_hash(node_type, node_name)
-
-    def _create_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
-        return ExpressionHasher.expression_hash(
-            self._get_atom_type_hash(link_type), target_handles
-        )
-
-    # DB interface methods
-
-    def node_exists(self, node_type: str, node_name: str) -> bool:
-        try:
-            self.get_node_handle(node_type, node_name)
-            return True
-        except NodeDoesNotExistException:
-            return False
-
-    def link_exists(self, link_type: str, target_handles: List[str]) -> bool:
-        try:
-            self.get_link_handle(link_type, target_handles)
-            return True
-        except LinkDoesNotExistException:
-            return False
+    def _filter_non_toplevel(self, matches: list) -> list:
+        if isinstance(matches[0], list):
+            matches = matches[0]
+        matches_toplevel_only = []
+        for match in matches:
+            link_handle = match[0]
+            link = self._retrieve_mongo_document(link_handle, len(match[-1]))
+            if link['is_toplevel']:
+                matches_toplevel_only.append(match)
+        return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self._create_node_handle(node_type, node_name)
@@ -348,6 +283,49 @@ class RedisMongoDB(IAtomDB):
                 message='This node does not exist',
                 details=f'{node_type}:{node_name}',
             )
+
+    def get_node_name(self, node_handle: str) -> str:
+        answer = self._retrieve_key_value(
+            KeyPrefix.NAMED_ENTITIES, node_handle
+        )
+        if not answer:
+            raise ValueError(f"Invalid handle: {node_handle}")
+        return answer[0].decode()
+
+    def get_node_type(self, node_handle: str) -> str:
+        if USE_CACHED_NODE_TYPES:
+            return self.node_type_cache[node_handle]
+        else:
+            document = self.get_atom_as_dict(node_handle)
+            return document["type"]
+
+    def get_matched_node_name(self, node_type: str, substring: str) -> str:
+        node_type_hash = self._get_atom_type_hash(node_type)
+        mongo_filter = {
+            MongoFieldNames.TYPE: node_type_hash,
+            MongoFieldNames.NODE_NAME: {'$regex': substring},
+        }
+        return [
+            document[MongoFieldNames.ID_HASH]
+            for document in self.mongo_nodes_collection.find(mongo_filter)
+        ]
+
+    def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
+        node_type_hash = self._get_atom_type_hash(node_type)
+        if node_type_hash is None:
+            raise ValueError(f'Invalid node type: {node_type}')
+        if names:
+            return [
+                document[MongoFieldNames.NODE_NAME]
+                for document in self.node_documents.values()
+                if document[MongoFieldNames.TYPE] == node_type_hash
+            ]
+        else:
+            return [
+                document[MongoFieldNames.ID_HASH]
+                for document in self.node_documents.values()
+                if document[MongoFieldNames.TYPE] == node_type_hash
+            ]
 
     def get_link_handle(
         self, link_type: str, target_handles: List[str]
@@ -417,23 +395,6 @@ class RedisMongoDB(IAtomDB):
 
         return patterns_matched
 
-    def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
-        node_type_hash = self._get_atom_type_hash(node_type)
-        if node_type_hash is None:
-            raise ValueError(f'Invalid node type: {node_type}')
-        if names:
-            return [
-                document[MongoFieldNames.NODE_NAME]
-                for document in self.node_documents.values()
-                if document[MongoFieldNames.TYPE] == node_type_hash
-            ]
-        else:
-            return [
-                document[MongoFieldNames.ID_HASH]
-                for document in self.node_documents.values()
-                if document[MongoFieldNames.TYPE] == node_type_hash
-            ]
-
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -464,24 +425,13 @@ class RedisMongoDB(IAtomDB):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_node_name(self, node_handle: str) -> str:
-        answer = self._retrieve_key_value(
-            KeyPrefix.NAMED_ENTITIES, node_handle
-        )
-        if not answer:
-            raise ValueError(f"Invalid handle: {node_handle}")
-        return answer[0].decode()
-
-    def get_matched_node_name(self, node_type: str, substring: str) -> str:
-        node_type_hash = self._get_atom_type_hash(node_type)
-        mongo_filter = {
-            MongoFieldNames.TYPE: node_type_hash,
-            MongoFieldNames.NODE_NAME: {'$regex': substring},
-        }
-        return [
-            document[MongoFieldNames.ID_HASH]
-            for document in self.mongo_nodes_collection.find(mongo_filter)
-        ]
+    def get_link_type(self, link_handle: str) -> str:
+        if USE_CACHED_LINK_TYPES:
+            ret = self.link_type_cache[link_handle]
+            return ret
+        else:
+            document = self.get_atom_as_dict(link_handle)
+            return document["type"]
 
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
@@ -506,21 +456,6 @@ class RedisMongoDB(IAtomDB):
     def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
         return self._build_deep_representation(handle, arity)
 
-    def get_link_type(self, link_handle: str) -> str:
-        if USE_CACHED_LINK_TYPES:
-            ret = self.link_type_cache[link_handle]
-            return ret
-        else:
-            document = self.get_atom_as_dict(link_handle)
-            return document["type"]
-
-    def get_node_type(self, node_handle: str) -> str:
-        if USE_CACHED_NODE_TYPES:
-            return self.node_type_cache[node_handle]
-        else:
-            document = self.get_atom_as_dict(node_handle)
-            return document["type"]
-
     def count_atoms(self) -> Tuple[int, int]:
         node_count = self.mongo_nodes_collection.estimated_document_count()
         link_count = 0
@@ -542,13 +477,52 @@ class RedisMongoDB(IAtomDB):
 
         self.redis.flushall()
 
-    def _filter_non_toplevel(self, matches: list) -> list:
-        if isinstance(matches[0], list):
-            matches = matches[0]
-        matches_toplevel_only = []
-        for match in matches:
-            link_handle = match[0]
-            link = self._retrieve_mongo_document(link_handle, len(match[-1]))
-            if link['is_toplevel']:
-                matches_toplevel_only.append(match)
-        return matches_toplevel_only
+    def prefetch(self) -> None:
+        self.named_type_hash = {}
+        self.named_type_hash_reverse = {}
+        self.named_types = {}
+        self.symbol_hash = {}
+        self.parent_type = {}
+        self.terminal_hash = {}
+        self.link_type_cache = {}
+        self.node_type_cache = {}
+        self.node_documents = NodeDocuments(self.mongo_nodes_collection)
+        if USE_CACHED_NODES:
+            for document in self.mongo_nodes_collection.find():
+                node_id = document[MongoFieldNames.ID_HASH]
+                document[MongoFieldNames.TYPE_NAME]
+                document[MongoFieldNames.NODE_NAME]
+                self.node_documents.add(node_id, document)
+        else:
+            self.node_documents.count = (
+                self.mongo_nodes_collection.count_documents({})
+            )
+        if USE_CACHED_LINK_TYPES:
+            for tag in ["1", "2", "N"]:
+                for document in self.mongo_link_collection[tag].find():
+                    self.link_type_cache[
+                        document[MongoFieldNames.ID_HASH]
+                    ] = document[MongoFieldNames.TYPE_NAME]
+        if USE_CACHED_NODE_TYPES:
+            for document in self.mongo_nodes_collection.find():
+                self.node_type_cache[
+                    document[MongoFieldNames.ID_HASH]
+                ] = document[MongoFieldNames.TYPE_NAME]
+        for document in self.mongo_types_collection.find():
+            hash_id = document[MongoFieldNames.ID_HASH]
+            named_type = document[MongoFieldNames.TYPE_NAME]
+            named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
+            composite_type_hash = document[MongoFieldNames.TYPE]
+            type_document = self.mongo_types_collection.find_one(
+                {MongoFieldNames.ID_HASH: composite_type_hash}
+            )
+            self.named_type_hash[named_type] = named_type_hash
+            self.named_type_hash_reverse[named_type_hash] = named_type
+            if type_document is not None:
+                self.named_types[named_type] = type_document[
+                    MongoFieldNames.TYPE_NAME
+                ]
+                self.parent_type[named_type_hash] = type_document[
+                    MongoFieldNames.TYPE_NAME_HASH
+                ]
+            self.symbol_hash[named_type] = hash_id
