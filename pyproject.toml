@@ -10,6 +10,7 @@ packages = [{include = "hyperon_das_atomdb"}]
 python = "^3.8.5"
 redis = "^5.0.0"
 pymongo = "^4.5.0"
+requests = "^2.31.0"
 
 
 [tool.poetry.group.dev.dependencies]
