@@ -1,10 +1,12 @@
 import json
-import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from requests import exceptions, request
+from requests import Session, exceptions
 
-from hyperon_das_atomdb.exceptions import ConnectionServerException
+from hyperon_das_atomdb.exceptions import (
+    ConnectionServerException,
+    NodeDoesNotExistException,
+)
 from hyperon_das_atomdb.i_database import IAtomDB
 from hyperon_das_atomdb.utils.decorators import retry
 
@@ -29,8 +31,9 @@ class ServerDB(IAtomDB):
         self.database_name = database_name
         self.ip = ip_address
         self.port = port if port else '8080'
-        self.openfaas_uri = f'http://{self.ip}:{self.port}/ui/'
-        self.aws_lambda_uri = f'https://{self.ip}/prod'
+        self.openfaas_uri = f'http://{self.ip}:{self.port}/function/atomdb'
+        self.aws_lambda_uri = f'https://q49t4szcke.execute-api.us-east-1.amazonaws.com/prod/atomdb'
+        self.session = Session()
         self._connect_server()
 
     @retry(attempts=5, timeout_seconds=120)
@@ -44,8 +47,8 @@ class ServerDB(IAtomDB):
 
     def _is_server_connect(self, url: str) -> bool:
         try:
-            response = request(
-                "POST", url=url, data=json.dumps({'action': 'healthy_check'})
+            response = self.session.post(
+                url=url, data=json.dumps({"action": "ping", "input": {}})
             )
         except Exception as e:
             raise e
@@ -53,11 +56,20 @@ class ServerDB(IAtomDB):
             return True
         return False
 
-    def _send_request(self, payload) -> dict:
+    def _send_request(self, payload) -> str | dict | int:
         try:
-            response = request("POST", url=self.url, data=json.dumps(payload))
+            response = self.session.post(
+                url=self.url, data=json.dumps(payload)
+            )
             if response.status_code == 200:
-                return response.json()
+                text = response.text
+                try:
+                    result = eval(text.split('\n')[-2])
+                    return result
+                except Exception:
+                    return text.split('\n')[-2]
+            else:
+                return response.text
         except exceptions.RequestException as e:
             raise e
 
@@ -72,18 +84,18 @@ class ServerDB(IAtomDB):
     ):
         payload = {
             'action': action,
-            'database_name': self.database_name,
+            'input': {},
         }
         if node_handle:
-            payload['node_handle'] = node_handle
+            payload['input']['node_handle'] = node_handle
         if node_type:
-            payload['node_type'] = node_type
+            payload['input']['node_type'] = node_type
         if node_name:
-            payload['node_name'] = node_name
+            payload['input']['node_name'] = node_name
         if substring:
-            payload['substring'] = substring
+            payload['input']['substring'] = substring
         if names is not None:
-            payload['names'] = names
+            payload['input']['names'] = names
 
         return self._send_request(payload)
 
@@ -98,35 +110,40 @@ class ServerDB(IAtomDB):
     ):
         payload = {
             'action': action,
-            'database_name': self.database_name,
+            'input': {},
         }
         if link_type:
-            payload['link_type'] = link_type
+            payload['input']['link_type'] = link_type
         if target_handles:
-            payload['target_handles'] = target_handles
+            payload['input']['target_handles'] = target_handles
         if link_handle:
-            payload['link_handle'] = link_handle
+            payload['input']['link_handle'] = link_handle
         if template:
-            payload['template'] = template
+            payload['input']['template'] = template
         if extra_parameters:
-            payload['extra_parameters'] = extra_parameters
+            payload['input']['extra_parameters'] = extra_parameters
 
         return self._send_request(payload)
 
     def _get_atom_information(
         self, action: str, handle: str = None, arity: int = -1
     ):
-        payload = {'action': action, 'database_name': self.database_name}
+        payload = {'action': action, 'input': {}}
         if action != 'count_atoms':
-            payload['handle'] = handle
-            payload['arity'] = arity
-
+            payload['input']['handle'] = handle
+            payload['input']['arity'] = arity
         return self._send_request(payload)
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
-        return self._get_node_information(
+        result = self._get_node_information(
             'get_node_handle', node_type=node_type, node_name=node_name
         )
+        if 'error' in result:
+            raise NodeDoesNotExistException(
+                message='This node does not exist',
+                details=f'{node_type}:{node_name}',
+            )
+        return result
 
     def get_node_name(self, node_handle: str) -> str:
         return self._get_node_information(
@@ -140,12 +157,12 @@ class ServerDB(IAtomDB):
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         return self._get_node_information(
-            'get_node_type', node_type=node_type, substring=substring
+            'get_matched_node_name', node_type=node_type, substring=substring
         )
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         return self._get_node_information(
-            'get_node_type', node_type=node_type, names=names
+            'get_all_nodes', node_type=node_type, names=names
         )
 
     def get_link_handle(
@@ -219,20 +236,14 @@ class ServerDB(IAtomDB):
         return self._get_atom_information('count_atoms')
 
     def clear_database(self) -> None:
-        payload = {
-            'action': 'clear_database',
-            'database_name': self.database_name,
-        }
+        payload = {'action': 'clear_database', 'input': {}}
         response = self._send_request(payload)
         if response.get('status_code') == 200:
             return response.get('message', '')
         return ''
 
     def prefetch(self) -> None:
-        payload = {
-            'action': 'prefetch',
-            'database_name': self.database_name,
-        }
+        payload = {'action': 'clear_database', 'input': {}}
         response = self._send_request(payload)
         if response.get('status_code') == 200:
             return response.get('message', '')

@@ -28,9 +28,9 @@ from hyperon_das_atomdb.i_database import (
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-USE_CACHED_NODES = True
-USE_CACHED_LINK_TYPES = True
-USE_CACHED_NODE_TYPES = True
+USE_CACHED_NODES = False
+USE_CACHED_LINK_TYPES = False
+USE_CACHED_NODE_TYPES = False
 
 
 class NodeDocuments:
