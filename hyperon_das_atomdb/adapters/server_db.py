@@ -61,6 +61,7 @@ class ServerDB(IAtomDB):
             response = self.session.post(
                 url=self.url, data=json.dumps(payload)
             )
+            # TODO: WIP - Refactor this part
             if response.status_code == 200:
                 text = response.text
                 try:
