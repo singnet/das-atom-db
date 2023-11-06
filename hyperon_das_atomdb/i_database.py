@@ -85,6 +85,19 @@ class IAtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
+    def get_link_type(self, link_handle: str) -> str:
+        """
+        Get the type of the link with the specified handle.
+
+        Args:
+            link_handle (str): The link handle.
+
+        Returns:
+            str: The link type.
+        """
+        ...  # pragma no cover
+
+    @abstractmethod
     def is_ordered(self, link_handle: str) -> bool:
         """
         Check if a link specified by its handle is ordered.
