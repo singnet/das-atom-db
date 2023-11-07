@@ -15,7 +15,7 @@ class TestServerDB:
     @pytest.fixture()
     def database(self):
         with requests_mock.Mocker() as r_moc:
-            r_moc.post('http://0.0.0.0:8080/function/atomdb', status_code=200)
+            r_moc.post('http://0.0.0.0/prod/atomdb', status_code=200)
             db = ServerDB(ip_address='0.0.0.0')
         return db
 

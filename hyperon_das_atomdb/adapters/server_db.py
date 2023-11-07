@@ -32,17 +32,17 @@ class ServerDB(IAtomDB):
         self.ip = ip_address
         self.port = port if port else '8080'
         self.openfaas_uri = f'http://{self.ip}:{self.port}/function/atomdb'
-        self.aws_lambda_uri = f'https://q49t4szcke.execute-api.us-east-1.amazonaws.com/prod/atomdb'
+        self.aws_lambda_uri = f'http://{self.ip}/prod/atomdb'
         self.session = Session()
         self._connect_server()
 
     @retry(attempts=5, timeout_seconds=120)
     def _connect_server(self) -> str | None:
         self.url = None
-        if self._is_server_connect(self.openfaas_uri):
-            self.url = self.openfaas_uri
-        elif self._is_server_connect(self.aws_lambda_uri):
+        if self._is_server_connect(self.aws_lambda_uri):
             self.url = self.aws_lambda_uri
+        elif self._is_server_connect(self.openfaas_uri):
+            self.url = self.openfaas_uri
         return self.url
 
     def _is_server_connect(self, url: str) -> bool:
@@ -61,14 +61,12 @@ class ServerDB(IAtomDB):
             response = self.session.post(
                 url=self.url, data=json.dumps(payload)
             )
-            # TODO: WIP - Refactor this part
+            # TODO: Refactor this part
             if response.status_code == 200:
-                text = response.text
                 try:
-                    result = eval(text.split('\n')[-2])
-                    return result
+                    return eval(response.text)
                 except Exception:
-                    return text.split('\n')[-2]
+                    return response.text
             else:
                 return response.text
         except exceptions.RequestException as e:
@@ -181,8 +179,8 @@ class ServerDB(IAtomDB):
         )
 
     def is_ordered(self, link_handle: str) -> bool:
-        return self._get_link_information(
-            'is_ordered', link_handle=link_handle
+        return bool(
+            self._get_link_information('is_ordered', link_handle=link_handle)
         )
 
     def get_matched_links(
@@ -243,9 +241,37 @@ class ServerDB(IAtomDB):
             return response.get('message', '')
         return ''
 
-    def prefetch(self) -> None:
-        payload = {'action': 'clear_database', 'input': {}}
-        response = self._send_request(payload)
-        if response.get('status_code') == 200:
-            return response.get('message', '')
-        return ''
+
+if __name__ == '__main__':
+    api = ServerDB(ip_address='44.198.65.35')
+
+    human = api.get_node_handle(node_type='Concept', node_name='human')
+    monkey = api.get_node_handle(node_type='Concept', node_name='monkey')
+
+    node2 = api.get_node_type(node_handle=human)
+    node3 = api.node_exists(node_type='Concept', node_name='human')
+    node4 = api.get_node_name(node_handle=human)
+    node5 = api.get_all_nodes(node_type='Concept')
+    node6 = api.get_matched_node_name(node_type='Concept', substring='ma')
+
+    link_handle = api.get_link_handle(
+        link_type='Similarity', target_handles=[human, monkey]
+    )
+
+    link1 = api.is_ordered(link_handle=link_handle)
+    link2 = api.get_link_type(link_handle=link_handle)
+    link3 = api.get_atom_as_dict(handle=link_handle)
+    link5 = api.get_link_targets(link_handle=link_handle)
+    link9 = api.get_atom_as_deep_representation(handle=link_handle)
+    link6 = api.get_matched_links(
+        link_type='Evaluation', target_handles=['*', '*']
+    )
+    link7 = api.get_matched_type_template(
+        template=['Similarity', 'Concept', 'Concept'],
+        extra_parameters={'toplevel_only': True},
+    )
+    link8 = api.get_matched_type(
+        link_type='Similarity', extra_parameters={'toplevel_only': True}
+    )
+
+    print('END')
