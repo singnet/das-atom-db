@@ -294,6 +294,17 @@ class InMemoryDB(IAtomDB):
                 details=f'{link_type}:{target_handles}',
             )
 
+    def get_link_type(self, link_handle: str) -> str:
+        try:
+            tables = self.db.link.all_tables()
+            link = tables.get(link_handle)
+            return link['named_type']
+        except KeyError:
+            raise LinkDoesNotExistException(
+                message='This link does not exist',
+                details=f'link_handle: {link_handle}',
+            )
+
     def get_link_targets(self, link_handle: str) -> List[str]:
         try:
             answer = self.db.outgoing_set[link_handle]
