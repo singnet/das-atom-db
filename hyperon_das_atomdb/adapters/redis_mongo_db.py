@@ -274,7 +274,7 @@ class RedisMongoDB(IAtomDB):
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
-        node_handle = self._create_node_handle(node_type, node_name)
+        node_handle = self._node_handle(node_type, node_name)
         document = self._retrieve_mongo_document(node_handle, 0)
         if document is not None:
             return document['_id']
@@ -330,7 +330,7 @@ class RedisMongoDB(IAtomDB):
     def get_link_handle(
         self, link_type: str, target_handles: List[str]
     ) -> str:
-        link_handle = self._create_link_handle(link_type, target_handles)
+        link_handle = self._link_handle(link_type, target_handles)
         document = self._retrieve_mongo_document(
             link_handle, len(target_handles)
         )

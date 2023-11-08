@@ -16,7 +16,7 @@ class TestServerDB:
     def database(self):
         with requests_mock.Mocker() as r_moc:
             r_moc.post('http://0.0.0.0/prod/atomdb', status_code=200)
-            db = ServerDB(ip_address='0.0.0.0')
+            db = ServerDB(host='0.0.0.0')
         return db
 
     def test_get_node_handle(self, requests_mock, database):

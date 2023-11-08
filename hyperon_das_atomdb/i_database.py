@@ -19,12 +19,10 @@ class IAtomDB(ABC):
         """
         return "<Atom database interface>"  # pragma no cover
 
-    def _create_node_handle(self, node_type: str, node_name: str) -> str:
+    def _node_handle(self, node_type: str, node_name: str) -> str:
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
-    def _create_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
+    def _link_handle(self, link_type: str, target_handles: List[str]) -> str:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(
             named_type_hash, target_handles

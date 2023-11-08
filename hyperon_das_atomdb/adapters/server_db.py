@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from requests import Session, exceptions
+import requests
 
 from hyperon_das_atomdb.exceptions import (
     ConnectionServerException,
@@ -20,20 +20,17 @@ class ServerDB(IAtomDB):
 
     def __init__(
         self,
-        database_name: str = 'das',
-        ip_address: str = None,
+        host: str = None,
         port: Optional[str] = None,
     ) -> None:
-        if not ip_address:
+        if not host:
             raise ConnectionServerException(
-                message='You must send ip_address parameter'
+                message='You must send host parameter'
             )
-        self.database_name = database_name
-        self.ip = ip_address
+        self.host = host
         self.port = port if port else '8080'
-        self.openfaas_uri = f'http://{self.ip}:{self.port}/function/atomdb'
-        self.aws_lambda_uri = f'http://{self.ip}/prod/atomdb'
-        self.session = Session()
+        self.openfaas_uri = f'http://{self.host}:{self.port}/function/atomdb'
+        self.aws_lambda_uri = f'http://{self.host}/prod/atomdb'
         self._connect_server()
 
     @retry(attempts=5, timeout_seconds=120)
@@ -47,8 +44,10 @@ class ServerDB(IAtomDB):
 
     def _is_server_connect(self, url: str) -> bool:
         try:
-            response = self.session.post(
-                url=url, data=json.dumps({"action": "ping", "input": {}})
+            response = requests.request(
+                'POST',
+                url=url,
+                data=json.dumps({"action": "ping", "input": {}}),
             )
         except Exception as e:
             raise e
@@ -58,8 +57,8 @@ class ServerDB(IAtomDB):
 
     def _send_request(self, payload) -> str | dict | int:
         try:
-            response = self.session.post(
-                url=self.url, data=json.dumps(payload)
+            response = requests.request(
+                'POST', url=self.url, data=json.dumps(payload)
             )
             # TODO: Refactor this part
             if response.status_code == 200:
@@ -69,7 +68,7 @@ class ServerDB(IAtomDB):
                     return response.text
             else:
                 return response.text
-        except exceptions.RequestException as e:
+        except requests.exceptions.RequestException as e:
             raise e
 
     def _get_node_information(
@@ -237,41 +236,7 @@ class ServerDB(IAtomDB):
     def clear_database(self) -> None:
         payload = {'action': 'clear_database', 'input': {}}
         response = self._send_request(payload)
-        if response.get('status_code') == 200:
-            return response.get('message', '')
-        return ''
-
-
-if __name__ == '__main__':
-    api = ServerDB(ip_address='44.198.65.35')
-
-    human = api.get_node_handle(node_type='Concept', node_name='human')
-    monkey = api.get_node_handle(node_type='Concept', node_name='monkey')
-
-    node2 = api.get_node_type(node_handle=human)
-    node3 = api.node_exists(node_type='Concept', node_name='human')
-    node4 = api.get_node_name(node_handle=human)
-    node5 = api.get_all_nodes(node_type='Concept')
-    node6 = api.get_matched_node_name(node_type='Concept', substring='ma')
-
-    link_handle = api.get_link_handle(
-        link_type='Similarity', target_handles=[human, monkey]
-    )
-
-    link1 = api.is_ordered(link_handle=link_handle)
-    link2 = api.get_link_type(link_handle=link_handle)
-    link3 = api.get_atom_as_dict(handle=link_handle)
-    link5 = api.get_link_targets(link_handle=link_handle)
-    link9 = api.get_atom_as_deep_representation(handle=link_handle)
-    link6 = api.get_matched_links(
-        link_type='Evaluation', target_handles=['*', '*']
-    )
-    link7 = api.get_matched_type_template(
-        template=['Similarity', 'Concept', 'Concept'],
-        extra_parameters={'toplevel_only': True},
-    )
-    link8 = api.get_matched_type(
-        link_type='Similarity', extra_parameters={'toplevel_only': True}
-    )
-
-    print('END')
+        if response.status_code == 200:
+            return None
+        else:
+            return response.text

@@ -92,7 +92,7 @@ class InMemoryDB(IAtomDB):
         return self.db.atom_type[key]
 
     def _add_names(self, _name: str, _type: str) -> Dict[str, str]:
-        key = self._create_node_handle(_type, _name)
+        key = self._node_handle(_type, _name)
         try:
             self.db.names[key]
         except KeyError:
@@ -222,7 +222,7 @@ class InMemoryDB(IAtomDB):
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
-        node_handle = self._create_node_handle(node_type, node_name)
+        node_handle = self._node_handle(node_type, node_name)
         try:
             self.db.node[node_handle]
             return node_handle
@@ -282,7 +282,7 @@ class InMemoryDB(IAtomDB):
     def get_link_handle(
         self, link_type: str, target_handles: List[str]
     ) -> str:
-        link_handle = self._create_link_handle(link_type, target_handles)
+        link_handle = self._link_handle(link_type, target_handles)
         arity = len(target_handles)
         try:
             table = self.db.link.get_table(arity)
@@ -498,7 +498,7 @@ class InMemoryDB(IAtomDB):
         node_type = node_params_copy.pop('type')
         node_name = node_params_copy.pop('name')
 
-        key = self._create_node_handle(node_type, node_name)
+        key = self._node_handle(node_type, node_name)
 
         try:
             self.db.node[key]
