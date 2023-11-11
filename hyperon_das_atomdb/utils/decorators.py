@@ -33,7 +33,7 @@ def retry(attempts: int, timeout_seconds: int):
                     response = function(*args, **kwargs)
                     end_time = datetime.now()
                     if response is not None:
-                        return
+                        return response
                 except Exception as e:
                     raise ConnectionServerException(
                         message="An error occurs while connecting to the server",

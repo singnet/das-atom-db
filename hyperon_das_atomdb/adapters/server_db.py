@@ -9,6 +9,7 @@ from hyperon_das_atomdb.exceptions import (
 )
 from hyperon_das_atomdb.i_database import IAtomDB
 from hyperon_das_atomdb.utils.decorators import retry
+from hyperon_das_atomdb.utils.settings import config
 
 
 class ServerDB(IAtomDB):
@@ -28,19 +29,23 @@ class ServerDB(IAtomDB):
                 message='You must send host parameter'
             )
         self.host = host
-        self.port = port if port else '8080'
-        self.openfaas_uri = f'http://{self.host}:{self.port}/function/atomdb'
-        self.aws_lambda_uri = f'http://{self.host}/prod/atomdb'
-        self._connect_server()
+        self.port = port
+        self.url = self._connect_server()
 
-    @retry(attempts=5, timeout_seconds=120)
+    @retry(
+        attempts=int(config.get('RETRY_ATTEMPTS')),
+        timeout_seconds=int(config.get('RETRY_TIMEOUT_SECONDS')),
+    )
     def _connect_server(self) -> str | None:
-        self.url = None
-        if self._is_server_connect(self.aws_lambda_uri):
-            self.url = self.aws_lambda_uri
-        elif self._is_server_connect(self.openfaas_uri):
-            self.url = self.openfaas_uri
-        return self.url
+        port = self.port or config.get("DEFAULT_PORT_OPENFAAS")
+        openfaas_uri = f'http://{self.host}:{port}/function/atomdb'
+        aws_lambda_uri = f'http://{self.host}/prod/atomdb'
+        url = None
+        if self._is_server_connect(aws_lambda_uri):
+            url = aws_lambda_uri
+        elif self._is_server_connect(openfaas_uri):
+            url = openfaas_uri
+        return url
 
     def _is_server_connect(self, url: str) -> bool:
         try:
@@ -61,6 +66,17 @@ class ServerDB(IAtomDB):
                 'POST', url=self.url, data=json.dumps(payload)
             )
             # TODO: Refactor this part
+            # Abra o arquivo para escrever (anexando ao arquivo)
+            with open('log.txt', 'a') as log_file:
+                log_file.write(
+                    "--------------------------------------------------------------------------------------------------\n"
+                )
+                log_file.write(f"método: {payload['action']}\n")
+                log_file.write(f"url: {self.url}\n")
+                log_file.write(f"payload: {json.dumps(payload)}\n")
+                log_file.write(f"resultado: {response.text}\n")
+                # slog_file.write("------------------------------------------------------------\n")
+
             if response.status_code == 200:
                 try:
                     return eval(response.text)
@@ -225,7 +241,7 @@ class ServerDB(IAtomDB):
             'get_atom_as_dict', handle=handle, arity=arity
         )
 
-    def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
+    def get_atom_as_deep_representation(self, handle: str, arity=-1) -> dict:
         return self._get_atom_information(
             'get_atom_as_deep_representation', handle=handle, arity=arity
         )
