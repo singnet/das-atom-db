@@ -27,18 +27,11 @@ from hyperon_das_atomdb.i_database import (
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils.parse import str_to_bool
 
-
-def str_to_bool_var(value: str) -> bool:
-    if value is None:
-        return True
-
-    return False if value.lower() == "false" else True
-
-
-USE_CACHED_NODES = str_to_bool_var(os.environ.get("DAS_USE_CACHED_NODES"))
-USE_CACHED_LINK_TYPES = str_to_bool_var(os.environ.get("DAS_USE_CACHED_LINK_TYPES"))
-USE_CACHED_NODE_TYPES = str_to_bool_var(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
+USE_CACHED_NODES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODES"))
+USE_CACHED_LINK_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES"))
+USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
 
 
 class NodeDocuments:
@@ -156,7 +149,7 @@ class RedisMongoDB(IAtomDB):
         redis_port = os.environ.get("DAS_REDIS_PORT")
         redis_password = os.environ.get("DAS_REDIS_PASSWORD")
         redis_username = os.environ.get("DAS_REDIS_USERNAME")
-        redis_cluster = str_to_bool_var(os.environ.get("DAS_USE_REDIS_CLUSTER"))
+        redis_cluster = str_to_bool(os.environ.get("DAS_USE_REDIS_CLUSTER"))
 
         redis_connection = {
             "host": redis_hostname,
