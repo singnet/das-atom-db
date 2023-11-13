@@ -231,7 +231,7 @@ class ServerDBVultrIntegration:
     def server(self):
         with mock.patch(
             'hyperon_das_atomdb.adapters.server_db.ServerDB._connect_server',
-            return_value=f"http://{config.get('DEFAULT_HOST_OPENFAAS')}:8080/function/atomdb",
+            return_value=f"http://{config.get('DEFAULT_HOST_OPENFAAS')}:{config.get('DEFAULT_PORT_OPENFAAS')}/function/atomdb",
         ):
             return ServerDB(host=config.get('DEFAULT_HOST_AWS_LAMBDA'))
 
