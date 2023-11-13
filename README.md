@@ -34,8 +34,13 @@ DAS_MONGODB_HOSTNAME=172.17.0.2
 DAS_MONGODB_PORT=27017
 DAS_MONGODB_USERNAME=mongo
 DAS_MONGODB_PASSWORD=mongo
+DAS_MONGODB_TLS_CA_FILE=global-bundle.pem       [optional]
 DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
+DAS_USE_REDIS_CLUSTER=false                     [default: true]
+DAS_USE_CACHED_NODES=false                      [default: true]
+DAS_USE_CACHED_LINK_TYPES=false                 [default: true]
+DAS_USE_CACHED_NODE_TYPES=false                 [default: true]
 ```
 
 **2.2 or you can export necessary environment using the enviroment file**
