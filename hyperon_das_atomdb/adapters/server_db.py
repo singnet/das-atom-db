@@ -65,17 +65,17 @@ class ServerDB(IAtomDB):
             response = requests.request(
                 'POST', url=self.url, data=json.dumps(payload)
             )
-            # TODO: Refactor this part
-            # Abra o arquivo para escrever (anexando ao arquivo)
+            
+            # TODO: Remove this with block
             with open('log.txt', 'a') as log_file:
                 log_file.write(
                     "--------------------------------------------------------------------------------------------------\n"
                 )
                 log_file.write(f"método: {payload['action']}\n")
+                log_file.write(f"status: {'OK' if response.status_code == 200 else 'ERRO'}\n")
                 log_file.write(f"url: {self.url}\n")
                 log_file.write(f"payload: {json.dumps(payload)}\n")
                 log_file.write(f"resultado: {response.text}\n")
-                # slog_file.write("------------------------------------------------------------\n")
 
             if response.status_code == 200:
                 try:
