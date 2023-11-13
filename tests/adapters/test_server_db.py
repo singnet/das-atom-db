@@ -93,11 +93,10 @@ class TestServerDBAWSIntegration:
         ret = server.get_node_handle(node_type='Concept', node_name='human')
         assert ret == server._node_handle('Concept', 'human')
 
-    ## ERROR WITHOUT RESPONSE
-    # def _get_node_name(self, server):
-    #    human_handle = server._node_handle('Concept', 'human')
-    #    ret = server.get_node_name(node_handle=human_handle)
-    #    assert ret == 'human'
+    def test_get_node_name(self, server):
+        human_handle = server._node_handle('Concept', 'human')
+        ret = server.get_node_name(node_handle=human_handle)
+        assert ret == 'human'
 
     def test_get_node_type(self, server):
         human_handle = server._node_handle('Concept', 'human')
@@ -239,11 +238,10 @@ class ServerDBVultrIntegration:
         ret = server.get_node_handle(node_type='Concept', node_name='human')
         assert ret == server._node_handle('Concept', 'human')
 
-    ## ERROR WITHOUT RESPONSE
-    # def test_get_node_name(self, server):
-    #    human_handle = server._node_handle('Concept', 'human')
-    #    ret = server.get_node_name(node_handle=human_handle)
-    #    assert ret == 'human'
+    def test_get_node_name(self, server):
+        human_handle = server._node_handle('Concept', 'human')
+        ret = server.get_node_name(node_handle=human_handle)
+        assert ret == 'human'
 
     def test_get_node_type(self, server):
         human_handle = server._node_handle('Concept', 'human')
