@@ -9,6 +9,7 @@ on:
 
 jobs:
   publish:
+    environment: prod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
