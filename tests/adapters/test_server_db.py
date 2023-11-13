@@ -225,7 +225,7 @@ class TestServerDBAWSIntegration:
         assert ret[1] == 26
 
 
-class ServerDBVultrIntegration:
+class TestServerDBVultrIntegration:
     @pytest.fixture()
     def server(self):
         with mock.patch(

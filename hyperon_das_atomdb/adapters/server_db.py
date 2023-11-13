@@ -41,10 +41,10 @@ class ServerDB(IAtomDB):
         openfaas_uri = f'http://{self.host}:{port}/function/atomdb'
         aws_lambda_uri = f'http://{self.host}/prod/atomdb'
         url = None
-        if self._is_server_connect(aws_lambda_uri):
-            url = aws_lambda_uri
-        elif self._is_server_connect(openfaas_uri):
+        if self._is_server_connect(openfaas_uri):
             url = openfaas_uri
+        elif self._is_server_connect(aws_lambda_uri):
+            url = aws_lambda_uri
         return url
 
     def _is_server_connect(self, url: str) -> bool:
