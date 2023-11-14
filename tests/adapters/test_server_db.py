@@ -82,12 +82,7 @@ class TestServerDB:
 class TestServerDBAWSIntegration:
     @pytest.fixture()
     def server(self):
-        with mock.patch(
-            'hyperon_das_atomdb.adapters.server_db.ServerDB._connect_server',
-            return_value=f"http://{config.get('DEFAULT_HOST_AWS_LAMBDA')}/prod/atomdb",
-            # return_value=f"http://127.0.0.1:8000/v1/atomdb",
-        ):
-            return ServerDB(host=config.get('DEFAULT_HOST_AWS_LAMBDA'))
+        return ServerDB(host=config.get('DEFAULT_HOST_AWS_LAMBDA'))
 
     def test_get_node_handle(self, server):
         ret = server.get_node_handle(node_type='Concept', node_name='human')

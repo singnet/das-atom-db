@@ -53,6 +53,7 @@ class ServerDB(IAtomDB):
                 'POST',
                 url=url,
                 data=json.dumps({"action": "ping", "input": {}}),
+                timeout=15,
             )
         except Exception as e:
             return False
