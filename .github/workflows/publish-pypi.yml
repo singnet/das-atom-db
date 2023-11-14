@@ -2,13 +2,25 @@ name: Publish to PyPI
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Version Tagging"]
-    types:
-      - completed
+    inputs:
+      version:
+        description: "Version to tag"
+        required: true
 
 jobs:
+  tag:
+    uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
+    with:
+      version: ${{ github.event.inputs.version }}
+      version-strategy: bump-version-from-variable-value
+      job-image-namespace: trueagi
+      job-image-version-semver: semantic-versioning
+      main-branch: master
+      version-tag-regex-pattern: /^v\d+\.\d+\.\d+$/
+      version-require-confirmation: "true"
+
   publish:
+    environment: prod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,5 +38,6 @@ jobs:
 
       - name: Build and publish package
         run: |
+          poetry version ${{ github.event.inputs.version }}
           poetry build
           poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
