@@ -37,7 +37,7 @@ class ServerDB(IAtomDB):
         timeout_seconds=int(config.get('RETRY_TIMEOUT_SECONDS', '120')),
     )
     def _connect_server(self) -> str | None:
-        port = self.port or config.get("DEFAULT_PORT_OPENFAAS")
+        port = self.port or config.get("DEFAULT_PORT_OPENFAAS", '8080')
         openfaas_uri = f'http://{self.host}:{port}/function/atomdb'
         aws_lambda_uri = f'http://{self.host}/prod/atomdb'
         url = None
@@ -55,7 +55,7 @@ class ServerDB(IAtomDB):
                 data=json.dumps({"action": "ping", "input": {}}),
             )
         except Exception as e:
-            raise e
+            return False
         if response.status_code == 200:
             return True
         return False
