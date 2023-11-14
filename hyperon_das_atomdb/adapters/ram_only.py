@@ -37,8 +37,192 @@ class InMemoryDB(IAtomDB):
             names={},
         )
 
+    def _build_named_type_hash_template(
+        self, template: Union[str, List[Any]]
+    ) -> List[Any]:
+        if isinstance(template, str):
+            return ExpressionHasher.named_type_hash(template)
+        else:
+            return [
+                self._build_named_type_hash_template(element)
+                for element in template
+            ]
+
+    def _build_named_type_template(
+        self, composite_type: Union[str, List[Any]]
+    ) -> List[Any]:
+        if isinstance(composite_type, str):
+            for key, values in self.db.atom_type.items():
+                if values['named_type_hash'] == composite_type:
+                    return values['named_type']
+            return ''
+        else:
+            return [
+                self._build_named_type_template(element)
+                for element in composite_type
+            ]
+
+    def _add_atom_type(
+        self, _name: str, _type: Optional[str] = 'Type'
+    ) -> Dict[str, Any]:
+        name_hash = ExpressionHasher.named_type_hash(_name)
+        type_hash = ExpressionHasher.named_type_hash(_type)
+        typedef_mark_hash = ExpressionHasher.named_type_hash(":")
+
+        key = ExpressionHasher.expression_hash(
+            typedef_mark_hash, [name_hash, type_hash]
+        )
+
+        try:
+            self.db.atom_type[key]
+        except KeyError:
+            base_type_hash = ExpressionHasher.named_type_hash("Type")
+            composite_type = [typedef_mark_hash, type_hash, base_type_hash]
+            composite_type_hash = ExpressionHasher.composite_hash(
+                composite_type
+            )
+
+            self.db.atom_type[key] = {
+                '_id': key,
+                'composite_type_hash': composite_type_hash,
+                'named_type': _name,
+                'named_type_hash': name_hash,
+            }
+
+        return self.db.atom_type[key]
+
+    def _add_names(self, _name: str, _type: str) -> Dict[str, str]:
+        key = self._node_handle(_type, _name)
+        try:
+            self.db.names[key]
+        except KeyError:
+            self.db.names[key] = _name
+        return self.db.names[key]
+
+    def _add_outgoing_set(
+        self, key: str, targets_hash: Dict[str, Any]
+    ) -> None:
+        outgoing_set = self.db.outgoing_set.get(key)
+        if outgoing_set is None:
+            self.db.outgoing_set[key] = targets_hash
+        else:
+            self.db.outgoing_set[key] + targets_hash
+
+    def _add_incomming_set(
+        self, key: str, targets_hash: Dict[str, Any]
+    ) -> None:
+        for target_hash in targets_hash:
+            incomming_set = self.db.incomming_set.get(target_hash)
+            if incomming_set is None:
+                self.db.incomming_set[target_hash] = [key]
+            else:
+                self.db.incomming_set[target_hash].append(key)
+
+    def _add_templates(
+        self,
+        composite_type_hash: str,
+        named_type_hash: str,
+        key: str,
+        targets_hash: List[str],
+    ) -> None:
+        template_composite_type_hash = self.db.templates.get(
+            composite_type_hash
+        )
+        template_named_type_hash = self.db.templates.get(named_type_hash)
+
+        if template_composite_type_hash is not None:
+            # template_composite_type_hash.append([key, targets_hash])
+            template_composite_type_hash.append((key, tuple(targets_hash)))
+        else:
+            # self.db.templates[composite_type_hash] = [[key, targets_hash]]
+            self.db.templates[composite_type_hash] = [
+                (key, tuple(targets_hash))
+            ]
+
+        if template_named_type_hash is not None:
+            # template_named_type_hash.append([key, targets_hash])
+            template_named_type_hash.append((key, tuple(targets_hash)))
+        else:
+            # self.db.templates[named_type_hash] = [[key, targets_hash]]
+            self.db.templates[named_type_hash] = [(key, tuple(targets_hash))]
+
+    def _add_patterns(
+        self, named_type_hash: str, key: str, targets_hash: List[str]
+    ):
+        pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
+
+        for pattern_key in pattern_keys:
+            pattern_key_hash = self.db.patterns.get(pattern_key)
+            if pattern_key_hash is not None:
+                # pattern_key_hash.append([key, targets_hash])
+                pattern_key_hash.append((key, tuple(targets_hash)))
+            else:
+                # self.db.patterns[pattern_key] = [[key, targets_hash]]
+                self.db.patterns[pattern_key] = [(key, tuple(targets_hash))]
+
+    def _calculate_composite_type(self, data) -> list:
+        composite_type = []
+        if 'targets' in data:
+            for target in data['targets']:
+                if 'targets' in target:
+                    composite_type.append(
+                        self._calculate_composite_type(target.copy())
+                    )
+                else:
+                    composite_type.append(
+                        ExpressionHasher.named_type_hash(target.get('type'))
+                    )
+        composite_type.insert(
+            0, ExpressionHasher.named_type_hash(data.get('type'))
+        )
+        return composite_type
+
+    def _calculate_targets_hash(self, data) -> List[str]:
+        target_type = data['type']
+        target_name = data.get('name')
+
+        if 'targets' not in data:
+            return ExpressionHasher.terminal_hash(target_type, target_name)
+
+        if 'targets' in data:
+            sub_targets = data['targets']
+            result = []
+            for sub_target in sub_targets:
+                ret = self._calculate_targets_hash(sub_target.copy())
+                result.append(ret)
+
+            for item in result:
+                if isinstance(item, list):
+                    index = result.index(item)
+                    result[index] = ExpressionHasher.expression_hash(
+                        ExpressionHasher.named_type_hash(sub_target['type']),
+                        item,
+                    )
+
+            return result
+
+    def _calculate_composite_type_hash(self, composite_type: list) -> str:
+        for _hash in composite_type:
+            if isinstance(_hash, list):
+                _hash_copy = list(_hash)
+                self._calculate_composite_type_hash(_hash_copy)
+                index = composite_type.index(_hash)
+                composite_type[index] = ExpressionHasher.composite_hash(
+                    _hash_copy
+                )
+        return ExpressionHasher.composite_hash(composite_type)
+
+    def _filter_non_toplevel(self, matches: list) -> list:
+        matches_toplevel_only = []
+        for match in matches:
+            link_handle = match[0]
+            links = self.db.link.get_table(len(match[-1]))
+            if links[link_handle]['is_toplevel']:
+                matches_toplevel_only.append(match)
+        return matches_toplevel_only
+
     def get_node_handle(self, node_type: str, node_name: str) -> str:
-        node_handle = self._create_node_handle(node_type, node_name)
+        node_handle = self._node_handle(node_type, node_name)
         try:
             self.db.node[node_handle]
             return node_handle
@@ -48,17 +232,57 @@ class InMemoryDB(IAtomDB):
                 details=f'{node_type}:{node_name}',
             )
 
-    def node_exists(self, node_type: str, node_name: str) -> bool:
+    def get_node_name(self, node_handle: str) -> str:
         try:
-            self.get_node_handle(node_type, node_name)
-            return True
-        except NodeDoesNotExistException:
-            return False
+            node = self.db.node[node_handle]
+            return node['name']
+        except KeyError:
+            raise NodeDoesNotExistException(
+                message='This node does not exist',
+                details=f'node_handle: {node_handle}',
+            )
+
+    def get_node_type(self, node_handle: str) -> str:
+        try:
+            node = self.db.node[node_handle]
+            return node['named_type']
+        except KeyError:
+            raise NodeDoesNotExistException(
+                message='This node does not exist',
+                details=f'node_handle: {node_handle}',
+            )
+
+    def get_matched_node_name(
+        self, node_type: str, substring: Optional[str] = ''
+    ) -> str:
+        node_type_hash = ExpressionHasher.named_type_hash(node_type)
+        return [
+            key
+            for key, value in self.db.node.items()
+            if substring in value['name']
+            and node_type_hash == value['composite_type_hash']
+        ]
+
+    def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
+        node_type_hash = ExpressionHasher.named_type_hash(node_type)
+
+        if names:
+            return [
+                value['name']
+                for value in self.db.node.values()
+                if value['composite_type_hash'] == node_type_hash
+            ]
+        else:
+            return [
+                key
+                for key, value in self.db.node.items()
+                if value['composite_type_hash'] == node_type_hash
+            ]
 
     def get_link_handle(
         self, link_type: str, target_handles: List[str]
     ) -> str:
-        link_handle = self._create_link_handle(link_type, target_handles)
+        link_handle = self._link_handle(link_type, target_handles)
         arity = len(target_handles)
         try:
             table = self.db.link.get_table(arity)
@@ -80,13 +304,6 @@ class InMemoryDB(IAtomDB):
                 message='This link does not exist',
                 details=f'link_handle: {link_handle}',
             )
-
-    def link_exists(self, link_type: str, target_handles: List[str]) -> bool:
-        try:
-            self.get_link_handle(link_type, target_handles)
-            return True
-        except LinkDoesNotExistException:
-            return False
 
     def get_link_targets(self, link_handle: str) -> List[str]:
         try:
@@ -138,22 +355,6 @@ class InMemoryDB(IAtomDB):
 
         return patterns_matched
 
-    def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
-        node_type_hash = ExpressionHasher.named_type_hash(node_type)
-
-        if names:
-            return [
-                value['name']
-                for value in self.db.node.values()
-                if value['composite_type_hash'] == node_type_hash
-            ]
-        else:
-            return [
-                key
-                for key, value in self.db.node.items()
-                if value['composite_type_hash'] == node_type_hash
-            ]
-
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -176,43 +377,6 @@ class InMemoryDB(IAtomDB):
             if extra_parameters and extra_parameters.get('toplevel_only'):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
-
-    def get_node_name(self, node_handle: str) -> str:
-        try:
-            node = self.db.node[node_handle]
-            return node['name']
-        except KeyError:
-            raise NodeDoesNotExistException(
-                message='This node does not exist',
-                details=f'node_handle: {node_handle}',
-            )
-
-    def get_node_type(self, node_handle: str) -> str:
-        try:
-            node = self.db.node[node_handle]
-            return node['named_type']
-        except KeyError:
-            raise NodeDoesNotExistException(
-                message='This node does not exist',
-                details=f'node_handle: {node_handle}',
-            )
-
-    def get_matched_node_name(
-        self, node_type: str, substring: Optional[str] = ''
-    ) -> str:
-        node_type_hash = ExpressionHasher.named_type_hash(node_type)
-
-        return [
-            key
-            for key, value in self.db.node.items()
-            if substring in value['name']
-            and node_type_hash == value['composite_type_hash']
-        ]
-
-    def count_atoms(self) -> Tuple[int, int]:
-        nodes = self.db.node
-        links = self.db.link.all_tables()
-        return (len(nodes), len(links))
 
     def get_atom_as_dict(
         self, handle: str, arity: Optional[int] = 0
@@ -273,6 +437,23 @@ class InMemoryDB(IAtomDB):
                     details=f'handle: {handle}',
                 )
 
+    def count_atoms(self) -> Tuple[int, int]:
+        nodes = self.db.node
+        links = self.db.link.all_tables()
+        return (len(nodes), len(links))
+
+    def clear_database(self) -> None:
+        self.db = Database(
+            atom_type={},
+            node={},
+            link=Link(arity_1={}, arity_2={}, arity_n={}),
+            outgoing_set={},
+            incomming_set={},
+            patterns={},
+            templates={},
+            names={},
+        )
+
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Adds a node to the in-memory database.
@@ -317,7 +498,7 @@ class InMemoryDB(IAtomDB):
         node_type = node_params_copy.pop('type')
         node_name = node_params_copy.pop('name')
 
-        key = self._create_node_handle(node_type, node_name)
+        key = self._node_handle(node_type, node_name)
 
         try:
             self.db.node[key]
@@ -467,198 +648,3 @@ class InMemoryDB(IAtomDB):
             )
 
         return link_db[key]
-
-    def _create_node_handle(self, node_type: str, node_name: str) -> str:
-        return ExpressionHasher.terminal_hash(node_type, node_name)
-
-    def _create_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
-        named_type_hash = ExpressionHasher.named_type_hash(link_type)
-        return ExpressionHasher.expression_hash(
-            named_type_hash, target_handles
-        )
-
-    def _build_named_type_hash_template(
-        self, template: Union[str, List[Any]]
-    ) -> List[Any]:
-        if isinstance(template, str):
-            return ExpressionHasher.named_type_hash(template)
-        else:
-            return [
-                self._build_named_type_hash_template(element)
-                for element in template
-            ]
-
-    def _build_named_type_template(
-        self, composite_type: Union[str, List[Any]]
-    ) -> List[Any]:
-        if isinstance(composite_type, str):
-            for key, values in self.db.atom_type.items():
-                if values['named_type_hash'] == composite_type:
-                    return values['named_type']
-            return ''
-        else:
-            return [
-                self._build_named_type_template(element)
-                for element in composite_type
-            ]
-
-    def _add_atom_type(
-        self, _name: str, _type: Optional[str] = 'Type'
-    ) -> Dict[str, Any]:
-        name_hash = ExpressionHasher.named_type_hash(_name)
-        type_hash = ExpressionHasher.named_type_hash(_type)
-        typedef_mark_hash = ExpressionHasher.named_type_hash(":")
-
-        key = ExpressionHasher.expression_hash(
-            typedef_mark_hash, [name_hash, type_hash]
-        )
-
-        try:
-            self.db.atom_type[key]
-        except KeyError:
-            base_type_hash = ExpressionHasher.named_type_hash("Type")
-            composite_type = [typedef_mark_hash, type_hash, base_type_hash]
-            composite_type_hash = ExpressionHasher.composite_hash(
-                composite_type
-            )
-
-            self.db.atom_type[key] = {
-                '_id': key,
-                'composite_type_hash': composite_type_hash,
-                'named_type': _name,
-                'named_type_hash': name_hash,
-            }
-
-        return self.db.atom_type[key]
-
-    def _add_names(self, _name: str, _type: str) -> Dict[str, str]:
-        key = self._create_node_handle(_type, _name)
-        try:
-            self.db.names[key]
-        except KeyError:
-            self.db.names[key] = _name
-        return self.db.names[key]
-
-    def _add_outgoing_set(
-        self, key: str, targets_hash: Dict[str, Any]
-    ) -> None:
-        outgoing_set = self.db.outgoing_set.get(key)
-        if outgoing_set is None:
-            self.db.outgoing_set[key] = targets_hash
-        else:
-            self.db.outgoing_set[key] + targets_hash
-
-    def _add_incomming_set(
-        self, key: str, targets_hash: Dict[str, Any]
-    ) -> None:
-        for target_hash in targets_hash:
-            incomming_set = self.db.incomming_set.get(target_hash)
-            if incomming_set is None:
-                self.db.incomming_set[target_hash] = [key]
-            else:
-                self.db.incomming_set[target_hash].append(key)
-
-    def _add_templates(
-        self,
-        composite_type_hash: str,
-        named_type_hash: str,
-        key: str,
-        targets_hash: List[str],
-    ) -> None:
-        template_composite_type_hash = self.db.templates.get(
-            composite_type_hash
-        )
-        template_named_type_hash = self.db.templates.get(named_type_hash)
-
-        if template_composite_type_hash is not None:
-            # template_composite_type_hash.append([key, targets_hash])
-            template_composite_type_hash.append((key, tuple(targets_hash)))
-        else:
-            # self.db.templates[composite_type_hash] = [[key, targets_hash]]
-            self.db.templates[composite_type_hash] = [
-                (key, tuple(targets_hash))
-            ]
-
-        if template_named_type_hash is not None:
-            # template_named_type_hash.append([key, targets_hash])
-            template_named_type_hash.append((key, tuple(targets_hash)))
-        else:
-            # self.db.templates[named_type_hash] = [[key, targets_hash]]
-            self.db.templates[named_type_hash] = [(key, tuple(targets_hash))]
-
-    def _add_patterns(
-        self, named_type_hash: str, key: str, targets_hash: List[str]
-    ):
-        pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
-
-        for pattern_key in pattern_keys:
-            pattern_key_hash = self.db.patterns.get(pattern_key)
-            if pattern_key_hash is not None:
-                # pattern_key_hash.append([key, targets_hash])
-                pattern_key_hash.append((key, tuple(targets_hash)))
-            else:
-                # self.db.patterns[pattern_key] = [[key, targets_hash]]
-                self.db.patterns[pattern_key] = [(key, tuple(targets_hash))]
-
-    def _calculate_composite_type(self, data) -> list:
-        composite_type = []
-        if 'targets' in data:
-            for target in data['targets']:
-                if 'targets' in target:
-                    composite_type.append(
-                        self._calculate_composite_type(target.copy())
-                    )
-                else:
-                    composite_type.append(
-                        ExpressionHasher.named_type_hash(target.get('type'))
-                    )
-        composite_type.insert(
-            0, ExpressionHasher.named_type_hash(data.get('type'))
-        )
-        return composite_type
-
-    def _calculate_targets_hash(self, data) -> List[str]:
-        target_type = data['type']
-        target_name = data.get('name')
-
-        if 'targets' not in data:
-            return ExpressionHasher.terminal_hash(target_type, target_name)
-
-        if 'targets' in data:
-            sub_targets = data['targets']
-            result = []
-            for sub_target in sub_targets:
-                ret = self._calculate_targets_hash(sub_target.copy())
-                result.append(ret)
-
-            for item in result:
-                if isinstance(item, list):
-                    index = result.index(item)
-                    result[index] = ExpressionHasher.expression_hash(
-                        ExpressionHasher.named_type_hash(sub_target['type']),
-                        item,
-                    )
-
-            return result
-
-    def _calculate_composite_type_hash(self, composite_type: list) -> str:
-        for _hash in composite_type:
-            if isinstance(_hash, list):
-                _hash_copy = list(_hash)
-                self._calculate_composite_type_hash(_hash_copy)
-                index = composite_type.index(_hash)
-                composite_type[index] = ExpressionHasher.composite_hash(
-                    _hash_copy
-                )
-        return ExpressionHasher.composite_hash(composite_type)
-
-    def _filter_non_toplevel(self, matches: list) -> list:
-        matches_toplevel_only = []
-        for match in matches:
-            link_handle = match[0]
-            links = self.db.link.get_table(len(match[-1]))
-            if links[link_handle]['is_toplevel']:
-                matches_toplevel_only.append(match)
-        return matches_toplevel_only

@@ -32,3 +32,11 @@ class AddNodeException(BaseException):
 
 class AddLinkException(BaseException):
     ...  # pragma no cover
+
+
+class ConnectionServerException(BaseException):
+    ...  # pragma no cover
+
+
+class RetryException(BaseException):
+    ...  # pragma no cover

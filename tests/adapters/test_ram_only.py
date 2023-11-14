@@ -675,7 +675,7 @@ class TestInMemoryDB:
         )
 
         assert len(database.get_matched_type('Evaluation')) == 2
-        
+
     def test_get_link_type(self, database: InMemoryDB):
         human = database.get_node_handle('Concept', 'human')
         chimp = database.get_node_handle('Concept', 'chimp')
