@@ -26,6 +26,7 @@ from hyperon_das_atomdb.i_database import (
     IAtomDB,
 )
 from hyperon_das_atomdb.logger import logger
+from hyperon_das_atomdb.utils.decorators import record_execution_time
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.parse import str_to_bool
 
@@ -78,6 +79,7 @@ class RedisMongoDB(IAtomDB):
     def __repr__(self) -> str:
         return "<Atom database RedisMongo>"  # pragma no cover
 
+    @record_execution_time()
     def __init__(self, database_name: str = "das") -> None:
         """
         Initialize an instance of a custom class with Redis
@@ -126,10 +128,12 @@ class RedisMongoDB(IAtomDB):
         logger().info("Prefetching data")
         logger().info("Database setup finished")
 
+    @record_execution_time()
     def _setup_databases(self) -> None:
         self.mongo_db = self._connection_mongo_db()
         self.redis = self._connection_redis()
 
+    @record_execution_time()
     def _connection_mongo_db(self) -> Database:
         mongo_hostname = os.environ.get("DAS_MONGODB_HOSTNAME")
         mongo_port = os.environ.get("DAS_MONGODB_PORT")
@@ -158,6 +162,7 @@ class RedisMongoDB(IAtomDB):
                 message="error creating a MongoClient", details=str(e)
             )
 
+    @record_execution_time()
     def _connection_redis(self) -> Redis:
         redis_hostname = os.environ.get("DAS_REDIS_HOSTNAME")
         redis_port = os.environ.get("DAS_REDIS_PORT")
@@ -189,6 +194,7 @@ class RedisMongoDB(IAtomDB):
 
         return self.redis
 
+    @record_execution_time()
     def _get_atom_type_hash(self, atom_type):
         # TODO: implement a proper mongo collection to atom types so instead
         #      of this lazy hashmap, we should load the hashmap during prefetch
@@ -199,6 +205,7 @@ class RedisMongoDB(IAtomDB):
             self.named_type_hash_reverse[named_type_hash] = atom_type
         return named_type_hash
 
+    @record_execution_time()
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
         mongo_filter = {"_id": handle}
         if arity >= 0:
@@ -220,6 +227,7 @@ class RedisMongoDB(IAtomDB):
                 return document
         return None
 
+    @record_execution_time()
     def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
         members = self.redis.smembers(build_redis_key(prefix, key))
         if prefix in self.use_targets:
@@ -268,6 +276,7 @@ class RedisMongoDB(IAtomDB):
                 answer.append(key)
             index += 1
 
+    @record_execution_time()
     def _build_deep_representation(self, handle, arity=-1):
         answer = {}
         document = self.node_documents.get(handle, None)
@@ -284,6 +293,7 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
+    @record_execution_time()
     def _filter_non_toplevel(self, matches: list) -> list:
         if isinstance(matches[0], list):
             matches = matches[0]
@@ -376,6 +386,7 @@ class RedisMongoDB(IAtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return True
 
+    @record_execution_time()
     def get_matched_links(
         self,
         link_type: str,
@@ -417,6 +428,7 @@ class RedisMongoDB(IAtomDB):
 
         return patterns_matched
 
+    @record_execution_time()
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -435,6 +447,7 @@ class RedisMongoDB(IAtomDB):
         except Exception as exception:
             raise ValueError(str(exception))
 
+    @record_execution_time()
     def get_matched_type(
         self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
     ) -> List[str]:
@@ -455,6 +468,7 @@ class RedisMongoDB(IAtomDB):
             document = self.get_atom_as_dict(link_handle)
             return document["type"]
 
+    @record_execution_time()
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
         document = (
@@ -475,6 +489,7 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
+    @record_execution_time()
     def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
         return self._build_deep_representation(handle, arity)
 
@@ -499,6 +514,7 @@ class RedisMongoDB(IAtomDB):
 
         self.redis.flushall()
 
+    @record_execution_time()
     def prefetch(self) -> None:
         self.named_type_hash = {}
         self.named_type_hash_reverse = {}

@@ -1,12 +1,13 @@
-import time
 from datetime import datetime
 from functools import wraps
+from time import time
 from typing import Callable
 
 from hyperon_das_atomdb.exceptions import (
     ConnectionServerException,
     RetryException,
 )
+from hyperon_das_atomdb.logger import logger
 
 
 def set_is_toplevel(function: Callable) -> Callable:
@@ -51,6 +52,26 @@ def retry(attempts: int, timeout_seconds: int):
                     'time': f'{timer_count} seconds',
                 },
             )
+
+        return wrapper
+
+    return decorator
+
+
+def record_execution_time():
+    def decorator(function: Callable) -> Callable:
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            start_time = time()
+            logger().debug(
+                f'Execution of "{function.__module__}.{function.__qualname__}" starting...'
+            )
+            result = function(*args, **kwargs)
+            time_spent = '{0:.5f} seconds'.format(time() - start_time)
+            logger().debug(
+                f'Execution of "{function.__module__}.{function.__qualname__}" took {time_spent}'
+            )
+            return result
 
         return wrapper
 
