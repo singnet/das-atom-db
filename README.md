@@ -38,6 +38,7 @@ DAS_MONGODB_TLS_CA_FILE=global-bundle.pem       [optional]
 DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
 DAS_USE_REDIS_CLUSTER=false                     [default: true]
+DAS_USE_REDIS_SSL=false                         [default: true]
 DAS_USE_CACHED_NODES=false                      [default: true]
 DAS_USE_CACHED_LINK_TYPES=false                 [default: true]
 DAS_USE_CACHED_NODE_TYPES=false                 [default: true]
