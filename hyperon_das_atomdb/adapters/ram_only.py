@@ -13,6 +13,7 @@ from hyperon_das_atomdb.i_database import (
     WILDCARD,
     IAtomDB,
 )
+from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.decorators import set_is_toplevel
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_patern_keys
@@ -349,9 +350,28 @@ class InMemoryDB(IAtomDB):
 
         patterns_matched = self.db.patterns.get(pattern_hash, [])
 
+        logger().debug(
+            {
+                'message': '[InMemoryDB][get_matched_links] - patterns_matched before filter',
+                'data': {
+                    'pattern_matched': patterns_matched,
+                    'link_type': link_type,
+                    'target_handles': target_handles,
+                    'extra_parameters': extra_parameters,
+                },
+            }
+        )
+
         if len(patterns_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_non_toplevel(patterns_matched)
+                ret = self._filter_non_toplevel(patterns_matched)
+                logger().debug(
+                    {
+                        'message': '[InMemoryDB][get_matched_links] - patterns_matched after filter',
+                        'data': {'pattern_matched': ret},
+                    }
+                )
+                return ret
 
         return patterns_matched
 
@@ -363,9 +383,26 @@ class InMemoryDB(IAtomDB):
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
         templates_matched = self.db.templates.get(template_hash, [])
+        logger().debug(
+            {
+                'message': '[InMemoryDB][get_matched_type_template] - templates_matched before filter',
+                'data': {
+                    'templates_matched': templates_matched,
+                    'template': template,
+                    'extra_parameters': extra_parameters,
+                },
+            }
+        )
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_non_toplevel(templates_matched)
+                ret = self._filter_non_toplevel(templates_matched)
+                logger().debug(
+                    {
+                        'message': '[InMemoryDB][get_matched_type_template] - templates_matched before filter',
+                        'data': {'templates_matched': ret},
+                    }
+                )
+                return ret
         return templates_matched
 
     def get_matched_type(
@@ -373,9 +410,26 @@ class InMemoryDB(IAtomDB):
     ) -> List[str]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self.db.templates.get(link_type_hash, [])
+        logger().debug(
+            {
+                'message': '[InMemorInMemoryDByDB][get_matched_type] - templates_matched before filter',
+                'data': {
+                    'templates_matched': templates_matched,
+                    'link_type': link_type,
+                    'extra_parameters': extra_parameters,
+                },
+            }
+        )
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get('toplevel_only'):
-                return self._filter_non_toplevel(templates_matched)
+                ret = self._filter_non_toplevel(templates_matched)
+                logger().debug(
+                    {
+                        'message': '[InMemoryDB][get_matched_type] - templates_matched after filter',
+                        'data': {'templates_matched': ret},
+                    }
+                )
+                return ret
         return templates_matched
 
     def get_atom_as_dict(
@@ -489,6 +543,14 @@ class InMemoryDB(IAtomDB):
                 }
             >>> db.add_node(node_params)
         """
+
+        logger().debug(
+            {
+                'message': '[InMemoryDB][add_node] - Start',
+                'data': {'node_params': node_params},
+            }
+        )
+
         if 'type' not in node_params or 'name' not in node_params:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
@@ -578,6 +640,13 @@ class InMemoryDB(IAtomDB):
                 }
             >>> db.add_link(link_params)
         """
+
+        logger().debug(
+            {
+                'message': '[InMemoryDB][add_link] - Start',
+                'data': {'link_parameters': link_params},
+            }
+        )
 
         if 'type' not in link_params or 'targets' not in link_params:
             raise AddLinkException(

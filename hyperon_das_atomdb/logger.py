@@ -33,16 +33,16 @@ class Logger:
         return ""
 
     def debug(self, msg):
-        logging.debug(self._prefix() + msg)
+        logging.debug(self._prefix() + str(msg))
 
     def info(self, msg):
-        logging.info(self._prefix() + msg)
+        logging.info(self._prefix() + str(msg))
 
     def warning(self, msg):
-        logging.warning(self._prefix() + msg)
+        logging.warning(self._prefix() + str(msg))
 
     def error(self, msg):
-        logging.error(self._prefix() + msg)
+        logging.error(self._prefix() + str(msg))
 
 
 def logger():

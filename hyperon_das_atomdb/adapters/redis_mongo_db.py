@@ -26,7 +26,6 @@ from hyperon_das_atomdb.i_database import (
     IAtomDB,
 )
 from hyperon_das_atomdb.logger import logger
-from hyperon_das_atomdb.utils.decorators import record_execution_time
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.parse import str_to_bool
 
@@ -79,7 +78,6 @@ class RedisMongoDB(IAtomDB):
     def __repr__(self) -> str:
         return "<Atom database RedisMongo>"  # pragma no cover
 
-    @record_execution_time()
     def __init__(self, database_name: str = "das") -> None:
         """
         Initialize an instance of a custom class with Redis
@@ -125,15 +123,12 @@ class RedisMongoDB(IAtomDB):
         )
         self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
         self.prefetch()
-        logger().info("Prefetching data")
         logger().info("Database setup finished")
 
-    @record_execution_time()
     def _setup_databases(self) -> None:
         self.mongo_db = self._connection_mongo_db()
         self.redis = self._connection_redis()
 
-    @record_execution_time()
     def _connection_mongo_db(self) -> Database:
         mongo_hostname = os.environ.get("DAS_MONGODB_HOSTNAME")
         mongo_port = os.environ.get("DAS_MONGODB_PORT")
@@ -162,7 +157,6 @@ class RedisMongoDB(IAtomDB):
                 message="error creating a MongoClient", details=str(e)
             )
 
-    @record_execution_time()
     def _connection_redis(self) -> Redis:
         redis_hostname = os.environ.get("DAS_REDIS_HOSTNAME")
         redis_port = os.environ.get("DAS_REDIS_PORT")
@@ -194,7 +188,6 @@ class RedisMongoDB(IAtomDB):
 
         return self.redis
 
-    @record_execution_time()
     def _get_atom_type_hash(self, atom_type):
         # TODO: implement a proper mongo collection to atom types so instead
         #      of this lazy hashmap, we should load the hashmap during prefetch
@@ -205,18 +198,51 @@ class RedisMongoDB(IAtomDB):
             self.named_type_hash_reverse[named_type_hash] = atom_type
         return named_type_hash
 
-    @record_execution_time()
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
         mongo_filter = {"_id": handle}
+        logger().debug(
+            {
+                'message': '[RedisMongoDB][_retrieve_mongo_document] - start',
+                'data': {'mongo_filter': mongo_filter, 'arity': arity},
+            }
+        )
         if arity >= 0:
             if arity == 0:
-                return self.mongo_nodes_collection.find_one(mongo_filter)
+                ret = self.mongo_nodes_collection.find_one(mongo_filter)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][_retrieve_mongo_document] - Node',
+                        'data': {'mongo_filter': mongo_filter, 'node': ret},
+                    }
+                )
+                return ret
             elif arity == 2:
-                return self.mongo_link_collection["2"].find_one(mongo_filter)
+                ret = self.mongo_link_collection["2"].find_one(mongo_filter)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][_retrieve_mongo_document] - Link 2',
+                        'data': {'mongo_filter': mongo_filter, 'link': ret},
+                    }
+                )
+                return ret
             elif arity == 1:
-                return self.mongo_link_collection["1"].find_one(mongo_filter)
+                ret = self.mongo_link_collection["1"].find_one(mongo_filter)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][_retrieve_mongo_document] - Link 1',
+                        'data': {'mongo_filter': mongo_filter, 'link': ret},
+                    }
+                )
+                return ret
             else:
-                return self.mongo_link_collection["N"].find_one(mongo_filter)
+                ret = self.mongo_link_collection["N"].find_one(mongo_filter)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][_retrieve_mongo_document] - Link N',
+                        'data': {'mongo_filter': mongo_filter, 'link': ret},
+                    }
+                )
+                return ret
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
         for collection in [
@@ -224,12 +250,27 @@ class RedisMongoDB(IAtomDB):
         ]:
             document = collection.find_one(mongo_filter)
             if document:
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][_retrieve_mongo_document] - Links',
+                        'data': {
+                            'mongo_filter': mongo_filter,
+                            'link': document,
+                        },
+                    }
+                )
                 return document
         return None
 
-    @record_execution_time()
     def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
-        members = self.redis.smembers(build_redis_key(prefix, key))
+        redis_key = build_redis_key(prefix, key)
+        members = self.redis.smembers(redis_key)
+        logger().debug(
+            {
+                'message': '[RedisMongoDB][_retrieve_key_value] - return members',
+                'data': {'redis_key': redis_key, 'members': members},
+            }
+        )
         if prefix in self.use_targets:
             return [pickle.loads(t) for t in members]
         else:
@@ -276,7 +317,6 @@ class RedisMongoDB(IAtomDB):
                 answer.append(key)
             index += 1
 
-    @record_execution_time()
     def _build_deep_representation(self, handle, arity=-1):
         answer = {}
         document = self.node_documents.get(handle, None)
@@ -293,7 +333,6 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
-    @record_execution_time()
     def _filter_non_toplevel(self, matches: list) -> list:
         if isinstance(matches[0], list):
             matches = matches[0]
@@ -386,7 +425,6 @@ class RedisMongoDB(IAtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return True
 
-    @record_execution_time()
     def get_matched_links(
         self,
         link_type: str,
@@ -422,13 +460,31 @@ class RedisMongoDB(IAtomDB):
             KeyPrefix.PATTERNS, pattern_hash
         )
 
+        logger().debug(
+            {
+                'message': '[RedisMongoDB][get_matched_links] - patterns_matched before filter',
+                'data': {
+                    'pattern_matched': patterns_matched,
+                    'link_type': link_type,
+                    'target_handles': target_handles,
+                    'extra_parameters': extra_parameters,
+                },
+            }
+        )
+
         if len(patterns_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
-                return self._filter_non_toplevel(patterns_matched)
+                ret = self._filter_non_toplevel(patterns_matched)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][get_matched_links] - patterns_matched after filter',
+                        'data': {'pattern_matched': ret},
+                    }
+                )
+                return ret
 
         return patterns_matched
 
-    @record_execution_time()
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -440,14 +496,30 @@ class RedisMongoDB(IAtomDB):
             templates_matched = self._retrieve_key_value(
                 KeyPrefix.TEMPLATES, template_hash
             )
+            logger().debug(
+                {
+                    'message': '[RedisMongoDB][get_matched_type_template] - templates_matched before filter',
+                    'data': {
+                        'templates_matched': templates_matched,
+                        'template': template,
+                        'extra_parameters': extra_parameters,
+                    },
+                }
+            )
             if len(templates_matched) > 0:
                 if extra_parameters and extra_parameters.get("toplevel_only"):
-                    return self._filter_non_toplevel(templates_matched)
+                    ret = self._filter_non_toplevel(templates_matched)
+                    logger().debug(
+                        {
+                            'message': '[RedisMongoDB][get_matched_type_template] - templates_matched before filter',
+                            'data': {'templates_matched': ret},
+                        }
+                    )
+                    return ret
             return templates_matched
         except Exception as exception:
             raise ValueError(str(exception))
 
-    @record_execution_time()
     def get_matched_type(
         self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
     ) -> List[str]:
@@ -455,9 +527,26 @@ class RedisMongoDB(IAtomDB):
         templates_matched = self._retrieve_key_value(
             KeyPrefix.TEMPLATES, named_type_hash
         )
+        logger().debug(
+            {
+                'message': '[RedisMongoDB][get_matched_type] - templates_matched before filter',
+                'data': {
+                    'templates_matched': templates_matched,
+                    'link_type': link_type,
+                    'extra_parameters': extra_parameters,
+                },
+            }
+        )
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
-                return self._filter_non_toplevel(templates_matched)
+                ret = self._filter_non_toplevel(templates_matched)
+                logger().debug(
+                    {
+                        'message': '[RedisMongoDB][get_matched_type] - templates_matched after filter',
+                        'data': {'templates_matched': ret},
+                    }
+                )
+                return ret
         return templates_matched
 
     def get_link_type(self, link_handle: str) -> str:
@@ -468,7 +557,6 @@ class RedisMongoDB(IAtomDB):
             document = self.get_atom_as_dict(link_handle)
             return document["type"]
 
-    @record_execution_time()
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
         document = (
@@ -489,7 +577,6 @@ class RedisMongoDB(IAtomDB):
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
 
-    @record_execution_time()
     def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
         return self._build_deep_representation(handle, arity)
 
@@ -514,8 +601,8 @@ class RedisMongoDB(IAtomDB):
 
         self.redis.flushall()
 
-    @record_execution_time()
     def prefetch(self) -> None:
+        logger().info("Prefetching data")
         self.named_type_hash = {}
         self.named_type_hash_reverse = {}
         self.named_types = {}
