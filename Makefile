@@ -4,7 +4,7 @@ export PYTHONDONTWRITEBYTECODE=1
 test-integration:
 	@pytest -sx ./tests/integration
 
-test-coverage:
+test-unit:
 	@py.test -sx ./tests/unit --cov=./hyperon_das_atomdb/ --cov-report=term-missing --cov-fail-under=70
 
 isort:
