@@ -164,11 +164,13 @@ class RedisMongoDB(IAtomDB):
         redis_password = os.environ.get("DAS_REDIS_PASSWORD")
         redis_username = os.environ.get("DAS_REDIS_USERNAME")
         redis_cluster = str_to_bool(os.environ.get("DAS_USE_REDIS_CLUSTER"))
+        redis_ssl = str_to_bool(os.environ.get("DAS_USE_REDIS_SSL"))
 
         redis_connection = {
             "host": redis_hostname,
             "port": redis_port,
             "decode_responses": False,
+            "ssl": redis_ssl,
         }
 
         if redis_password and redis_username:
