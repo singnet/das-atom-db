@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List
 
 WILDCARD = '*'
-UNORDERED_LINK_TYPES = ['Similarity', 'Set']
+UNORDERED_LINK_TYPES = []
 
 
 class IAtomDB(ABC):
