@@ -2998,7 +2998,7 @@ class TestRedisMongoDB:
         def find_one(handle: dict):
             for data in node_collection_mock_data:
                 if data['_id'] == handle['_id']:
-                    return handle
+                    return data
 
         def find(_filter: Optional[Any] = None):
             if _filter is None:
@@ -3014,7 +3014,6 @@ class TestRedisMongoDB:
                     ):
                         ret.append(node)
                 return ret
-
 
         def estimated_document_count():
             return len(node_collection_mock_data)
@@ -3431,7 +3430,6 @@ class TestRedisMongoDB:
         actual = database.get_atom_as_dict(human_handle)
         assert expected == actual
 
-
     # def test_get_atom_as_dict_node_without_cache(self, database):
     #     from hyperon_das_atomdb.adapters import redis_mongo_db
 
@@ -3490,7 +3488,6 @@ class TestRedisMongoDB:
         link_handle = database.get_link_handle('Similarity', [human, chimp])
         resp_link = database.get_link_type(link_handle)
         assert 'Similarity' == resp_link
-
 
     def test_get_link_type_without_cache(self, database):
         from hyperon_das_atomdb.adapters import redis_mongo_db

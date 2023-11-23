@@ -38,6 +38,7 @@ DAS_MONGODB_TLS_CA_FILE=global-bundle.pem       [optional]
 DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
 DAS_USE_REDIS_CLUSTER=false                     [default: true]
+DAS_USE_REDIS_SSL=false                         [default: true]
 DAS_USE_CACHED_NODES=false                      [default: true]
 DAS_USE_CACHED_LINK_TYPES=false                 [default: true]
 DAS_USE_CACHED_NODE_TYPES=false                 [default: true]
@@ -51,10 +52,11 @@ source environment
 #### Use adapters
 
 ```python
-from hyperon_das_atomdb.adapters import RedisMongoDB, InMemoryDB
+from hyperon_das_atomdb.adapters import RedisMongoDB, InMemoryDB, ServerDB
 
 redis_mongo_db = RedisMongoDB()
 in_memory_db = InMemoryDB()
+server_db = ServerDB(host='0.0.0.0')
 ```
 
 ## Tests
