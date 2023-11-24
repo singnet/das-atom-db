@@ -292,3 +292,8 @@ class AtomDB(ABC):
             targets (List[str]): A list of link target identifiers.
         """
         ...  # pragma no cover
+
+    def update_index(self, handles: Any) -> None:
+        """
+        """
+        ...  # pragma no cover

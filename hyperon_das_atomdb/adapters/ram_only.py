@@ -26,6 +26,7 @@ class InMemoryDB(AtomDB):
     def __init__(self, database_name: str = 'das') -> None:
         self.database_name = database_name
         self.named_type_table = {}  # keyed by named type hash
+        self.all_named_types = set()
         self.db: Database = Database(
             atom_type={},
             node={},
@@ -35,6 +36,13 @@ class InMemoryDB(AtomDB):
             patterns={},
             templates={},
         )
+
+    def _get_link(self, handle: str) -> Optional[Dict[str, Any]]:
+        for table in self.db.link.all_tables():
+            link = table.get(handle)
+            if link is not None:
+                return link
+        return None
 
     def _build_named_type_hash_template(
         self, template: Union[str, List[Any]]
@@ -60,7 +68,12 @@ class InMemoryDB(AtomDB):
 
     def _add_atom_type(
         self, _name: str, _type: Optional[str] = 'Type'
-    ) -> Dict[str, Any]:
+    ):
+
+        if _name in self.all_named_types:
+            return
+
+        self.all_named_types.add(_name)
         name_hash = ExpressionHasher.named_type_hash(_name)
         type_hash = ExpressionHasher.named_type_hash(_type)
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
@@ -84,8 +97,6 @@ class InMemoryDB(AtomDB):
             }
             self.db.atom_type[key] = atom_type
             self.named_type_table[name_hash] = _name
-
-        return atom_type
 
     def _add_outgoing_set(
         self, key: str, targets_hash: Dict[str, Any]
@@ -152,6 +163,17 @@ class InMemoryDB(AtomDB):
             if links[link_handle]['is_toplevel']:
                 matches_toplevel_only.append(match)
         return matches_toplevel_only
+
+    def _build_targets_list(self, link: Dict[str, Any]):
+        targets = []
+        count = 0
+        while True:
+            handle = link.get(f'key_{count}')
+            if handle is None:
+                break
+            targets.append(handle)
+            count += 1
+        return targets
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self._node_handle(node_type, node_name)
@@ -222,14 +244,14 @@ class InMemoryDB(AtomDB):
             )
 
     def get_link_type(self, link_handle: str) -> str:
-        for table in self.db.link.all_tables():
-            link = table.get(link_handle)
-            if link is not None:
-                return link['named_type']
-        raise LinkDoesNotExistException(
-            message='This link does not exist',
-            details=f'link_handle: {link_handle}',
-        )
+        link = self._get_link(link_handle)
+        if link is not None:
+            return link['named_type']
+        else:
+            raise LinkDoesNotExistException(
+                message='This link does not exist',
+                details=f'link_handle: {link_handle}',
+            )
 
     def get_link_targets(self, link_handle: str) -> List[str]:
         answer = self.db.outgoing_set.get(link_handle)
@@ -241,14 +263,14 @@ class InMemoryDB(AtomDB):
         return answer
 
     def is_ordered(self, link_handle: str) -> bool:
-        for table in self.db.link.all_tables():
-            link = table.get(link_handle)
-            if link is not None:
-                return True
-        raise LinkDoesNotExistException(
-            message='This link does not exist',
-            details=f'link_handle: {link_handle}',
-        )
+        link = self._get_link(link_handle)
+        if link is not None:
+            return True
+        else:
+            raise LinkDoesNotExistException(
+                message='This link does not exist',
+                details=f'link_handle: {link_handle}',
+            )
 
     def get_matched_links(
         self,
@@ -317,17 +339,16 @@ class InMemoryDB(AtomDB):
                 'type': atom['named_type'],
                 'name': atom['name'],
             }
-        for table in self.db.link.all_tables():
-            atom = table.get(handle)
-            if atom is not None:
-                return {
-                    'handle': atom['_id'],
-                    'type': atom['named_type'],
-                    'template': self._build_named_type_template(
-                        atom['composite_type']
-                    ),
-                    'targets': self.get_link_targets(atom['_id']),
-                }
+        atom = self._get_link(handle)
+        if atom is not None:
+            return {
+                'handle': atom['_id'],
+                'type': atom['named_type'],
+                'template': self._build_named_type_template(
+                    atom['composite_type']
+                ),
+                'targets': self.get_link_targets(atom['_id']),
+            }
         raise AtomDoesNotExistException(
             message='This atom does not exist',
             details=f'handle: {handle}',
@@ -339,16 +360,15 @@ class InMemoryDB(AtomDB):
         atom = self.db.node.get(handle)
         if atom is not None:
             return {'type': atom['named_type'], 'name': atom['name']}
-        for table in self.db.link.all_tables():
-            atom = table.get(handle)
-            if atom is not None:
-                return {
-                    'type': atom['named_type'],
-                    'targets': [
-                        self.get_atom_as_deep_representation(target)
-                        for target in self.get_link_targets(atom['_id'])
-                    ],
-                }
+        atom = self._get_link(handle)
+        if atom is not None:
+            return {
+                'type': atom['named_type'],
+                'targets': [
+                    self.get_atom_as_deep_representation(target)
+                    for target in self.get_link_targets(atom['_id'])
+                ],
+            }
         raise AtomDoesNotExistException(
             message='This atom does not exist',
             details=f'handle: {handle}',
@@ -433,7 +453,7 @@ class InMemoryDB(AtomDB):
             node.pop('type')
             self.db.node[handle] = node
 
-        self._add_atom_type(_name=node_type)
+        self.update_index([handle])
 
         return node
 
@@ -546,19 +566,31 @@ class InMemoryDB(AtomDB):
         link.update(link_params)
         link.pop('type')
         link.pop('targets')
-        self._add_atom_type(_name=link_type)
-        self._add_outgoing_set(key, targets_hash)
-        self._add_incomming_set(key, targets_hash)
-        self._add_templates(
-            link['composite_type_hash'],
-            link['named_type_hash'],
-            link['_id'],
-            targets_hash,
-        )
-        self._add_patterns(
-            link['named_type_hash'],
-            link['_id'],
-            targets_hash,
-        )
+        self.update_index([key])
 
         return link
+
+    def update_index(self, handles: Any):
+        for handle in handles:
+            node = self.db.node.get(handle)
+            if node is not None:
+                self._add_atom_type(_name=node['named_type'])
+            else:
+                link = self._get_link(handle)
+                key = link['_id']
+                link_type = link['named_type']
+                targets_hash = self._build_targets_list(link)
+                self._add_atom_type(_name=link_type)
+                self._add_outgoing_set(key, targets_hash)
+                self._add_incomming_set(key, targets_hash)
+                self._add_templates(
+                    link['composite_type_hash'],
+                    link['named_type_hash'],
+                    link['_id'],
+                    targets_hash,
+                )
+                self._add_patterns(
+                    link['named_type_hash'],
+                    link['_id'],
+                    targets_hash,
+                )

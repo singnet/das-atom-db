@@ -686,3 +686,24 @@ class TestInMemoryDB:
         )
         ret = database.get_link_type(link_handle=link_handle)
         assert ret == 'Similarity'
+
+    def test_build_targets_list(self, database: InMemoryDB):
+        targets = database._build_targets_list(
+            {
+                "blah": "h0",
+            }
+        )
+        assert targets == []
+        targets = database._build_targets_list(
+            {
+                "key_0": "h0",
+            }
+        )
+        assert targets == ["h0"]
+        targets = database._build_targets_list(
+            {
+                "key_0": "h0",
+                "key_1": "h1",
+            }
+        )
+        assert targets == ["h0", "h1"]
