@@ -16,12 +16,8 @@ class Link:
         if arity > 2:
             return self.arity_n
 
-    def all_tables(self) -> Dict[str, Any]:
-        all_arities = {}
-        all_arities.update(self.arity_1)
-        all_arities.update(self.arity_2)
-        all_arities.update(self.arity_n)
-        return all_arities
+    def all_tables(self) -> List[Dict[str, Any]]:
+        return [self.arity_1, self.arity_2, self.arity_n]
 
 
 @dataclass
@@ -33,4 +29,3 @@ class Database:
     incomming_set: Dict[str, Any]
     patterns: Dict[str, List[Tuple]]
     templates: Dict[str, List[Tuple]]
-    names: Dict[str, str]

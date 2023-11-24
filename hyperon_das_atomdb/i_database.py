@@ -8,7 +8,7 @@ from hyperon_das_atomdb.exceptions import (
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = '*'
-UNORDERED_LINK_TYPES = ['Similarity', 'Set']
+UNORDERED_LINK_TYPES = []
 
 
 class IAtomDB(ABC):

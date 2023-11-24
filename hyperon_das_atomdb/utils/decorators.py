@@ -9,16 +9,6 @@ from hyperon_das_atomdb.exceptions import (
 )
 
 
-def set_is_toplevel(function: Callable) -> Callable:
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        result = function(*args, **kwargs)
-        result['is_toplevel'] = True
-        return result
-
-    return wrapper
-
-
 def retry(attempts: int, timeout_seconds: int):
     def decorator(function: Callable) -> Callable:
         @wraps(function)

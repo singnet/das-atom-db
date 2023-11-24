@@ -34,6 +34,10 @@ class AddLinkException(BaseException):
     ...  # pragma no cover
 
 
+class InvalidOperationException(BaseException):
+    ...  # pragma no cover
+
+
 class ConnectionServerException(BaseException):
     ...  # pragma no cover
 

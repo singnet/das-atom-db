@@ -303,8 +303,10 @@ class TestInMemoryDB:
         assert ret is True
 
     def test_is_ordered_false(self, database: InMemoryDB):
-        ret = database.is_ordered('handle_123')
-        assert ret is False
+        with pytest.raises(LinkDoesNotExistException) as exc_info:
+            ret = database.is_ordered('handle_123')
+        assert exc_info.type is LinkDoesNotExistException
+        assert exc_info.value.args[0] == "This link does not exist"
 
     def test_get_matched_links_without_wildcard(self, database):
         link_type = 'Similarity'
