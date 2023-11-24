@@ -23,7 +23,6 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
-from hyperon_das_atomdb.i_database import IAtomDB
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 node_collection_mock_data = [

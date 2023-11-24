@@ -8,16 +8,16 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
-from hyperon_das_atomdb.i_database import (
+from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
     WILDCARD,
-    IAtomDB,
+    AtomDB,
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_patern_keys
 
 
-class InMemoryDB(IAtomDB):
+class InMemoryDB(AtomDB):
     """A concrete implementation using hashtable (dict)"""
 
     def __repr__(self) -> str:

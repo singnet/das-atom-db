@@ -11,13 +11,13 @@ WILDCARD = '*'
 UNORDERED_LINK_TYPES = []
 
 
-class IAtomDB(ABC):
+class AtomDB(ABC):
     def __repr__(self) -> str:
         """
         Magic method for string representation of the class.
-        Returns a string representation of the IAtomDB class.
+        Returns a string representation of the AtomDB class.
         """
-        return "<Atom database interface>"  # pragma no cover
+        return "<Atom database abstract class>"  # pragma no cover
 
     def _node_handle(self, node_type: str, node_name: str) -> str:
         return ExpressionHasher.terminal_hash(node_type, node_name)
