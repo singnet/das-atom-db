@@ -267,7 +267,6 @@ class InMemoryDB(IAtomDB):
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
-            raise
             raise InvalidOperationException(
                 message='Queries with unordered links are not implemented',
                 details=f'link_type: {link_type}',
