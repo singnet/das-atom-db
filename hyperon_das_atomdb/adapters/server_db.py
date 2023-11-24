@@ -7,12 +7,12 @@ from hyperon_das_atomdb.exceptions import (
     ConnectionServerException,
     NodeDoesNotExistException,
 )
-from hyperon_das_atomdb.i_database import IAtomDB
+from hyperon_das_atomdb.database import AtomDB
 from hyperon_das_atomdb.utils.decorators import retry
 from hyperon_das_atomdb.utils.settings import config
 
 
-class ServerDB(IAtomDB):
+class ServerDB(AtomDB):
     """A concrete implementation using servers databases.
     AwsLambda and OpenFaas"""
 

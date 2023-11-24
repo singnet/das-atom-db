@@ -1,6 +1,6 @@
 from typing import List
 
-from hyperon_das_atomdb.i_database import WILDCARD
+from hyperon_das_atomdb.database import WILDCARD
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 # def generate_binary_matrix(numbers: int) -> list:

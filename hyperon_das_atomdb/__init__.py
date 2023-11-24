@@ -1,3 +1,3 @@
-from .i_database import UNORDERED_LINK_TYPES, WILDCARD, IAtomDB
+from .database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
 
-__all__ = ['IAtomDB', 'WILDCARD', 'UNORDERED_LINK_TYPES']
+__all__ = ['AtomDB', 'WILDCARD', 'UNORDERED_LINK_TYPES']

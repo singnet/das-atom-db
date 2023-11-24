@@ -20,10 +20,10 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
-from hyperon_das_atomdb.i_database import (
+from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
     WILDCARD,
-    IAtomDB,
+    AtomDB,
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
@@ -72,7 +72,7 @@ class NodeDocuments:
             yield document
 
 
-class RedisMongoDB(IAtomDB):
+class RedisMongoDB(AtomDB):
     """A concrete implementation using Redis and Mongo database"""
 
     def __repr__(self) -> str:
