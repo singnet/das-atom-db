@@ -111,6 +111,7 @@ node_collection_mock_data = [
         'named_type': 'Concept',
     },
 ]
+added_nodes = []
 
 type_collection_mock_data = [
     {
@@ -2995,20 +2996,19 @@ class TestRedisMongoDB:
         )
 
         def insert_many(documents: List[Dict[str, Any]], ordered: bool):
-            assert False
-            node_collection_mock_data.extend(documents)
+            added_nodes.extend(documents)
 
         def find_one(handle: dict):
-            for data in node_collection_mock_data:
+            for data in node_collection_mock_data + added_nodes:
                 if data['_id'] == handle['_id']:
                     return data
 
         def find(_filter: Optional[Any] = None):
             if _filter is None:
-                return node_collection_mock_data
+                return node_collection_mock_data + added_nodes
             else:
                 ret = []
-                for node in node_collection_mock_data:
+                for node in node_collection_mock_data + added_nodes:
                     if (
                         _filter[MongoFieldNames.TYPE]
                         == node[MongoFieldNames.TYPE]
@@ -3019,7 +3019,7 @@ class TestRedisMongoDB:
                 return ret
 
         def estimated_document_count():
-            return len(node_collection_mock_data)
+            return len(node_collection_mock_data) + len(added_nodes)
 
         collection.insert_many = mock.Mock(side_effect=insert_many)
         collection.find_one = mock.Mock(side_effect=find_one)
@@ -3144,6 +3144,20 @@ class TestRedisMongoDB:
             }
             db.mongo_nodes_collection = mongo_nodes_collection
             db.mongo_types_collection = mongo_types_collection
+            db.all_mongo_collections = [
+                (MongoCollectionNames.LINKS_ARITY_1, db.mongo_link_collection['1']),
+                (MongoCollectionNames.LINKS_ARITY_2, db.mongo_link_collection['2']),
+                (MongoCollectionNames.LINKS_ARITY_N, db.mongo_link_collection['N']),
+                (MongoCollectionNames.NODES, db.mongo_nodes_collection),
+                (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection)
+            ]
+            db.mongo_bulk_insertion_buffer = {
+                MongoCollectionNames.LINKS_ARITY_1: tuple([db.mongo_link_collection['1'], set()]),
+                MongoCollectionNames.LINKS_ARITY_2: tuple([db.mongo_link_collection['2'], set()]),
+                MongoCollectionNames.LINKS_ARITY_N: tuple([db.mongo_link_collection['N'], set()]),
+                MongoCollectionNames.NODES: tuple([db.mongo_nodes_collection, set()]),
+                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()])
+            }
             db.prefetch()
         return db
 
@@ -3497,6 +3511,7 @@ class TestRedisMongoDB:
         assert link_count == 28
 
     def test_add_node(self, database):
+        added_nodes.clear()
         assert (14, 28) == database.count_atoms()
         all_nodes_before = database.get_all_nodes('Concept')
         database.add_node(
@@ -3515,6 +3530,7 @@ class TestRedisMongoDB:
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
         new_node = database.get_atom_as_dict(new_node_handle)
-        assert new_node['_id'] == new_node_handle
+        assert new_node['handle'] == new_node_handle
         assert new_node['type'] == 'Concept'
         assert new_node['name'] == 'lion'
+        added_nodes.clear()

@@ -574,32 +574,26 @@ class RedisMongoDB(AtomDB):
             self.symbol_hash[named_type] = hash_id
 
     def commit(self) -> None:
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("commit")
         for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
-                print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-                print(key, collection, buffer)
-                collection.insert_many([d.base for d in buffer], ordered=False)
+                documents = [d.base for d in buffer]
+                collection.insert_many(documents, ordered=False)
+                if key == MongoCollectionNames.NODES:
+                    for document in documents:
+                        self.node_documents.add(document["_id"], document)
                 self.mongo_bulk_insertion_buffer[key] = (collection, set())
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("ADD NODE")
         if sys.getsizeof(node_params["name"]) < self.max_mongo_db_document_size:
             node_type = node_params.get('type')
             node_name = node_params.get('name')
-            print(f"node_type = {node_type}")
-            print(f"node_name = {node_name}")
             if node_type is None or node_name is None:
                 raise AddNodeException(
                     message='The "name" and "type" fields must be sent',
                     details=node_params,
                 )
             handle = self._node_handle(node_type, node_name)
-            print(f"handle = {handle}")
             node = {
                 '_id': handle,
                 'composite_type_hash': ExpressionHasher.named_type_hash(
@@ -608,15 +602,10 @@ class RedisMongoDB(AtomDB):
                 'name': node_name,
                 'named_type': node_type,
             }
-            print(f"node (before update) = {node}")
             node.update(node_params)
             node.pop('type')
-            print(f"node (after update) = {node}")
-            print(f"_HashableDocument(node) = {_HashableDocument(node)}")
             buffer.add(_HashableDocument(node))
-            print(f"buffer = {buffer}")
             if len(buffer) >= self.mongo_bulk_insertion_limit:
-                print("ERROR")
                 self.commit()
         else:
             logger().warn("Discarding atom whose name is too large: {node_params['id']}")
