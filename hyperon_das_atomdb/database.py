@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, Dict, List
 
 from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExistException,
@@ -273,13 +273,12 @@ class AtomDB(ABC):
         """
         ...  # pragma no cover
 
-    def add_node(self, node_type: str, node_name: str) -> None:
+    def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Add a node with the specified type and name to the database.
 
         Args:
-            node_type (str): The node type.
-            node_name (str): The node name.
+            node_params (Dict[str, Any]): a dict containing at least 'type' and 'name'
         """
         ...  # pragma no cover
 

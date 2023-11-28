@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
+import sys
 
 from hyperon_das_atomdb.constants.redis_mongo_db import (
     MongoCollectionNames,
@@ -71,6 +72,13 @@ class NodeDocuments:
         ):
             yield document
 
+class _HashableDocument():
+    def __init__(self, base: Dict[str, Any]):
+        self.base = base
+    def __hash__(self):
+        return hash(self.base["_id"])
+    def __str__(self):
+        return str(self.base)
 
 class RedisMongoDB(AtomDB):
     """A concrete implementation using Redis and Mongo database"""
@@ -102,6 +110,13 @@ class RedisMongoDB(AtomDB):
         self.mongo_types_collection = self.mongo_db.get_collection(
             MongoCollectionNames.ATOM_TYPES
         )
+        self.all_mongo_collections = [
+            (MongoCollectionNames.LINKS_ARITY_1, self.mongo_link_collection["1"]),
+            (MongoCollectionNames.LINKS_ARITY_2, self.mongo_link_collection["2"]),
+            (MongoCollectionNames.LINKS_ARITY_N, self.mongo_link_collection["N"]),
+            (MongoCollectionNames.NODES, self.mongo_nodes_collection),
+            (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
+        ]
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
         self.named_type_hash = None
         self.named_type_hash_reverse = None
@@ -121,9 +136,16 @@ class RedisMongoDB(AtomDB):
                 self.typedef_base_type_hash,
             ]
         )
+
         self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
-        self.prefetch()
+        self.mongo_bulk_insertion_buffer = {
+            collection_name: tuple([collection, set()])
+            for collection_name, collection in self.all_mongo_collections
+        }
+        self.mongo_bulk_insertion_limit = 100000
+        self.max_mongo_db_document_size = 16000000
         logger().info("Prefetching data")
+        self.prefetch()
         logger().info("Database setup finished")
 
     def _setup_databases(self) -> None:
@@ -550,3 +572,51 @@ class RedisMongoDB(AtomDB):
                     MongoFieldNames.TYPE_NAME_HASH
                 ]
             self.symbol_hash[named_type] = hash_id
+
+    def commit(self) -> None:
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("commit")
+        for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
+            if buffer:
+                print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+                print(key, collection, buffer)
+                collection.insert_many([d.base for d in buffer], ordered=False)
+                self.mongo_bulk_insertion_buffer[key] = (collection, set())
+
+    def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("ADD NODE")
+        if sys.getsizeof(node_params["name"]) < self.max_mongo_db_document_size:
+            node_type = node_params.get('type')
+            node_name = node_params.get('name')
+            print(f"node_type = {node_type}")
+            print(f"node_name = {node_name}")
+            if node_type is None or node_name is None:
+                raise AddNodeException(
+                    message='The "name" and "type" fields must be sent',
+                    details=node_params,
+                )
+            handle = self._node_handle(node_type, node_name)
+            print(f"handle = {handle}")
+            node = {
+                '_id': handle,
+                'composite_type_hash': ExpressionHasher.named_type_hash(
+                    node_type
+                ),
+                'name': node_name,
+                'named_type': node_type,
+            }
+            print(f"node (before update) = {node}")
+            node.update(node_params)
+            node.pop('type')
+            print(f"node (after update) = {node}")
+            print(f"_HashableDocument(node) = {_HashableDocument(node)}")
+            buffer.add(_HashableDocument(node))
+            print(f"buffer = {buffer}")
+            if len(buffer) >= self.mongo_bulk_insertion_limit:
+                print("ERROR")
+                self.commit()
+        else:
+            logger().warn("Discarding atom whose name is too large: {node_params['id']}")

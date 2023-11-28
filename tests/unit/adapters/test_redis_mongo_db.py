@@ -1,7 +1,7 @@
 import os
 import pickle
 import re
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import pytest
@@ -2994,6 +2994,10 @@ class TestRedisMongoDB:
             spec=Collection, database=mongo_db, name=MongoCollectionNames.NODES
         )
 
+        def insert_many(documents: List[Dict[str, Any]], ordered: bool):
+            assert False
+            node_collection_mock_data.extend(documents)
+
         def find_one(handle: dict):
             for data in node_collection_mock_data:
                 if data['_id'] == handle['_id']:
@@ -3017,11 +3021,9 @@ class TestRedisMongoDB:
         def estimated_document_count():
             return len(node_collection_mock_data)
 
+        collection.insert_many = mock.Mock(side_effect=insert_many)
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
@@ -3063,9 +3065,6 @@ class TestRedisMongoDB:
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         return collection
 
     @pytest.fixture()
@@ -3094,9 +3093,6 @@ class TestRedisMongoDB:
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
 
         return collection
 
@@ -3117,9 +3113,6 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
@@ -3502,3 +3495,26 @@ class TestRedisMongoDB:
         node_count, link_count = database.count_atoms()
         assert node_count == 14
         assert link_count == 28
+
+    def test_add_node(self, database):
+        assert (14, 28) == database.count_atoms()
+        all_nodes_before = database.get_all_nodes('Concept')
+        database.add_node(
+            {
+                'type': 'Concept',
+                'name': 'lion',
+            }
+        )
+        database.commit()
+        all_nodes_after = database.get_all_nodes('Concept')
+        assert len(all_nodes_before) == 14
+        assert len(all_nodes_after) == 15
+        assert (15, 28) == database.count_atoms()
+        new_node_handle = database.get_node_handle('Concept', 'lion')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['_id'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'lion'
