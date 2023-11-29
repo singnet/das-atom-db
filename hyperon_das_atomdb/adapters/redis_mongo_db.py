@@ -18,6 +18,7 @@ from hyperon_das_atomdb.constants.redis_mongo_db import (
 from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
 from hyperon_das_atomdb.exceptions import (
     ConnectionMongoDBException,
+    InvalidOperationException,
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
@@ -584,28 +585,31 @@ class RedisMongoDB(AtomDB):
                 self.mongo_bulk_insertion_buffer[key] = (collection, set())
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
-        _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
-        if sys.getsizeof(node_params["name"]) < self.max_mongo_db_document_size:
-            node_type = node_params.get('type')
-            node_name = node_params.get('name')
-            if node_type is None or node_name is None:
-                raise AddNodeException(
-                    message='The "name" and "type" fields must be sent',
-                    details=node_params,
-                )
-            handle = self._node_handle(node_type, node_name)
-            node = {
-                '_id': handle,
-                'composite_type_hash': ExpressionHasher.named_type_hash(
-                    node_type
-                ),
-                'name': node_name,
-                'named_type': node_type,
-            }
-            node.update(node_params)
-            node.pop('type')
+        handle, node = self._add_node(node_params)
+        if sys.getsizeof(node['name']) < self.max_mongo_db_document_size:
+            _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
             buffer.add(_HashableDocument(node))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
                 self.commit()
+            return node
         else:
-            logger().warn("Discarding atom whose name is too large: {node_params['id']}")
+            logger().warn("Discarding atom whose name is too large: {node_name}")
+
+    def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+        handle, link, targets = self._add_link(link_params, toplevel)
+        arity = len(targets)
+        if arity == 1:
+            collection_name = MongoCollectionNames.LINKS_ARITY_1
+        elif arity == 2:
+            collection_name = MongoCollectionNames.LINKS_ARITY_2
+        else:
+            collection_name = MongoCollectionNames.LINKS_ARITY_N
+        _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
+        buffer.add(_HashableDocument(link))
+        if len(buffer) >= self.mongo_bulk_insertion_limit:
+            self.commit()
+        return link
+
+    def update_index(self, handles: Any):
+        raise InvalidOperationException
+

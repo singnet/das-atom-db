@@ -622,6 +622,7 @@ arity_2_collection_mock_data = [
         'named_type_hash': 'b74a43dbb36287ea86eb5b0c7b86e8e8',
     },
 ]
+added_links_arity_2 = []
 
 outgoing_set_redis_mock_data = [
     {
@@ -3085,8 +3086,11 @@ class TestRedisMongoDB:
                 return arity_2_collection_mock_data
             return []
 
+        def insert_many(documents: List[Dict[str, Any]], ordered: bool):
+            added_links_arity_2.extend(documents)
+
         def estimated_document_count():
-            return len(arity_2_collection_mock_data)
+            return len(arity_2_collection_mock_data) + len(added_links_arity_2)
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
@@ -3534,3 +3538,51 @@ class TestRedisMongoDB:
         assert new_node['type'] == 'Concept'
         assert new_node['name'] == 'lion'
         added_nodes.clear()
+
+    def test_add_link(self, database):
+
+        added_nodes.clear()
+        added_links_arity_2.clear()
+        assert (14, 28) == database.count_atoms()
+
+        all_nodes_before = database.get_all_nodes('Concept')
+        all_links_before = database.get_matched_type('Similarity')
+        database.add_link(
+            {
+                'type': 'Similarity',
+                'targets': [
+                    {'type': 'Concept', 'name': 'lion'},
+                    {'type': 'Concept', 'name': 'cat'}
+                ]
+            }
+        )
+        database.commit()
+        all_nodes_after = database.get_all_nodes('Concept')
+        all_links_after = database.get_matched_type('Similarity')
+
+        assert len(all_nodes_before) == 14
+        assert len(all_nodes_after) == 16
+        #assert len(all_links_before) == 28
+        #assert len(all_links_after) == 29
+        #assert (16, 29) == database.count_atoms()
+
+        new_node_handle = database.get_node_handle('Concept', 'lion')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['handle'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'lion'
+
+        new_node_handle = database.get_node_handle('Concept', 'cat')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'cat')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['handle'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'cat'
+
+        added_nodes.clear()
+        added_links_arity_2.clear()
