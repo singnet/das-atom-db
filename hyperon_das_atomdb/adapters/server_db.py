@@ -5,6 +5,7 @@ import requests
 
 from hyperon_das_atomdb.exceptions import (
     ConnectionServerException,
+    InvalidOperationException,
     NodeDoesNotExistException,
 )
 from hyperon_das_atomdb.database import AtomDB
@@ -254,3 +255,12 @@ class ServerDB(AtomDB):
             return None
         else:
             return response.text
+
+    def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        raise InvalidOperationException
+
+    def add_link(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        raise InvalidOperationException
+
+    def update_index(self, handles: Any) -> None:
+        raise InvalidOperationException
