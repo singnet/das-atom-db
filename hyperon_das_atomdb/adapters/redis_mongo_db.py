@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
+import sys
 
 from hyperon_das_atomdb.constants.redis_mongo_db import (
     MongoCollectionNames,
@@ -17,6 +18,7 @@ from hyperon_das_atomdb.constants.redis_mongo_db import (
 from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
 from hyperon_das_atomdb.exceptions import (
     ConnectionMongoDBException,
+    InvalidOperationException,
     LinkDoesNotExistException,
     NodeDoesNotExistException,
 )
@@ -71,6 +73,13 @@ class NodeDocuments:
         ):
             yield document
 
+class _HashableDocument():
+    def __init__(self, base: Dict[str, Any]):
+        self.base = base
+    def __hash__(self):
+        return hash(self.base["_id"])
+    def __str__(self):
+        return str(self.base)
 
 class RedisMongoDB(AtomDB):
     """A concrete implementation using Redis and Mongo database"""
@@ -102,6 +111,13 @@ class RedisMongoDB(AtomDB):
         self.mongo_types_collection = self.mongo_db.get_collection(
             MongoCollectionNames.ATOM_TYPES
         )
+        self.all_mongo_collections = [
+            (MongoCollectionNames.LINKS_ARITY_1, self.mongo_link_collection["1"]),
+            (MongoCollectionNames.LINKS_ARITY_2, self.mongo_link_collection["2"]),
+            (MongoCollectionNames.LINKS_ARITY_N, self.mongo_link_collection["N"]),
+            (MongoCollectionNames.NODES, self.mongo_nodes_collection),
+            (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
+        ]
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
         self.named_type_hash = None
         self.named_type_hash_reverse = None
@@ -121,9 +137,16 @@ class RedisMongoDB(AtomDB):
                 self.typedef_base_type_hash,
             ]
         )
+
         self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
-        self.prefetch()
+        self.mongo_bulk_insertion_buffer = {
+            collection_name: tuple([collection, set()])
+            for collection_name, collection in self.all_mongo_collections
+        }
+        self.mongo_bulk_insertion_limit = 100000
+        self.max_mongo_db_document_size = 16000000
         logger().info("Prefetching data")
+        self.prefetch()
         logger().info("Database setup finished")
 
     def _setup_databases(self) -> None:
@@ -550,3 +573,43 @@ class RedisMongoDB(AtomDB):
                     MongoFieldNames.TYPE_NAME_HASH
                 ]
             self.symbol_hash[named_type] = hash_id
+
+    def commit(self) -> None:
+        for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
+            if buffer:
+                documents = [d.base for d in buffer]
+                collection.insert_many(documents, ordered=False)
+                if key == MongoCollectionNames.NODES:
+                    for document in documents:
+                        self.node_documents.add(document["_id"], document)
+                self.mongo_bulk_insertion_buffer[key] = (collection, set())
+
+    def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        handle, node = self._add_node(node_params)
+        if sys.getsizeof(node['name']) < self.max_mongo_db_document_size:
+            _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
+            buffer.add(_HashableDocument(node))
+            if len(buffer) >= self.mongo_bulk_insertion_limit:
+                self.commit()
+            return node
+        else:
+            logger().warn("Discarding atom whose name is too large: {node_name}")
+
+    def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+        handle, link, targets = self._add_link(link_params, toplevel)
+        arity = len(targets)
+        if arity == 1:
+            collection_name = MongoCollectionNames.LINKS_ARITY_1
+        elif arity == 2:
+            collection_name = MongoCollectionNames.LINKS_ARITY_2
+        else:
+            collection_name = MongoCollectionNames.LINKS_ARITY_N
+        _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
+        buffer.add(_HashableDocument(link))
+        if len(buffer) >= self.mongo_bulk_insertion_limit:
+            self.commit()
+        return link
+
+    def update_index(self, handles: Any):
+        raise InvalidOperationException
+

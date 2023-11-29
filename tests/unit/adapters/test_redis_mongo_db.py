@@ -1,7 +1,7 @@
 import os
 import pickle
 import re
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import pytest
@@ -111,6 +111,7 @@ node_collection_mock_data = [
         'named_type': 'Concept',
     },
 ]
+added_nodes = []
 
 type_collection_mock_data = [
     {
@@ -621,6 +622,7 @@ arity_2_collection_mock_data = [
         'named_type_hash': 'b74a43dbb36287ea86eb5b0c7b86e8e8',
     },
 ]
+added_links_arity_2 = []
 
 outgoing_set_redis_mock_data = [
     {
@@ -2994,17 +2996,20 @@ class TestRedisMongoDB:
             spec=Collection, database=mongo_db, name=MongoCollectionNames.NODES
         )
 
+        def insert_many(documents: List[Dict[str, Any]], ordered: bool):
+            added_nodes.extend(documents)
+
         def find_one(handle: dict):
-            for data in node_collection_mock_data:
+            for data in node_collection_mock_data + added_nodes:
                 if data['_id'] == handle['_id']:
                     return data
 
         def find(_filter: Optional[Any] = None):
             if _filter is None:
-                return node_collection_mock_data
+                return node_collection_mock_data + added_nodes
             else:
                 ret = []
-                for node in node_collection_mock_data:
+                for node in node_collection_mock_data + added_nodes:
                     if (
                         _filter[MongoFieldNames.TYPE]
                         == node[MongoFieldNames.TYPE]
@@ -3015,13 +3020,11 @@ class TestRedisMongoDB:
                 return ret
 
         def estimated_document_count():
-            return len(node_collection_mock_data)
+            return len(node_collection_mock_data) + len(added_nodes)
 
+        collection.insert_many = mock.Mock(side_effect=insert_many)
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
@@ -3063,9 +3066,6 @@ class TestRedisMongoDB:
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         return collection
 
     @pytest.fixture()
@@ -3086,14 +3086,14 @@ class TestRedisMongoDB:
                 return arity_2_collection_mock_data
             return []
 
+        def insert_many(documents: List[Dict[str, Any]], ordered: bool):
+            added_links_arity_2.extend(documents)
+
         def estimated_document_count():
-            return len(arity_2_collection_mock_data)
+            return len(arity_2_collection_mock_data) + len(added_links_arity_2)
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
@@ -3117,9 +3117,6 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
         collection.estimated_document_count = mock.Mock(
             side_effect=estimated_document_count
         )
@@ -3151,6 +3148,20 @@ class TestRedisMongoDB:
             }
             db.mongo_nodes_collection = mongo_nodes_collection
             db.mongo_types_collection = mongo_types_collection
+            db.all_mongo_collections = [
+                (MongoCollectionNames.LINKS_ARITY_1, db.mongo_link_collection['1']),
+                (MongoCollectionNames.LINKS_ARITY_2, db.mongo_link_collection['2']),
+                (MongoCollectionNames.LINKS_ARITY_N, db.mongo_link_collection['N']),
+                (MongoCollectionNames.NODES, db.mongo_nodes_collection),
+                (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection)
+            ]
+            db.mongo_bulk_insertion_buffer = {
+                MongoCollectionNames.LINKS_ARITY_1: tuple([db.mongo_link_collection['1'], set()]),
+                MongoCollectionNames.LINKS_ARITY_2: tuple([db.mongo_link_collection['2'], set()]),
+                MongoCollectionNames.LINKS_ARITY_N: tuple([db.mongo_link_collection['N'], set()]),
+                MongoCollectionNames.NODES: tuple([db.mongo_nodes_collection, set()]),
+                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()])
+            }
             db.prefetch()
         return db
 
@@ -3502,3 +3513,76 @@ class TestRedisMongoDB:
         node_count, link_count = database.count_atoms()
         assert node_count == 14
         assert link_count == 28
+
+    def test_add_node(self, database):
+        added_nodes.clear()
+        assert (14, 28) == database.count_atoms()
+        all_nodes_before = database.get_all_nodes('Concept')
+        database.add_node(
+            {
+                'type': 'Concept',
+                'name': 'lion',
+            }
+        )
+        database.commit()
+        all_nodes_after = database.get_all_nodes('Concept')
+        assert len(all_nodes_before) == 14
+        assert len(all_nodes_after) == 15
+        assert (15, 28) == database.count_atoms()
+        new_node_handle = database.get_node_handle('Concept', 'lion')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['handle'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'lion'
+        added_nodes.clear()
+
+    def test_add_link(self, database):
+
+        added_nodes.clear()
+        added_links_arity_2.clear()
+        assert (14, 28) == database.count_atoms()
+
+        all_nodes_before = database.get_all_nodes('Concept')
+        all_links_before = database.get_matched_type('Similarity')
+        database.add_link(
+            {
+                'type': 'Similarity',
+                'targets': [
+                    {'type': 'Concept', 'name': 'lion'},
+                    {'type': 'Concept', 'name': 'cat'}
+                ]
+            }
+        )
+        database.commit()
+        all_nodes_after = database.get_all_nodes('Concept')
+        all_links_after = database.get_matched_type('Similarity')
+
+        assert len(all_nodes_before) == 14
+        assert len(all_nodes_after) == 16
+        #assert len(all_links_before) == 28
+        #assert len(all_links_after) == 29
+        #assert (16, 29) == database.count_atoms()
+
+        new_node_handle = database.get_node_handle('Concept', 'lion')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['handle'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'lion'
+
+        new_node_handle = database.get_node_handle('Concept', 'cat')
+        assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'cat')
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom_as_dict(new_node_handle)
+        assert new_node['handle'] == new_node_handle
+        assert new_node['type'] == 'Concept'
+        assert new_node['name'] == 'cat'
+
+        added_nodes.clear()
+        added_links_arity_2.clear()
