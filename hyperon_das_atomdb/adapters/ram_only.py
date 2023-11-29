@@ -2,8 +2,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from hyperon_das_atomdb.entity import Database, Link
 from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
     AtomDoesNotExistException,
     LinkDoesNotExistException,
     NodeDoesNotExistException,
@@ -396,178 +394,16 @@ class InMemoryDB(AtomDB):
         )
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Adds a node to the in-memory database.
-
-        This method allows you to add a node to the database
-        with the specified node parameters. A node must have 'type' and
-        'name' fields in the node_params dictionary.
-
-        Args:
-            node_params (Dict[str, Any]): A dictionary containing
-                node parameters. It should have the following keys:
-                - 'type': The type of the node.
-                - 'name': The name of the node.
-
-        Returns:
-            Dict[str, Any]: The information about the added node,
-            including its unique key and other details.
-
-        Raises:
-            AddNodeException: If the 'type' or 'name' fields are missing
-                in node_params.
-
-        Note:
-            This method creates a unique key for the node based on its type
-            and name. If a node with the same key already exists,
-            it just returns the node.
-
-        Example:
-            To add a node, use this method like this:
-            >>> node_params = {
-                    'type': 'Reactome',
-                    'name': 'Reactome:R-HSA-164843',
-                }
-            >>> db.add_node(node_params)
-        """
-        node_type = node_params.get('type')
-        node_name = node_params.get('name')
-        if node_type is None or node_name is None:
-            raise AddNodeException(
-                message='The "name" and "type" fields must be sent',
-                details=node_params,
-            )
-
-        handle = self._node_handle(node_type, node_name)
-        node = self.db.node.get(handle)
-        if node is None:
-            node = {
-                '_id': handle,
-                'composite_type_hash': ExpressionHasher.named_type_hash(
-                    node_type
-                ),
-                'name': node_name,
-                'named_type': node_type,
-            }
-            node.update(node_params)
-            node.pop('type')
-            self.db.node[handle] = node
-
+        handle, node = self._add_node(node_params)
+        self.db.node[handle] = node
         self.update_index([handle])
-
         return node
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
-        """
-        Adds a link to the in-memory database.
-
-        This method allows to add a link to the database with the specified
-            link parameters.
-        A link must have a 'type' and 'targets' field
-            in the link_params dictionary.
-
-        Args:
-            link_params (Dict[str, Any]): A dictionary containing
-                link parameters.
-                It should have the following keys:
-                - 'type': The type of the link.
-                - 'targets': A list of target elements.
-            toplevel: boolean flag to indicate toplevel links
-                i.e. links which are not nested inside other links.
-
-        Returns:
-            Dict[str, Any]: The information about the added link,
-                including its unique key and other details.
-
-        Raises:
-            AddLinkException: If the 'type' or 'targets' fields
-                are missing in link_params.
-
-        Note:
-            This method supports recursion when a target element
-                itself contains links.
-            It calculates a unique key for the link based on
-                its type and targets.
-            If a link with the same key already exists,
-                it just returns the link.
-
-        Example:
-            To add a link, use this method like this:
-            >>> link_params = {
-                    'type': 'Evaluation',
-                    'targets': [
-                        {
-                            'type': 'Predicate',
-                            'name': 'Predicate:has_name'
-                        },
-                        {
-                            'type': 'Set',
-                            'targets': [
-                                {
-                                    'type': 'Reactome',
-                                    'name': 'Reactome:R-HSA-164843',
-                                },
-                                {
-                                    'type': 'Concept',
-                                    'name': 'Concept:2-LTR circle formation',
-                                },
-                            ],
-                        },
-                    ],
-                }
-            >>> db.add_link(link_params)
-        """
-        if 'type' not in link_params or 'targets' not in link_params:
-            raise AddLinkException(
-                message='The "type" and "targets" fields must be sent',
-                details=link_params,
-            )
-
-        link_type = link_params['type']
-        targets = link_params['targets']
-        link_type_hash = ExpressionHasher.named_type_hash(link_type)
-
-        targets_hash = []
-        composite_type = [link_type_hash]
-        composite_type_hash = [link_type_hash]
-        for target in targets:
-            if 'targets' not in target.keys():
-                atom = self.add_node(target)
-                atom_hash = ExpressionHasher.named_type_hash(
-                    atom['named_type']
-                )
-                composite_type.append(atom_hash)
-            else:
-                atom = self.add_link(target, toplevel=False)
-                composite_type.append(atom['composite_type'])
-                atom_hash = atom['composite_type_hash']
-            composite_type_hash.append(atom_hash)
-            targets_hash.append(atom['_id'])
-        key = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
-
-        arity = len(targets)
-        link_db = self.db.link.get_table(arity)
-        link = link_db.get(key)
-        if link is None:
-            link = {
-                '_id': key,
-                'composite_type_hash': ExpressionHasher.composite_hash(
-                    composite_type_hash
-                ),
-                'is_toplevel': toplevel,
-                'composite_type': composite_type,
-                'named_type': link_type,
-                'named_type_hash': link_type_hash,
-            }
-            for item in range(arity):
-                link[f'key_{item}'] = targets_hash[item]
-            link_db[key] = link
-
-        link.update(link_params)
-        link.pop('type')
-        link.pop('targets')
-        self.update_index([key])
-
+        handle, link, targets = self._add_link(link_params, toplevel)
+        link_db = self.db.link.get_table(len(targets))
+        link_db[handle] = link
+        self.update_index([handle])
         return link
 
     def update_index(self, handles: Any):
