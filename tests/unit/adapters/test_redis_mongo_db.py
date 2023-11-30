@@ -18,7 +18,6 @@ from hyperon_das_atomdb.constants.redis_mongo_db import (
 from hyperon_das_atomdb.constants.redis_mongo_db import (
     RedisCollectionNames as KeyPrefix,
 )
-from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
 from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExistException,
     NodeDoesNotExistException,

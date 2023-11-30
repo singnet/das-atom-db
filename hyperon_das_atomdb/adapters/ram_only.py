@@ -396,37 +396,33 @@ class InMemoryDB(AtomDB):
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
         self.db.node[handle] = node
-        self.update_index([handle])
+        self._update_index(node)
         return node
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
         handle, link, targets = self._add_link(link_params, toplevel)
         link_db = self.db.link.get_table(len(targets))
         link_db[handle] = link
-        self.update_index([handle])
+        self._update_index(link)
         return link
 
-    def update_index(self, handles: Any):
-        for handle in handles:
-            node = self.db.node.get(handle)
-            if node is not None:
-                self._add_atom_type(_name=node['named_type'])
-            else:
-                link = self._get_link(handle)
-                key = link['_id']
-                link_type = link['named_type']
-                targets_hash = self._build_targets_list(link)
-                self._add_atom_type(_name=link_type)
-                self._add_outgoing_set(key, targets_hash)
-                self._add_incomming_set(key, targets_hash)
-                self._add_templates(
-                    link['composite_type_hash'],
-                    link['named_type_hash'],
-                    link['_id'],
-                    targets_hash,
-                )
-                self._add_patterns(
-                    link['named_type_hash'],
-                    link['_id'],
-                    targets_hash,
-                )
+    def _update_index(self, atom: Dict[str, Any]):
+        atom_type = atom['named_type']
+        self._add_atom_type(_name=atom_type)
+        if 'name' not in atom:
+            handle = atom['_id']
+            targets_hash = self._build_targets_list(atom)
+            self._add_atom_type(_name=atom_type)
+            self._add_outgoing_set(handle, targets_hash)
+            self._add_incomming_set(handle, targets_hash)
+            self._add_templates(
+                atom['composite_type_hash'],
+                atom['named_type_hash'],
+                handle,
+                targets_hash,
+            )
+            self._add_patterns(
+                atom['named_type_hash'],
+                handle,
+                targets_hash,
+            )
