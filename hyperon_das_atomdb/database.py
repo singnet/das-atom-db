@@ -107,7 +107,7 @@ class AtomDB(ABC):
         link.pop('type')
         link.pop('targets')
 
-        return (handle, link, targets)
+        return (handle, link, targets_hash)
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
         """
@@ -452,11 +452,5 @@ class AtomDB(ABC):
                     ],
                 }
             >>> db.add_link(link_params)
-        """
-        ...  # pragma no cover
-
-    @abstractmethod
-    def update_index(self, handles: Any) -> None:
-        """
         """
         ...  # pragma no cover

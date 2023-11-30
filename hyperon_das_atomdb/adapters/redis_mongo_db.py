@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -15,7 +15,6 @@ from hyperon_das_atomdb.constants.redis_mongo_db import (
 from hyperon_das_atomdb.constants.redis_mongo_db import (
     RedisCollectionNames as KeyPrefix,
 )
-from hyperon_das_atomdb.constants.redis_mongo_db import build_redis_key
 from hyperon_das_atomdb.exceptions import (
     ConnectionMongoDBException,
     InvalidOperationException,
@@ -39,6 +38,8 @@ USE_CACHED_NODE_TYPES = str_to_bool(
     os.environ.get("DAS_USE_CACHED_NODE_TYPES")
 )
 
+def _build_redis_key(prefix, key):
+    return prefix + ":" + key
 
 class NodeDocuments:
     def __init__(self, collection) -> None:
@@ -246,7 +247,7 @@ class RedisMongoDB(AtomDB):
         return None
 
     def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
-        members = self.redis.smembers(build_redis_key(prefix, key))
+        members = self.redis.smembers(_build_redis_key(prefix, key))
         if prefix in self.use_targets:
             return [pickle.loads(t) for t in members]
         else:
@@ -575,14 +576,17 @@ class RedisMongoDB(AtomDB):
             self.symbol_hash[named_type] = hash_id
 
     def commit(self) -> None:
+        added_links = []
         for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
                 documents = [d.base for d in buffer]
                 collection.insert_many(documents, ordered=False)
                 if key == MongoCollectionNames.NODES:
-                    for document in documents:
-                        self.node_documents.add(document["_id"], document)
-                self.mongo_bulk_insertion_buffer[key] = (collection, set())
+                    self._update_node_index(documents)
+                elif key == MongoCollectionNames.ATOM_TYPES:
+                    raise InvalidOperationException
+                else:
+                    self._update_link_index(documents)
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
@@ -610,6 +614,13 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
-    def update_index(self, handles: Any):
-        raise InvalidOperationException
+    def _update_node_index(self, documents: Iterable[Dict[str, any]]) -> None:
+        for document in documents:
+            handle = document["_id"]
+            node_name = document["name"]
+            self.node_documents.add(handle, document)
+            key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
+            self.redis.sadd(key, node_name)
 
+    def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
+        pass
