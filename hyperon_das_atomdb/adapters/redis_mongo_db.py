@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo.database import Database
+from pymongo.errors import BulkWriteError
 from redis import Redis
 from redis.cluster import RedisCluster
 import sys
@@ -580,7 +581,12 @@ class RedisMongoDB(AtomDB):
         for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
                 documents = [d.base for d in buffer]
-                collection.insert_many(documents, ordered=False)
+                try:
+                    collection.insert_many(documents, ordered=False)
+                except BulkWriteError as exception:
+                    for error in exception.details["writeErrors"]:
+                        if error["code"] != 11000: # duplicate insertion error
+                            raise exception
                 if key == MongoCollectionNames.NODES:
                     self._update_node_index(documents)
                 elif key == MongoCollectionNames.ATOM_TYPES:
