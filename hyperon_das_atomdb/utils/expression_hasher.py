@@ -16,9 +16,7 @@ class ExpressionHasher:
     @staticmethod
     def terminal_hash(named_type: str, terminal_name: str) -> str:
         return ExpressionHasher._compute_hash(
-            ExpressionHasher.compound_separator.join(
-                [named_type, terminal_name]
-            )
+            ExpressionHasher.compound_separator.join([named_type, terminal_name])
         )
 
     @staticmethod
@@ -38,8 +36,7 @@ class ExpressionHasher:
                 )
         else:
             raise ValueError(
-                "Invalid base to compute composite hash: "
-                f"{type(hash_base)}: {hash_base}"
+                "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
             )
 
 

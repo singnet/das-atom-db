@@ -25,8 +25,7 @@ def multiply_binary_matrix_by_string_matrix(
     result_matrix = []
     for binary_row in binary_matrix:
         result_row = [
-            string if bit == 1 else WILDCARD
-            for bit, string in zip(binary_row, string_matrix)
+            string if bit == 1 else WILDCARD for bit, string in zip(binary_row, string_matrix)
         ]
         result_matrix.append(result_row)
     return result_matrix[:-1]
@@ -34,9 +33,7 @@ def multiply_binary_matrix_by_string_matrix(
 
 def build_patern_keys(hash_list: List[str]) -> List[str]:
     binary_matrix = generate_binary_matrix(len(hash_list))
-    result_matrix = multiply_binary_matrix_by_string_matrix(
-        binary_matrix, hash_list
-    )
+    result_matrix = multiply_binary_matrix_by_string_matrix(binary_matrix, hash_list)
     keys = [
         ExpressionHasher.expression_hash(matrix_item[:1][0], matrix_item[1:])
         for matrix_item in result_matrix

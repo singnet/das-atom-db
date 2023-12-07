@@ -1,45 +1,35 @@
 import os
 import pickle
+import sys
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
-import sys
 
-from hyperon_das_atomdb.constants.redis_mongo_db import (
-    MongoCollectionNames,
-    MongoFieldNames,
-)
-from hyperon_das_atomdb.constants.redis_mongo_db import (
-    RedisCollectionNames as KeyPrefix,
-)
+from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
+from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
+from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
 from hyperon_das_atomdb.exceptions import (
+    AtomDoesNotExist,
     ConnectionMongoDBException,
     InvalidOperationException,
-    LinkDoesNotExistException,
-    NodeDoesNotExistException,
-)
-from hyperon_das_atomdb.database import (
-    UNORDERED_LINK_TYPES,
-    WILDCARD,
-    AtomDB,
+    LinkDoesNotExist,
+    NodeDoesNotExist,
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.parse import str_to_bool
 
 USE_CACHED_NODES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODES"))
-USE_CACHED_LINK_TYPES = str_to_bool(
-    os.environ.get("DAS_USE_CACHED_LINK_TYPES")
-)
-USE_CACHED_NODE_TYPES = str_to_bool(
-    os.environ.get("DAS_USE_CACHED_NODE_TYPES")
-)
+USE_CACHED_LINK_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES"))
+USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
+
 
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
+
 
 class NodeDocuments:
     def __init__(self, collection) -> None:
@@ -68,19 +58,21 @@ class NodeDocuments:
 
     def values(self):
         for document in (
-            self.cached_nodes.values()
-            if USE_CACHED_NODES
-            else self.mongo_collection.find()
+            self.cached_nodes.values() if USE_CACHED_NODES else self.mongo_collection.find()
         ):
             yield document
 
-class _HashableDocument():
+
+class _HashableDocument:
     def __init__(self, base: Dict[str, Any]):
         self.base = base
+
     def __hash__(self):
         return hash(self.base["_id"])
+
     def __str__(self):
         return str(self.base)
+
 
 class RedisMongoDB(AtomDB):
     """A concrete implementation using Redis and Mongo database"""
@@ -88,34 +80,58 @@ class RedisMongoDB(AtomDB):
     def __repr__(self) -> str:
         return "<Atom database RedisMongo>"  # pragma no cover
 
-    def __init__(self, database_name: str = "das") -> None:
+    def __init__(
+        self,
+        mongo_hostname: str,
+        mongo_port: str,
+        mongo_username: str,
+        mongo_password: str,
+        redis_hostname: str,
+        redis_port: str,
+        mongo_tls_ca_file: Optional[str] = None,
+        redis_username: Optional[str] = None,
+        redis_password: Optional[str] = None,
+        redis_cluster: Optional[bool] = True,
+        redis_ssl: Optional[bool] = True,
+    ) -> None:
         """
         Initialize an instance of a custom class with Redis
         and MongoDB connections.
         """
-        self.database_name = database_name
-        self._setup_databases()
+        self.database_name = 'das'
+        self._setup_databases(
+            mongo_hostname,
+            mongo_port,
+            mongo_username,
+            mongo_password,
+            redis_hostname,
+            redis_port,
+            mongo_tls_ca_file,
+            redis_username,
+            redis_password,
+            redis_cluster,
+            redis_ssl,
+        )
         self.mongo_link_collection = {
-            "1": self.mongo_db.get_collection(
-                MongoCollectionNames.LINKS_ARITY_1
-            ),
-            "2": self.mongo_db.get_collection(
-                MongoCollectionNames.LINKS_ARITY_2
-            ),
-            "N": self.mongo_db.get_collection(
-                MongoCollectionNames.LINKS_ARITY_N
-            ),
+            "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
+            "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
+            "N": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_N),
         }
-        self.mongo_nodes_collection = self.mongo_db.get_collection(
-            MongoCollectionNames.NODES
-        )
-        self.mongo_types_collection = self.mongo_db.get_collection(
-            MongoCollectionNames.ATOM_TYPES
-        )
+        self.mongo_nodes_collection = self.mongo_db.get_collection(MongoCollectionNames.NODES)
+        self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
         self.all_mongo_collections = [
-            (MongoCollectionNames.LINKS_ARITY_1, self.mongo_link_collection["1"]),
-            (MongoCollectionNames.LINKS_ARITY_2, self.mongo_link_collection["2"]),
-            (MongoCollectionNames.LINKS_ARITY_N, self.mongo_link_collection["N"]),
+            (
+                MongoCollectionNames.LINKS_ARITY_1,
+                self.mongo_link_collection["1"],
+            ),
+            (
+                MongoCollectionNames.LINKS_ARITY_2,
+                self.mongo_link_collection["2"],
+            ),
+            (
+                MongoCollectionNames.LINKS_ARITY_N,
+                self.mongo_link_collection["N"],
+            ),
             (MongoCollectionNames.NODES, self.mongo_nodes_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
@@ -138,7 +154,6 @@ class RedisMongoDB(AtomDB):
                 self.typedef_base_type_hash,
             ]
         )
-
         self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
         self.mongo_bulk_insertion_buffer = {
             collection_name: tuple([collection, set()])
@@ -150,21 +165,45 @@ class RedisMongoDB(AtomDB):
         self.prefetch()
         logger().info("Database setup finished")
 
-    def _setup_databases(self) -> None:
-        self.mongo_db = self._connection_mongo_db()
-        self.redis = self._connection_redis()
-
-    def _connection_mongo_db(self) -> Database:
-        mongo_hostname = os.environ.get("DAS_MONGODB_HOSTNAME")
-        mongo_port = os.environ.get("DAS_MONGODB_PORT")
-        mongo_username = os.environ.get("DAS_MONGODB_USERNAME")
-        mongo_password = os.environ.get("DAS_MONGODB_PASSWORD")
-        mongo_tls_ca_file = os.environ.get("DAS_MONGODB_TLS_CA_FILE")
-
-        logger().info(
-            f"Connecting to MongoDB at {mongo_hostname}:{mongo_port}"
+    def _setup_databases(
+        self,
+        mongo_hostname,
+        mongo_port,
+        mongo_username,
+        mongo_password,
+        redis_hostname,
+        redis_port,
+        mongo_tls_ca_file,
+        redis_username,
+        redis_password,
+        redis_cluster,
+        redis_ssl,
+    ) -> None:
+        self.mongo_db = self._connection_mongo_db(
+            mongo_hostname,
+            mongo_port,
+            mongo_username,
+            mongo_password,
+            mongo_tls_ca_file,
+        )
+        self.redis = self._connection_redis(
+            redis_hostname,
+            redis_port,
+            redis_username,
+            redis_password,
+            redis_cluster,
+            redis_ssl,
         )
 
+    def _connection_mongo_db(
+        self,
+        mongo_hostname,
+        mongo_port,
+        mongo_username,
+        mongo_password,
+        mongo_tls_ca_file,
+    ) -> Database:
+        logger().info(f"Connecting to MongoDB at {mongo_hostname}:{mongo_port}")
         try:
             if mongo_tls_ca_file:
                 self.mongo_db = MongoClient(
@@ -178,18 +217,17 @@ class RedisMongoDB(AtomDB):
                 )[self.database_name]
             return self.mongo_db
         except ValueError as e:
-            raise ConnectionMongoDBException(
-                message="error creating a MongoClient", details=str(e)
-            )
+            raise ConnectionMongoDBException(message="error creating a MongoClient", details=str(e))
 
-    def _connection_redis(self) -> Redis:
-        redis_hostname = os.environ.get("DAS_REDIS_HOSTNAME")
-        redis_port = os.environ.get("DAS_REDIS_PORT")
-        redis_password = os.environ.get("DAS_REDIS_PASSWORD")
-        redis_username = os.environ.get("DAS_REDIS_USERNAME")
-        redis_cluster = str_to_bool(os.environ.get("DAS_USE_REDIS_CLUSTER"))
-        redis_ssl = str_to_bool(os.environ.get("DAS_USE_REDIS_SSL"))
-
+    def _connection_redis(
+        self,
+        redis_hostname,
+        redis_port,
+        redis_username,
+        redis_password,
+        redis_cluster,
+        redis_ssl,
+    ) -> Redis:
         redis_connection = {
             "host": redis_hostname,
             "port": redis_port,
@@ -202,15 +240,10 @@ class RedisMongoDB(AtomDB):
             redis_connection["username"] = redis_username
 
         if redis_cluster:
-            logger().info(
-                f"Connecting to Redis cluster at {redis_hostname}:{redis_port}"
-            )
+            logger().info(f"Connecting to Redis cluster at {redis_hostname}:{redis_port}")
             self.redis = RedisCluster(**redis_connection)
         else:
-            logger().info(
-                "Connecting to standalone Redis at "
-                f"{redis_hostname}:{redis_port}"
-            )
+            logger().info("Connecting to standalone Redis at " f"{redis_hostname}:{redis_port}")
             self.redis = Redis(**redis_connection)
 
         return self.redis
@@ -238,9 +271,7 @@ class RedisMongoDB(AtomDB):
                 return self.mongo_link_collection["N"].find_one(mongo_filter)
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
-        for collection in [
-            self.mongo_link_collection[key] for key in ["2", "1", "N"]
-        ]:
+        for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
             document = collection.find_one(mongo_filter)
             if document:
                 return document
@@ -253,9 +284,7 @@ class RedisMongoDB(AtomDB):
         else:
             return [*members]
 
-    def _build_named_type_hash_template(
-        self, template: Union[str, List[Any]]
-    ) -> List[Any]:
+    def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
             return self._get_atom_type_hash(template)
         else:
@@ -265,9 +294,7 @@ class RedisMongoDB(AtomDB):
                 answer.append(v)
             return answer
 
-    def _build_named_type_template(
-        self, template: Union[str, List[Any]]
-    ) -> List[Any]:
+    def _build_named_type_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
             ret = self.named_type_hash_reverse.get(template, None)
             return ret
@@ -285,9 +312,7 @@ class RedisMongoDB(AtomDB):
         answer = []
         index = 0
         while True:
-            key = document.get(
-                f"{MongoFieldNames.KEY_PREFIX.value}_{index}", None
-            )
+            key = document.get(f"{MongoFieldNames.KEY_PREFIX.value}_{index}", None)
             if key is None:
                 return answer
             else:
@@ -302,9 +327,7 @@ class RedisMongoDB(AtomDB):
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
             answer["targets"] = []
             for target_handle in self._get_mongo_document_keys(document):
-                answer["targets"].append(
-                    self._build_deep_representation(target_handle)
-                )
+                answer["targets"].append(self._build_deep_representation(target_handle))
         else:
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
             answer["name"] = document[MongoFieldNames.NODE_NAME]
@@ -322,20 +345,18 @@ class RedisMongoDB(AtomDB):
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
-        node_handle = self._node_handle(node_type, node_name)
+        node_handle = self.node_handle(node_type, node_name)
         document = self._retrieve_mongo_document(node_handle, 0)
         if document is not None:
             return document["_id"]
         else:
-            raise NodeDoesNotExistException(
+            raise NodeDoesNotExist(
                 message="This node does not exist",
                 details=f"{node_type}:{node_name}",
             )
 
     def get_node_name(self, node_handle: str) -> str:
-        answer = self._retrieve_key_value(
-            KeyPrefix.NAMED_ENTITIES, node_handle
-        )
+        answer = self._retrieve_key_value(KeyPrefix.NAMED_ENTITIES, node_handle)
         if not answer:
             raise ValueError(f"Invalid handle: {node_handle}")
         return answer[0].decode()
@@ -344,8 +365,8 @@ class RedisMongoDB(AtomDB):
         if USE_CACHED_NODE_TYPES:
             return self.node_type_cache[node_handle]
         else:
-            document = self.get_atom_as_dict(node_handle)
-            return document["type"]
+            document = self.get_atom(node_handle)
+            return document["named_type"]
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -375,17 +396,13 @@ class RedisMongoDB(AtomDB):
                 if document[MongoFieldNames.TYPE] == node_type_hash
             ]
 
-    def get_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
-        link_handle = self._link_handle(link_type, target_handles)
-        document = self._retrieve_mongo_document(
-            link_handle, len(target_handles)
-        )
+    def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
+        link_handle = self.link_handle(link_type, target_handles)
+        document = self._retrieve_mongo_document(link_handle, len(target_handles))
         if document is not None:
             return document["_id"]
         else:
-            raise LinkDoesNotExistException(
+            raise LinkDoesNotExist(
                 message="This link does not exist",
                 details=f"{link_type}:{target_handles}",
             )
@@ -411,9 +428,7 @@ class RedisMongoDB(AtomDB):
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                document = self._retrieve_mongo_document(
-                    link_handle, len(target_handles)
-                )
+                document = self._retrieve_mongo_document(link_handle, len(target_handles))
                 return [link_handle] if document else []
             except ValueError:
                 return []
@@ -429,13 +444,9 @@ class RedisMongoDB(AtomDB):
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
 
-        pattern_hash = ExpressionHasher.composite_hash(
-            [link_type_hash, *target_handles]
-        )
+        pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
-        patterns_matched = self._retrieve_key_value(
-            KeyPrefix.PATTERNS, pattern_hash
-        )
+        patterns_matched = self._retrieve_key_value(KeyPrefix.PATTERNS, pattern_hash)
 
         if len(patterns_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
@@ -451,9 +462,7 @@ class RedisMongoDB(AtomDB):
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-            templates_matched = self._retrieve_key_value(
-                KeyPrefix.TEMPLATES, template_hash
-            )
+            templates_matched = self._retrieve_key_value(KeyPrefix.TEMPLATES, template_hash)
             if len(templates_matched) > 0:
                 if extra_parameters and extra_parameters.get("toplevel_only"):
                     return self._filter_non_toplevel(templates_matched)
@@ -465,9 +474,7 @@ class RedisMongoDB(AtomDB):
         self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
     ) -> List[str]:
         named_type_hash = self._get_atom_type_hash(link_type)
-        templates_matched = self._retrieve_key_value(
-            KeyPrefix.TEMPLATES, named_type_hash
-        )
+        templates_matched = self._retrieve_key_value(KeyPrefix.TEMPLATES, named_type_hash)
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
                 return self._filter_non_toplevel(templates_matched)
@@ -478,28 +485,42 @@ class RedisMongoDB(AtomDB):
             ret = self.link_type_cache[link_handle]
             return ret
         else:
-            document = self.get_atom_as_dict(link_handle)
-            return document["type"]
+            document = self.get_atom(link_handle)
+            return document["named_type"]
 
+    def get_atom(self, handle: str) -> Dict[str, Any]:
+        atom_type = 'node'
+        document = self.node_documents.get(handle, None)
+        if document is None:
+            atom_type = 'link'
+            document = self._retrieve_mongo_document(handle)
+        atom = self._replace_keys(document, atom_type)
+        if atom:
+            return atom
+        else:
+            raise AtomDoesNotExist(
+                message='This atom does not exist',
+                details=f'handle: {handle}',
+            )
+
+    # Deprecated
+    """
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
-        document = (
-            self.node_documents.get(handle, None) if arity <= 0 else None
-        )
+        document = self.node_documents.get(handle, None) if arity <= 0 else None
         if document is None:
             document = self._retrieve_mongo_document(handle, arity)
             if document:
                 answer["handle"] = document[MongoFieldNames.ID_HASH]
                 answer["type"] = document[MongoFieldNames.TYPE_NAME]
-                answer["template"] = self._build_named_type_template(
-                    document[MongoFieldNames.COMPOSITE_TYPE]
-                )
+                answer["template"] = self._build_named_type_template(document[MongoFieldNames.COMPOSITE_TYPE])
                 answer["targets"] = self._get_mongo_document_keys(document)
         else:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
             answer["name"] = document[MongoFieldNames.NODE_NAME]
         return answer
+    """
 
     def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
         return self._build_deep_representation(handle, arity)
@@ -542,20 +563,18 @@ class RedisMongoDB(AtomDB):
                 document[MongoFieldNames.NODE_NAME]
                 self.node_documents.add(node_id, document)
         else:
-            self.node_documents.count = (
-                self.mongo_nodes_collection.count_documents({})
-            )
+            self.node_documents.count = self.mongo_nodes_collection.count_documents({})
         if USE_CACHED_LINK_TYPES:
             for tag in ["1", "2", "N"]:
                 for document in self.mongo_link_collection[tag].find():
-                    self.link_type_cache[
-                        document[MongoFieldNames.ID_HASH]
-                    ] = document[MongoFieldNames.TYPE_NAME]
+                    self.link_type_cache[document[MongoFieldNames.ID_HASH]] = document[
+                        MongoFieldNames.TYPE_NAME
+                    ]
         if USE_CACHED_NODE_TYPES:
             for document in self.mongo_nodes_collection.find():
-                self.node_type_cache[
-                    document[MongoFieldNames.ID_HASH]
-                ] = document[MongoFieldNames.TYPE_NAME]
+                self.node_type_cache[document[MongoFieldNames.ID_HASH]] = document[
+                    MongoFieldNames.TYPE_NAME
+                ]
         for document in self.mongo_types_collection.find():
             hash_id = document[MongoFieldNames.ID_HASH]
             named_type = document[MongoFieldNames.TYPE_NAME]
@@ -567,17 +586,16 @@ class RedisMongoDB(AtomDB):
             self.named_type_hash[named_type] = named_type_hash
             self.named_type_hash_reverse[named_type_hash] = named_type
             if type_document is not None:
-                self.named_types[named_type] = type_document[
-                    MongoFieldNames.TYPE_NAME
-                ]
-                self.parent_type[named_type_hash] = type_document[
-                    MongoFieldNames.TYPE_NAME_HASH
-                ]
+                self.named_types[named_type] = type_document[MongoFieldNames.TYPE_NAME]
+                self.parent_type[named_type_hash] = type_document[MongoFieldNames.TYPE_NAME_HASH]
             self.symbol_hash[named_type] = hash_id
 
     def commit(self) -> None:
         added_links = []
-        for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
+        for key, (
+            collection,
+            buffer,
+        ) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
                 documents = [d.base for d in buffer]
                 collection.insert_many(documents, ordered=False)
@@ -624,3 +642,25 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
         pass
+
+
+if __name__ == '__main__':
+    das = RedisMongoDB(
+        mongo_hostname='172.17.0.2',
+        mongo_port=27017,
+        mongo_username='mongo',
+        mongo_password='mongo',
+        redis_hostname='127.0.0.1',
+        redis_port=6379,
+        redis_cluster=False,
+    )
+    atoms = das.count_atoms()
+    h = das.get_node_handle('Concept', 'human')
+    m = das.get_node_handle('Concept', 'monkey')
+    l = das.get_link_handle('Similarity', [h, m])
+    resp1 = das.get_atom(l)
+    resp2 = das.get_atom(h)
+    resp3 = das.get_atom(m)
+    print(resp1)
+    print(resp2)
+    print(resp3)

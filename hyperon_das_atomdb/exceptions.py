@@ -14,15 +14,15 @@ class ConnectionMongoDBException(BaseException):
     ...  # pragma no cover
 
 
-class NodeDoesNotExistException(BaseException):
+class NodeDoesNotExist(BaseException):
     ...  # pragma no cover
 
 
-class LinkDoesNotExistException(BaseException):
+class LinkDoesNotExist(BaseException):
     ...  # pragma no cover
 
 
-class AtomDoesNotExistException(BaseException):
+class AtomDoesNotExist(BaseException):
     ...  # pragma no cover
 
 
@@ -38,9 +38,9 @@ class InvalidOperationException(BaseException):
     ...  # pragma no cover
 
 
-class ConnectionServerException(BaseException):
+class RetryException(BaseException):
     ...  # pragma no cover
 
 
-class RetryException(BaseException):
+class InvalidAtomDB(BaseException):
     ...  # pragma no cover

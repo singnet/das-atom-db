@@ -11,17 +11,9 @@ from pymongo.database import Database
 from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.constants.redis_mongo_db import (
-    MongoCollectionNames,
-    MongoFieldNames,
-)
-from hyperon_das_atomdb.constants.redis_mongo_db import (
-    RedisCollectionNames as KeyPrefix,
-)
-from hyperon_das_atomdb.exceptions import (
-    LinkDoesNotExistException,
-    NodeDoesNotExistException,
-)
+from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
+from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
+from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 node_collection_mock_data = [
@@ -909,32 +901,16 @@ incomming_set_redis_mock_data = [
             'b0f428929706d1d991e4d712ad08f9ab',
         ]
     },
-    {
-        'incomming_set:8a224e9b499baf68bf02a3f72335806c': [
-            'dc2891a1e8cb273c1c87b4b539615511'
-        ]
-    },
-    {
-        'incomming_set:0ddefbdb97e354f36b694dfb5ae33922': [
-            'dc2891a1e8cb273c1c87b4b539615511'
-        ]
-    },
+    {'incomming_set:8a224e9b499baf68bf02a3f72335806c': ['dc2891a1e8cb273c1c87b4b539615511']},
+    {'incomming_set:0ddefbdb97e354f36b694dfb5ae33922': ['dc2891a1e8cb273c1c87b4b539615511']},
     {
         'incomming_set:da8db3df47c6d03b44ed4d357715aeff': [
             'ee8aa90f2f1b6eba761359fbf65ac39d',
             'b5c9e71594b40cd532b34baf0be29e11',
         ]
     },
-    {
-        'incomming_set:dc2891a1e8cb273c1c87b4b539615511': [
-            'ee8aa90f2f1b6eba761359fbf65ac39d'
-        ]
-    },
-    {
-        'incomming_set:ee8aa90f2f1b6eba761359fbf65ac39d': [
-            'b5c9e71594b40cd532b34baf0be29e11'
-        ]
-    },
+    {'incomming_set:dc2891a1e8cb273c1c87b4b539615511': ['ee8aa90f2f1b6eba761359fbf65ac39d']},
+    {'incomming_set:ee8aa90f2f1b6eba761359fbf65ac39d': ['b5c9e71594b40cd532b34baf0be29e11']},
 ]
 
 patterns_redis_mock_data = {
@@ -2946,9 +2922,7 @@ names_redis_mock_data = {
 class TestRedisMongoDB:
     @pytest.fixture()
     def mongo_db(self):
-        mongo_db = mock.MagicMock(
-            spec=Database, client=mock.Mock(spec=MongoClient), name='db-test'
-        )
+        mongo_db = mock.MagicMock(spec=Database, client=mock.Mock(spec=MongoClient), name='db-test')
         return mongo_db
 
     @pytest.fixture()
@@ -3010,8 +2984,7 @@ class TestRedisMongoDB:
                 ret = []
                 for node in node_collection_mock_data + added_nodes:
                     if (
-                        _filter[MongoFieldNames.TYPE]
-                        == node[MongoFieldNames.TYPE]
+                        _filter[MongoFieldNames.TYPE] == node[MongoFieldNames.TYPE]
                         and _filter[MongoFieldNames.NODE_NAME]['$regex']
                         in node[MongoFieldNames.NODE_NAME]
                     ):
@@ -3024,9 +2997,7 @@ class TestRedisMongoDB:
         collection.insert_many = mock.Mock(side_effect=insert_many)
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
+        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
         return collection
 
     @pytest.fixture()
@@ -3062,9 +3033,7 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
+        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
         return collection
 
     @pytest.fixture()
@@ -3093,9 +3062,7 @@ class TestRedisMongoDB:
 
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
+        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
 
         return collection
 
@@ -3116,9 +3083,7 @@ class TestRedisMongoDB:
             return len([])
 
         collection.find = mock.Mock(side_effect=find)
-        collection.estimated_document_count = mock.Mock(
-            side_effect=estimated_document_count
-        )
+        collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
         return collection
 
     @pytest.fixture()
@@ -3139,7 +3104,14 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis',
             return_value=redis_db,
         ):
-            db = RedisMongoDB()
+            db = RedisMongoDB(
+                mongo_hostname='0.0.0.0',
+                mongo_port=0,
+                mongo_username='test',
+                mongo_password='test',
+                redis_hostname='0.0.0.0',
+                redis_port=0,
+            )
             db.mongo_link_collection = {
                 '1': mongo_arity_1_collection,
                 '2': mongo_arity_2_collection,
@@ -3148,18 +3120,27 @@ class TestRedisMongoDB:
             db.mongo_nodes_collection = mongo_nodes_collection
             db.mongo_types_collection = mongo_types_collection
             db.all_mongo_collections = [
-                (MongoCollectionNames.LINKS_ARITY_1, db.mongo_link_collection['1']),
-                (MongoCollectionNames.LINKS_ARITY_2, db.mongo_link_collection['2']),
-                (MongoCollectionNames.LINKS_ARITY_N, db.mongo_link_collection['N']),
+                (
+                    MongoCollectionNames.LINKS_ARITY_1,
+                    db.mongo_link_collection['1'],
+                ),
+                (
+                    MongoCollectionNames.LINKS_ARITY_2,
+                    db.mongo_link_collection['2'],
+                ),
+                (
+                    MongoCollectionNames.LINKS_ARITY_N,
+                    db.mongo_link_collection['N'],
+                ),
                 (MongoCollectionNames.NODES, db.mongo_nodes_collection),
-                (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection)
+                (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection),
             ]
             db.mongo_bulk_insertion_buffer = {
                 MongoCollectionNames.LINKS_ARITY_1: tuple([db.mongo_link_collection['1'], set()]),
                 MongoCollectionNames.LINKS_ARITY_2: tuple([db.mongo_link_collection['2'], set()]),
                 MongoCollectionNames.LINKS_ARITY_N: tuple([db.mongo_link_collection['N'], set()]),
                 MongoCollectionNames.NODES: tuple([db.mongo_nodes_collection, set()]),
-                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()])
+                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
             }
             db.prefetch()
         return db
@@ -3208,18 +3189,16 @@ class TestRedisMongoDB:
         node_type = 'Fake'
         node_name = 'Fake2'
 
-        with pytest.raises(NodeDoesNotExistException) as exc_info:
+        with pytest.raises(NodeDoesNotExist) as exc_info:
             database.get_node_handle(node_type, node_name)
-        assert exc_info.type is NodeDoesNotExistException
+        assert exc_info.type is NodeDoesNotExist
         assert exc_info.value.args[0] == "This node does not exist"
 
     def test_get_link_handle(self, database):
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
 
-        resp = database.get_link_handle(
-            link_type='Similarity', target_handles=[human, chimp]
-        )
+        resp = database.get_link_handle(link_type='Similarity', target_handles=[human, chimp])
 
         assert resp is not None
 
@@ -3227,11 +3206,9 @@ class TestRedisMongoDB:
         brazil = ExpressionHasher.terminal_hash('Concept', 'brazil')
         travel = ExpressionHasher.terminal_hash('Concept', 'travel')
 
-        with pytest.raises(LinkDoesNotExistException) as exc_info:
-            database.get_link_handle(
-                link_type='Similarity', target_handles=[brazil, travel]
-            )
-        assert exc_info.type is LinkDoesNotExistException
+        with pytest.raises(LinkDoesNotExist) as exc_info:
+            database.get_link_handle(link_type='Similarity', target_handles=[brazil, travel])
+        assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "This link does not exist"
 
     def test_get_link_targets(self, database):
@@ -3328,9 +3305,7 @@ class TestRedisMongoDB:
                 ),
             )
         ]
-        actual = database.get_matched_links(
-            'Evaluation', ['*', '*'], {'toplevel_only': True}
-        )
+        actual = database.get_matched_links('Evaluation', ['*', '*'], {'toplevel_only': True})
 
         assert expected == actual
         assert len(actual) == 1
@@ -3354,18 +3329,10 @@ class TestRedisMongoDB:
             assert exc_info.value.args[0] == f"Invalid node type: Concept-Fake"
 
     def test_get_matched_type_template(self, database):
-        v1 = database.get_matched_type_template(
-            ['Inheritance', 'Concept', 'Concept']
-        )
-        v2 = database.get_matched_type_template(
-            ['Similarity', 'Concept', 'Concept']
-        )
-        v3 = database.get_matched_type_template(
-            ['Inheritance', 'Concept', 'blah']
-        )
-        v4 = database.get_matched_type_template(
-            ['Similarity', 'blah', 'Concept']
-        )
+        v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
+        v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
+        v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
+        v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
         v5 = database.get_matched_links('Inheritance', ['*', '*'])
         v6 = database.get_matched_links('Similarity', ['*', '*'])
         assert len(v1[0]) == 12
@@ -3381,9 +3348,7 @@ class TestRedisMongoDB:
             return_value=mock.MagicMock(side_effect=Exception("Test")),
         ):
             with pytest.raises(ValueError) as exc_info:
-                database.get_matched_type_template(
-                    ['Inheritance', 'Concept', 'Concept']
-                )
+                database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
             assert exc_info.type is ValueError
 
     def test_get_matched_type(self, database):
@@ -3432,51 +3397,6 @@ class TestRedisMongoDB:
         assert expected == actual
         assert sorted(database.get_matched_node_name('blah', 'Concept')) == []
         assert sorted(database.get_matched_node_name('Concept', 'blah')) == []
-
-    def test_get_atom_as_dict_node(self, database):
-        human_handle = database.get_node_handle('Concept', 'human')
-        expected = {'handle': human_handle, 'type': 'Concept', 'name': 'human'}
-        actual = database.get_atom_as_dict(human_handle)
-        assert expected == actual
-
-    # def test_get_atom_as_dict_node_without_cache(self, database):
-    #     from hyperon_das_atomdb.adapters import redis_mongo_db
-
-    #     redis_mongo_db.USE_CACHED_NODES = False
-    #     human_handle = database.get_node_handle('Concept', 'human')
-    #     expected = {'handle': human_handle, 'type': 'Concept', 'name': 'human'}
-    #     actual = database.get_atom_as_dict(human_handle)
-    #     assert expected == actual
-
-    def test_get_atom_as_dict_link(self, database):
-        human = database.get_node_handle('Concept', 'human')
-        chimp = database.get_node_handle('Concept', 'chimp')
-        link_handle = database.get_link_handle('Similarity', [human, chimp])
-        expected = {
-            'handle': link_handle,
-            'type': 'Similarity',
-            'template': ['Similarity', 'Concept', 'Concept'],
-            'targets': [
-                'af12f10f9ae2002a1607ba0b47ba8407',
-                '5b34c54bee150c04f9fa584b899dc030',
-            ],
-        }
-        actual = database.get_atom_as_dict(link_handle)
-        assert expected == actual
-
-    def test_get_atom_as_deep_representation(self, database):
-        human = database.get_node_handle('Concept', 'human')
-        chimp = database.get_node_handle('Concept', 'chimp')
-        link_handle = database.get_link_handle('Similarity', [human, chimp])
-        expected = {
-            'type': 'Similarity',
-            'targets': [
-                {'type': 'Concept', 'name': 'human'},
-                {'type': 'Concept', 'name': 'chimp'},
-            ],
-        }
-        actual = database.get_atom_as_deep_representation(link_handle)
-        assert expected == actual
 
     def test_get_node_type(self, database):
         monkey = database.get_node_handle('Concept', 'monkey')
@@ -3532,14 +3452,13 @@ class TestRedisMongoDB:
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
-        new_node = database.get_atom_as_dict(new_node_handle)
+        new_node = database.get_atom(new_node_handle)
         assert new_node['handle'] == new_node_handle
-        assert new_node['type'] == 'Concept'
+        assert new_node['named_type'] == 'Concept'
         assert new_node['name'] == 'lion'
         added_nodes.clear()
 
     def test_add_link(self, database):
-
         added_nodes.clear()
         added_links_arity_2.clear()
         assert (14, 28) == database.count_atoms()
@@ -3551,8 +3470,8 @@ class TestRedisMongoDB:
                 'type': 'Similarity',
                 'targets': [
                     {'type': 'Concept', 'name': 'lion'},
-                    {'type': 'Concept', 'name': 'cat'}
-                ]
+                    {'type': 'Concept', 'name': 'cat'},
+                ],
             }
         )
         database.commit()
@@ -3561,26 +3480,26 @@ class TestRedisMongoDB:
 
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
-        #assert len(all_links_before) == 28
-        #assert len(all_links_after) == 29
-        #assert (16, 29) == database.count_atoms()
+        # assert len(all_links_before) == 28
+        # assert len(all_links_after) == 29
+        # assert (16, 29) == database.count_atoms()
 
         new_node_handle = database.get_node_handle('Concept', 'lion')
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
-        new_node = database.get_atom_as_dict(new_node_handle)
+        new_node = database.get_atom(new_node_handle)
         assert new_node['handle'] == new_node_handle
-        assert new_node['type'] == 'Concept'
+        assert new_node['named_type'] == 'Concept'
         assert new_node['name'] == 'lion'
 
         new_node_handle = database.get_node_handle('Concept', 'cat')
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'cat')
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
-        new_node = database.get_atom_as_dict(new_node_handle)
+        new_node = database.get_atom(new_node_handle)
         assert new_node['handle'] == new_node_handle
-        assert new_node['type'] == 'Concept'
+        assert new_node['named_type'] == 'Concept'
         assert new_node['name'] == 'cat'
 
         added_nodes.clear()

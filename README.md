@@ -52,11 +52,10 @@ source environment
 #### Use adapters
 
 ```python
-from hyperon_das_atomdb.adapters import RedisMongoDB, InMemoryDB, ServerDB
+from hyperon_das_atomdb.adapters import RedisMongoDB, InMemoryDB
 
 redis_mongo_db = RedisMongoDB()
 in_memory_db = InMemoryDB()
-server_db = ServerDB(host='0.0.0.0')
 ```
 
 ## Tests
