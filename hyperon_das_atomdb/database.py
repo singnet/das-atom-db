@@ -60,6 +60,14 @@ class AtomDB(ABC):
         return (self.link_handle(atom_type, targets), composite_type)
 
     def _add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        reserved_parameters = ['_id', 'composite_type_hash', 'named_type']
+
+        if any(item in reserved_parameters for item in node_params.keys()):
+            raise AddNodeException(
+                message="This is a reserved field name in nodes",
+                details=str(reserved_parameters),
+            )
+
         node_type = node_params.get('type')
         node_name = node_params.get('name')
         if node_type is None or node_name is None:
@@ -80,6 +88,24 @@ class AtomDB(ABC):
         return (handle, node)
 
     def _add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+        reserved_parameters = [
+            '_id',
+            'composite_type_hash',
+            'is_toplevel',
+            'composite_type',
+            'named_type',
+            'named_type_hash',
+            'key_n',
+        ]
+
+        if any(
+            item in reserved_parameters or item.startswith('key') for item in link_params.keys()
+        ):
+            raise AddLinkException(
+                message="This is a reserved field name in links",
+                details=str(reserved_parameters),
+            )
+
         link_type = link_params.get('type')
         targets = link_params.get('targets')
         if link_type is None or targets is None:

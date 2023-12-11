@@ -13,7 +13,12 @@ from redis import Redis
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
 from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
-from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
+from hyperon_das_atomdb.exceptions import (
+    AddLinkException,
+    AddNodeException,
+    LinkDoesNotExist,
+    NodeDoesNotExist,
+)
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 node_collection_mock_data = [
@@ -3497,3 +3502,25 @@ class TestRedisMongoDB:
 
         added_nodes.clear()
         added_links_arity_2.clear()
+
+    def test_add_node_and_link_with_reserved_parameters(self, database):
+        with pytest.raises(AddNodeException) as exc:
+            database.add_node({'type': 'Concept', 'name': 'lion', 'named_type': 'Concept-type'})
+        assert exc.value.message == 'This is a reserved field name in nodes'
+        assert exc.value.details == "['_id', 'composite_type_hash', 'named_type']"
+        with pytest.raises(AddLinkException) as exc:
+            database.add_link(
+                {
+                    'type': 'Concept',
+                    'targets': [
+                        {'type': 'Concept', 'name': 'test-1'},
+                        {'type': 'Concept', 'name': 'test-2'},
+                    ],
+                    'key_1': 'custom_key',
+                }
+            )
+        assert exc.value.message == 'This is a reserved field name in links'
+        assert (
+            exc.value.details
+            == "['_id', 'composite_type_hash', 'is_toplevel', 'composite_type', 'named_type', 'named_type_hash', 'key_n']"
+        )
