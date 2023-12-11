@@ -31,17 +31,19 @@ class AtomDB(ABC):
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
     def _replace_keys(self, document: Dict[str, Any], atom_type: str = 'link') -> Dict[str, Any]:
-        answer = {}
+        answer = document.copy()
         if atom_type == 'link':
-            keys = []
-            for k, v in document.items():
-                if k.startswith('key'):
-                    keys.append(document[k])
+            targets = []
+            count = 0
+            while True:
+                handle = document.get(f'key_{count}')
+                if handle:
+                    targets.append(handle)
+                    answer.pop(f'key_{count}')
+                    count += 1
                 else:
-                    answer[k] = v
-            answer['targets'] = keys
-        else:
-            answer = document
+                    break
+            answer['targets'] = targets
         if answer:
             answer['handle'] = answer.pop('_id')
         return answer
@@ -468,6 +470,5 @@ class AtomDB(ABC):
     def get_atom(self, handle: str) -> Dict[str, Any]:
         ...  # pragma no cover
 
-    @abstractmethod
     def commit(self) -> None:
         ...  # pragma no cover

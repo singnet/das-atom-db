@@ -178,7 +178,10 @@ class RedisMongoDB(AtomDB):
         mongo_password,
         mongo_tls_ca_file,
     ) -> Database:
-        logger().info(f"Connecting to MongoDB at {mongo_hostname}:{mongo_port}")
+        message = f"Connecting to MongoDB at {mongo_username}:{mongo_password}@{mongo_hostname}:{mongo_port}"
+        if mongo_tls_ca_file:
+            message += f"?tls=true&tlsCAFile={mongo_tls_ca_file}"
+        logger().info(message)
         try:
             if mongo_tls_ca_file:
                 self.mongo_db = MongoClient(
@@ -203,6 +206,15 @@ class RedisMongoDB(AtomDB):
         redis_cluster,
         redis_ssl,
     ) -> Redis:
+        redis_type = 'Redis cluster'
+
+        if not redis_cluster:
+            redis_type = 'Standalone Redis'
+
+        message = f"Connecting to {redis_type} at {redis_username}:{redis_password}@{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
+
+        logger().info(message)
+
         redis_connection = {
             "host": redis_hostname,
             "port": redis_port,
@@ -215,10 +227,8 @@ class RedisMongoDB(AtomDB):
             redis_connection["username"] = redis_username
 
         if redis_cluster:
-            logger().info(f"Connecting to Redis cluster at {redis_hostname}:{redis_port}")
             self.redis = RedisCluster(**redis_connection)
         else:
-            logger().info("Connecting to standalone Redis at " f"{redis_hostname}:{redis_port}")
             self.redis = Redis(**redis_connection)
 
         return self.redis
@@ -293,20 +303,6 @@ class RedisMongoDB(AtomDB):
             else:
                 answer.append(key)
             index += 1
-
-    def _build_deep_representation(self, handle, arity=-1):
-        answer = {}
-        document = self.node_documents.get(handle, None)
-        if document is None:
-            document = self._retrieve_mongo_document(handle, arity)
-            answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["targets"] = []
-            for target_handle in self._get_mongo_document_keys(document):
-                answer["targets"].append(self._build_deep_representation(target_handle))
-        else:
-            answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["name"] = document[MongoFieldNames.NODE_NAME]
-        return answer
 
     def _filter_non_toplevel(self, matches: list) -> list:
         if isinstance(matches[0], list):
@@ -469,7 +465,7 @@ class RedisMongoDB(AtomDB):
         if document is None:
             atom_type = 'link'
             document = self._retrieve_mongo_document(handle)
-        atom = self._replace_keys(document.copy(), atom_type)
+        atom = self._replace_keys(document, atom_type)
         if atom:
             return atom
         else:
@@ -477,28 +473,6 @@ class RedisMongoDB(AtomDB):
                 message='This atom does not exist',
                 details=f'handle: {handle}',
             )
-
-    # Deprecated
-    """
-    def get_atom_as_dict(self, handle, arity=-1) -> dict:
-        answer = {}
-        document = self.node_documents.get(handle, None) if arity <= 0 else None
-        if document is None:
-            document = self._retrieve_mongo_document(handle, arity)
-            if document:
-                answer["handle"] = document[MongoFieldNames.ID_HASH]
-                answer["type"] = document[MongoFieldNames.TYPE_NAME]
-                answer["template"] = self._build_named_type_template(document[MongoFieldNames.COMPOSITE_TYPE])
-                answer["targets"] = self._get_mongo_document_keys(document)
-        else:
-            answer["handle"] = document[MongoFieldNames.ID_HASH]
-            answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["name"] = document[MongoFieldNames.NODE_NAME]
-        return answer
-    """
-
-    def get_atom_as_deep_representation(self, handle: str, arity=-1) -> str:
-        return self._build_deep_representation(handle, arity)
 
     def count_atoms(self) -> Tuple[int, int]:
         node_count = self.mongo_nodes_collection.estimated_document_count()
@@ -622,25 +596,3 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
         pass
-
-
-if __name__ == '__main__':
-    das = RedisMongoDB(
-        mongo_hostname='172.17.0.2',
-        mongo_port=27017,
-        mongo_username='mongo',
-        mongo_password='mongo',
-        redis_hostname='127.0.0.1',
-        redis_port=6379,
-        redis_cluster=False,
-    )
-    atoms = das.count_atoms()
-    h = das.get_node_handle('Concept', 'human')
-    m = das.get_node_handle('Concept', 'monkey')
-    l = das.get_link_handle('Similarity', [h, m])
-    resp1 = das.get_atom(l)
-    resp2 = das.get_atom(h)
-    resp3 = das.get_atom(m)
-    print(resp1)
-    print(resp2)
-    print(resp3)
