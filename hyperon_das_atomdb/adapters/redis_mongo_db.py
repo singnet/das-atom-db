@@ -577,7 +577,7 @@ class RedisMongoDB(AtomDB):
                     collection.insert_many(documents, ordered=False)
                 except BulkWriteError as exception:
                     for error in exception.details["writeErrors"]:
-                        if error["code"] != 11000: # duplicate insertion error
+                        if error["code"] != 11000:  # duplicate insertion error
                             raise exception
                 if key == MongoCollectionNames.NODES:
                     self._update_node_index(documents)
