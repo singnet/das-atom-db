@@ -206,10 +206,7 @@ class RedisMongoDB(AtomDB):
         redis_cluster,
         redis_ssl,
     ) -> Redis:
-        redis_type = 'Redis cluster'
-
-        if not redis_cluster:
-            redis_type = 'Standalone Redis'
+        redis_type = 'Redis cluster' if redis_cluster else 'Standalone Redis'
 
         message = f"Connecting to {redis_type} at {redis_username}:{redis_password}@{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
 
