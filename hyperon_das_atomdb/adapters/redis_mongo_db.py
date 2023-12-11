@@ -81,38 +81,12 @@ class RedisMongoDB(AtomDB):
     def __repr__(self) -> str:
         return "<Atom database RedisMongo>"  # pragma no cover
 
-    def __init__(
-        self,
-        mongo_hostname: str,
-        mongo_port: str,
-        mongo_username: str,
-        mongo_password: str,
-        redis_hostname: str,
-        redis_port: str,
-        mongo_tls_ca_file: Optional[str] = None,
-        redis_username: Optional[str] = None,
-        redis_password: Optional[str] = None,
-        redis_cluster: Optional[bool] = True,
-        redis_ssl: Optional[bool] = True,
-    ) -> None:
+    def __init__(self, **kwargs: Optional[Dict[str, Any]]) -> None:
         """
-        Initialize an instance of a custom class with Redis
-        and MongoDB connections.
+        Initialize an instance of a custom class with Redis and MongoDB connections.
         """
         self.database_name = 'das'
-        self._setup_databases(
-            mongo_hostname,
-            mongo_port,
-            mongo_username,
-            mongo_password,
-            redis_hostname,
-            redis_port,
-            mongo_tls_ca_file,
-            redis_username,
-            redis_password,
-            redis_cluster,
-            redis_ssl,
-        )
+        self._setup_databases(**kwargs)
         self.mongo_link_collection = {
             "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
             "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
@@ -168,17 +142,17 @@ class RedisMongoDB(AtomDB):
 
     def _setup_databases(
         self,
-        mongo_hostname,
-        mongo_port,
-        mongo_username,
-        mongo_password,
-        redis_hostname,
-        redis_port,
-        mongo_tls_ca_file,
-        redis_username,
-        redis_password,
-        redis_cluster,
-        redis_ssl,
+        mongo_hostname='localhost',
+        mongo_port=27017,
+        mongo_username='mongo',
+        mongo_password='mongo',
+        mongo_tls_ca_file=None,
+        redis_hostname='localhost',
+        redis_port=6379,
+        redis_username=None,
+        redis_password=None,
+        redis_cluster=True,
+        redis_ssl=True,
     ) -> None:
         self.mongo_db = self._connection_mongo_db(
             mongo_hostname,
@@ -495,7 +469,7 @@ class RedisMongoDB(AtomDB):
         if document is None:
             atom_type = 'link'
             document = self._retrieve_mongo_document(handle)
-        atom = self._replace_keys(document, atom_type)
+        atom = self._replace_keys(document.copy(), atom_type)
         if atom:
             return atom
         else:

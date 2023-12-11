@@ -3104,14 +3104,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis',
             return_value=redis_db,
         ):
-            db = RedisMongoDB(
-                mongo_hostname='0.0.0.0',
-                mongo_port=0,
-                mongo_username='test',
-                mongo_password='test',
-                redis_hostname='0.0.0.0',
-                redis_port=0,
-            )
+            db = RedisMongoDB()
             db.mongo_link_collection = {
                 '1': mongo_arity_1_collection,
                 '2': mongo_arity_2_collection,

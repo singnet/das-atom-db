@@ -116,7 +116,14 @@ class TestRedisMongo:
 
     def test_commit(self):
         _db_up()
-        db = RedisMongoDB()
+        db = RedisMongoDB(
+            mongo_port=mongo_port,
+            mongo_username='dbadmin',
+            mongo_password='dassecret',
+            redis_port=redis_port,
+            redis_cluster=False,
+            redis_ssl=False
+        )
         assert db.count_atoms() == (0, 0)
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
