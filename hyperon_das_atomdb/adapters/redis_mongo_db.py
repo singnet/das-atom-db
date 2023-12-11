@@ -474,6 +474,24 @@ class RedisMongoDB(AtomDB):
                 details=f'handle: {handle}',
             )
 
+    def get_atom_as_dict(self, handle, arity=-1) -> dict:
+        answer = {}
+        document = self.node_documents.get(handle, None) if arity <= 0 else None
+        if document is None:
+            document = self._retrieve_mongo_document(handle, arity)
+            if document:
+                answer["handle"] = document[MongoFieldNames.ID_HASH]
+                answer["type"] = document[MongoFieldNames.TYPE_NAME]
+                answer["template"] = self._build_named_type_template(
+                    document[MongoFieldNames.COMPOSITE_TYPE]
+                )
+                answer["targets"] = self._get_mongo_document_keys(document)
+        else:
+            answer["handle"] = document[MongoFieldNames.ID_HASH]
+            answer["type"] = document[MongoFieldNames.TYPE_NAME]
+            answer["name"] = document[MongoFieldNames.NODE_NAME]
+        return answer
+
     def count_atoms(self) -> Tuple[int, int]:
         node_count = self.mongo_nodes_collection.estimated_document_count()
         link_count = 0

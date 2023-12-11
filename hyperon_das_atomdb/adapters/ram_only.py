@@ -326,6 +326,27 @@ class InMemoryDB(AtomDB):
                 details=f'handle: {handle}',
             )
 
+    def get_atom_as_dict(self, handle: str, arity: Optional[int] = 0) -> Dict[str, Any]:
+        atom = self.db.node.get(handle)
+        if atom is not None:
+            return {
+                'handle': atom['_id'],
+                'type': atom['named_type'],
+                'name': atom['name'],
+            }
+        atom = self._get_link(handle)
+        if atom is not None:
+            return {
+                'handle': atom['_id'],
+                'type': atom['named_type'],
+                'template': self._build_named_type_template(atom['composite_type']),
+                'targets': self.get_link_targets(atom['_id']),
+            }
+        raise AtomDoesNotExist(
+            message='This atom does not exist',
+            details=f'handle: {handle}',
+        )
+
     def count_atoms(self) -> Tuple[int, int]:
         nodes = len(self.db.node)
         links = 0
