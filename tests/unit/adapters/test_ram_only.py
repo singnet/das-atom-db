@@ -665,3 +665,19 @@ class TestInMemoryDB:
             }
         )
         assert targets == ["h0", "h1"]
+
+    def test_get_atom(self, database: InMemoryDB):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'monkey')
+        s = database.get_link_handle('Similarity', [h, m])
+        atom = database.get_atom(handle=s)
+        assert atom['handle'] == s
+        assert atom['targets'] == [h, m]
+
+    def test_get_atom_as_dist(self, database: InMemoryDB):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'monkey')
+        s = database.get_link_handle('Similarity', [h, m])
+        atom = database.get_atom_as_dict(handle=s)
+        assert atom['handle'] == s
+        assert atom['targets'] == [h, m]
