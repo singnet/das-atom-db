@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
@@ -99,7 +100,7 @@ class AtomDB(ABC):
         ]
 
         if any(
-            item in reserved_parameters or item.startswith('key') for item in link_params.keys()
+            item in reserved_parameters or re.match(r'key_\d+', item) for item in link_params.keys()
         ):
             raise AddLinkException(
                 message="This is a reserved field name in links",

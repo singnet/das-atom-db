@@ -340,7 +340,7 @@ class InMemoryDB(AtomDB):
                 'handle': atom['_id'],
                 'type': atom['named_type'],
                 'template': self._build_named_type_template(atom['composite_type']),
-                'targets': self.get_link_targets(atom['_id']),
+                'targets': self._build_targets_list(atom),
             }
         raise AtomDoesNotExist(
             message='This atom does not exist',
