@@ -21,42 +21,45 @@ We use the [Poetry](https://python-poetry.org/) package to manage project depend
 
 **2. poetry shell** (activate virtual environment)
 
-### Prepare environment
+## Environment Variables
 
-**1 - Redis and MongoDB**
-You must have Redis and MongoDB running in your environment
-
-**2.1 - Environments Variables**
 You must have the following variables set in your environment with their respective values:
 
 ```
-DAS_MONGODB_HOSTNAME=172.17.0.2
-DAS_MONGODB_PORT=27017
-DAS_MONGODB_USERNAME=mongo
-DAS_MONGODB_PASSWORD=mongo
-DAS_MONGODB_TLS_CA_FILE=global-bundle.pem       [optional]
-DAS_REDIS_HOSTNAME=127.0.0.1
-DAS_REDIS_PORT=6379
-DAS_USE_REDIS_CLUSTER=false                     [default: true]
-DAS_USE_REDIS_SSL=false                         [default: true]
 DAS_USE_CACHED_NODES=false                      [default: true]
 DAS_USE_CACHED_LINK_TYPES=false                 [default: true]
 DAS_USE_CACHED_NODE_TYPES=false                 [default: true]
 ```
 
-**2.2 or you can export necessary environment using the enviroment file**
-source environment
-
 ## Usage
 
-#### Use adapters
+**1 - Redis and MongoDB**
+- You must have Redis and MongoDB running in your environment
+- To initialize the databases you must pass the parameters with the necessary values. Otherwise, default values will be used. See below which parameters it is possible to pass and their respective default values:
 
 ```python
-from hyperon_das_atomdb.adapters import RedisMongoDB, InMemoryDB, ServerDB
+from hyperon_das_atomdb.adapters import RedisMongoDB
 
-redis_mongo_db = RedisMongoDB()
+redis_mongo_db = RedisMongoDB(
+        mongo_hostname='localhost',
+        mongo_port=27017,
+        mongo_username='mongo',
+        mongo_password='mongo',
+        mongo_tls_ca_file=None,
+        redis_hostname='localhost',
+        redis_port=6379,
+        redis_username=None,
+        redis_password=None,
+        redis_cluster=True,
+        redis_ssl=True,
+)
+```
+
+**2 - In Memory DB**
+```python
+from hyperon_das_atomdb.adapters import InMemoryDB
+
 in_memory_db = InMemoryDB()
-server_db = ServerDB(host='0.0.0.0')
 ```
 
 ## Tests
@@ -64,7 +67,7 @@ server_db = ServerDB(host='0.0.0.0')
 You can ran the command below to execute the unittests
 
 ```bash
-make test-coverage
+make test-unit
 ```
 
 ## Documentation References

@@ -1,11 +1,12 @@
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
 from hyperon_das_atomdb.exceptions import (
-    AddNodeException,
     AddLinkException,
-    LinkDoesNotExistException,
-    NodeDoesNotExistException,
+    AddNodeException,
+    LinkDoesNotExist,
+    NodeDoesNotExist,
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
@@ -14,6 +15,8 @@ UNORDERED_LINK_TYPES = []
 
 
 class AtomDB(ABC):
+    key_pattern = re.compile(r"key_\d+")
+
     def __repr__(self) -> str:
         """
         Magic method for string representation of the class.
@@ -21,25 +24,53 @@ class AtomDB(ABC):
         """
         return "<Atom database abstract class>"  # pragma no cover
 
-    def _node_handle(self, node_type: str, node_name: str) -> str:
+    @staticmethod
+    def node_handle(node_type: str, node_name: str) -> str:
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
-    def _link_handle(self, link_type: str, target_handles: List[str]) -> str:
+    @staticmethod
+    def link_handle(link_type: str, target_handles: List[str]) -> str:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
-        return ExpressionHasher.expression_hash(
-            named_type_hash, target_handles
-        )
+        return ExpressionHasher.expression_hash(named_type_hash, target_handles)
+
+    def _replace_keys(self, document: Dict[str, Any], atom_type: str = 'link') -> Dict[str, Any]:
+        answer = document.copy()
+        if atom_type == 'link':
+            targets = []
+            count = 0
+            while True:
+                handle = document.get(f'key_{count}')
+                if handle:
+                    targets.append(handle)
+                    answer.pop(f'key_{count}')
+                    count += 1
+                else:
+                    break
+            answer['targets'] = targets
+        if answer:
+            answer['handle'] = answer.pop('_id')
+        return answer
 
     def _recursive_link_split(self, params: Dict[str, Any]) -> (str, Any):
         name = params.get('name')
         atom_type = params['type']
         if name:
-            return (_node_handle(atom_type, name), atom_type)
-        targets, composite_type = [_recursive_link_handle(target) for target in params['target']]
+            return (self.node_handle(atom_type, name), atom_type)
+        targets, composite_type = [
+            self._recursive_link_handle(target) for target in params['target']
+        ]
         composite_type.insert(0, atom_type)
-        return (_link_handle(atom_type, targets), composite_type)
+        return (self.link_handle(atom_type, targets), composite_type)
 
     def _add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+        reserved_parameters = ['_id', 'composite_type_hash', 'named_type']
+
+        if any(item in reserved_parameters for item in node_params.keys()):
+            raise AddNodeException(
+                message="This is a reserved field name in nodes",
+                details=str(reserved_parameters),
+            )
+
         node_type = node_params.get('type')
         node_name = node_params.get('name')
         if node_type is None or node_name is None:
@@ -48,7 +79,7 @@ class AtomDB(ABC):
                 details=node_params,
             )
 
-        handle = self._node_handle(node_type, node_name)
+        handle = self.node_handle(node_type, node_name)
         node = {
             '_id': handle,
             'composite_type_hash': ExpressionHasher.named_type_hash(node_type),
@@ -60,6 +91,24 @@ class AtomDB(ABC):
         return (handle, node)
 
     def _add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+        reserved_parameters = [
+            '_id',
+            'composite_type_hash',
+            'is_toplevel',
+            'composite_type',
+            'named_type',
+            'named_type_hash',
+            'key_n',
+        ]
+
+        if any(
+            item in reserved_parameters or re.search(AtomDB.key_pattern, item)
+            for item in link_params.keys()
+        ):
+            raise AddLinkException(
+                message="This is a reserved field name in links",
+                details=str(reserved_parameters),
+            )
 
         link_type = link_params.get('type')
         targets = link_params.get('targets')
@@ -77,9 +126,7 @@ class AtomDB(ABC):
         for target in targets:
             if 'targets' not in target.keys():
                 atom = self.add_node(target)
-                atom_hash = ExpressionHasher.named_type_hash(
-                    atom['named_type']
-                )
+                atom_hash = ExpressionHasher.named_type_hash(atom['named_type'])
                 composite_type.append(atom_hash)
             else:
                 atom = self.add_link(target, toplevel=False)
@@ -92,9 +139,7 @@ class AtomDB(ABC):
         arity = len(targets)
         link = {
             '_id': handle,
-            'composite_type_hash': ExpressionHasher.composite_hash(
-                composite_type_hash
-            ),
+            'composite_type_hash': ExpressionHasher.composite_hash(composite_type_hash),
             'is_toplevel': toplevel,
             'composite_type': composite_type,
             'named_type': link_type,
@@ -123,7 +168,7 @@ class AtomDB(ABC):
         try:
             self.get_node_handle(node_type, node_name)
             return True
-        except NodeDoesNotExistException:
+        except NodeDoesNotExist:
             return False
 
     def link_exists(self, link_type: str, target_handles: List[str]) -> bool:
@@ -140,7 +185,7 @@ class AtomDB(ABC):
         try:
             self.get_link_handle(link_type, target_handles)
             return True
-        except LinkDoesNotExistException:
+        except LinkDoesNotExist:
             return False
 
     @abstractmethod
@@ -212,9 +257,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_link_handle(
-        self, link_type: str, target_handles: List[str]
-    ) -> str:
+    def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         """
         Get the handle of the link with the specified type and targets.
 
@@ -306,7 +349,6 @@ class AtomDB(ABC):
         """
         ...  # pragma no cover
 
-    @abstractmethod
     def get_atom_as_dict(self, handle: str, arity: int):
         """
         Get an atom as a dictionary representation.
@@ -320,7 +362,6 @@ class AtomDB(ABC):
         """
         ...  # pragma no cover
 
-    @abstractmethod
     def get_atom_as_deep_representation(self, handle: str, arity: int):
         """
         Get an atom as a deep representation.
@@ -453,4 +494,11 @@ class AtomDB(ABC):
                 }
             >>> db.add_link(link_params)
         """
+        ...  # pragma no cover
+
+    @abstractmethod
+    def get_atom(self, handle: str) -> Dict[str, Any]:
+        ...  # pragma no cover
+
+    def commit(self) -> None:
         ...  # pragma no cover
