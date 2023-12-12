@@ -102,7 +102,7 @@ class AtomDB(ABC):
         ]
 
         if any(
-            item in reserved_parameters or re.match(AtomDB.key_pattern, item)
+            item in reserved_parameters or re.search(AtomDB.key_pattern, item)
             for item in link_params.keys()
         ):
             raise AddLinkException(
