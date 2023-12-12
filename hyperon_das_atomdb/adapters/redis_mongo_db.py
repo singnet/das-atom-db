@@ -612,7 +612,3 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
         pass
-
-if __name__ == '__main__':
-    p = {'atomdb' :'redis_mongo'}
-    r = RedisMongoDB(**p)
