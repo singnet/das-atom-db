@@ -153,6 +153,7 @@ class RedisMongoDB(AtomDB):
         redis_password=None,
         redis_cluster=True,
         redis_ssl=True,
+        **kwargs
     ) -> None:
         self.mongo_db = self._connection_mongo_db(
             mongo_hostname,
