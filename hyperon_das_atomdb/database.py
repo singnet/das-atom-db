@@ -15,6 +15,8 @@ UNORDERED_LINK_TYPES = []
 
 
 class AtomDB(ABC):
+    key_pattern = re.compile(r"key_\d+")
+
     def __repr__(self) -> str:
         """
         Magic method for string representation of the class.
@@ -100,7 +102,8 @@ class AtomDB(ABC):
         ]
 
         if any(
-            item in reserved_parameters or re.match(r'key_\d+', item) for item in link_params.keys()
+            item in reserved_parameters or re.match(AtomDB.key_pattern, item)
+            for item in link_params.keys()
         ):
             raise AddLinkException(
                 message="This is a reserved field name in links",
