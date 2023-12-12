@@ -153,6 +153,7 @@ class RedisMongoDB(AtomDB):
         redis_password=None,
         redis_cluster=True,
         redis_ssl=True,
+        **kwargs
     ) -> None:
         self.mongo_db = self._connection_mongo_db(
             mongo_hostname,
@@ -611,3 +612,7 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
         pass
+
+if __name__ == '__main__':
+    p = {'atomdb' :'redis_mongo'}
+    r = RedisMongoDB(**p)
