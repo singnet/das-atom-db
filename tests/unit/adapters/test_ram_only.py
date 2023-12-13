@@ -4,6 +4,7 @@ from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
     AddNodeException,
+    AtomDoesNotExist,
     LinkDoesNotExist,
     NodeDoesNotExist,
 )
@@ -673,6 +674,11 @@ class TestInMemoryDB:
         atom = database.get_atom(handle=s)
         assert atom['handle'] == s
         assert atom['targets'] == [h, m]
+
+        with pytest.raises(AtomDoesNotExist) as exc:
+            database.get_atom(handle='test')
+        assert exc.value.message == 'This atom does not exist'
+        assert exc.value.details == 'handle: test'
 
     def test_get_atom_as_dist(self, database: InMemoryDB):
         h = database.get_node_handle('Concept', 'human')

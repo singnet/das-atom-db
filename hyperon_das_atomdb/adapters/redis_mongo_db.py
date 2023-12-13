@@ -458,13 +458,11 @@ class RedisMongoDB(AtomDB):
             return document["named_type"]
 
     def get_atom(self, handle: str) -> Dict[str, Any]:
-        atom_type = 'node'
         document = self.node_documents.get(handle, None)
         if document is None:
-            atom_type = 'link'
             document = self._retrieve_mongo_document(handle)
-        atom = self._replace_keys(document, atom_type)
-        if atom:
+        if document:
+            atom = self._convert_atom_format(document)
             return atom
         else:
             raise AtomDoesNotExist(

@@ -33,22 +33,17 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _replace_keys(self, document: Dict[str, Any], atom_type: str = 'link') -> Dict[str, Any]:
-        answer = document.copy()
-        if atom_type == 'link':
-            targets = []
-            count = 0
-            while True:
-                handle = document.get(f'key_{count}')
-                if handle:
-                    targets.append(handle)
-                    answer.pop(f'key_{count}')
-                    count += 1
-                else:
-                    break
-            answer['targets'] = targets
-        if answer:
-            answer['handle'] = answer.pop('_id')
+    def _convert_atom_format(self, document: Dict[str, Any]) -> Dict[str, Any]:
+        answer = {'handle': document['_id']}
+
+        for key, value in document.items():
+            if key == '_id':
+                continue
+            if re.search(AtomDB.key_pattern, key):
+                answer.setdefault('targets', []).append(value)
+            else:
+                answer[key] = value
+
         return answer
 
     def _recursive_link_split(self, params: Dict[str, Any]) -> (str, Any):
