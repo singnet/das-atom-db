@@ -312,13 +312,11 @@ class InMemoryDB(AtomDB):
         return templates_matched
 
     def get_atom(self, handle: str) -> Dict[str, Any]:
-        atom_type = 'node'
         document = self.db.node.get(handle)
         if document is None:
-            atom_type = 'link'
             document = self._get_link(handle)
-        atom = self._replace_keys(document, atom_type)
-        if atom:
+        if document:
+            atom = self._convert_atom_format(document)
             return atom
         else:
             raise AtomDoesNotExist(
