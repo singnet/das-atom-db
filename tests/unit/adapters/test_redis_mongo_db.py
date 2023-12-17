@@ -11,8 +11,7 @@ from pymongo.database import Database
 from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
-from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
+from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoFieldNames
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
     AddNodeException,
