@@ -1,6 +1,7 @@
 import os
 import pickle
 import sys
+from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
@@ -9,8 +10,6 @@ from pymongo.errors import BulkWriteError
 from redis import Redis
 from redis.cluster import RedisCluster
 
-from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
-from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
 from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -30,6 +29,33 @@ USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
 
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
+
+
+class MongoCollectionNames(str, Enum):
+    NODES = 'nodes'
+    ATOM_TYPES = 'atom_types'
+    LINKS_ARITY_1 = 'links_1'
+    LINKS_ARITY_2 = 'links_2'
+    LINKS_ARITY_N = 'links_n'
+
+
+class MongoFieldNames(str, Enum):
+    NODE_NAME = 'name'
+    TYPE_NAME = 'named_type'
+    TYPE_NAME_HASH = 'named_type_hash'
+    ID_HASH = '_id'
+    TYPE = 'composite_type_hash'
+    COMPOSITE_TYPE = 'composite_type'
+    KEY_PREFIX = 'key'
+    KEYS = 'keys'
+
+
+class KeyPrefix(str, Enum):
+    INCOMING_SET = 'incomming_set'
+    OUTGOING_SET = 'outgoing_set'
+    PATTERNS = 'patterns'
+    TEMPLATES = 'templates'
+    NAMED_ENTITIES = 'names'
 
 
 class NodeDocuments:
@@ -153,7 +179,7 @@ class RedisMongoDB(AtomDB):
         redis_password=None,
         redis_cluster=True,
         redis_ssl=True,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.mongo_db = self._connection_mongo_db(
             mongo_hostname,
