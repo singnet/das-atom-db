@@ -31,7 +31,6 @@ USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
 
-
 class NodeDocuments:
     def __init__(self, collection) -> None:
         self.mongo_collection = collection
@@ -69,7 +68,7 @@ class _HashableDocument:
         self.base = base
 
     def __hash__(self):
-        return hash(self.base["_id"])
+        return hash(self.base[MongoFieldNames.ID_HASH])
 
     def __str__(self):
         return str(self.base)
@@ -110,6 +109,7 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.NODES, self.mongo_nodes_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
+        self.mongo_das_config_collection = None
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
         self.named_type_hash = None
         self.named_type_hash_reverse = None
@@ -138,6 +138,7 @@ class RedisMongoDB(AtomDB):
         self.max_mongo_db_document_size = 16000000
         logger().info("Prefetching data")
         self.prefetch()
+        self._setup_indexes()
         logger().info("Database setup finished")
 
     def _setup_databases(
@@ -231,6 +232,20 @@ class RedisMongoDB(AtomDB):
 
         return self.redis
 
+    def _setup_indexes(self):
+        self.default_pattern_index_templates = [
+            {
+                
+        ]
+        for named_type in [False, True]:
+            for pos1 in [False, True]:
+                for pos2 in [False, True]:
+                    for pos3 in [False, True]:
+        if MongoCollectionNames.DAS_CONFIG in self.mongo_db.get_collection_names():
+            self.pattern_index_templates = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})["templates"]
+        else:
+            self.pattern_index_templates = None
+
     def _get_atom_type_hash(self, atom_type):
         # TODO: implement a proper mongo collection to atom types so instead
         #      of this lazy hashmap, we should load the hashmap during prefetch
@@ -242,7 +257,7 @@ class RedisMongoDB(AtomDB):
         return named_type_hash
 
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
-        mongo_filter = {"_id": handle}
+        mongo_filter = {MongoFieldNames.ID_HASH: handle}
         if arity >= 0:
             if arity == 0:
                 return self.mongo_nodes_collection.find_one(mongo_filter)
@@ -317,7 +332,7 @@ class RedisMongoDB(AtomDB):
         node_handle = self.node_handle(node_type, node_name)
         document = self._retrieve_mongo_document(node_handle, 0)
         if document is not None:
-            return document["_id"]
+            return document[MongoFieldNames.ID_HASH]
         else:
             raise NodeDoesNotExist(
                 message="This node does not exist",
@@ -335,7 +350,7 @@ class RedisMongoDB(AtomDB):
             return self.node_type_cache[node_handle]
         else:
             document = self.get_atom(node_handle)
-            return document["named_type"]
+            return document[MongoFieldNames.TYPE_NAME]
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -369,7 +384,7 @@ class RedisMongoDB(AtomDB):
         link_handle = self.link_handle(link_type, target_handles)
         document = self._retrieve_mongo_document(link_handle, len(target_handles))
         if document is not None:
-            return document["_id"]
+            return document[MongoFieldNames.ID_HASH]
         else:
             raise LinkDoesNotExist(
                 message="This link does not exist",
@@ -555,18 +570,15 @@ class RedisMongoDB(AtomDB):
 
     def commit(self) -> None:
         added_links = []
+        id_tag = MongoFieldNames.ID_HASH
         for key, (
             collection,
             buffer,
         ) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
                 documents = [d.base for d in buffer]
-                try:
-                    collection.insert_many(documents, ordered=False)
-                except BulkWriteError as exception:
-                    for error in exception.details["writeErrors"]:
-                        if error["code"] != 11000:  # duplicate insertion error
-                            raise exception
+                for document in documents:
+                    collection.replace_one({id_tag: document[id_tag]}, document, upsert=True)
                 if key == MongoCollectionNames.NODES:
                     self._update_node_index(documents)
                 elif key == MongoCollectionNames.ATOM_TYPES:
@@ -576,7 +588,7 @@ class RedisMongoDB(AtomDB):
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
-        if sys.getsizeof(node['name']) < self.max_mongo_db_document_size:
+        if sys.getsizeof(node_params['name']) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
             buffer.add(_HashableDocument(node))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
@@ -600,13 +612,53 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
+    def _apply_index_template(
+        template: Dict[str, Any], 
+        named_type: str, 
+        targets: List[str]
+        arity) -> List[List[str]]:
+
+        key = []
+        key = [named_type, WILDCARD] if template["named_type"] else [named_type]
+        target_selected_pos = template["selected_positions"]
+        for cursor in range(arity):
+            key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
+        return ExpressionHasher.composite_hash(key)
+
     def _update_node_index(self, documents: Iterable[Dict[str, any]]) -> None:
         for document in documents:
-            handle = document["_id"]
-            node_name = document["name"]
+            handle = document[MongoFieldNames.ID_HASH]
+            node_name = document[MongoFieldNames.NAME]
             self.node_documents.add(handle, document)
             key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
             self.redis.sadd(key, node_name)
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
-        pass
+        incoming_buffer = {}
+        for document in documents:
+            handle = document[MongoFieldNames.ID_HASH]
+            targets = self._get_mongo_document_keys(document)
+            named_type = document[MongoFieldNames.TYPE_NAME]
+            named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
+            key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
+            self.redis.sadd(key, *targets)
+            for target in targets:
+                buffer = incoming_buffer.get(target, None)
+                if buffer is None:
+                    buffer = []
+                    incoming_buffer[target] = buffer
+                buffer.append(handle)
+            value = [pickle.dumps(v) for v in [handle,  *targets]]
+            for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
+                key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
+                self.redis.sadd(key, *value)
+            if self.pattern_index_templates:
+                index_templates = self.pattern_index_templates.get(named_type, [])
+            else:
+                index_templates = self.default_pattern_index_templates
+            for template in index_templates:
+                key = self._apply_index_template(template, named_type_hash, targets, arity)
+                self.redis.sadd(key, *value)
+        for handle in incoming_buffer:
+            key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
+            self.redis.sadd(key, *incoming_buffer[handle])

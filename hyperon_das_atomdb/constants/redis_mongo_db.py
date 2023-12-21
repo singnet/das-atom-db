@@ -7,6 +7,7 @@ class MongoCollectionNames(str, Enum):
     LINKS_ARITY_1 = 'links_1'
     LINKS_ARITY_2 = 'links_2'
     LINKS_ARITY_N = 'links_n'
+    DAS_CONFIG = 'das_config'
 
 
 class MongoFieldNames(str, Enum):

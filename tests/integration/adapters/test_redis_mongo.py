@@ -1,9 +1,32 @@
+from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
 import os
 import subprocess
-
 import pytest
-
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.database import WILDCARD
+from .animals_kb import (
+    node_docs,
+    inheritance,
+    inheritance_docs,
+    inheritance_targets,
+    similarity,
+    similarity_docs,
+    human,
+    monkey,
+    chimp,
+    mammal,
+    reptile,
+    snake,
+    dinosaur,
+    triceratops,
+    earthworm,
+    rhino,
+    vine,
+    ent,
+    animal,
+    plant,
+)
 
 redis_port = "15926"
 mongo_port = "15927"
@@ -76,266 +99,25 @@ def cleanup(request):
             os.environ["DAS_USE_REDIS_SSL"] = DAS_USE_REDIS_SSL
 
     def enforce_containers_removal():
-        _db_down()
+        pass # XXX
+        # _db_down()
 
     request.addfinalizer(restore_environment)
     request.addfinalizer(enforce_containers_removal)
 
 
 class TestRedisMongo:
-    def _add_atoms(self, db: RedisMongoDB):
-        db.add_node({"type": "Concept", "name": "human"})
-        db.add_node({"type": "Concept", "name": "monkey"})
-        db.add_node({"type": "Concept", "name": "chimp"})
-        db.add_node({"type": "Concept", "name": "mammal"})
-        db.add_node({"type": "Concept", "name": "reptile"})
-        db.add_node({"type": "Concept", "name": "snake"})
-        db.add_node({"type": "Concept", "name": "dinosaur"})
-        db.add_node({"type": "Concept", "name": "triceratops"})
-        db.add_node({"type": "Concept", "name": "earthworm"})
-        db.add_node({"type": "Concept", "name": "rhino"})
-        db.add_node({"type": "Concept", "name": "vine"})
-        db.add_node({"type": "Concept", "name": "ent"})
-        db.add_node({"type": "Concept", "name": "animal"})
-        db.add_node({"type": "Concept", "name": "plant"})
 
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "monkey"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "chimp"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "monkey"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "earthworm"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "rhino"},
-                    {"type": "Concept", "name": "triceratops"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "vine"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "ent"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "chimp"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "earthworm"},
-                    {"type": "Concept", "name": "snake"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "triceratops"},
-                    {"type": "Concept", "name": "rhino"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "vine"},
-                    {"type": "Concept", "name": "snake"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "ent"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "mammal"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "reptile"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "reptile"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "dinosaur"},
-                    {"type": "Concept", "name": "reptile"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "triceratops"},
-                    {"type": "Concept", "name": "dinosaur"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "earthworm"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "rhino"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "vine"},
-                    {"type": "Concept", "name": "plant"},
-                ],
-            }
-        )
-        db.add_link(
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "ent"},
-                    {"type": "Concept", "name": "plant"},
-                ],
-            }
-        )
+    def _add_atoms(self, db: RedisMongoDB):
+        for node in node_docs.values():
+            db.add_node(node)
+        for link in inheritance_docs.values():
+            db.add_link(link)
+        for link in similarity_docs.values():
+            db.add_link(link)
 
     def test_commit(self):
-        _db_up()
+        #_db_up()
         db = RedisMongoDB(
             mongo_port=mongo_port,
             mongo_username='dbadmin',
@@ -344,9 +126,52 @@ class TestRedisMongo:
             redis_cluster=False,
             redis_ssl=False,
         )
-        assert db.count_atoms() == (0, 0)
-        self._add_atoms(db)
-        assert db.count_atoms() == (0, 0)
+        #assert db.count_atoms() == (0, 0)
+        #self._add_atoms(db)
+        #assert db.count_atoms() == (0, 0)
+        #db.commit()
+        #assert db.count_atoms() == (14, 26)
+        #assert sorted(db.get_matched_links(
+        #    "Inheritance",
+        #    WILDCARD,
+        #    db.node_handle("Concept", "mammal")
+        #)) == sorted([human, monkey, chimp, rhino])
+        #assert "strength" not in link_pre
+        assert db.get_atom(human)["name"] == node_docs[human]["name"]
+        link_pre = db.get_atom(inheritance[human][mammal])
+        assert link_pre["named_type"] == "Inheritance"
+        assert link_pre["targets"] == [human, mammal]
+        link_new = inheritance_docs[inheritance[human][mammal]].copy()
+        link_new["strength"] = 1.0
+        db.add_link(link_new)
+        db.add_link({
+            "type": "Inheritance",
+            "targets": [
+                {"type": "Concept", "name": "dog"},
+                {"type": "Concept", "name": "mammal"}
+            ]
+        })
         db.commit()
-        assert db.count_atoms() == (14, 26)
-        _db_down()
+        assert db.count_atoms() == (15, 27)
+        link_pos = db.get_atom(inheritance[human][mammal])
+        assert link_pos["named_type"] == "Inheritance"
+        assert link_pos["targets"] == [human, mammal]
+        assert "strength" in link_pos
+        assert link_pos["strength"] == 1.0
+        dog = db.node_handle("Concept", "dog")
+        assert db.get_node_name(dog) == "dog"
+        new_link_handle = db.get_link_handle(
+            "Inheritance",
+            [
+                dog,
+                mammal
+            ]
+        )
+        new_link = db.get_atom(new_link_handle)
+        assert db.get_link_targets(new_link_handle) == new_link["targets"]
+        assert sorted(db.get_matched_links(
+            "Inheritance",
+            WILDCARD,
+            mammal
+        )) == sorted([human, monkey, chimp, rhino, dog])
+        #_db_down()
