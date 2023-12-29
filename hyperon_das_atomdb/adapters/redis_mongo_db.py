@@ -449,6 +449,24 @@ class RedisMongoDB(AtomDB):
 
         return patterns_matched
 
+    def get_incoming_links(self, atom_handle: str, handles_only: bool = False) -> List[Dict[str, Any]]:       
+        answer = self._retrieve_key_value(KeyPrefix.INCOMING_SET, atom_handle)
+        
+        if not answer:
+            return []
+        
+        links = [h.decode() for h in answer]
+        
+        if handles_only:
+            return links
+
+        links_document = []
+        for handle in links:
+            document_atom = self.get_atom(handle, targets_type=True)
+            links_document.append(document_atom)
+        
+        return links_document
+
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -483,19 +501,26 @@ class RedisMongoDB(AtomDB):
             document = self.get_atom(link_handle)
             return document["named_type"]
 
-    def get_atom(self, handle: str) -> Dict[str, Any]:
+    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
         document = self.node_documents.get(handle, None)
         if document is None:
             document = self._retrieve_mongo_document(handle)
         if document:
-            atom = self._convert_atom_format(document)
+            atom = self._convert_atom_format(document, **kwargs)
             return atom
         else:
             raise AtomDoesNotExist(
                 message='This atom does not exist',
                 details=f'handle: {handle}',
             )
-
+            
+    def get_atom_type(self, handle: str) -> str:
+        atom = self.node_documents.get(handle, None)
+        if atom is None:
+            atom = self._retrieve_mongo_document(handle)
+        if atom is not None:
+            return atom['named_type']
+    
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
         document = self.node_documents.get(handle, None) if arity <= 0 else None

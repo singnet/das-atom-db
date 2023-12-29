@@ -288,6 +288,22 @@ class InMemoryDB(AtomDB):
 
         return patterns_matched
 
+    def get_incoming_links(self, atom_handle: str, handles_only: bool = False) -> List[Dict[str, Any]]:       
+        links = self.db.incomming_set.get(atom_handle)
+
+        if not links:
+            return []
+        
+        if handles_only:
+            return links
+        
+        links_document = []
+        for handle in links:
+            document_atom = self.get_atom(handle, targets_type=True)
+            links_document.append(document_atom)
+        
+        return links_document
+
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -311,12 +327,12 @@ class InMemoryDB(AtomDB):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_atom(self, handle: str) -> Dict[str, Any]:
+    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
         document = self.db.node.get(handle)
         if document is None:
             document = self._get_link(handle)
         if document:
-            atom = self._convert_atom_format(document)
+            atom = self._convert_atom_format(document, **kwargs)
             return atom
         else:
             raise AtomDoesNotExist(
@@ -324,6 +340,15 @@ class InMemoryDB(AtomDB):
                 details=f'handle: {handle}',
             )
 
+    def get_atom_type(self, handle: str) -> str:
+        atom = self.db.node.get(handle)
+        
+        if atom is None:
+            atom = self._get_link(handle)
+        
+        if atom is not None:
+            return atom['named_type']
+    
     def get_atom_as_dict(self, handle: str, arity: Optional[int] = 0) -> Dict[str, Any]:
         atom = self.db.node.get(handle)
         if atom is not None:

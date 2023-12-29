@@ -33,7 +33,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _convert_atom_format(self, document: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_atom_format(self, document: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         answer = {'handle': document['_id']}
 
         for key, value in document.items():
@@ -43,6 +43,12 @@ class AtomDB(ABC):
                 answer.setdefault('targets', []).append(value)
             else:
                 answer[key] = value
+
+        if kwargs.get('targets_document', False):
+            answer['targets_document'] = [self.get_atom(target) for target in answer['targets']]
+        
+        if kwargs.get('targets_type', False):
+            answer['targets_type'] = [self.get_atom_type(target) for target in answer['targets']]
 
         return answer
 
@@ -319,6 +325,10 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
+    def get_incoming_links(self, atom_handle: str, handles_only: bool = False) -> List[Dict[str, Any]]:
+        ...  # pragma no cover
+    
+    @abstractmethod
     def get_matched_type_template(self, template: List[Any]) -> List[str]:
         """
         Get nodes that match a specified template.
@@ -342,6 +352,14 @@ class AtomDB(ABC):
         Returns:
             [return-type]: The return type description (not specified in the code).
         """
+        ...  # pragma no cover
+
+    @abstractmethod
+    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
+        ...  # pragma no cover
+    
+    @abstractmethod
+    def get_atom_type(self, handle: str) -> str:
         ...  # pragma no cover
 
     def get_atom_as_dict(self, handle: str, arity: int):
@@ -489,10 +507,6 @@ class AtomDB(ABC):
                 }
             >>> db.add_link(link_params)
         """
-        ...  # pragma no cover
-
-    @abstractmethod
-    def get_atom(self, handle: str) -> Dict[str, Any]:
         ...  # pragma no cover
 
     def commit(self) -> None:
