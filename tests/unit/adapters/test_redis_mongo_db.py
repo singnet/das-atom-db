@@ -867,22 +867,22 @@ incomming_set_redis_mock_data = [
     },
     {
         'incomming_set:1cdffc6b0b89ff41d68bec237481d1e1': [
-            'abe6ad743fc81bd1c55ece2e1307a178',
-            '31535ddf214f5b239d3b517823cb8144',
-            '2a8a69c01305563932b957de4b3a9ba6',
-            'bad7472f41a0e7d601ca294eb4607c3a',
-            'f31dfe97db782e8cec26de18dddf8965',
+            b'abe6ad743fc81bd1c55ece2e1307a178',
+            b'31535ddf214f5b239d3b517823cb8144',
+            b'2a8a69c01305563932b957de4b3a9ba6',
+            b'bad7472f41a0e7d601ca294eb4607c3a',
+            b'f31dfe97db782e8cec26de18dddf8965',
         ]
     },
     {
         'incomming_set:af12f10f9ae2002a1607ba0b47ba8407': [
-            'c93e1e758c53912638438e2a7d7f7b7f',
-            'a45af31b43ee5ea271214338a5a5bd61',
-            '2c927fdc6c0f1272ee439ceb76a6d1a4',
-            '2a8a69c01305563932b957de4b3a9ba6',
-            'b5459e299a5c5e8662c427f7e01b3bf1',
-            'bad7472f41a0e7d601ca294eb4607c3a',
-            '16f7e407087bfa0b35b13d13a1aadcae',
+            b'c93e1e758c53912638438e2a7d7f7b7f',
+            b'a45af31b43ee5ea271214338a5a5bd61',
+            b'2c927fdc6c0f1272ee439ceb76a6d1a4',
+            b'2a8a69c01305563932b957de4b3a9ba6',
+            b'b5459e299a5c5e8662c427f7e01b3bf1',
+            b'bad7472f41a0e7d601ca294eb4607c3a',
+            b'16f7e407087bfa0b35b13d13a1aadcae',
         ]
     },
     {
@@ -2939,6 +2939,11 @@ class TestRedisMongoDB:
                     if list(data.keys())[0] == key:
                         return list(data.values())[0]
                 return []
+            if 'incomming_set' in key:
+                for data in incomming_set_redis_mock_data:
+                    if list(data.keys())[0] == key:
+                        return list(data.values())[0]
+                return []
             if 'patterns' in key:
                 value = patterns_redis_mock_data.get(key)
                 if value:
@@ -3523,3 +3528,33 @@ class TestRedisMongoDB:
             exc.value.details
             == "['_id', 'composite_type_hash', 'is_toplevel', 'composite_type', 'named_type', 'named_type_hash', 'key_n']"
         )
+
+    def test_get_incoming_links(self, database):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'monkey')
+        s = database.get_link_handle('Similarity', [h, m])
+
+        links = database.get_incoming_links(atom_handle=h, handles_only=False)
+        atom = database.get_atom(handle=s, targets_type=True)
+        assert atom in links
+
+        links = database.get_incoming_links(atom_handle=h, handles_only=True)
+        answer = database.redis.smembers(f'incomming_set:{h}')
+        assert links == [h.decode() for h in answer]
+        assert s in links
+
+        links = database.get_incoming_links(atom_handle=m, handles_only=True)
+        answer = database.redis.smembers(f'incomming_set:{m}')
+        assert links == [h.decode() for h in answer]
+
+        links = database.get_incoming_links(atom_handle=s, handles_only=True)
+        assert links == []
+
+    def test_get_atom_type(self, database):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'mammal')
+        i = database.get_link_handle('Inheritance', [h, m])
+
+        assert 'Concept' == database.get_atom_type(h)
+        assert 'Concept' == database.get_atom_type(m)
+        assert 'Inheritance' == database.get_atom_type(i)

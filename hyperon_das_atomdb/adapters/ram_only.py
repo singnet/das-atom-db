@@ -288,20 +288,22 @@ class InMemoryDB(AtomDB):
 
         return patterns_matched
 
-    def get_incoming_links(self, atom_handle: str, handles_only: bool = False) -> List[Dict[str, Any]]:       
+    def get_incoming_links(
+        self, atom_handle: str, handles_only: bool = False
+    ) -> List[Dict[str, Any]]:
         links = self.db.incomming_set.get(atom_handle)
 
         if not links:
             return []
-        
+
         if handles_only:
             return links
-        
+
         links_document = []
         for handle in links:
             document_atom = self.get_atom(handle, targets_type=True)
             links_document.append(document_atom)
-        
+
         return links_document
 
     def get_matched_type_template(
@@ -342,13 +344,13 @@ class InMemoryDB(AtomDB):
 
     def get_atom_type(self, handle: str) -> str:
         atom = self.db.node.get(handle)
-        
+
         if atom is None:
             atom = self._get_link(handle)
-        
+
         if atom is not None:
             return atom['named_type']
-    
+
     def get_atom_as_dict(self, handle: str, arity: Optional[int] = 0) -> Dict[str, Any]:
         atom = self.db.node.get(handle)
         if atom is not None:

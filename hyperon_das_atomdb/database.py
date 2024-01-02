@@ -46,7 +46,7 @@ class AtomDB(ABC):
 
         if kwargs.get('targets_document', False):
             answer['targets_document'] = [self.get_atom(target) for target in answer['targets']]
-        
+
         if kwargs.get('targets_type', False):
             answer['targets_type'] = [self.get_atom_type(target) for target in answer['targets']]
 
@@ -325,9 +325,11 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_incoming_links(self, atom_handle: str, handles_only: bool = False) -> List[Dict[str, Any]]:
+    def get_incoming_links(
+        self, atom_handle: str, handles_only: bool = False
+    ) -> List[Dict[str, Any]]:
         ...  # pragma no cover
-    
+
     @abstractmethod
     def get_matched_type_template(self, template: List[Any]) -> List[str]:
         """
@@ -357,7 +359,7 @@ class AtomDB(ABC):
     @abstractmethod
     def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
         ...  # pragma no cover
-    
+
     @abstractmethod
     def get_atom_type(self, handle: str) -> str:
         ...  # pragma no cover
