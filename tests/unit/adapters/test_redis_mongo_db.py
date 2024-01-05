@@ -3535,7 +3535,7 @@ class TestRedisMongoDB:
         s = database.get_link_handle('Similarity', [h, m])
 
         links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        atom = database.get_atom(handle=s, targets_type=True)
+        atom = database.get_atom(handle=s, targets_type=True, targets_document=True)
         assert atom in links
 
         links = database.get_incoming_links(atom_handle=h, handles_only=True)

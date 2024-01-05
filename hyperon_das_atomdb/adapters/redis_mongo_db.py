@@ -464,7 +464,7 @@ class RedisMongoDB(AtomDB):
 
         links_document = []
         for handle in links:
-            document_atom = self.get_atom(handle, targets_type=True)
+            document_atom = self.get_atom(handle, targets_type=True, targets_document=True)
             links_document.append(document_atom)
 
         return links_document
