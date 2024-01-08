@@ -20,11 +20,11 @@ from hyperon_das_atomdb.exceptions import (
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from hyperon_das_atomdb.utils.parse import str_to_bool
 
-USE_CACHED_NODES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODES"))
-USE_CACHED_LINK_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES"))
-USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
+
+USE_CACHED_NODES = bool(os.environ.get("DAS_USE_CACHED_NODES")) != False
+USE_CACHED_LINK_TYPES = bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES")) != False
+USE_CACHED_NODE_TYPES = bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES")) != False
 
 
 def _build_redis_key(prefix, key):
