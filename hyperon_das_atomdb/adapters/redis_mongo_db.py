@@ -1,4 +1,3 @@
-import os
 import pickle
 import sys
 from enum import Enum
@@ -20,11 +19,6 @@ from hyperon_das_atomdb.exceptions import (
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-
-
-USE_CACHED_NODES = bool(os.environ.get("DAS_USE_CACHED_NODES")) != False
-USE_CACHED_LINK_TYPES = bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES")) != False
-USE_CACHED_NODE_TYPES = bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES")) != False
 
 
 def _build_redis_key(prefix, key):
@@ -64,29 +58,19 @@ class NodeDocuments:
         self.cached_nodes = {}
         self.count = 0
 
-    def add(self, node_id, document) -> None:
-        if USE_CACHED_NODES:
-            self.cached_nodes[node_id] = document
+    def add(self) -> None:
         self.count += 1
 
     def get(self, handle, default_value):
-        if USE_CACHED_NODES:
-            return self.cached_nodes.get(handle, default_value)
-        else:
-            mongo_filter = {MongoFieldNames.ID_HASH: handle}
-            node = self.mongo_collection.find_one(mongo_filter)
-            return node if node else default_value
+        mongo_filter = {MongoFieldNames.ID_HASH: handle}
+        node = self.mongo_collection.find_one(mongo_filter)
+        return node if node else default_value
 
     def size(self):
-        if USE_CACHED_NODES:
-            return len(self.cached_nodes)
-        else:
-            return self.count
+        return self.count
 
     def values(self):
-        for document in (
-            self.cached_nodes.values() if USE_CACHED_NODES else self.mongo_collection.find()
-        ):
+        for document in self.mongo_collection.find():
             yield document
 
 
@@ -357,11 +341,8 @@ class RedisMongoDB(AtomDB):
         return answer[0].decode()
 
     def get_node_type(self, node_handle: str) -> str:
-        if USE_CACHED_NODE_TYPES:
-            return self.node_type_cache[node_handle]
-        else:
-            document = self.get_atom(node_handle)
-            return document["named_type"]
+        document = self.get_atom(node_handle)
+        return document["named_type"]
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -476,12 +457,8 @@ class RedisMongoDB(AtomDB):
         return templates_matched
 
     def get_link_type(self, link_handle: str) -> str:
-        if USE_CACHED_LINK_TYPES:
-            ret = self.link_type_cache[link_handle]
-            return ret
-        else:
-            document = self.get_atom(link_handle)
-            return document["named_type"]
+        document = self.get_atom(link_handle)
+        return document["named_type"]
 
     def get_atom(self, handle: str) -> Dict[str, Any]:
         document = self.node_documents.get(handle, None)
@@ -545,25 +522,8 @@ class RedisMongoDB(AtomDB):
         self.link_type_cache = {}
         self.node_type_cache = {}
         self.node_documents = NodeDocuments(self.mongo_nodes_collection)
-        if USE_CACHED_NODES:
-            for document in self.mongo_nodes_collection.find():
-                node_id = document[MongoFieldNames.ID_HASH]
-                document[MongoFieldNames.TYPE_NAME]
-                document[MongoFieldNames.NODE_NAME]
-                self.node_documents.add(node_id, document)
-        else:
-            self.node_documents.count = self.mongo_nodes_collection.count_documents({})
-        if USE_CACHED_LINK_TYPES:
-            for tag in ["1", "2", "N"]:
-                for document in self.mongo_link_collection[tag].find():
-                    self.link_type_cache[document[MongoFieldNames.ID_HASH]] = document[
-                        MongoFieldNames.TYPE_NAME
-                    ]
-        if USE_CACHED_NODE_TYPES:
-            for document in self.mongo_nodes_collection.find():
-                self.node_type_cache[document[MongoFieldNames.ID_HASH]] = document[
-                    MongoFieldNames.TYPE_NAME
-                ]
+        self.node_documents.count = self.mongo_nodes_collection.count_documents({})
+
         for document in self.mongo_types_collection.find():
             hash_id = document[MongoFieldNames.ID_HASH]
             named_type = document[MongoFieldNames.TYPE_NAME]
@@ -580,7 +540,6 @@ class RedisMongoDB(AtomDB):
             self.symbol_hash[named_type] = hash_id
 
     def commit(self) -> None:
-        added_links = []
         for key, (
             collection,
             buffer,
@@ -630,7 +589,7 @@ class RedisMongoDB(AtomDB):
         for document in documents:
             handle = document["_id"]
             node_name = document["name"]
-            self.node_documents.add(handle, document)
+            self.node_documents.add()
             key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
             self.redis.sadd(key, node_name)
 
