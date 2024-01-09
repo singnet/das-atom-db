@@ -26,14 +26,23 @@ We use the [Poetry](https://python-poetry.org/) package to manage project depend
 You must have the following variables set in your environment with their respective values:
 
 ```
-DAS_USE_CACHED_NODES=false                      [default: true]
-DAS_USE_CACHED_LINK_TYPES=false                 [default: true]
-DAS_USE_CACHED_NODE_TYPES=false                 [default: true]
+DAS_MONGODB_HOSTNAME=172.17.0.2
+DAS_MONGODB_PORT=27017
+DAS_MONGODB_USERNAME=mongo
+DAS_MONGODB_PASSWORD=mongo
+DAS_MONGODB_TLS_CA_FILE=global-bundle.pem       [optional]
+DAS_REDIS_HOSTNAME=127.0.0.1
+DAS_REDIS_PORT=6379
+DAS_REDIS_USERNAME=admin                        [optional]
+DAS_REDIS_PASSWORD=admin                        [optional]
+DAS_USE_REDIS_CLUSTER=false                     [default: true]
+DAS_USE_REDIS_SSL=false                         [default: true]
 ```
 
 ## Usage
 
 **1 - Redis and MongoDB**
+
 - You must have Redis and MongoDB running in your environment
 - To initialize the databases you must pass the parameters with the necessary values. Otherwise, default values will be used. See below which parameters it is possible to pass and their respective default values:
 
@@ -56,6 +65,7 @@ redis_mongo_db = RedisMongoDB(
 ```
 
 **2 - In Memory DB**
+
 ```python
 from hyperon_das_atomdb.adapters import InMemoryDB
 
