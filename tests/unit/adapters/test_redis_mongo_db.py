@@ -2987,12 +2987,16 @@ class TestRedisMongoDB:
             else:
                 ret = []
                 for node in node_collection_mock_data + added_nodes:
-                    if (
-                        _filter[MongoFieldNames.TYPE] == node[MongoFieldNames.TYPE]
-                        and _filter[MongoFieldNames.NODE_NAME]['$regex']
-                        in node[MongoFieldNames.NODE_NAME]
-                    ):
-                        ret.append(node)
+                    if MongoFieldNames.TYPE_NAME in _filter:
+                        if _filter[MongoFieldNames.TYPE_NAME] == node[MongoFieldNames.TYPE_NAME]:
+                            ret.append(node)
+                    else:
+                        if (
+                            _filter[MongoFieldNames.TYPE] == node[MongoFieldNames.TYPE]
+                            and _filter[MongoFieldNames.NODE_NAME]['$regex']
+                            in node[MongoFieldNames.NODE_NAME]
+                        ):
+                            ret.append(node)
                 return ret
 
         def estimated_document_count():
@@ -3139,7 +3143,6 @@ class TestRedisMongoDB:
                 MongoCollectionNames.NODES: tuple([db.mongo_nodes_collection, set()]),
                 MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
             }
-            db.prefetch()
         return db
 
     def test_node_exists(self, database):
@@ -3314,16 +3317,6 @@ class TestRedisMongoDB:
         assert len(ret) == 14
         ret = database.get_all_nodes('ConceptFake')
         assert len(ret) == 0
-
-    def test_get_all_nodes_error(self, database):
-        with mock.patch(
-            'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._get_atom_type_hash',
-            return_value=None,
-        ):
-            with pytest.raises(ValueError) as exc_info:
-                database.get_all_nodes('Concept-Fake')
-            assert exc_info.type is ValueError
-            assert exc_info.value.args[0] == f"Invalid node type: Concept-Fake"
 
     def test_get_matched_type_template(self, database):
         v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
