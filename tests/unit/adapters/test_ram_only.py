@@ -687,3 +687,31 @@ class TestInMemoryDB:
         atom = database.get_atom_as_dict(handle=s)
         assert atom['handle'] == s
         assert atom['targets'] == [h, m]
+
+    def test_get_incoming_links(self, database: InMemoryDB):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'monkey')
+        s = database.get_link_handle('Similarity', [h, m])
+
+        links = database.get_incoming_links(atom_handle=h, handles_only=False)
+        atom = database.get_atom(handle=s, targets_type=True, targets_document=True)
+        assert atom in links
+
+        links = database.get_incoming_links(atom_handle=h, handles_only=True)
+        assert links == database.db.incomming_set.get(h)
+        assert s in links
+
+        links = database.get_incoming_links(atom_handle=m, handles_only=True)
+        assert links == database.db.incomming_set.get(m)
+
+        links = database.get_incoming_links(atom_handle=s, handles_only=True)
+        assert links == []
+
+    def test_get_atom_type(self, database: InMemoryDB):
+        h = database.get_node_handle('Concept', 'human')
+        m = database.get_node_handle('Concept', 'mammal')
+        i = database.get_link_handle('Inheritance', [h, m])
+
+        assert 'Concept' == database.get_atom_type(h)
+        assert 'Concept' == database.get_atom_type(m)
+        assert 'Inheritance' == database.get_atom_type(i)
