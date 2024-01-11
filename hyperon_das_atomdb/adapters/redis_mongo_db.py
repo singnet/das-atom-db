@@ -10,8 +10,6 @@ from pymongo.errors import BulkWriteError
 from redis import Redis
 from redis.cluster import RedisCluster
 
-from hyperon_das_atomdb.constants.redis_mongo_db import MongoCollectionNames, MongoFieldNames
-from hyperon_das_atomdb.constants.redis_mongo_db import RedisCollectionNames as KeyPrefix
 from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -22,12 +20,6 @@ from hyperon_das_atomdb.exceptions import (
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from hyperon_das_atomdb.utils.parse import str_to_bool
-
-USE_CACHED_NODES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODES"))
-USE_CACHED_LINK_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_LINK_TYPES"))
-USE_CACHED_NODE_TYPES = str_to_bool(os.environ.get("DAS_USE_CACHED_NODE_TYPES"))
-
 
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
@@ -39,6 +31,7 @@ class MongoCollectionNames(str, Enum):
     LINKS_ARITY_1 = 'links_1'
     LINKS_ARITY_2 = 'links_2'
     LINKS_ARITY_N = 'links_n'
+    DAS_CONFIG = 'das_config'
 
 
 class MongoFieldNames(str, Enum):
@@ -252,15 +245,25 @@ class RedisMongoDB(AtomDB):
         return self.redis
 
     def _setup_indexes(self):
-        self.default_pattern_index_templates = [
-            {
-                
-        ]
-        for named_type in [False, True]:
-            for pos1 in [False, True]:
-                for pos2 in [False, True]:
-                    for pos3 in [False, True]:
-        if MongoCollectionNames.DAS_CONFIG in self.mongo_db.get_collection_names():
+        self.default_pattern_index_templates = []
+        for named_type in [True, False]:
+            for pos0 in [True, False]:
+                for pos1 in [True, False]:
+                    for pos2 in [True, False]:
+                        if named_type and pos0 and pos1 and pos2:
+                            # not a pattern but an actual atom
+                            continue
+                        template = {}
+                        template[MongoFieldNames.TYPE_NAME] = named_type
+                        template["selected_positions"] = []
+                        if pos0:
+                            template["selected_positions"].append(0)
+                        if pos1:
+                            template["selected_positions"].append(1)
+                        if pos2:
+                            template["selected_positions"].append(2)
+                        self.default_pattern_index_templates.append(template)
+        if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
             self.pattern_index_templates = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})["templates"]
         else:
             self.pattern_index_templates = None
@@ -366,7 +369,7 @@ class RedisMongoDB(AtomDB):
 
     def get_node_type(self, node_handle: str) -> str:
         document = self.get_atom(node_handle)
-        return document["named_type"]
+        return document[MongoFieldNames.TYPE_NAME]
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -482,7 +485,7 @@ class RedisMongoDB(AtomDB):
 
     def get_link_type(self, link_handle: str) -> str:
         document = self.get_atom(link_handle)
-        return document["named_type"]
+        return document[MongoFieldNames.TYPE_NAME]
 
     def get_atom(self, handle: str) -> Dict[str, Any]:
         document = self.node_documents.get(handle, None)
@@ -610,20 +613,20 @@ class RedisMongoDB(AtomDB):
     def _apply_index_template(
         template: Dict[str, Any], 
         named_type: str, 
-        targets: List[str]
+        targets: List[str],
         arity) -> List[List[str]]:
 
         key = []
-        key = [named_type, WILDCARD] if template["named_type"] else [named_type]
+        key = [WILDCARD] if template[MongoFieldNames.TYPE_NAME] else [named_type]
         target_selected_pos = template["selected_positions"]
         for cursor in range(arity):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
-        return ExpressionHasher.composite_hash(key)
+        return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
     def _update_node_index(self, documents: Iterable[Dict[str, any]]) -> None:
         for document in documents:
             handle = document[MongoFieldNames.ID_HASH]
-            node_name = document[MongoFieldNames.NAME]
+            node_name = document[MongoFieldNames.NODE_NAME]
             self.node_documents.add(handle, document)
             key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
             self.redis.sadd(key, node_name)
