@@ -1,4 +1,3 @@
-import os
 import pickle
 import sys
 from enum import Enum
@@ -20,6 +19,7 @@ from hyperon_das_atomdb.exceptions import (
 )
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
 
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
@@ -123,15 +123,8 @@ class RedisMongoDB(AtomDB):
         ]
         self.mongo_das_config_collection = None
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
-        self.named_type_hash = None
-        self.named_type_hash_reverse = None
-        self.named_types = None
-        self.symbol_hash = None
-        self.parent_type = None
-        self.node_documents = None
-        self.terminal_hash = None
-        self.link_type_cache = None
-        self.node_type_cache = None
+        self.named_type_hash = {}
+        self.named_type_hash_reverse = {}
         self.typedef_mark_hash = ExpressionHasher._compute_hash(":")
         self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
         self.typedef_composite_type_hash = ExpressionHasher.composite_hash(
@@ -291,6 +284,9 @@ class RedisMongoDB(AtomDB):
                 return self.mongo_link_collection["N"].find_one(mongo_filter)
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
+        document = self.mongo_nodes_collection.find_one(mongo_filter)
+        if document:
+            return document
         for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
             document = collection.find_one(mongo_filter)
             if document:
@@ -389,14 +385,16 @@ class RedisMongoDB(AtomDB):
         if names:
             return [
                 document[MongoFieldNames.NODE_NAME]
-                for document in self.node_documents.values()
-                if document[MongoFieldNames.TYPE] == node_type_hash
+                for document in self.mongo_nodes_collection.find({
+                    MongoFieldNames.TYPE_NAME: node_type
+                })
             ]
         else:
             return [
                 document[MongoFieldNames.ID_HASH]
-                for document in self.node_documents.values()
-                if document[MongoFieldNames.TYPE] == node_type_hash
+                for document in self.mongo_nodes_collection.find({
+                    MongoFieldNames.TYPE_NAME: node_type
+                })
             ]
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
@@ -457,6 +455,26 @@ class RedisMongoDB(AtomDB):
 
         return patterns_matched
 
+    def get_incoming_links(
+        self, atom_handle: str, handles_only: bool = False
+    ) -> List[Dict[str, Any]]:
+        answer = self._retrieve_key_value(KeyPrefix.INCOMING_SET, atom_handle)
+
+        if not answer:
+            return []
+
+        links = [h.decode() for h in answer]
+
+        if handles_only:
+            return links
+
+        links_document = []
+        for handle in links:
+            document_atom = self.get_atom(handle, targets_type=True, targets_document=True)
+            links_document.append(document_atom)
+
+        return links_document
+
     def get_matched_type_template(
         self,
         template: List[Any],
@@ -487,12 +505,10 @@ class RedisMongoDB(AtomDB):
         document = self.get_atom(link_handle)
         return document[MongoFieldNames.TYPE_NAME]
 
-    def get_atom(self, handle: str) -> Dict[str, Any]:
-        document = self.node_documents.get(handle, None)
-        if document is None:
-            document = self._retrieve_mongo_document(handle)
+    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
+        document = self._retrieve_mongo_document(handle)
         if document:
-            atom = self._convert_atom_format(document)
+            atom = self._convert_atom_format(document, **kwargs)
             return atom
         else:
             raise AtomDoesNotExist(
@@ -500,22 +516,21 @@ class RedisMongoDB(AtomDB):
                 details=f'handle: {handle}',
             )
 
+    def get_atom_type(self, handle: str) -> str:
+        atom = self._retrieve_mongo_document(handle)
+        if atom is not None:
+            return atom['named_type']
+
     def get_atom_as_dict(self, handle, arity=-1) -> dict:
         answer = {}
-        document = self.node_documents.get(handle, None) if arity <= 0 else None
-        if document is None:
-            document = self._retrieve_mongo_document(handle, arity)
-            if document:
-                answer["handle"] = document[MongoFieldNames.ID_HASH]
-                answer["type"] = document[MongoFieldNames.TYPE_NAME]
-                answer["template"] = self._build_named_type_template(
-                    document[MongoFieldNames.COMPOSITE_TYPE]
-                )
-                answer["targets"] = self._get_mongo_document_keys(document)
-        else:
+        document = self._retrieve_mongo_document(handle, arity)
+        if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["name"] = document[MongoFieldNames.NODE_NAME]
+            answer["template"] = self._build_named_type_template(
+                document[MongoFieldNames.COMPOSITE_TYPE]
+            )
+            answer["targets"] = self._get_mongo_document_keys(document)
         return answer
 
     def count_atoms(self) -> Tuple[int, int]:
@@ -567,8 +582,6 @@ class RedisMongoDB(AtomDB):
             self.symbol_hash[named_type] = hash_id
 
     def commit(self) -> None:
-        added_links = []
-        id_tag = MongoFieldNames.ID_HASH
         for key, (
             collection,
             buffer,
