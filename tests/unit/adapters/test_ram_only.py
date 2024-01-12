@@ -694,8 +694,15 @@ class TestInMemoryDB:
         s = database.get_link_handle('Similarity', [h, m])
 
         links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        atom = database.get_atom(handle=s, targets_type=True, targets_document=True)
+        atom = database.get_atom(handle=s)
         assert atom in links
+
+        links = database.get_incoming_links(
+            atom_handle=h, handles_only=False, targets_document=True
+        )
+        for link, targets in links:
+            for a, b in zip(link['targets'], targets):
+                assert a == b['handle']
 
         links = database.get_incoming_links(atom_handle=h, handles_only=True)
         assert links == database.db.incomming_set.get(h)
