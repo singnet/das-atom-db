@@ -28,5 +28,5 @@ jobs:
       - name: Run Unit Tests
         run: make unit-tests unit-tests-coverage
 
-      - name:
+      - name: Run Integration Tests
         run: make integration-tests
