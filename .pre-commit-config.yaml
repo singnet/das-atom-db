@@ -5,9 +5,9 @@ repos:
     hooks:
       - id: pytest-check
         name: pytest-check
-        entry: pytest
+        entry: make
         language: system
         pass_filenames: false
         always_run: true
-        args: ["-v", "tests/"]
+        args: ["pre-commit"]
         stages: [pre-push]

@@ -353,16 +353,16 @@ class RedisMongoDB(AtomDB):
         if names:
             return [
                 document[MongoFieldNames.NODE_NAME]
-                for document in self.mongo_nodes_collection.find({
-                    MongoFieldNames.TYPE_NAME: node_type
-                })
+                for document in self.mongo_nodes_collection.find(
+                    {MongoFieldNames.TYPE_NAME: node_type}
+                )
             ]
         else:
             return [
                 document[MongoFieldNames.ID_HASH]
-                for document in self.mongo_nodes_collection.find({
-                    MongoFieldNames.TYPE_NAME: node_type
-                })
+                for document in self.mongo_nodes_collection.find(
+                    {MongoFieldNames.TYPE_NAME: node_type}
+                )
             ]
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
