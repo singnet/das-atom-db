@@ -72,6 +72,14 @@ from hyperon_das_atomdb.adapters import InMemoryDB
 in_memory_db = InMemoryDB()
 ```
 
+## Pre-Commit Setup
+
+Before pushing your changes, it's recommended to set up pre-commit to run automated tests locally. Run the following command (needs to be done once):
+
+```bash
+pre-commit install
+```
+
 ## Tests
 
 You can ran the command below to execute the unittests
