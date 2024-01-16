@@ -1,6 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Union
 
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -33,7 +33,9 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _convert_atom_format(self, document: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _convert_atom_format(
+        self, document: Dict[str, Any], **kwargs
+    ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
         answer = {'handle': document['_id']}
 
         for key, value in document.items():
@@ -45,10 +47,8 @@ class AtomDB(ABC):
                 answer[key] = value
 
         if kwargs.get('targets_document', False):
-            answer['targets_document'] = [self.get_atom(target) for target in answer['targets']]
-
-        if kwargs.get('targets_type', False):
-            answer['targets_type'] = [self.get_atom_type(target) for target in answer['targets']]
+            targets_document = [self.get_atom(target) for target in answer['targets']]
+            return answer, targets_document
 
         return answer
 
@@ -326,8 +326,8 @@ class AtomDB(ABC):
 
     @abstractmethod
     def get_incoming_links(
-        self, atom_handle: str, handles_only: bool = False
-    ) -> List[Dict[str, Any]]:
+        self, atom_handle: str, **kwargs
+    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
         ...  # pragma no cover
 
     @abstractmethod
@@ -357,7 +357,9 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
+    def get_atom(
+        self, handle: str, **kwargs
+    ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
         ...  # pragma no cover
 
     @abstractmethod

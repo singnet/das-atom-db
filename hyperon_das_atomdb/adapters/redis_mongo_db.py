@@ -353,16 +353,16 @@ class RedisMongoDB(AtomDB):
         if names:
             return [
                 document[MongoFieldNames.NODE_NAME]
-                for document in self.mongo_nodes_collection.find({
-                    MongoFieldNames.TYPE_NAME: node_type
-                })
+                for document in self.mongo_nodes_collection.find(
+                    {MongoFieldNames.TYPE_NAME: node_type}
+                )
             ]
         else:
             return [
                 document[MongoFieldNames.ID_HASH]
-                for document in self.mongo_nodes_collection.find({
-                    MongoFieldNames.TYPE_NAME: node_type
-                })
+                for document in self.mongo_nodes_collection.find(
+                    {MongoFieldNames.TYPE_NAME: node_type}
+                )
             ]
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
@@ -424,8 +424,8 @@ class RedisMongoDB(AtomDB):
         return patterns_matched
 
     def get_incoming_links(
-        self, atom_handle: str, handles_only: bool = False
-    ) -> List[Dict[str, Any]]:
+        self, atom_handle: str, **kwargs
+    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
         answer = self._retrieve_key_value(KeyPrefix.INCOMING_SET, atom_handle)
 
         if not answer:
@@ -433,13 +433,10 @@ class RedisMongoDB(AtomDB):
 
         links = [h.decode() for h in answer]
 
-        if handles_only:
+        if kwargs.get('handles_only', False):
             return links
 
-        links_document = []
-        for handle in links:
-            document_atom = self.get_atom(handle, targets_type=True, targets_document=True)
-            links_document.append(document_atom)
+        links_document = [self.get_atom(handle, **kwargs) for handle in links]
 
         return links_document
 
