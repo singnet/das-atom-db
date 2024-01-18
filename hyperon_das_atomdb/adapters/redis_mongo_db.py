@@ -52,7 +52,6 @@ class KeyPrefix(str, Enum):
     TEMPLATES = 'templates'
     NAMED_ENTITIES = 'names'
 
-
 class NodeDocuments:
     def __init__(self, collection) -> None:
         self.mongo_collection = collection
@@ -141,8 +140,6 @@ class RedisMongoDB(AtomDB):
         }
         self.mongo_bulk_insertion_limit = 100000
         self.max_mongo_db_document_size = 16000000
-        logger().info("Prefetching data")
-        self.prefetch()
         self._setup_indexes()
         logger().info("Database setup finished")
 
@@ -293,13 +290,6 @@ class RedisMongoDB(AtomDB):
                 return document
         return None
 
-    def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
-        members = self.redis.smembers(_build_redis_key(prefix, key))
-        if prefix in self.use_targets:
-            return [pickle.loads(t) for t in members]
-        else:
-            return [*members]
-
     def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
             return self._get_atom_type_hash(template)
@@ -358,10 +348,10 @@ class RedisMongoDB(AtomDB):
             )
 
     def get_node_name(self, node_handle: str) -> str:
-        answer = self._retrieve_key_value(KeyPrefix.NAMED_ENTITIES, node_handle)
+        answer = self._retrieve_name(node_handle)
         if not answer:
             raise ValueError(f"Invalid handle: {node_handle}")
-        return answer[0].decode()
+        return answer
 
     def get_node_type(self, node_handle: str) -> str:
         document = self.get_atom(node_handle)
@@ -379,9 +369,6 @@ class RedisMongoDB(AtomDB):
         ]
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
-        node_type_hash = self._get_atom_type_hash(node_type)
-        if node_type_hash is None:
-            raise ValueError(f'Invalid node type: {node_type}')
         if names:
             return [
                 document[MongoFieldNames.NODE_NAME]
@@ -409,10 +396,10 @@ class RedisMongoDB(AtomDB):
             )
 
     def get_link_targets(self, link_handle: str) -> List[str]:
-        answer = self._retrieve_key_value(KeyPrefix.OUTGOING_SET, link_handle)
+        answer = self._retrieve_outgoing_set(link_handle)
         if not answer:
             raise ValueError(f"Invalid handle: {link_handle}")
-        return [h.decode() for h in answer]
+        return answer
 
     def is_ordered(self, link_handle: str) -> bool:
         document = self._retrieve_mongo_document(link_handle)
@@ -446,24 +433,19 @@ class RedisMongoDB(AtomDB):
             target_handles = sorted(target_handles)
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-
-        patterns_matched = self._retrieve_key_value(KeyPrefix.PATTERNS, pattern_hash)
-
+        patterns_matched = self._retrieve_pattern(pattern_hash)
         if len(patterns_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
                 return self._filter_non_toplevel(patterns_matched)
-
         return patterns_matched
 
     def get_incoming_links(
         self, atom_handle: str, handles_only: bool = False
     ) -> List[Dict[str, Any]]:
-        answer = self._retrieve_key_value(KeyPrefix.INCOMING_SET, atom_handle)
+        links = self._retrieve_incoming_set(atom_handle)
 
-        if not answer:
+        if not links:
             return []
-
-        links = [h.decode() for h in answer]
 
         if handles_only:
             return links
@@ -483,7 +465,7 @@ class RedisMongoDB(AtomDB):
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-            templates_matched = self._retrieve_key_value(KeyPrefix.TEMPLATES, template_hash)
+            templates_matched = self._retrieve_template(template_hash)
             if len(templates_matched) > 0:
                 if extra_parameters and extra_parameters.get("toplevel_only"):
                     return self._filter_non_toplevel(templates_matched)
@@ -495,7 +477,7 @@ class RedisMongoDB(AtomDB):
         self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
     ) -> List[str]:
         named_type_hash = self._get_atom_type_hash(link_type)
-        templates_matched = self._retrieve_key_value(KeyPrefix.TEMPLATES, named_type_hash)
+        templates_matched = self._retrieve_template(named_type_hash)
         if len(templates_matched) > 0:
             if extra_parameters and extra_parameters.get("toplevel_only"):
                 return self._filter_non_toplevel(templates_matched)
@@ -554,34 +536,8 @@ class RedisMongoDB(AtomDB):
 
         self.redis.flushall()
 
-    def prefetch(self) -> None:
-        self.named_type_hash = {}
-        self.named_type_hash_reverse = {}
-        self.named_types = {}
-        self.symbol_hash = {}
-        self.parent_type = {}
-        self.terminal_hash = {}
-        self.link_type_cache = {}
-        self.node_type_cache = {}
-        self.node_documents = NodeDocuments(self.mongo_nodes_collection)
-        self.node_documents.count = self.mongo_nodes_collection.count_documents({})
-
-        for document in self.mongo_types_collection.find():
-            hash_id = document[MongoFieldNames.ID_HASH]
-            named_type = document[MongoFieldNames.TYPE_NAME]
-            named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
-            composite_type_hash = document[MongoFieldNames.TYPE]
-            type_document = self.mongo_types_collection.find_one(
-                {MongoFieldNames.ID_HASH: composite_type_hash}
-            )
-            self.named_type_hash[named_type] = named_type_hash
-            self.named_type_hash_reverse[named_type_hash] = named_type
-            if type_document is not None:
-                self.named_types[named_type] = type_document[MongoFieldNames.TYPE_NAME]
-                self.parent_type[named_type_hash] = type_document[MongoFieldNames.TYPE_NAME_HASH]
-            self.symbol_hash[named_type] = hash_id
-
-    def commit(self) -> None:
+    def _commit(self) -> None:
+        id_tag = MongoFieldNames.ID_HASH
         for key, (
             collection,
             buffer,
@@ -596,6 +552,7 @@ class RedisMongoDB(AtomDB):
                     raise InvalidOperationException
                 else:
                     self._update_link_index(documents)
+            buffer.clear()
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
@@ -603,7 +560,7 @@ class RedisMongoDB(AtomDB):
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
             buffer.add(_HashableDocument(node))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
-                self.commit()
+                self._commit()
             return node
         else:
             logger().warn("Discarding atom whose name is too large: {node_name}")
@@ -620,10 +577,11 @@ class RedisMongoDB(AtomDB):
         _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
         buffer.add(_HashableDocument(link))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
-            self.commit()
+            self._commit()
         return link
 
     def _apply_index_template(
+        self,
         template: Dict[str, Any], 
         named_type: str, 
         targets: List[str],
@@ -636,40 +594,62 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
+    def _retrieve_incoming_set(self, handle: str) -> List[str]:
+        key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
+        return [member.decode() for member in self.redis.smembers(key)]
+
+    def _retrieve_outgoing_set(self, handle: str) -> List[str]:
+        key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
+        return [member.decode() for member in self.redis.lrange(key, 0, -1)]
+
+    def _retrieve_name(self, handle: str) -> List[str]:
+        key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
+        return self.redis.get(key).decode()
+
+    def _retrieve_template(self, handle: str) -> List[str]:
+        key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
+        members = self.redis.smembers(key)
+        return [pickle.loads(t) for t in members]
+
+    def _retrieve_pattern(self, handle: str) -> List[str]:
+        key = _build_redis_key(KeyPrefix.PATTERNS, handle)
+        members = self.redis.smembers(key)
+        return [pickle.loads(t) for t in members]
+
     def _update_node_index(self, documents: Iterable[Dict[str, any]]) -> None:
         for document in documents:
             handle = document[MongoFieldNames.ID_HASH]
             node_name = document[MongoFieldNames.NODE_NAME]
-            self.node_documents.add(handle, document)
             key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
-            self.redis.sadd(key, node_name)
+            self.redis.set(key, node_name)
 
     def _update_link_index(self, documents: Iterable[Dict[str, any]]) -> None:
         incoming_buffer = {}
         for document in documents:
             handle = document[MongoFieldNames.ID_HASH]
             targets = self._get_mongo_document_keys(document)
+            arity = len(targets)
             named_type = document[MongoFieldNames.TYPE_NAME]
             named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
             key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
-            self.redis.sadd(key, *targets)
+            self.redis.rpush(key, *targets)
             for target in targets:
                 buffer = incoming_buffer.get(target, None)
                 if buffer is None:
                     buffer = []
                     incoming_buffer[target] = buffer
                 buffer.append(handle)
-            value = [pickle.dumps(v) for v in [handle,  *targets]]
+            value = pickle.dumps(tuple([handle,  tuple(targets)]))
             for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
                 key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
-                self.redis.sadd(key, *value)
+                self.redis.sadd(key, value)
             if self.pattern_index_templates:
                 index_templates = self.pattern_index_templates.get(named_type, [])
             else:
                 index_templates = self.default_pattern_index_templates
             for template in index_templates:
                 key = self._apply_index_template(template, named_type_hash, targets, arity)
-                self.redis.sadd(key, *value)
+                self.redis.sadd(key, value)
         for handle in incoming_buffer:
             key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
             self.redis.sadd(key, *incoming_buffer[handle])

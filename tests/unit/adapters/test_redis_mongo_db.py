@@ -2906,20 +2906,20 @@ templates_redis_mock_data = {
 }
 
 names_redis_mock_data = {
-    'names:bdfe4e7a431f73386f37c6448afe5840': 'mammal',
-    'names:c1db9b517073e51eb7ef6fed608ec204': 'snake',
-    'names:1cdffc6b0b89ff41d68bec237481d1e1': 'monkey',
-    'names:08126b066d32ee37743e255a2558cccd': 'dinosaur',
-    'names:4e8e26e3276af8a5c2ac2cc2dc95c6d2': 'ent',
-    'names:99d18c702e813b07260baf577c60c455': 'rhino',
-    'names:d03e59654221c1e8fcda404fd5c8d6cb': 'triceratops',
-    'names:5b34c54bee150c04f9fa584b899dc030': 'chimp',
-    'names:bb34ce95f161a6b37ff54b3d4c817857': 'earthworm',
-    'names:b94941d8cd1c0ee4ad3dd3dcab52b964': 'vine',
-    'names:b99ae727c787f1b13b452fd4c9ce1b9a': 'reptile',
-    'names:0a32b476852eeb954979b87f5f6cb7af': 'animal',
-    'names:af12f10f9ae2002a1607ba0b47ba8407': 'human',
-    'names:80aff30094874e75028033a38ce677bb': 'plant',
+    'names:bdfe4e7a431f73386f37c6448afe5840': b'mammal',
+    'names:c1db9b517073e51eb7ef6fed608ec204': b'snake',
+    'names:1cdffc6b0b89ff41d68bec237481d1e1': b'monkey',
+    'names:08126b066d32ee37743e255a2558cccd': b'dinosaur',
+    'names:4e8e26e3276af8a5c2ac2cc2dc95c6d2': b'ent',
+    'names:99d18c702e813b07260baf577c60c455': b'rhino',
+    'names:d03e59654221c1e8fcda404fd5c8d6cb': b'triceratops',
+    'names:5b34c54bee150c04f9fa584b899dc030': b'chimp',
+    'names:bb34ce95f161a6b37ff54b3d4c817857': b'earthworm',
+    'names:b94941d8cd1c0ee4ad3dd3dcab52b964': b'vine',
+    'names:b99ae727c787f1b13b452fd4c9ce1b9a': b'reptile',
+    'names:0a32b476852eeb954979b87f5f6cb7af': b'animal',
+    'names:af12f10f9ae2002a1607ba0b47ba8407': b'human',
+    'names:80aff30094874e75028033a38ce677bb': b'plant',
 }
 
 
@@ -2934,17 +2934,12 @@ class TestRedisMongoDB:
         redis_db = mock.MagicMock(spec=Redis)
 
         def smembers(key: str):
-            if 'outgoing_set' in key:
-                for data in outgoing_set_redis_mock_data:
-                    if list(data.keys())[0] == key:
-                        return list(data.values())[0]
-                return []
             if 'incomming_set' in key:
                 for data in incomming_set_redis_mock_data:
                     if list(data.keys())[0] == key:
                         return list(data.values())[0]
                 return []
-            if 'patterns' in key:
+            elif 'patterns' in key:
                 value = patterns_redis_mock_data.get(key)
                 if value:
                     custom_set = set()
@@ -2952,7 +2947,7 @@ class TestRedisMongoDB:
                     return custom_set
                 else:
                     return []
-            if 'templates' in key:
+            elif 'templates' in key:
                 value = templates_redis_mock_data.get(key)
                 if value:
                     custom_set = set()
@@ -2960,16 +2955,31 @@ class TestRedisMongoDB:
                     return custom_set
                 else:
                     return []
+            else:
+                assert False
+
+        def lrange(key: str, start: int, end: int):
+            if 'outgoing_set' in key:
+                for d in outgoing_set_redis_mock_data:
+                    if key in d:
+                        return d[key]
+                return []
+            else:
+                assert False
+
+        def get(key: str):
             if 'names' in key:
-                value = names_redis_mock_data.get(key)
-                if value:
-                    custom_set = set()
-                    custom_set.add(value.encode())
-                    return custom_set
-                else:
-                    return []
+                return names_redis_mock_data.get(key)
+            else:
+                assert False
+
+        def _commit():
+            pass
 
         redis_db.smembers = mock.Mock(side_effect=smembers)
+        redis_db.lrange = mock.Mock(side_effect=lrange)
+        redis_db.get = mock.Mock(side_effect=get)
+        redis_db._commit = mock.Mock(side_effect=_commit)
         return redis_db
 
     @pytest.fixture()
@@ -2980,6 +2990,17 @@ class TestRedisMongoDB:
 
         def insert_many(documents: List[Dict[str, Any]], ordered: bool):
             added_nodes.extend(documents)
+
+        def replace_one(handle: Dict[str, Any], document: Dict[str, Any], upsert: bool):
+            for cursor in range(len(node_collection_mock_data)):
+                if node_collection_mock_data[cursor]['_id'] == handle['_id']:
+                    node_collection_mock_data.pop(cursor)
+                    break
+            for cursor in range(len(added_nodes)):
+                if added_nodes[cursor]['_id'] == handle['_id']:
+                    added_nodes.pop(cursor)
+                    break
+            added_nodes.append(document)
 
         def find_one(handle: dict):
             for data in node_collection_mock_data + added_nodes:
@@ -3008,6 +3029,7 @@ class TestRedisMongoDB:
             return len(node_collection_mock_data) + len(added_nodes)
 
         collection.insert_many = mock.Mock(side_effect=insert_many)
+        collection.replace_one = mock.Mock(side_effect=replace_one)
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
         collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
@@ -3371,7 +3393,7 @@ class TestRedisMongoDB:
 
     def test_get_node_name_value_error(self, database):
         with mock.patch(
-            'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_key_value',
+            'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_name',
             return_value=None,
         ):
             with pytest.raises(ValueError) as exc_info:
@@ -3438,7 +3460,7 @@ class TestRedisMongoDB:
                 'name': 'lion',
             }
         )
-        database.commit()
+        database._commit()
         all_nodes_after = database.get_all_nodes('Concept')
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 15
@@ -3469,7 +3491,7 @@ class TestRedisMongoDB:
                 ],
             }
         )
-        database.commit()
+        database._commit()
         all_nodes_after = database.get_all_nodes('Concept')
         all_links_after = database.get_matched_type('Similarity')
 
