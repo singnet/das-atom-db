@@ -1,6 +1,4 @@
-import os
 import pickle
-import re
 from typing import Any, Dict, List, Optional
 from unittest import mock
 
@@ -1849,7 +1847,7 @@ patterns_redis_mock_data = {
             ),
         )
     ],
-    "patterns:6e644e70a9fe3145c88b5b6261af5754": [
+    "patterns:6e644e70a9fe3145c88b5b6261af5755": [
         (
             "e4685d56969398253b6f77efd21dc347",
             (
@@ -3399,7 +3397,7 @@ class TestRedisMongoDB:
             with pytest.raises(ValueError) as exc_info:
                 database.get_node_name('handle')
             assert exc_info.type is ValueError
-            assert exc_info.value.args[0] == f"Invalid handle: handle"
+            assert exc_info.value.args[0] == "Invalid handle: handle"
 
     def test_get_matched_node_name(self, database):
         expected = sorted(
@@ -3481,7 +3479,6 @@ class TestRedisMongoDB:
         assert (14, 28) == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
-        all_links_before = database.get_matched_type('Similarity')
         database.add_link(
             {
                 'type': 'Similarity',
@@ -3493,7 +3490,6 @@ class TestRedisMongoDB:
         )
         database._commit()
         all_nodes_after = database.get_all_nodes('Concept')
-        all_links_after = database.get_matched_type('Similarity')
 
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
@@ -3550,8 +3546,15 @@ class TestRedisMongoDB:
         s = database.get_link_handle('Similarity', [h, m])
 
         links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        atom = database.get_atom(handle=s, targets_type=True, targets_document=True)
+        atom = database.get_atom(handle=s)
         assert atom in links
+
+        links = database.get_incoming_links(
+            atom_handle=h, handles_only=False, targets_document=True
+        )
+        for link, targets in links:
+            for a, b in zip(link['targets'], targets):
+                assert a == b['handle']
 
         links = database.get_incoming_links(atom_handle=h, handles_only=True)
         answer = database.redis.smembers(f'incomming_set:{h}')

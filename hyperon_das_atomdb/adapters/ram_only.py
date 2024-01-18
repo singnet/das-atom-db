@@ -289,20 +289,17 @@ class InMemoryDB(AtomDB):
         return patterns_matched
 
     def get_incoming_links(
-        self, atom_handle: str, handles_only: bool = False
-    ) -> List[Dict[str, Any]]:
+        self, atom_handle: str, **kwargs
+    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
         links = self.db.incomming_set.get(atom_handle)
 
         if not links:
             return []
 
-        if handles_only:
+        if kwargs.get('handles_only', False):
             return links
 
-        links_document = []
-        for handle in links:
-            document_atom = self.get_atom(handle, targets_type=True, targets_document=True)
-            links_document.append(document_atom)
+        links_document = [self.get_atom(handle, **kwargs) for handle in links]
 
         return links_document
 
@@ -329,7 +326,9 @@ class InMemoryDB(AtomDB):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
+    def get_atom(
+        self, handle: str, **kwargs
+    ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
         document = self.db.node.get(handle)
         if document is None:
             document = self._get_link(handle)

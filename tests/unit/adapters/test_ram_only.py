@@ -278,7 +278,7 @@ class TestInMemoryDB:
 
     def test_get_link_targets_invalid(self, database: InMemoryDB):
         with pytest.raises(LinkDoesNotExist) as exc_info:
-            database.get_link_targets(f'link_handle_Fake')
+            database.get_link_targets('link_handle_Fake')
         assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "This link does not exist"
 
@@ -291,7 +291,8 @@ class TestInMemoryDB:
 
     def test_is_ordered_false(self, database: InMemoryDB):
         with pytest.raises(LinkDoesNotExist) as exc_info:
-            ret = database.is_ordered('handle_123')
+            database.is_ordered('handle_123')
+
         assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "This link does not exist"
 
@@ -694,8 +695,15 @@ class TestInMemoryDB:
         s = database.get_link_handle('Similarity', [h, m])
 
         links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        atom = database.get_atom(handle=s, targets_type=True, targets_document=True)
+        atom = database.get_atom(handle=s)
         assert atom in links
+
+        links = database.get_incoming_links(
+            atom_handle=h, handles_only=False, targets_document=True
+        )
+        for link, targets in links:
+            for a, b in zip(link['targets'], targets):
+                assert a == b['handle']
 
         links = database.get_incoming_links(atom_handle=h, handles_only=True)
         assert links == database.db.incomming_set.get(h)
