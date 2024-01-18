@@ -7,6 +7,11 @@ on:
         description: "Version to tag"
         required: true
 
+      changelog:
+        description: "Version changelog"
+        required: true
+        type: string
+
 jobs:
   tag:
     uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
@@ -19,6 +24,7 @@ jobs:
       version-tag-regex-pattern: /^v\d+\.\d+\.\d+$/
       version-require-confirmation: "true"
       library: hyperon-das-atomdb
+      changelog: ${{ inputs.changelog }}
     secrets: inherit
 
   publish:
