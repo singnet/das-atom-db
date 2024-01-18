@@ -291,13 +291,6 @@ class RedisMongoDB(AtomDB):
                 return document
         return None
 
-    def _retrieve_key_value(self, prefix: str, key: str) -> List[str]:
-        members = self.redis.smembers(_build_redis_key(prefix, key))
-        if prefix in self.use_targets:
-            return [pickle.loads(t) for t in members]
-        else:
-            return [*members]
-
     def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
             return self._get_atom_type_hash(template)
@@ -451,12 +444,11 @@ class RedisMongoDB(AtomDB):
     def get_incoming_links(
         self, atom_handle: str, **kwargs
     ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-        answer = self._retrieve_key_value(KeyPrefix.INCOMING_SET, atom_handle)
+
+        links = self._retrieve_incoming_set(atom_handle)
 
         if not links:
             return []
-
-        links = [h.decode() for h in answer]
 
         if kwargs.get('handles_only', False):
             return links
