@@ -278,7 +278,7 @@ class TestInMemoryDB:
 
     def test_get_link_targets_invalid(self, database: InMemoryDB):
         with pytest.raises(LinkDoesNotExist) as exc_info:
-            database.get_link_targets(f'link_handle_Fake')
+            database.get_link_targets('link_handle_Fake')
         assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "This link does not exist"
 
@@ -291,7 +291,8 @@ class TestInMemoryDB:
 
     def test_is_ordered_false(self, database: InMemoryDB):
         with pytest.raises(LinkDoesNotExist) as exc_info:
-            ret = database.is_ordered('handle_123')
+            database.is_ordered('handle_123')
+
         assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "This link does not exist"
 
