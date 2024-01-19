@@ -246,13 +246,7 @@ class RedisMongoDB(AtomDB):
                             continue
                         template = {}
                         template[MongoFieldNames.TYPE_NAME] = named_type
-                        template["selected_positions"] = []
-                        if pos0:
-                            template["selected_positions"].append(0)
-                        if pos1:
-                            template["selected_positions"].append(1)
-                        if pos2:
-                            template["selected_positions"].append(2)
+                        template["selected_positions"] = [i for i, pos in enumerate([pos0, pos1, pos2]) if pos]
                         self.default_pattern_index_templates.append(template)
         if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
             self.pattern_index_templates = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})["templates"]
