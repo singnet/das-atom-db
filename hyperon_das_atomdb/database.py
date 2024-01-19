@@ -512,6 +512,3 @@ class AtomDB(ABC):
             >>> db.add_link(link_params)
         """
         ...  # pragma no cover
-
-    def commit(self) -> None:
-        ...  # pragma no cover
