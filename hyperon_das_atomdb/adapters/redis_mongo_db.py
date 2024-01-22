@@ -295,17 +295,6 @@ class RedisMongoDB(AtomDB):
                 answer.append(v)
             return answer
 
-    def _build_named_type_template(self, template: Union[str, List[Any]]) -> List[Any]:
-        if isinstance(template, str):
-            ret = self.named_type_hash_reverse.get(template, None)
-            return ret
-        else:
-            answer = []
-            for element in template:
-                v = self._build_named_type_template(element)
-                answer.append(v)
-            return answer
-
     def _get_mongo_document_keys(self, document: Dict) -> List[str]:
         answer = document.get(MongoFieldNames.KEYS, None)
         if answer is not None:
@@ -503,9 +492,6 @@ class RedisMongoDB(AtomDB):
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["template"] = self._build_named_type_template(
-                document[MongoFieldNames.COMPOSITE_TYPE]
-            )
             answer["targets"] = self._get_mongo_document_keys(document)
         return answer
 
