@@ -124,7 +124,6 @@ class RedisMongoDB(AtomDB):
         self.mongo_das_config_collection = None
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
         self.named_type_hash = {}
-        self.named_type_hash_reverse = {}
         self.typedef_mark_hash = ExpressionHasher._compute_hash(":")
         self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
         self.typedef_composite_type_hash = ExpressionHasher.composite_hash(
@@ -260,7 +259,6 @@ class RedisMongoDB(AtomDB):
         if named_type_hash is None:
             named_type_hash = ExpressionHasher.named_type_hash(atom_type)
             self.named_type_hash[atom_type] = named_type_hash
-            self.named_type_hash_reverse[named_type_hash] = atom_type
         return named_type_hash
 
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
