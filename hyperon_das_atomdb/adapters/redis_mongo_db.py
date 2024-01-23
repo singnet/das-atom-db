@@ -124,7 +124,6 @@ class RedisMongoDB(AtomDB):
         self.mongo_das_config_collection = None
         self.wildcard_hash = ExpressionHasher._compute_hash(WILDCARD)
         self.named_type_hash = {}
-        self.named_type_hash_reverse = {}
         self.typedef_mark_hash = ExpressionHasher._compute_hash(":")
         self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
         self.typedef_composite_type_hash = ExpressionHasher.composite_hash(
@@ -260,7 +259,6 @@ class RedisMongoDB(AtomDB):
         if named_type_hash is None:
             named_type_hash = ExpressionHasher.named_type_hash(atom_type)
             self.named_type_hash[atom_type] = named_type_hash
-            self.named_type_hash_reverse[named_type_hash] = atom_type
         return named_type_hash
 
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
@@ -292,17 +290,6 @@ class RedisMongoDB(AtomDB):
             answer = []
             for element in template:
                 v = self._build_named_type_hash_template(element)
-                answer.append(v)
-            return answer
-
-    def _build_named_type_template(self, template: Union[str, List[Any]]) -> List[Any]:
-        if isinstance(template, str):
-            ret = self.named_type_hash_reverse.get(template, None)
-            return ret
-        else:
-            answer = []
-            for element in template:
-                v = self._build_named_type_template(element)
                 answer.append(v)
             return answer
 
@@ -503,9 +490,6 @@ class RedisMongoDB(AtomDB):
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["template"] = self._build_named_type_template(
-                document[MongoFieldNames.COMPOSITE_TYPE]
-            )
             answer["targets"] = self._get_mongo_document_keys(document)
         return answer
 

@@ -45,12 +45,6 @@ class InMemoryDB(AtomDB):
         else:
             return [self._build_named_type_hash_template(element) for element in template]
 
-    def _build_named_type_template(self, composite_type: Union[str, List[Any]]) -> List[Any]:
-        if isinstance(composite_type, str):
-            return self.named_type_table[composite_type]
-        else:
-            return [self._build_named_type_template(element) for element in composite_type]
-
     def _add_atom_type(self, _name: str, _type: Optional[str] = 'Type'):
         if _name in self.all_named_types:
             return
@@ -363,7 +357,6 @@ class InMemoryDB(AtomDB):
             return {
                 'handle': atom['_id'],
                 'type': atom['named_type'],
-                'template': self._build_named_type_template(atom['composite_type']),
                 'targets': self._build_targets_list(atom),
             }
         raise AtomDoesNotExist(
