@@ -530,7 +530,7 @@ class RedisMongoDB(AtomDB):
 
         self.redis.flushall()
 
-    def _commit(self) -> None:
+    def commit(self) -> None:
         id_tag = MongoFieldNames.ID_HASH
         for key, (
             collection,
@@ -554,7 +554,7 @@ class RedisMongoDB(AtomDB):
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
             buffer.add(_HashableDocument(node))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
-                self._commit()
+                self.commit()
             return node
         else:
             logger().warn("Discarding atom whose name is too large: {node_name}")
@@ -571,7 +571,7 @@ class RedisMongoDB(AtomDB):
         _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
         buffer.add(_HashableDocument(link))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
-            self._commit()
+            self.commit()
         return link
 
     def _apply_index_template(

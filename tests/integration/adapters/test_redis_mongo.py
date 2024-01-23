@@ -131,7 +131,7 @@ class TestRedisMongo:
         db = self._connect_db()
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
-        db._commit()
+        db.commit()
         assert db.count_atoms() == (14, 26)
 
         assert db._retrieve_name(human) == "human"
@@ -274,7 +274,7 @@ class TestRedisMongo:
         assert db.count_atoms() == (0, 0)
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
-        db._commit()
+        db.commit()
         assert db.count_atoms() == (14, 26)
         assert sorted([
             answer[1][0]
@@ -298,7 +298,7 @@ class TestRedisMongo:
                 {"type": "Concept", "name": "mammal"}
             ]
         })
-        db._commit()
+        db.commit()
         assert db.count_atoms() == (15, 27)
         link_pos = db.get_atom(inheritance[human][mammal])
         assert link_pos["named_type"] == "Inheritance"
