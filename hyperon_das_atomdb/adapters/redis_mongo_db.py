@@ -269,12 +269,19 @@ class RedisMongoDB(AtomDB):
                 return self.mongo_nodes_collection.find_one(mongo_filter)
             elif arity == 2:
                 document = self.mongo_link_collection["2"].find_one(mongo_filter)
+                if document:
+                    document["targets"] = self._get_mongo_document_keys(document)
+                return document
             elif arity == 1:
                 document = self.mongo_link_collection["1"].find_one(mongo_filter)
+                if document:
+                    document["targets"] = self._get_mongo_document_keys(document)
+                return document
             else:
                 document = self.mongo_link_collection["N"].find_one(mongo_filter)
-        if document:
-            document["targets"] = self._get_mongo_document_keys(document)
+                if document:
+                    document["targets"] = self._get_mongo_document_keys(document)
+                return document
             
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
@@ -495,6 +502,10 @@ class RedisMongoDB(AtomDB):
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
+            if "targets" in document:
+                answer["targets"] = document["targets"]
+            else:
+                answer["name"] = document["name"]
         return answer
 
     def count_atoms(self) -> Tuple[int, int]:
