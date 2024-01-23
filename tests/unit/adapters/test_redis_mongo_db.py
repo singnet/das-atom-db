@@ -2971,13 +2971,13 @@ class TestRedisMongoDB:
             else:
                 assert False
 
-        def _commit():
+        def commit():
             pass
 
         redis_db.smembers = mock.Mock(side_effect=smembers)
         redis_db.lrange = mock.Mock(side_effect=lrange)
         redis_db.get = mock.Mock(side_effect=get)
-        redis_db._commit = mock.Mock(side_effect=_commit)
+        redis_db.commit = mock.Mock(side_effect=commit)
         return redis_db
 
     @pytest.fixture()
@@ -3458,7 +3458,7 @@ class TestRedisMongoDB:
                 'name': 'lion',
             }
         )
-        database._commit()
+        database.commit()
         all_nodes_after = database.get_all_nodes('Concept')
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 15
@@ -3488,7 +3488,7 @@ class TestRedisMongoDB:
                 ],
             }
         )
-        database._commit()
+        database.commit()
         all_nodes_after = database.get_all_nodes('Concept')
 
         assert len(all_nodes_before) == 14
