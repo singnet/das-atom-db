@@ -8,7 +8,7 @@ on:
         required: true
 
       changelog:
-        description: "Version changelog"
+        description: "Changelog"
         required: true
         type: string
 
