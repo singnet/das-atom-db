@@ -263,15 +263,19 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
         mongo_filter = {MongoFieldNames.ID_HASH: handle}
+        document = None
         if arity >= 0:
             if arity == 0:
                 return self.mongo_nodes_collection.find_one(mongo_filter)
             elif arity == 2:
-                return self.mongo_link_collection["2"].find_one(mongo_filter)
+                document = self.mongo_link_collection["2"].find_one(mongo_filter)
             elif arity == 1:
-                return self.mongo_link_collection["1"].find_one(mongo_filter)
+                document = self.mongo_link_collection["1"].find_one(mongo_filter)
             else:
-                return self.mongo_link_collection["N"].find_one(mongo_filter)
+                document = self.mongo_link_collection["N"].find_one(mongo_filter)
+        if document:
+            document["targets"] = self._get_mongo_document_keys(document)
+            
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
         document = self.mongo_nodes_collection.find_one(mongo_filter)
@@ -280,6 +284,7 @@ class RedisMongoDB(AtomDB):
         for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
             document = collection.find_one(mongo_filter)
             if document:
+                document["targets"] = self._get_mongo_document_keys(document)
                 return document
         return None
 
@@ -490,7 +495,6 @@ class RedisMongoDB(AtomDB):
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
-            answer["targets"] = self._get_mongo_document_keys(document)
         return answer
 
     def count_atoms(self) -> Tuple[int, int]:
