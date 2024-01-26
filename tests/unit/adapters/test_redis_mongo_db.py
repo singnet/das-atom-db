@@ -3085,14 +3085,33 @@ class TestRedisMongoDB:
         def find(_filter: Optional[Any] = None):
             if _filter is None:
                 return arity_2_collection_mock_data
-            return []
+            else:
+                ret = []
+                for link in arity_2_collection_mock_data + added_links_arity_2:
+                    if MongoFieldNames.TYPE_NAME in _filter:
+                        if _filter[MongoFieldNames.TYPE_NAME] == link[MongoFieldNames.TYPE_NAME]:
+                            ret.append(link)
+                return ret
 
         def insert_many(documents: List[Dict[str, Any]], ordered: bool):
             added_links_arity_2.extend(documents)
 
+        def replace_one(handle: Dict[str, Any], document: Dict[str, Any], upsert: bool):
+            for cursor in range(len(arity_2_collection_mock_data)):
+                if arity_2_collection_mock_data[cursor]['_id'] == handle['_id']:
+                    arity_2_collection_mock_data.pop(cursor)
+                    break
+            for cursor in range(len(added_links_arity_2)):
+                if added_links_arity_2[cursor]['_id'] == handle['_id']:
+                    added_links_arity_2.pop(cursor)
+                    break
+            added_links_arity_2.append(document)
+
         def estimated_document_count():
             return len(arity_2_collection_mock_data) + len(added_links_arity_2)
 
+        collection.insert_many = mock.Mock(side_effect=insert_many)
+        collection.replace_one = mock.Mock(side_effect=replace_one)
         collection.find_one = mock.Mock(side_effect=find_one)
         collection.find = mock.Mock(side_effect=find)
         collection.estimated_document_count = mock.Mock(side_effect=estimated_document_count)
@@ -3479,6 +3498,11 @@ class TestRedisMongoDB:
         assert (14, 28) == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
+        all_links_before = (
+            database.get_all_links('Similarity')
+            + database.get_all_links('Inheritance')
+            + database.get_all_links('Evaluation')
+        )
         database.add_link(
             {
                 'type': 'Similarity',
@@ -3490,12 +3514,17 @@ class TestRedisMongoDB:
         )
         database.commit()
         all_nodes_after = database.get_all_nodes('Concept')
+        all_links_after = (
+            database.get_all_links('Similarity')
+            + database.get_all_links('Inheritance')
+            + database.get_all_links('Evaluation')
+        )
 
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
-        # assert len(all_links_before) == 28
-        # assert len(all_links_after) == 29
-        # assert (16, 29) == database.count_atoms()
+        assert len(all_links_before) == 28
+        assert len(all_links_after) == 29
+        assert (16, 29) == database.count_atoms()
 
         new_node_handle = database.get_node_handle('Concept', 'lion')
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
