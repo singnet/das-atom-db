@@ -199,6 +199,9 @@ class RedisMongoDB(AtomDB):
                 )[self.database_name]
             return self.mongo_db
         except ValueError as e:
+            logger().error(
+                f'An error occourred while creating a MongoDB client - Details: {str(e)}'
+            )
             raise ConnectionMongoDBException(message="error creating a MongoClient", details=str(e))
 
     def _connection_redis(
@@ -336,6 +339,9 @@ class RedisMongoDB(AtomDB):
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
+            logger().error(
+                f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
+            )
             raise NodeDoesNotExist(
                 message="This node does not exist",
                 details=f"{node_type}:{node_name}",
@@ -344,6 +350,9 @@ class RedisMongoDB(AtomDB):
     def get_node_name(self, node_handle: str) -> str:
         answer = self._retrieve_name(node_handle)
         if not answer:
+            logger().error(
+                f'Failed to retrieve node name for handle: {node_handle}. The handle may be invalid or the corresponding node does not exist.'
+            )
             raise ValueError(f"Invalid handle: {node_handle}")
         return answer
 
@@ -378,12 +387,23 @@ class RedisMongoDB(AtomDB):
                 )
             ]
 
+    def get_all_links(self, link_type: str) -> List[str]:
+        links_handle = []
+        for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
+            documents = collection.find({MongoFieldNames.TYPE_NAME: link_type})
+            for document in documents:
+                links_handle.append(document[MongoFieldNames.ID_HASH])
+        return links_handle
+
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
         document = self._retrieve_mongo_document(link_handle, len(target_handles))
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
+            logger().error(
+                f'Failed to retrieve link handle for {link_type}:{target_handles}. This link may not exist.'
+            )
             raise LinkDoesNotExist(
                 message="This link does not exist",
                 details=f"{link_type}:{target_handles}",
@@ -392,12 +412,18 @@ class RedisMongoDB(AtomDB):
     def get_link_targets(self, link_handle: str) -> List[str]:
         answer = self._retrieve_outgoing_set(link_handle)
         if not answer:
+            logger().error(
+                f'Failed to retrieve link targets for handle: {link_handle}. The handle may be invalid or the corresponding link does not exist.'
+            )
             raise ValueError(f"Invalid handle: {link_handle}")
         return answer
 
     def is_ordered(self, link_handle: str) -> bool:
         document = self._retrieve_mongo_document(link_handle)
         if document is None:
+            logger().error(
+                'Failed to retrieve document for link handle: {link_handle}. The handle may be invalid or the corresponding link does not exist.'
+            )
             raise ValueError(f"Invalid handle: {link_handle}")
         return True
 
@@ -464,6 +490,7 @@ class RedisMongoDB(AtomDB):
                     return self._filter_non_toplevel(templates_matched)
             return templates_matched
         except Exception as exception:
+            logger().error(f'Failed to get matched type template - Details: {str(exception)}')
             raise ValueError(str(exception))
 
     def get_matched_type(
@@ -486,6 +513,9 @@ class RedisMongoDB(AtomDB):
             atom = self._convert_atom_format(document, **kwargs)
             return atom
         else:
+            logger().error(
+                f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
+            )
             raise AtomDoesNotExist(
                 message='This atom does not exist',
                 details=f'handle: {handle}',
@@ -542,6 +572,7 @@ class RedisMongoDB(AtomDB):
                 if key == MongoCollectionNames.NODES:
                     self._update_node_index(documents)
                 elif key == MongoCollectionNames.ATOM_TYPES:
+                    logger().error('Failed to commit Atom Types. This operation is not allowed')
                     raise InvalidOperationException
                 else:
                     self._update_link_index(documents)

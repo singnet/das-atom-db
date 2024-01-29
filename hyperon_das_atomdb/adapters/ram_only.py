@@ -8,6 +8,7 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExist,
     NodeDoesNotExist,
 )
+from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_patern_keys
 
@@ -163,6 +164,9 @@ class InMemoryDB(AtomDB):
         if node_handle in self.db.node:
             return node_handle
         else:
+            logger().error(
+                f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
+            )
             raise NodeDoesNotExist(
                 message='This node does not exist',
                 details=f'{node_type}:{node_name}',
@@ -171,6 +175,9 @@ class InMemoryDB(AtomDB):
     def get_node_name(self, node_handle: str) -> str:
         node = self.db.node.get(node_handle)
         if node is None:
+            logger().error(
+                f'Failed to retrieve node name for handle: {node_handle}. This node may not exist.'
+            )
             raise NodeDoesNotExist(
                 message='This node does not exist',
                 details=f'node_handle: {node_handle}',
@@ -180,6 +187,9 @@ class InMemoryDB(AtomDB):
     def get_node_type(self, node_handle: str) -> str:
         node = self.db.node.get(node_handle)
         if node is None:
+            logger().error(
+                f'Failed to retrieve node type for handle: {node_handle}. This node may not exist.'
+            )
             raise NodeDoesNotExist(
                 message='This node does not exist',
                 details=f'node_handle: {node_handle}',
@@ -210,12 +220,24 @@ class InMemoryDB(AtomDB):
                 for key, value in self.db.node.items()
                 if value['composite_type_hash'] == node_type_hash
             ]
+    
+    def get_all_links(self, link_type: str) -> List[str]:
+        answer = []
+        for table in self.db.link.all_tables():
+            if table:
+                for _, link in table.items():
+                    if link['named_type'] == link_type:
+                        answer.append(link['_id'])
+        return answer
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
         if link_handle in self.db.link.get_table(len(target_handles)):
             return link_handle
         else:
+            logger().error(
+                f'Failed to retrieve link handle for {link_type}:{target_handles}. This link may not exist.'
+            )
             raise LinkDoesNotExist(
                 message='This link does not exist',
                 details=f'{link_type}:{target_handles}',
@@ -226,6 +248,9 @@ class InMemoryDB(AtomDB):
         if link is not None:
             return link['named_type']
         else:
+            logger().error(
+                f'Failed to retrieve link type for {link_handle}. This link may not exist.'
+            )
             raise LinkDoesNotExist(
                 message='This link does not exist',
                 details=f'link_handle: {link_handle}',
@@ -234,6 +259,9 @@ class InMemoryDB(AtomDB):
     def get_link_targets(self, link_handle: str) -> List[str]:
         answer = self.db.outgoing_set.get(link_handle)
         if answer is None:
+            logger().error(
+                f'Failed to retrieve link targets for {link_handle}. This link may not exist.'
+            )
             raise LinkDoesNotExist(
                 message='This link does not exist',
                 details=f'link_handle: {link_handle}',
@@ -245,6 +273,9 @@ class InMemoryDB(AtomDB):
         if link is not None:
             return True
         else:
+            logger().error(
+                'Failed to retrieve document for link handle: {link_handle}. The link may not exist.'
+            )
             raise LinkDoesNotExist(
                 message='This link does not exist',
                 details=f'link_handle: {link_handle}',
@@ -267,6 +298,9 @@ class InMemoryDB(AtomDB):
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
+            logger().error(
+                'Failed to get matched links: Queries with unordered links are not implemented. link_type: {link_type}'
+            )
             raise InvalidOperationException(
                 message='Queries with unordered links are not implemented',
                 details=f'link_type: {link_type}',
@@ -330,6 +364,9 @@ class InMemoryDB(AtomDB):
             atom = self._convert_atom_format(document, **kwargs)
             return atom
         else:
+            logger().error(
+                f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
+            )
             raise AtomDoesNotExist(
                 message='This atom does not exist',
                 details=f'handle: {handle}',
@@ -359,6 +396,7 @@ class InMemoryDB(AtomDB):
                 'type': atom['named_type'],
                 'targets': self._build_targets_list(atom),
             }
+        logger().error(f'Failed to retrieve atom for handle: {handle}. This link may not exist.')
         raise AtomDoesNotExist(
             message='This atom does not exist',
             details=f'handle: {handle}',

@@ -723,3 +723,11 @@ class TestInMemoryDB:
         assert 'Concept' == database.get_atom_type(h)
         assert 'Concept' == database.get_atom_type(m)
         assert 'Inheritance' == database.get_atom_type(i)
+    
+    def test_get_all_links(self, database: InMemoryDB):
+        link_h = database.get_all_links('Similarity')
+        link_i = database.get_all_links('Inheritance')
+
+        assert len(link_h) == 14
+        assert len(link_i) == 12
+        assert [] == database.get_all_links('snet')
