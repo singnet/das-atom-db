@@ -1,11 +1,11 @@
 import pickle
 import sys
+from copy import deepcopy
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo.database import Database
-from pymongo.errors import BulkWriteError
 from redis import Redis
 from redis.cluster import RedisCluster
 
@@ -248,10 +248,14 @@ class RedisMongoDB(AtomDB):
                             continue
                         template = {}
                         template[MongoFieldNames.TYPE_NAME] = named_type
-                        template["selected_positions"] = [i for i, pos in enumerate([pos0, pos1, pos2]) if pos]
+                        template["selected_positions"] = [
+                            i for i, pos in enumerate([pos0, pos1, pos2]) if pos
+                        ]
                         self.default_pattern_index_templates.append(template)
         if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
-            self.pattern_index_templates = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})["templates"]
+            self.pattern_index_templates = self.mongo_das_config_collection.find_one(
+                {"_id": "pattern_index_templates"}
+            )["templates"]
         else:
             self.pattern_index_templates = None
 
@@ -285,7 +289,7 @@ class RedisMongoDB(AtomDB):
                 if document:
                     document["targets"] = self._get_mongo_document_keys(document)
                 return document
-            
+
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
         document = self.mongo_nodes_collection.find_one(mongo_filter)
@@ -463,7 +467,6 @@ class RedisMongoDB(AtomDB):
     def get_incoming_links(
         self, atom_handle: str, **kwargs
     ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-
         links = self._retrieve_incoming_set(atom_handle)
 
         if not links:
@@ -605,12 +608,8 @@ class RedisMongoDB(AtomDB):
         return link
 
     def _apply_index_template(
-        self,
-        template: Dict[str, Any], 
-        named_type: str, 
-        targets: List[str],
-        arity) -> List[List[str]]:
-
+        self, template: Dict[str, Any], named_type: str, targets: List[str], arity
+    ) -> List[List[str]]:
         key = []
         key = [WILDCARD] if template[MongoFieldNames.TYPE_NAME] else [named_type]
         target_selected_pos = template["selected_positions"]
@@ -663,7 +662,7 @@ class RedisMongoDB(AtomDB):
                     buffer = []
                     incoming_buffer[target] = buffer
                 buffer.append(handle)
-            value = pickle.dumps(tuple([handle,  tuple(targets)]))
+            value = pickle.dumps(tuple([handle, tuple(targets)]))
             for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
                 key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
                 self.redis.sadd(key, value)
@@ -680,7 +679,7 @@ class RedisMongoDB(AtomDB):
 
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
         if pattern_index_templates is not None:
-            self.pattern_index_templates = copy.deepcopy(pattern_index_templates)
+            self.pattern_index_templates = deepcopy(pattern_index_templates)
         self.redis.flushall()
         for collection in self.mongo_link_collection.values():
             self._update_link_index(collection.find({}))

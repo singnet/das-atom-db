@@ -1,31 +1,23 @@
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-
 import os
 import subprocess
+
 import pytest
+
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import WILDCARD
+
 from .animals_kb import (
-    node_docs,
+    animal,
+    chimp,
+    ent,
+    human,
     inheritance,
     inheritance_docs,
-    inheritance_targets,
-    similarity,
-    similarity_docs,
-    human,
-    monkey,
-    chimp,
     mammal,
-    reptile,
-    snake,
-    dinosaur,
-    triceratops,
-    earthworm,
+    monkey,
+    node_docs,
     rhino,
-    vine,
-    ent,
-    animal,
-    plant,
+    similarity_docs,
 )
 
 redis_port = "15926"
@@ -106,7 +98,6 @@ def cleanup(request):
 
 
 class TestRedisMongo:
-
     def _add_atoms(self, db: RedisMongoDB):
         for node in node_docs.values():
             db.add_node(node)
@@ -150,153 +141,153 @@ class TestRedisMongo:
 
         templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
         assert len(templates) == 12
-        assert tuple([
-            "116df61c01859c710d178ba14a483509",
-            tuple([
-                "c1db9b517073e51eb7ef6fed608ec204",
-                "b99ae727c787f1b13b452fd4c9ce1b9a"
-            ])
-        ])
-        assert tuple([
-            "1c3bf151ea200b2d9e088a1178d060cb",
-            tuple([
-                "bdfe4e7a431f73386f37c6448afe5840",
-                "0a32b476852eeb954979b87f5f6cb7af"
-            ])
-        ])
-        assert tuple([
-            "4120e428ab0fa162a04328e5217912ff",
-            tuple([
-                "bb34ce95f161a6b37ff54b3d4c817857",
-                "0a32b476852eeb954979b87f5f6cb7af"
-            ])
-        ])
-        assert tuple([
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            tuple([
-                "5b34c54bee150c04f9fa584b899dc030",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ])
-        assert tuple([
-            "906fa505ae3bc6336d80a5f9aaa47b3b",
-            tuple([
-                "d03e59654221c1e8fcda404fd5c8d6cb",
-                "08126b066d32ee37743e255a2558cccd"
-            ])
-        ])
-        assert tuple([
-            "959924e3aab197af80a84c1ab261fd65",
-            tuple([
-                "08126b066d32ee37743e255a2558cccd",
-                "b99ae727c787f1b13b452fd4c9ce1b9a"
-            ])
-        ])
-        assert tuple([
-            "b0f428929706d1d991e4d712ad08f9ab",
-            tuple([
-                "b99ae727c787f1b13b452fd4c9ce1b9a",
-                "0a32b476852eeb954979b87f5f6cb7af"
-            ])
-        ])
-        assert tuple([
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            tuple([
-                "af12f10f9ae2002a1607ba0b47ba8407",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ])
-        assert tuple([
-            "e4685d56969398253b6f77efd21dc347",
-            tuple([
-                "b94941d8cd1c0ee4ad3dd3dcab52b964",
-                "80aff30094874e75028033a38ce677bb"
-            ])
-        ])
-        assert tuple([
-            "ee1c03e6d1f104ccd811cfbba018451a",
-            tuple([
-                "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-                "80aff30094874e75028033a38ce677bb"
-            ])
-        ])
-        assert tuple([
-            "f31dfe97db782e8cec26de18dddf8965",
-            tuple([
-                "1cdffc6b0b89ff41d68bec237481d1e1",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ])
-        assert tuple([
-            "fbf03d17d6a40feff828a3f2c6e86f05",
-            tuple([
-                "99d18c702e813b07260baf577c60c455",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ])
+        assert tuple(
+            [
+                "116df61c01859c710d178ba14a483509",
+                tuple(["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
+            ]
+        )
+        assert tuple(
+            [
+                "1c3bf151ea200b2d9e088a1178d060cb",
+                tuple(["bdfe4e7a431f73386f37c6448afe5840", "0a32b476852eeb954979b87f5f6cb7af"]),
+            ]
+        )
+        assert tuple(
+            [
+                "4120e428ab0fa162a04328e5217912ff",
+                tuple(["bb34ce95f161a6b37ff54b3d4c817857", "0a32b476852eeb954979b87f5f6cb7af"]),
+            ]
+        )
+        assert tuple(
+            [
+                "75756335011dcedb71a0d9a7bd2da9e8",
+                tuple(["5b34c54bee150c04f9fa584b899dc030", "bdfe4e7a431f73386f37c6448afe5840"]),
+            ]
+        )
+        assert tuple(
+            [
+                "906fa505ae3bc6336d80a5f9aaa47b3b",
+                tuple(["d03e59654221c1e8fcda404fd5c8d6cb", "08126b066d32ee37743e255a2558cccd"]),
+            ]
+        )
+        assert tuple(
+            [
+                "959924e3aab197af80a84c1ab261fd65",
+                tuple(["08126b066d32ee37743e255a2558cccd", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
+            ]
+        )
+        assert tuple(
+            [
+                "b0f428929706d1d991e4d712ad08f9ab",
+                tuple(["b99ae727c787f1b13b452fd4c9ce1b9a", "0a32b476852eeb954979b87f5f6cb7af"]),
+            ]
+        )
+        assert tuple(
+            [
+                "c93e1e758c53912638438e2a7d7f7b7f",
+                tuple(["af12f10f9ae2002a1607ba0b47ba8407", "bdfe4e7a431f73386f37c6448afe5840"]),
+            ]
+        )
+        assert tuple(
+            [
+                "e4685d56969398253b6f77efd21dc347",
+                tuple(["b94941d8cd1c0ee4ad3dd3dcab52b964", "80aff30094874e75028033a38ce677bb"]),
+            ]
+        )
+        assert tuple(
+            [
+                "ee1c03e6d1f104ccd811cfbba018451a",
+                tuple(["4e8e26e3276af8a5c2ac2cc2dc95c6d2", "80aff30094874e75028033a38ce677bb"]),
+            ]
+        )
+        assert tuple(
+            [
+                "f31dfe97db782e8cec26de18dddf8965",
+                tuple(["1cdffc6b0b89ff41d68bec237481d1e1", "bdfe4e7a431f73386f37c6448afe5840"]),
+            ]
+        )
+        assert tuple(
+            [
+                "fbf03d17d6a40feff828a3f2c6e86f05",
+                tuple(["99d18c702e813b07260baf577c60c455", "bdfe4e7a431f73386f37c6448afe5840"]),
+            ]
+        )
 
         patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
         assert len(patterns) == 4
-        assert tuple([
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            tuple([
-                "5b34c54bee150c04f9fa584b899dc030",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ]) in patterns
-        assert tuple([
-            "fbf03d17d6a40feff828a3f2c6e86f05",
-            tuple([
-                "99d18c702e813b07260baf577c60c455",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ]) in patterns
-        assert tuple([
-            "f31dfe97db782e8cec26de18dddf8965",
-            tuple([
-                "1cdffc6b0b89ff41d68bec237481d1e1",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ]) in patterns
-        assert tuple([
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            tuple([
-                "af12f10f9ae2002a1607ba0b47ba8407",
-                "bdfe4e7a431f73386f37c6448afe5840"
-            ])
-        ]) in patterns
-       
+        assert (
+            tuple(
+                [
+                    "75756335011dcedb71a0d9a7bd2da9e8",
+                    tuple(["5b34c54bee150c04f9fa584b899dc030", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in patterns
+        )
+        assert (
+            tuple(
+                [
+                    "fbf03d17d6a40feff828a3f2c6e86f05",
+                    tuple(["99d18c702e813b07260baf577c60c455", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in patterns
+        )
+        assert (
+            tuple(
+                [
+                    "f31dfe97db782e8cec26de18dddf8965",
+                    tuple(["1cdffc6b0b89ff41d68bec237481d1e1", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in patterns
+        )
+        assert (
+            tuple(
+                [
+                    "c93e1e758c53912638438e2a7d7f7b7f",
+                    tuple(["af12f10f9ae2002a1607ba0b47ba8407", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in patterns
+        )
+
         _db_down()
 
     def _check_basic_patterns(self, db):
-        assert sorted([
-            answer[1][0]
-            for answer in db.get_matched_links(
-                "Inheritance",
-                [WILDCARD, db.node_handle("Concept", "mammal")]
-            )
-        ]) == sorted([human, monkey, chimp, rhino])
-        assert sorted([
-            answer[1][1]
-            for answer in db.get_matched_links(
-                "Inheritance",
-                [db.node_handle("Concept", "mammal"), WILDCARD]
-            )
-        ]) == sorted([animal])
-        assert sorted([
-            answer[1][0]
-            for answer in db.get_matched_links(
-                "Similarity",
-                [WILDCARD, db.node_handle("Concept", "human")]
-            )
-        ]) == sorted([monkey, chimp, ent])
-        assert sorted([
-            answer[1][1]
-            for answer in db.get_matched_links(
-                "Similarity",
-                [db.node_handle("Concept", "human"), WILDCARD]
-            )
-        ]) == sorted([monkey, chimp, ent])
+        assert sorted(
+            [
+                answer[1][0]
+                for answer in db.get_matched_links(
+                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
+                )
+            ]
+        ) == sorted([human, monkey, chimp, rhino])
+        assert sorted(
+            [
+                answer[1][1]
+                for answer in db.get_matched_links(
+                    "Inheritance", [db.node_handle("Concept", "mammal"), WILDCARD]
+                )
+            ]
+        ) == sorted([animal])
+        assert sorted(
+            [
+                answer[1][0]
+                for answer in db.get_matched_links(
+                    "Similarity", [WILDCARD, db.node_handle("Concept", "human")]
+                )
+            ]
+        ) == sorted([monkey, chimp, ent])
+        assert sorted(
+            [
+                answer[1][1]
+                for answer in db.get_matched_links(
+                    "Similarity", [db.node_handle("Concept", "human"), WILDCARD]
+                )
+            ]
+        ) == sorted([monkey, chimp, ent])
 
     def test_patterns(self):
         _db_up()
@@ -315,13 +306,14 @@ class TestRedisMongo:
         assert db.count_atoms() == (0, 0)
         db.commit()
         assert db.count_atoms() == (14, 26)
-        assert sorted([
-            answer[1][0]
-            for answer in db.get_matched_links(
-                "Inheritance",
-                [WILDCARD, db.node_handle("Concept", "mammal")]
-            )
-        ]) == sorted([human, monkey, chimp, rhino])
+        assert sorted(
+            [
+                answer[1][0]
+                for answer in db.get_matched_links(
+                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
+                )
+            ]
+        ) == sorted([human, monkey, chimp, rhino])
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
         assert "strength" not in link_pre
@@ -330,13 +322,15 @@ class TestRedisMongo:
         link_new = inheritance_docs[inheritance[human][mammal]].copy()
         link_new["strength"] = 1.0
         db.add_link(link_new)
-        db.add_link({
-            "type": "Inheritance",
-            "targets": [
-                {"type": "Concept", "name": "dog"},
-                {"type": "Concept", "name": "mammal"}
-            ]
-        })
+        db.add_link(
+            {
+                "type": "Inheritance",
+                "targets": [
+                    {"type": "Concept", "name": "dog"},
+                    {"type": "Concept", "name": "mammal"},
+                ],
+            }
+        )
         db.commit()
         assert db.count_atoms() == (15, 27)
         link_pos = db.get_atom(inheritance[human][mammal])
@@ -346,22 +340,17 @@ class TestRedisMongo:
         assert link_pos["strength"] == 1.0
         dog = db.node_handle("Concept", "dog")
         assert db.get_node_name(dog) == "dog"
-        new_link_handle = db.get_link_handle(
-            "Inheritance",
-            [
-                dog,
-                mammal
-            ]
-        )
+        new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
         new_link = db.get_atom(new_link_handle)
         assert db.get_link_targets(new_link_handle) == new_link["targets"]
-        assert sorted([
-            answer[1][0]
-            for answer in db.get_matched_links(
-                "Inheritance",
-                [WILDCARD, db.node_handle("Concept", "mammal")]
-            )
-        ]) == sorted([human, monkey, chimp, rhino, dog])
+        assert sorted(
+            [
+                answer[1][0]
+                for answer in db.get_matched_links(
+                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
+                )
+            ]
+        ) == sorted([human, monkey, chimp, rhino, dog])
         _db_down()
 
     def test_reindex(self):

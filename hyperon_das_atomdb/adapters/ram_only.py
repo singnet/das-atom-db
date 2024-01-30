@@ -220,7 +220,7 @@ class InMemoryDB(AtomDB):
                 for key, value in self.db.node.items()
                 if value['composite_type_hash'] == node_type_hash
             ]
-    
+
     def get_all_links(self, link_type: str) -> List[str]:
         answer = []
         for table in self.db.link.all_tables():
