@@ -268,6 +268,45 @@ class TestRedisMongo:
        
         _db_down()
 
+    def _check_basic_patterns(self, db):
+        assert sorted([
+            answer[1][0]
+            for answer in db.get_matched_links(
+                "Inheritance",
+                [WILDCARD, db.node_handle("Concept", "mammal")]
+            )
+        ]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([
+            answer[1][1]
+            for answer in db.get_matched_links(
+                "Inheritance",
+                [db.node_handle("Concept", "mammal"), WILDCARD]
+            )
+        ]) == sorted([animal])
+        assert sorted([
+            answer[1][0]
+            for answer in db.get_matched_links(
+                "Similarity",
+                [WILDCARD, db.node_handle("Concept", "human")]
+            )
+        ]) == sorted([monkey, chimp, ent])
+        assert sorted([
+            answer[1][1]
+            for answer in db.get_matched_links(
+                "Similarity",
+                [db.node_handle("Concept", "human"), WILDCARD]
+            )
+        ]) == sorted([monkey, chimp, ent])
+
+    def test_patterns(self):
+        _db_up()
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.commit()
+        assert db.count_atoms() == (14, 26)
+        self._check_basic_patterns(db)
+        _db_down()
+
     def test_commit(self):
         _db_up()
         db = self._connect_db()
@@ -323,4 +362,14 @@ class TestRedisMongo:
                 [WILDCARD, db.node_handle("Concept", "mammal")]
             )
         ]) == sorted([human, monkey, chimp, rhino, dog])
+        _db_down()
+
+    def test_reindex(self):
+        _db_up()
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.commit()
+        db.reindex()
+        assert db.count_atoms() == (14, 26)
+        self._check_basic_patterns(db)
         _db_down()

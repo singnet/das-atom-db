@@ -677,3 +677,10 @@ class RedisMongoDB(AtomDB):
         for handle in incoming_buffer:
             key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
             self.redis.sadd(key, *incoming_buffer[handle])
+
+    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
+        if pattern_index_templates is not None:
+            self.pattern_index_templates = copy.deepcopy(pattern_index_templates)
+        self.redis.flushall()
+        for collection in self.mongo_link_collection.values():
+            self._update_link_index(collection.find({}))

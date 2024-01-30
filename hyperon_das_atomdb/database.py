@@ -1,6 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -510,5 +510,66 @@ class AtomDB(ABC):
                     ],
                 }
             >>> db.add_link(link_params)
+        """
+        ...  # pragma no cover
+
+    @abstractmethod
+    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
+        """
+        Reindex inverted pattern index according to passed templates.
+
+        Args:
+            pattern_index_templates: indexes are specified by atom type in a dict mapping from atom types
+                to a pattern template:
+
+                {
+                    <atom type>: <pattern template>
+                }
+
+                Pattern template is also a dict:
+
+                {
+                    "named_type": True/False
+                    "selected_positions": [n1, n2, ...]
+                }
+
+                Pattern templates are applied to each link entered in the atom space in order to determine
+                which entries should be created in the inverted pattern index. Entries in the inverted
+                pattern index are like patterns where the link type and each of its targets may be replaced
+                by wildcards. For instance, given a similarity link Similarity(handle1, handle2) it could be
+                used to create any of the following entries in the inverted pattern index:
+
+                    *(handle1, handle2)
+                    Similarity(*, handle2)
+                    Similarity(handle1, *)
+                    Similarity(*, *)
+
+                If we create all possibilities of index entries to all links, the pattern index size will
+                grow exponentially so we limit the entries we want to create by each type of link. This is
+                what a pattern template for a given link type is. For instance if we apply this pattern
+                template:
+
+                {
+                    "named_type": False
+                    "selected_positions": [0, 1]
+                }
+
+                to Similarity(handle1, handle2) we'll create only the following entries:
+
+                    Similarity(*, handle2)
+                    Similarity(handle1, *)
+                    Similarity(*, *)
+
+                If we apply this pattern template instead:
+
+                {
+                    "named_type": True
+                    "selected_positions": [1]
+                }
+
+                We'll have:
+
+                    *(handle1, handle2)
+                    Similarity(handle1, *)
         """
         ...  # pragma no cover

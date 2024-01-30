@@ -434,3 +434,6 @@ class InMemoryDB(AtomDB):
         link_db[handle] = link
         self._update_index(link)
         return link
+
+    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]]):
+        raise NotImplementedError()
