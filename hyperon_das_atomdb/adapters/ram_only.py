@@ -159,38 +159,9 @@ class InMemoryDB(AtomDB):
             if len(pattern) == 0:
                 self.db.patterns.pop(pattern_key, None)
 
-    def _delete_links_from_db(self, links_handle: List[str]) -> None:
-        for link_handle in links_handle:
-            link_document = self._get_and_delete_link(link_handle)
-
-            if not link_document:
-                raise LinkDoesNotExist('link not exist')
-
-            named_type_exists = any(
-                document['named_type'] == link_document['named_type']
-                for link_table in self.db.link.all_tables()
-                if link_table
-                for document in link_table.values()
-            )
-
-            if not named_type_exists:
-                self._delete_atom_type(link_document['named_type'])
-
-            incoming_links = self.db.incoming_set.pop(link_handle, None)
-
-            if incoming_links:
-                self._delete_links_from_db(incoming_links)
-
-            outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
-
-            if outgoing_atoms:
-                self._delete_incoming_set(link_handle, outgoing_atoms)
-
-            targets_hash = self._build_targets_list(link_document)
-
-            self._delete_templates(link_document, targets_hash)
-
-            self._delete_patterns(link_document, targets_hash)
+    def _delete_link_and_update_index(self, link_handle: str) -> None:
+        link_document = self._get_and_delete_link(link_handle)
+        self._update_index(atom=link_document, delete_atom=True)
 
     def _filter_non_toplevel(self, matches: list) -> list:
         matches_toplevel_only = []
@@ -212,26 +183,59 @@ class InMemoryDB(AtomDB):
             count += 1
         return targets
 
-    def _update_index(self, atom: Dict[str, Any]):
+    def _update_index(self, atom: Dict[str, Any], **kwargs):
         atom_type = atom['named_type']
-        self._add_atom_type(_name=atom_type)
-        if 'name' not in atom:
-            handle = atom['_id']
+        if kwargs.get('delete_atom', False):
+            if atom is None:
+                raise LinkDoesNotExist('link not exist')
+
+            link_handle = atom['_id']
+
+            named_type_exists = any(
+                document['named_type'] == atom['named_type']
+                for link_table in self.db.link.all_tables()
+                if link_table
+                for document in link_table.values()
+            )
+
+            if not named_type_exists:
+                self._delete_atom_type(atom['named_type'])
+
+            handles = self.db.incoming_set.pop(link_handle, None)
+
+            if handles:
+                for handle in handles:
+                    self._delete_link_and_update_index(handle)
+
+            outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
+
+            if outgoing_atoms:
+                self._delete_incoming_set(link_handle, outgoing_atoms)
+
             targets_hash = self._build_targets_list(atom)
+
+            self._delete_templates(atom, targets_hash)
+
+            self._delete_patterns(atom, targets_hash)
+        else:
             self._add_atom_type(_name=atom_type)
-            self._add_outgoing_set(handle, targets_hash)
-            self._add_incoming_set(handle, targets_hash)
-            self._add_templates(
-                atom['composite_type_hash'],
-                atom['named_type_hash'],
-                handle,
-                targets_hash,
-            )
-            self._add_patterns(
-                atom['named_type_hash'],
-                handle,
-                targets_hash,
-            )
+            if 'name' not in atom:
+                handle = atom['_id']
+                targets_hash = self._build_targets_list(atom)
+                self._add_atom_type(_name=atom_type)
+                self._add_outgoing_set(handle, targets_hash)
+                self._add_incoming_set(handle, targets_hash)
+                self._add_templates(
+                    atom['composite_type_hash'],
+                    atom['named_type_hash'],
+                    handle,
+                    targets_hash,
+                )
+                self._add_patterns(
+                    atom['named_type_hash'],
+                    handle,
+                    targets_hash,
+                )
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
@@ -522,13 +526,14 @@ class InMemoryDB(AtomDB):
             if not named_type_exists:
                 self._delete_atom_type(atom_type)
 
-            incoming_links = self.db.incoming_set.pop(handle, [])
+            handles = self.db.incoming_set.pop(handle, [])
 
-            if incoming_links:
-                self._delete_links_from_db(incoming_links)
+            if handles:
+                for handle in handles:
+                    self._delete_link_and_update_index(handle)
         else:
             try:
-                self._delete_links_from_db([handle])
+                self._delete_link_and_update_index(handle)
             except LinkDoesNotExist:
                 logger().error(
                     f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
