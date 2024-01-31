@@ -513,6 +513,9 @@ class InMemoryDB(AtomDB):
         self._update_index(link)
         return link
 
+    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]]):
+        raise NotImplementedError()
+
     def delete_atom(self, handle: str, **kwargs) -> None:
         node = self.db.node.pop(handle, None)
 

@@ -46,7 +46,7 @@ inheritance_targets = [
     [earthworm, animal],
     [rhino, mammal],
     [vine, plant],
-    [ent, plant]
+    [ent, plant],
 ]
 inheritance = {}
 inheritance_docs = {}
@@ -57,12 +57,9 @@ for source, target in inheritance_targets:
         row = {}
         inheritance[source] = row
     row[target] = ExpressionHasher.expression_hash(inheritance_hash, [source, target])
-    inheritance_docs[row[target]] = { 
-        "type": "Inheritance", 
-        "targets": [ 
-            node_docs[source],
-            node_docs[target]
-        ], 
+    inheritance_docs[row[target]] = {
+        "type": "Inheritance",
+        "targets": [node_docs[source], node_docs[target]],
     }
 
 similarity_targets = [
@@ -79,7 +76,7 @@ similarity_targets = [
     [earthworm, snake],
     [triceratops, rhino],
     [vine, snake],
-    [ent, human]
+    [ent, human],
 ]
 similarity = {}
 similarity_docs = {}
@@ -90,10 +87,7 @@ for source, target in similarity_targets:
         row = {}
         similarity[source] = row
     row[target] = ExpressionHasher.expression_hash(similarity_hash, [source, target])
-    similarity_docs[row[target]] = { 
-        "type": "Similarity", 
-        "targets": [ 
-            node_docs[source],
-            node_docs[target]
-        ], 
+    similarity_docs[row[target]] = {
+        "type": "Similarity",
+        "targets": [node_docs[source], node_docs[target]],
     }
