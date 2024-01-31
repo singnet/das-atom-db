@@ -512,3 +512,12 @@ class AtomDB(ABC):
             >>> db.add_link(link_params)
         """
         ...  # pragma no cover
+
+    @abstractmethod
+    def delete_atom(self, handle: str, **kwargs) -> None:
+        """Delete a atom to the database
+
+        Args:
+            handle (str): Atom handle
+        """
+        ...  # pragma no cover

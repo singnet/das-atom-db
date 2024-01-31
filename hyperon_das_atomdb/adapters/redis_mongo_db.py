@@ -604,6 +604,9 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
+    def delete_atom(self, handle: str, **kwargs) -> None:
+        pass
+
     def _apply_index_template(
         self,
         template: Dict[str, Any], 

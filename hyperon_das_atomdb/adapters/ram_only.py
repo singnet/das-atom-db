@@ -28,7 +28,7 @@ class InMemoryDB(AtomDB):
             node={},
             link=Link(arity_1={}, arity_2={}, arity_n={}),
             outgoing_set={},
-            incomming_set={},
+            incoming_set={},
             patterns={},
             templates={},
         )
@@ -40,11 +40,24 @@ class InMemoryDB(AtomDB):
                 return link
         return None
 
+    def _get_and_delete_link(self, link_handle: str) -> Dict[str, Any]:
+        for link_table in self.db.link.all_tables():
+            if link_table:
+                link_document = link_table.pop(link_handle, None)
+                if link_document:
+                    return link_document
+
     def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
             return ExpressionHasher.named_type_hash(template)
         else:
             return [self._build_named_type_hash_template(element) for element in template]
+
+    def _build_atom_type_key_hash(self, _name: str) -> str:
+        name_hash = ExpressionHasher.named_type_hash(_name)
+        type_hash = ExpressionHasher.named_type_hash('Type')
+        typedef_mark_hash = ExpressionHasher.named_type_hash(":")
+        return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
     def _add_atom_type(self, _name: str, _type: Optional[str] = 'Type'):
         if _name in self.all_named_types:
@@ -71,40 +84,61 @@ class InMemoryDB(AtomDB):
             self.db.atom_type[key] = atom_type
             self.named_type_table[name_hash] = _name
 
+    def _delete_atom_type(self, _name: str) -> None:
+        key = self._build_atom_type_key_hash(_name)
+        self.db.atom_type.pop(key, None)
+        self.all_named_types.remove(_name)
+
     def _add_outgoing_set(self, key: str, targets_hash: Dict[str, Any]) -> None:
         self.db.outgoing_set[key] = targets_hash
 
-    def _add_incomming_set(self, key: str, targets_hash: Dict[str, Any]) -> None:
+    def _get_and_delete_outgoing_set(self, handle: str) -> List[str]:
+        return self.db.outgoing_set.pop(handle, None)
+
+    def _add_incoming_set(self, key: str, targets_hash: Dict[str, Any]) -> None:
         for target_hash in targets_hash:
-            incomming_set = self.db.incomming_set.get(target_hash)
-            if incomming_set is None:
-                self.db.incomming_set[target_hash] = [key]
+            incoming_set = self.db.incoming_set.get(target_hash)
+            if incoming_set is None:
+                self.db.incoming_set[target_hash] = [key]
             else:
-                self.db.incomming_set[target_hash].append(key)
+                self.db.incoming_set[target_hash].append(key)
+
+    def _delete_incoming_set(self, link_handle: str, atoms_handle: List[str]) -> None:
+        for atom_handle in atoms_handle:
+            handles = self.db.incoming_set.get(atom_handle, [])
+            if len(handles) > 0:
+                handles.remove(link_handle)
+            if len(handles) == 0:
+                self.db.incoming_set.pop(atom_handle, None)
 
     def _add_templates(
-        self,
-        composite_type_hash: str,
-        named_type_hash: str,
-        key: str,
-        targets_hash: List[str],
+        self, composite_type_hash: str, named_type_hash: str, key: str, targets_hash: List[str]
     ) -> None:
         template_composite_type_hash = self.db.templates.get(composite_type_hash)
         template_named_type_hash = self.db.templates.get(named_type_hash)
 
         if template_composite_type_hash is not None:
-            # template_composite_type_hash.append([key, targets_hash])
             template_composite_type_hash.append((key, tuple(targets_hash)))
         else:
-            # self.db.templates[composite_type_hash] = [[key, targets_hash]]
             self.db.templates[composite_type_hash] = [(key, tuple(targets_hash))]
 
         if template_named_type_hash is not None:
-            # template_named_type_hash.append([key, targets_hash])
             template_named_type_hash.append((key, tuple(targets_hash)))
         else:
-            # self.db.templates[named_type_hash] = [[key, targets_hash]]
             self.db.templates[named_type_hash] = [(key, tuple(targets_hash))]
+
+    def _delete_templates(self, link_document: dict, targets_hash: List[str]) -> None:
+        template_composite_type = self.db.templates.get(link_document['composite_type_hash'], [])
+        if len(template_composite_type) > 0:
+            template_composite_type.remove((link_document['_id'], tuple(targets_hash)))
+        if len(template_composite_type) == 0:
+            self.db.templates.pop(link_document['composite_type_hash'], None)
+
+        template_named_type = self.db.templates.get(link_document['named_type_hash'], [])
+        if len(template_named_type) > 0:
+            template_named_type.remove((link_document['_id'], tuple(targets_hash)))
+        if len(template_named_type) == 0:
+            self.db.templates.pop(link_document['named_type_hash'], None)
 
     def _add_patterns(self, named_type_hash: str, key: str, targets_hash: List[str]):
         pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
@@ -112,11 +146,51 @@ class InMemoryDB(AtomDB):
         for pattern_key in pattern_keys:
             pattern_key_hash = self.db.patterns.get(pattern_key)
             if pattern_key_hash is not None:
-                # pattern_key_hash.append([key, targets_hash])
                 pattern_key_hash.append((key, tuple(targets_hash)))
             else:
-                # self.db.patterns[pattern_key] = [[key, targets_hash]]
                 self.db.patterns[pattern_key] = [(key, tuple(targets_hash))]
+
+    def _delete_patterns(self, link_document: dict, targets_hash: List[str]) -> None:
+        pattern_keys = build_patern_keys([link_document['named_type_hash'], *targets_hash])
+        for pattern_key in pattern_keys:
+            pattern = self.db.patterns.get(pattern_key, [])
+            if len(pattern) > 0:
+                pattern.remove((link_document['_id'], tuple(targets_hash)))
+            if len(pattern) == 0:
+                self.db.patterns.pop(pattern_key, None)
+
+    def _delete_links_from_db(self, links_handle: List[str]) -> None:
+        for link_handle in links_handle:
+            link_document = self._get_and_delete_link(link_handle)
+
+            if not link_document:
+                raise LinkDoesNotExist('link not exist')
+
+            named_type_exists = any(
+                document['named_type'] == link_document['named_type']
+                for link_table in self.db.link.all_tables()
+                if link_table
+                for document in link_table.values()
+            )
+
+            if not named_type_exists:
+                self._delete_atom_type(link_document['named_type'])
+
+            incoming_links = self.db.incoming_set.pop(link_handle, None)
+
+            if incoming_links:
+                self._delete_links_from_db(incoming_links)
+
+            outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
+
+            if outgoing_atoms:
+                self._delete_incoming_set(link_handle, outgoing_atoms)
+
+            targets_hash = self._build_targets_list(link_document)
+
+            self._delete_templates(link_document, targets_hash)
+
+            self._delete_patterns(link_document, targets_hash)
 
     def _filter_non_toplevel(self, matches: list) -> list:
         matches_toplevel_only = []
@@ -146,7 +220,7 @@ class InMemoryDB(AtomDB):
             targets_hash = self._build_targets_list(atom)
             self._add_atom_type(_name=atom_type)
             self._add_outgoing_set(handle, targets_hash)
-            self._add_incomming_set(handle, targets_hash)
+            self._add_incoming_set(handle, targets_hash)
             self._add_templates(
                 atom['composite_type_hash'],
                 atom['named_type_hash'],
@@ -220,7 +294,7 @@ class InMemoryDB(AtomDB):
                 for key, value in self.db.node.items()
                 if value['composite_type_hash'] == node_type_hash
             ]
-    
+
     def get_all_links(self, link_type: str) -> List[str]:
         answer = []
         for table in self.db.link.all_tables():
@@ -319,7 +393,7 @@ class InMemoryDB(AtomDB):
     def get_incoming_links(
         self, atom_handle: str, **kwargs
     ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-        links = self.db.incomming_set.get(atom_handle)
+        links = self.db.incoming_set.get(atom_handle)
 
         if not links:
             return []
@@ -411,15 +485,15 @@ class InMemoryDB(AtomDB):
 
     def clear_database(self) -> None:
         self.named_type_table = {}
+        self.all_named_types = set()
         self.db = Database(
             atom_type={},
             node={},
             link=Link(arity_1={}, arity_2={}, arity_n={}),
             outgoing_set={},
-            incomming_set={},
+            incoming_set={},
             patterns={},
             templates={},
-            names={},
         )
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -434,3 +508,32 @@ class InMemoryDB(AtomDB):
         link_db[handle] = link
         self._update_index(link)
         return link
+
+    def delete_atom(self, handle: str, **kwargs) -> None:
+        node = self.db.node.pop(handle, None)
+
+        if node:
+            atom_type = node['named_type']
+
+            named_type_exists = any(
+                value['named_type'] == atom_type for value in self.db.node.values()
+            )
+
+            if not named_type_exists:
+                self._delete_atom_type(atom_type)
+
+            incoming_links = self.db.incoming_set.pop(handle, [])
+
+            if incoming_links:
+                self._delete_links_from_db(incoming_links)
+        else:
+            try:
+                self._delete_links_from_db([handle])
+            except LinkDoesNotExist:
+                logger().error(
+                    f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
+                )
+                raise AtomDoesNotExist(
+                    message='This atom does not exist',
+                    details=f'handle: {handle}',
+                )
