@@ -771,7 +771,6 @@ class TestInMemoryDB:
         )
 
         assert db.count_atoms() == (3, 2)
-        assert len(db.db.atom_type) == 2
         assert db.db.incoming_set == {
             dog_handle: [inheritance_dog_mammal_handle],
             cat_handle: [inheritance_cat_mammal_handle],
@@ -831,7 +830,6 @@ class TestInMemoryDB:
         db.delete_atom(inheritance_cat_mammal_handle)
         db.delete_atom(inheritance_dog_mammal_handle)
         assert db.count_atoms() == (3, 0)
-        assert len(db.db.atom_type) == 1
         assert db.db.incoming_set == {}
         assert db.db.outgoing_set == {}
         assert db.db.templates == {}
@@ -858,7 +856,6 @@ class TestInMemoryDB:
 
         db.delete_atom(mammal_handle)
         assert db.count_atoms() == (2, 0)
-        assert len(db.db.atom_type) == 1
         assert db.db.incoming_set == {}
         assert db.db.outgoing_set == {}
         assert db.db.templates == {}
@@ -885,7 +882,6 @@ class TestInMemoryDB:
 
         db.delete_atom(cat_handle)
         assert db.count_atoms() == (2, 1)
-        assert len(db.db.atom_type) == 2
         assert db.db.incoming_set == {
             dog_handle: [inheritance_dog_mammal_handle],
             mammal_handle: [inheritance_dog_mammal_handle],
@@ -935,7 +931,6 @@ class TestInMemoryDB:
 
         db.delete_atom(dog_handle)
         assert db.count_atoms() == (2, 1)
-        assert len(db.db.atom_type) == 2
         assert db.db.incoming_set == {
             cat_handle: [inheritance_cat_mammal_handle],
             mammal_handle: [inheritance_cat_mammal_handle],
@@ -999,7 +994,6 @@ class TestInMemoryDB:
 
         db.delete_atom(inheritance_cat_mammal_handle)
         assert db.count_atoms() == (3, 0)
-        assert len(db.db.atom_type) == 1
         assert db.db.incoming_set == {}
         assert db.db.outgoing_set == {}
         assert db.db.templates == {}

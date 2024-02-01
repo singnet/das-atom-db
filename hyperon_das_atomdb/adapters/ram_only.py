@@ -191,16 +191,6 @@ class InMemoryDB(AtomDB):
 
             link_handle = atom['_id']
 
-            named_type_exists = any(
-                document['named_type'] == atom['named_type']
-                for link_table in self.db.link.all_tables()
-                if link_table
-                for document in link_table.values()
-            )
-
-            if not named_type_exists:
-                self._delete_atom_type(atom['named_type'])
-
             handles = self.db.incoming_set.pop(link_handle, None)
 
             if handles:
@@ -520,15 +510,6 @@ class InMemoryDB(AtomDB):
         node = self.db.node.pop(handle, None)
 
         if node:
-            atom_type = node['named_type']
-
-            named_type_exists = any(
-                value['named_type'] == atom_type for value in self.db.node.values()
-            )
-
-            if not named_type_exists:
-                self._delete_atom_type(atom_type)
-
             handles = self.db.incoming_set.pop(handle, [])
 
             if handles:
