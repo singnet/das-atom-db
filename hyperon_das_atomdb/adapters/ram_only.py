@@ -108,8 +108,6 @@ class InMemoryDB(AtomDB):
             handles = self.db.incoming_set.get(atom_handle, [])
             if len(handles) > 0:
                 handles.remove(link_handle)
-            if len(handles) == 0:
-                self.db.incoming_set.pop(atom_handle, None)
 
     def _add_templates(
         self, composite_type_hash: str, named_type_hash: str, key: str, targets_hash: List[str]
@@ -131,14 +129,10 @@ class InMemoryDB(AtomDB):
         template_composite_type = self.db.templates.get(link_document['composite_type_hash'], [])
         if len(template_composite_type) > 0:
             template_composite_type.remove((link_document['_id'], tuple(targets_hash)))
-        if len(template_composite_type) == 0:
-            self.db.templates.pop(link_document['composite_type_hash'], None)
 
         template_named_type = self.db.templates.get(link_document['named_type_hash'], [])
         if len(template_named_type) > 0:
             template_named_type.remove((link_document['_id'], tuple(targets_hash)))
-        if len(template_named_type) == 0:
-            self.db.templates.pop(link_document['named_type_hash'], None)
 
     def _add_patterns(self, named_type_hash: str, key: str, targets_hash: List[str]):
         pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
@@ -156,8 +150,6 @@ class InMemoryDB(AtomDB):
             pattern = self.db.patterns.get(pattern_key, [])
             if len(pattern) > 0:
                 pattern.remove((link_document['_id'], tuple(targets_hash)))
-            if len(pattern) == 0:
-                self.db.patterns.pop(pattern_key, None)
 
     def _delete_link_and_update_index(self, link_handle: str) -> None:
         link_document = self._get_and_delete_link(link_handle)
@@ -184,7 +176,6 @@ class InMemoryDB(AtomDB):
         return targets
 
     def _update_index(self, atom: Dict[str, Any], **kwargs):
-        atom_type = atom['named_type']
         if kwargs.get('delete_atom', False):
             if atom is None:
                 raise LinkDoesNotExist('link not exist')
@@ -208,6 +199,7 @@ class InMemoryDB(AtomDB):
 
             self._delete_patterns(atom, targets_hash)
         else:
+            atom_type = atom['named_type']
             self._add_atom_type(_name=atom_type)
             if 'name' not in atom:
                 handle = atom['_id']

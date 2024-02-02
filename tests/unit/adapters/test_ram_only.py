@@ -830,10 +830,28 @@ class TestInMemoryDB:
         db.delete_atom(inheritance_cat_mammal_handle)
         db.delete_atom(inheritance_dog_mammal_handle)
         assert db.count_atoms() == (3, 0)
-        assert db.db.incoming_set == {}
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+            mammal_handle: [],
+        }
         assert db.db.outgoing_set == {}
-        assert db.db.templates == {}
-        assert db.db.patterns == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [],
+            "5dd515aa7a451276feac4f8b9d84ae91": [],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
+            "7ead6cfa03894c62761162b7603aa885": [],
+            "112002ff70ea491aad735f978e9d95f5": [],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
+        }
 
         db.add_link(
             {
@@ -856,10 +874,27 @@ class TestInMemoryDB:
 
         db.delete_atom(mammal_handle)
         assert db.count_atoms() == (2, 0)
-        assert db.db.incoming_set == {}
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+        }
         assert db.db.outgoing_set == {}
-        assert db.db.templates == {}
-        assert db.db.patterns == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [],
+            "5dd515aa7a451276feac4f8b9d84ae91": [],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
+            "7ead6cfa03894c62761162b7603aa885": [],
+            "112002ff70ea491aad735f978e9d95f5": [],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
+        }
 
         db.add_link(
             {
@@ -902,9 +937,12 @@ class TestInMemoryDB:
             "5dd515aa7a451276feac4f8b9d84ae91": [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
             "7ead6cfa03894c62761162b7603aa885": [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
             "112002ff70ea491aad735f978e9d95f5": [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ],
@@ -966,6 +1004,9 @@ class TestInMemoryDB:
             "3ba42d45a50c89600d92fb3f1a46c1b5": [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
             ],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
         }
 
         db.clear_database()
@@ -994,7 +1035,32 @@ class TestInMemoryDB:
 
         db.delete_atom(inheritance_cat_mammal_handle)
         assert db.count_atoms() == (3, 0)
-        assert db.db.incoming_set == {}
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+            mammal_handle: [],
+        }
         assert db.db.outgoing_set == {}
-        assert db.db.templates == {}
-        assert db.db.patterns == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+            '62bcbcec7fdc1bf896c0c9c99fe2f6b6': [],
+            '451c57cb0a3d43eb9ca208aebe11cf9e': [],
+        }
+        assert db.db.patterns == {
+            '6e644e70a9fe3145c88b5b6261af5754': [],
+            '5dd515aa7a451276feac4f8b9d84ae91': [],
+            'a11d7cbf62bc544f75702b5fb6a514ff': [],
+            'f29daafee640d91aa7091e44551fc74a': [],
+            '7ead6cfa03894c62761162b7603aa885': [],
+            '112002ff70ea491aad735f978e9d95f5': [],
+            '3ba42d45a50c89600d92fb3f1a46c1b5': [],
+            '1515eec36602aa53aa58a132cad99564': [],
+            'e55007a8477a4e6bf4fec76e4ffd7e10': [],
+            '1a81db4866eb3cc14dae6fd5a732a0b5': [],
+            '113b45c48122d22790870abb1152f218': [],
+            '399751d7319f9061d97cd1d75728b66b': [],
+            '3b23b5e8ecf01bb53c1e531018ee3b2a': [],
+            '1a8d5143240997c7179d99c846812ee1': [],
+            '1be2f1be6e8a65d5ddd8a9efbfb93233': [],
+        }
