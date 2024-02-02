@@ -362,3 +362,18 @@ class TestRedisMongo:
         assert db.count_atoms() == (14, 26)
         self._check_basic_patterns(db)
         _db_down()
+
+    def test_delete_atom(self):
+        _db_up()
+        db = self._connect_db()
+        # db.add_node({'type':'Concept','name':'human'})
+        self._add_atoms(db)
+        db.commit()
+        try:
+            # db.add_node({'type':'Concept','name':'monkey'})
+            db.delete_atom(handle=human)
+            db.commit()
+        except Exception as e:
+            _db_down()
+        print(db.count_atoms())
+        _db_down()
