@@ -364,6 +364,8 @@ class TestRedisMongo:
         _db_down()
 
     def test_delete_atom(self):
+        from hyperon_das_atomdb.database import AtomDB
+
         _db_up()
         db = self._connect_db()
         # db.add_node({'type':'Concept','name':'human'})
@@ -371,7 +373,7 @@ class TestRedisMongo:
         db.commit()
         try:
             # db.add_node({'type':'Concept','name':'monkey'})
-            db.delete_atom(handle=human)
+            db.delete_atom(handle=AtomDB.link_handle('Similarity', [human, monkey]))
             db.commit()
         except Exception as e:
             _db_down()
