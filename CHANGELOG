@@ -1,0 +1,3 @@
+[#46 #48] Add error log message to adapters and Implement get_all_links()
+[#86] Implement reindex() in all AtomDB adapters
+[HOTFIX] Add 'type' in documents returned by get_atom()
