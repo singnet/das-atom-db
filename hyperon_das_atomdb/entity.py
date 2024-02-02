@@ -26,6 +26,6 @@ class Database:
     node: Dict[str, Any]
     link: Link
     outgoing_set: Dict[str, Any]
-    incomming_set: Dict[str, Any]
+    incoming_set: Dict[str, Any]
     patterns: Dict[str, List[Tuple]]
     templates: Dict[str, List[Tuple]]

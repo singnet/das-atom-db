@@ -573,3 +573,12 @@ class AtomDB(ABC):
                     Similarity(handle1, *)
         """
         ...  # pragma no cover
+
+    @abstractmethod
+    def delete_atom(self, handle: str, **kwargs) -> None:
+        """Delete a atom to the database
+
+        Args:
+            handle (str): Atom handle
+        """
+        ...  # pragma no cover
