@@ -36,7 +36,7 @@ class AtomDB(ABC):
     def _convert_atom_format(
         self, document: Dict[str, Any], **kwargs
     ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
-        answer = {'handle': document['_id']}
+        answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
             if key == '_id':
