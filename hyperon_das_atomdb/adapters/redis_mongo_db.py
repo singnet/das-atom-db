@@ -607,6 +607,16 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
+    def _get_and_delete_links_by_handles(self, handles: List[str]) -> Dict[str, Any]:
+        documents = []
+        for link_handle in links_handle:
+            if any(
+                (document := collection.find_one_and_delete({MongoFieldNames.ID_HASH: link_handle}))
+                for collection in self.mongo_link_collection.values()
+            ):
+                documents.append(document)
+        return documents
+
     def _apply_index_template(
         self, template: Dict[str, Any], named_type: str, targets: List[str], arity
     ) -> List[List[str]]:
@@ -677,9 +687,9 @@ class RedisMongoDB(AtomDB):
             arity = len(targets)
             named_type = document[MongoFieldNames.TYPE_NAME]
             named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
-            
+
             value = pickle.dumps(tuple([handle, tuple(targets)]))
-            
+
             if self.pattern_index_templates:
                 index_templates = self.pattern_index_templates.get(named_type, [])
             else:
@@ -689,14 +699,7 @@ class RedisMongoDB(AtomDB):
                 links_handle = self._retrieve_and_delete_incoming_set(handle)
 
                 if links_handle:
-                    documents = []
-                    for link_handle in links_handle:
-                        for collection in self.mongo_link_collection.values():
-                            document = collection.find_one_and_delete({MongoFieldNames.ID_HASH: link_handle})
-                            if document:
-                                documents.append(document)
-                                break
-
+                    documents = self._get_and_delete_links_by_handles(links_handle)
                     if documents:
                         self._update_link_index(documents, delete_atom=True)
 
@@ -706,7 +709,6 @@ class RedisMongoDB(AtomDB):
                     self._delete_smember_incoming_set(atom_handle, handle)
 
                 for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
-                    value = pickle.dumps(tuple([handle, tuple(targets)]))
                     self._delete_smember_template(document[type_hash], value)
 
                 for template in index_templates:
@@ -722,8 +724,6 @@ class RedisMongoDB(AtomDB):
                         buffer = []
                         incoming_buffer[target] = buffer
                     buffer.append(handle)
-                
-                
 
                 for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
                     key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
@@ -757,22 +757,14 @@ class RedisMongoDB(AtomDB):
             links_handle = self._retrieve_and_delete_incoming_set(handle)
 
             if links_handle:
-                documents = []
-                for link_handle in links_handle:
-                    for collection in self.mongo_link_collection.values():
-                        document = collection.find_one_and_delete({MongoFieldNames.ID_HASH: link_handle})
-                        if document:
-                            documents.append(document)
-                            break
+                documents = self._get_and_delete_links_by_handles(links_handle)
                 self._update_link_index(documents, delete_atom=True)
         else:
-            document = None
             for collection in self.mongo_link_collection.values():
                 document = collection.find_one_and_delete(mongo_filter)
                 if document:
                     break
-
-            if not document:
+            else:
                 logger().error(
                     f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
                 )

@@ -373,9 +373,8 @@ class TestRedisMongo:
         db.commit()
         try:
             # db.add_node({'type':'Concept','name':'monkey'})
-            db.delete_atom(handle=AtomDB.link_handle('Similarity', [human, monkey]))
-            db.commit()
+            # db.delete_atom(handle=AtomDB.link_handle('Similarityx', [human, monkey]))
+            db.delete_atom(handle=human)
         except Exception as e:
             _db_down()
-        print(db.count_atoms())
         _db_down()
