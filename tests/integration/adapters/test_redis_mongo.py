@@ -363,45 +363,6 @@ class TestRedisMongo:
         self._check_basic_patterns(db)
         _db_down()
 
-    # def test_delete_atom(self):
-    #     _db_up()
-    #     db = self._connect_db()
-    #     self._add_atoms(db)
-    #     db.commit()
-    #     assert db.count_atoms() == (14, 26)
-
-    #     links_before_delete = db._retrieve_incoming_set(human)
-    #     c = db._retrieve_incoming_set(chimp)
-    #     m = db._retrieve_incoming_set(monkey)
-    #     ma = db._retrieve_incoming_set(mammal)
-    #     e = db._retrieve_incoming_set(ent)
-
-    #     db.delete_atom(handle=human)
-
-    #     assert db.count_atoms() == (13, 19)
-    #     assert db._retrieve_name(human) == None
-    #     assert db._retrieve_incoming_set(human) == []
-    #     assert sorted(db._retrieve_incoming_set(chimp)) == sorted([
-    #         'abe6ad743fc81bd1c55ece2e1307a178', '75756335011dcedb71a0d9a7bd2da9e8','31535ddf214f5b239d3b517823cb8144'
-    #     ])
-    #     assert sorted(db._retrieve_incoming_set(monkey)) == sorted([
-    #         'abe6ad743fc81bd1c55ece2e1307a178', 'f31dfe97db782e8cec26de18dddf8965','31535ddf214f5b239d3b517823cb8144'
-    #     ])
-    #     assert sorted(db._retrieve_incoming_set(mammal)) == sorted([
-    #         '75756335011dcedb71a0d9a7bd2da9e8', 'f31dfe97db782e8cec26de18dddf8965', '1c3bf151ea200b2d9e088a1178d060cb', 'fbf03d17d6a40feff828a3f2c6e86f05'
-    #     ])
-    #     assert db._retrieve_incoming_set(ent) == ['ee1c03e6d1f104ccd811cfbba018451a']
-
-    #     for link in links_before_delete:
-    #         assert db._retrieve_outgoing_set(link) == []
-
-    #     # TEMPLATES
-    #     assert True == True
-
-    #     # PATTERNS
-
-    #     _db_down()
-
     def test_delete_atom(self):
         def _add_all_links():
             db.add_link(
