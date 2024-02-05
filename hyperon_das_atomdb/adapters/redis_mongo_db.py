@@ -609,9 +609,9 @@ class RedisMongoDB(AtomDB):
 
     def _get_and_delete_links_by_handles(self, handles: List[str]) -> Dict[str, Any]:
         documents = []
-        for link_handle in links_handle:
+        for handle in handles:
             if any(
-                (document := collection.find_one_and_delete({MongoFieldNames.ID_HASH: link_handle}))
+                (document := collection.find_one_and_delete({MongoFieldNames.ID_HASH: handle}))
                 for collection in self.mongo_link_collection.values()
             ):
                 documents.append(document)
@@ -651,9 +651,10 @@ class RedisMongoDB(AtomDB):
         self.redis.delete(key)
         return data
 
-    def _retrieve_name(self, handle: str) -> List[str]:
+    def _retrieve_name(self, handle: str) -> str:
         key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
-        return self.redis.get(key).decode()
+        if name := self.redis.get(key):
+            return name.decode()
 
     def _retrieve_template(self, handle: str) -> List[str]:
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
