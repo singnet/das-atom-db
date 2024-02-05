@@ -36,7 +36,7 @@ class AtomDB(ABC):
     def _convert_atom_format(
         self, document: Dict[str, Any], **kwargs
     ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
-        answer = {'handle': document['_id']}
+        answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
             if key == '_id':
@@ -571,5 +571,14 @@ class AtomDB(ABC):
 
                     *(handle1, handle2)
                     Similarity(handle1, *)
+        """
+        ...  # pragma no cover
+
+    @abstractmethod
+    def delete_atom(self, handle: str, **kwargs) -> None:
+        """Delete a atom to the database
+
+        Args:
+            handle (str): Atom handle
         """
         ...  # pragma no cover

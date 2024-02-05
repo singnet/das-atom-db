@@ -1,5 +1,8 @@
+from collections import OrderedDict
+
 import pytest
 
+from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -9,6 +12,7 @@ from hyperon_das_atomdb.exceptions import (
     NodeDoesNotExist,
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils.patterns import build_patern_keys
 
 
 class TestInMemoryDB:
@@ -706,11 +710,11 @@ class TestInMemoryDB:
                 assert a == b['handle']
 
         links = database.get_incoming_links(atom_handle=h, handles_only=True)
-        assert links == database.db.incomming_set.get(h)
+        assert links == database.db.incoming_set.get(h)
         assert s in links
 
         links = database.get_incoming_links(atom_handle=m, handles_only=True)
-        assert links == database.db.incomming_set.get(m)
+        assert links == database.db.incoming_set.get(m)
 
         links = database.get_incoming_links(atom_handle=s, handles_only=True)
         assert links == []
@@ -731,3 +735,332 @@ class TestInMemoryDB:
         assert len(link_h) == 14
         assert len(link_i) == 12
         assert [] == database.get_all_links('snet')
+
+    def test_delete_atom(self):
+        cat_handle = AtomDB.node_handle('Concept', 'cat')
+        dog_handle = AtomDB.node_handle('Concept', 'dog')
+        mammal_handle = AtomDB.node_handle('Concept', 'mammal')
+        inheritance_cat_mammal_handle = AtomDB.link_handle(
+            'Inheritance', [cat_handle, mammal_handle]
+        )
+        inheritance_dog_mammal_handle = AtomDB.link_handle(
+            'Inheritance', [dog_handle, mammal_handle]
+        )
+
+        db = InMemoryDB()
+
+        assert db.count_atoms() == (0, 0)
+
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'cat'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'dog'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+
+        assert db.count_atoms() == (3, 2)
+        assert db.db.incoming_set == {
+            dog_handle: [inheritance_dog_mammal_handle],
+            cat_handle: [inheritance_cat_mammal_handle],
+            mammal_handle: [inheritance_cat_mammal_handle, inheritance_dog_mammal_handle],
+        }
+        assert db.db.outgoing_set == {
+            inheritance_dog_mammal_handle: [dog_handle, mammal_handle],
+            inheritance_cat_mammal_handle: [cat_handle, mammal_handle],
+        }
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+            'e40489cd1e7102e35469c937e05c8bba': [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+            "5dd515aa7a451276feac4f8b9d84ae91": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "f29daafee640d91aa7091e44551fc74a": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "7ead6cfa03894c62761162b7603aa885": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+            "112002ff70ea491aad735f978e9d95f5": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+            ],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "23dc149b3218d166a14730db55249126": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "399751d7319f9061d97cd1d75728b66b": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+        }
+
+        db.delete_atom(inheritance_cat_mammal_handle)
+        db.delete_atom(inheritance_dog_mammal_handle)
+        assert db.count_atoms() == (3, 0)
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+            mammal_handle: [],
+        }
+        assert db.db.outgoing_set == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [],
+            "5dd515aa7a451276feac4f8b9d84ae91": [],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
+            "7ead6cfa03894c62761162b7603aa885": [],
+            "112002ff70ea491aad735f978e9d95f5": [],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
+        }
+
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'cat'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'dog'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+
+        db.delete_atom(mammal_handle)
+        assert db.count_atoms() == (2, 0)
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+        }
+        assert db.db.outgoing_set == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [],
+            "5dd515aa7a451276feac4f8b9d84ae91": [],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
+            "7ead6cfa03894c62761162b7603aa885": [],
+            "112002ff70ea491aad735f978e9d95f5": [],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
+        }
+
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'cat'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'dog'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+
+        db.delete_atom(cat_handle)
+        assert db.count_atoms() == (2, 1)
+        assert db.db.incoming_set == {
+            dog_handle: [inheritance_dog_mammal_handle],
+            mammal_handle: [inheritance_dog_mammal_handle],
+        }
+        assert db.db.outgoing_set == {inheritance_dog_mammal_handle: [dog_handle, mammal_handle]}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            'e40489cd1e7102e35469c937e05c8bba': [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "5dd515aa7a451276feac4f8b9d84ae91": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [],
+            "f29daafee640d91aa7091e44551fc74a": [],
+            "7ead6cfa03894c62761162b7603aa885": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [],
+            "112002ff70ea491aad735f978e9d95f5": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "23dc149b3218d166a14730db55249126": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+            "399751d7319f9061d97cd1d75728b66b": [
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+            ],
+        }
+
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {'type': 'Concept', 'name': 'cat'},
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+
+        db.delete_atom(dog_handle)
+        assert db.count_atoms() == (2, 1)
+        assert db.db.incoming_set == {
+            cat_handle: [inheritance_cat_mammal_handle],
+            mammal_handle: [inheritance_cat_mammal_handle],
+        }
+        assert db.db.outgoing_set == {inheritance_cat_mammal_handle: [cat_handle, mammal_handle]}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+            ],
+            'e40489cd1e7102e35469c937e05c8bba': [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+            ],
+        }
+        assert db.db.patterns == {
+            "6e644e70a9fe3145c88b5b6261af5754": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "5dd515aa7a451276feac4f8b9d84ae91": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "a11d7cbf62bc544f75702b5fb6a514ff": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "f29daafee640d91aa7091e44551fc74a": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "7ead6cfa03894c62761162b7603aa885": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "112002ff70ea491aad735f978e9d95f5": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "3ba42d45a50c89600d92fb3f1a46c1b5": [
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+            ],
+            "e55007a8477a4e6bf4fec76e4ffd7e10": [],
+            "23dc149b3218d166a14730db55249126": [],
+            "399751d7319f9061d97cd1d75728b66b": [],
+        }
+
+        db.clear_database()
+
+        db.add_link(
+            {
+                'type': 'Inheritance',
+                'targets': [
+                    {
+                        'type': 'Inheritance',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'dog'},
+                            {
+                                'type': 'Inheritance',
+                                'targets': [
+                                    {'type': 'Concept', 'name': 'cat'},
+                                    {'type': 'Concept', 'name': 'mammal'},
+                                ],
+                            },
+                        ],
+                    },
+                    {'type': 'Concept', 'name': 'mammal'},
+                ],
+            }
+        )
+
+        db.delete_atom(inheritance_cat_mammal_handle)
+        assert db.count_atoms() == (3, 0)
+        assert db.db.incoming_set == {
+            dog_handle: [],
+            cat_handle: [],
+            mammal_handle: [],
+        }
+        assert db.db.outgoing_set == {}
+        assert db.db.templates == {
+            '41c082428b28d7e9ea96160f7fd614ad': [],
+            'e40489cd1e7102e35469c937e05c8bba': [],
+            '62bcbcec7fdc1bf896c0c9c99fe2f6b6': [],
+            '451c57cb0a3d43eb9ca208aebe11cf9e': [],
+        }
+        assert db.db.patterns == {
+            '6e644e70a9fe3145c88b5b6261af5754': [],
+            '5dd515aa7a451276feac4f8b9d84ae91': [],
+            'a11d7cbf62bc544f75702b5fb6a514ff': [],
+            'f29daafee640d91aa7091e44551fc74a': [],
+            '7ead6cfa03894c62761162b7603aa885': [],
+            '112002ff70ea491aad735f978e9d95f5': [],
+            '3ba42d45a50c89600d92fb3f1a46c1b5': [],
+            '1515eec36602aa53aa58a132cad99564': [],
+            'e55007a8477a4e6bf4fec76e4ffd7e10': [],
+            '1a81db4866eb3cc14dae6fd5a732a0b5': [],
+            '113b45c48122d22790870abb1152f218': [],
+            '399751d7319f9061d97cd1d75728b66b': [],
+            '3b23b5e8ecf01bb53c1e531018ee3b2a': [],
+            '1a8d5143240997c7179d99c846812ee1': [],
+            '1be2f1be6e8a65d5ddd8a9efbfb93233': [],
+        }
