@@ -680,7 +680,7 @@ class RedisMongoDB(AtomDB):
                 chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            list: A list of members retrieved from Redis.
+            Tuple[int, list]: The cursor and a list of members retrieved from Redis.
         """
         if (cursor := kwargs.get('cursor')) is not None:
             chunk_size = kwargs.get('chunk_size', 1000)
