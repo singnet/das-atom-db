@@ -457,7 +457,7 @@ class RedisMongoDB(AtomDB):
             target_handles = sorted(target_handles)
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
+        _, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
         if len(patterns_matched) > 0:
             if kwargs.get("toplevel_only"):
                 return self._filter_non_toplevel(patterns_matched)
@@ -467,7 +467,7 @@ class RedisMongoDB(AtomDB):
     def get_incoming_links(
         self, atom_handle: str, **kwargs
     ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-        links = self._retrieve_incoming_set(atom_handle, **kwargs)
+        _, links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
         if not links:
             return []
@@ -487,7 +487,7 @@ class RedisMongoDB(AtomDB):
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-            templates_matched = self._retrieve_template(template_hash, **kwargs)
+            _, templates_matched = self._retrieve_template(template_hash, **kwargs)
             if len(templates_matched) > 0:
                 if kwargs.get("toplevel_only"):
                     return self._filter_non_toplevel(templates_matched)
@@ -498,7 +498,7 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_type(self, link_type: str, **kwargs: Optional[Dict[str, Any]]) -> List[str]:
         named_type_hash = self._get_atom_type_hash(link_type)
-        templates_matched = self._retrieve_template(named_type_hash, **kwargs)
+        _, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
         if len(templates_matched) > 0:
             if kwargs.get("toplevel_only"):
                 return self._filter_non_toplevel(templates_matched)
@@ -625,20 +625,10 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
-    def _retrieve_incoming_set(self, handle: str, **kwargs) -> List[str]:
+    def _retrieve_incoming_set(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        members = self._get_redis_members(key, **kwargs)
-        return [member.decode() for member in members]
-    
-    def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
-        key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        self.redis.srem(key, smember)
-
-    def _retrieve_and_delete_incoming_set(self, handle: str) -> List[str]:
-        key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        data = [member.decode() for member in self.redis.smembers(key)]
-        self.redis.delete(key)
-        return data
+        cursor, members = self._get_redis_members(key, **kwargs)
+        return (cursor, [member.decode() for member in members])
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
@@ -665,21 +655,21 @@ class RedisMongoDB(AtomDB):
         if name := self.redis.get(key):
             return name.decode()
 
-    def _retrieve_template(self, handle: str, **kwargs) -> List[str]:
+    def _retrieve_template(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
-        members = self._get_redis_members(key, **kwargs)
-        return [pickle.loads(member) for member in members]
+        cursor, members = self._get_redis_members(key, **kwargs)
+        return (cursor, [pickle.loads(member) for member in members])
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(self, handle: str, **kwargs) -> List[str]:
+    def _retrieve_pattern(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
         key = _build_redis_key(KeyPrefix.PATTERNS, handle)
-        members = self._get_redis_members(key, **kwargs)
-        return [pickle.loads(member) for member in members]
+        cursor, members = self._get_redis_members(key, **kwargs)
+        return (cursor, [pickle.loads(member) for member in members])
 
-    def _get_redis_members(self, key, **kwargs):
+    def _get_redis_members(self, key, **kwargs) -> Tuple[int, list]:
         """
         Retrieve members from a Redis set, with optional cursor-based paging.
 
@@ -692,13 +682,14 @@ class RedisMongoDB(AtomDB):
         Returns:
             list: A list of members retrieved from Redis.
         """
-        if cursor := kwargs.get('cursor'):
+        if (cursor := kwargs.get('cursor')) is not None:
             chunk_size = kwargs.get('chunk_size', 1000)
-            _, members = self.redis.sscan(name=key, cursor=cursor, count=chunk_size)
+            cursor, members = self.redis.sscan(name=key, cursor=cursor, count=chunk_size)
         else:
+            cursor = 0
             members = self.redis.smembers(key)
 
-        return members
+        return cursor, members
 
     def _update_node_index(self, documents: Iterable[Dict[str, any]], **kwargs) -> None:
         for document in documents:
