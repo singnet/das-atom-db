@@ -91,3 +91,7 @@ make test-unit
 ## Documentation References
 
 [Repositories documentation](https://docs.google.com/document/d/1njmP_oXw_0FLwoXY5ttGBMFGV2n60-ugAltWIuoQO10/)
+
+## Release Notes
+
+[DAS AtomDB Releases](https://github.com/singnet/das-atom-db/releases)
