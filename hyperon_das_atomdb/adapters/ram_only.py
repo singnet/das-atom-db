@@ -345,7 +345,7 @@ class InMemoryDB(AtomDB):
         self,
         link_type: str,
         target_handles: List[str],
-        extra_parameters: Optional[Dict[str, Any]] = None,
+        **kwargs: Optional[Dict[str, Any]],
     ) -> list:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
@@ -371,7 +371,7 @@ class InMemoryDB(AtomDB):
         patterns_matched = self.db.patterns.get(pattern_hash, [])
 
         if len(patterns_matched) > 0:
-            if extra_parameters and extra_parameters.get('toplevel_only'):
+            if kwargs.get('toplevel_only'):
                 return self._filter_non_toplevel(patterns_matched)
 
         return patterns_matched
@@ -394,23 +394,21 @@ class InMemoryDB(AtomDB):
     def get_matched_type_template(
         self,
         template: List[Any],
-        extra_parameters: Optional[Dict[str, Any]] = None,
+        **kwargs: Optional[Dict[str, Any]],
     ) -> List[str]:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
         templates_matched = self.db.templates.get(template_hash, [])
         if len(templates_matched) > 0:
-            if extra_parameters and extra_parameters.get('toplevel_only'):
+            if kwargs.get('toplevel_only'):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_matched_type(
-        self, link_type: str, extra_parameters: Optional[Dict[str, Any]] = None
-    ) -> List[str]:
+    def get_matched_type(self, link_type: str, **kwargs: Optional[Dict[str, Any]]) -> List[str]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self.db.templates.get(link_type_hash, [])
         if len(templates_matched) > 0:
-            if extra_parameters and extra_parameters.get('toplevel_only'):
+            if kwargs.get('toplevel_only'):
                 return self._filter_non_toplevel(templates_matched)
         return templates_matched
 

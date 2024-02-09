@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from hyperon_das_atomdb import AtomDB
@@ -12,7 +10,6 @@ from hyperon_das_atomdb.exceptions import (
     NodeDoesNotExist,
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from hyperon_das_atomdb.utils.patterns import build_patern_keys
 
 
 class TestInMemoryDB:
@@ -397,7 +394,7 @@ class TestInMemoryDB:
                 ),
             )
         ]
-        actual = database.get_matched_links('Evaluation', ['*', '*'], {'toplevel_only': True})
+        actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
 
         assert expected == actual
         assert len(actual) == 1
@@ -433,7 +430,7 @@ class TestInMemoryDB:
                 ],
             }
         )
-        actual = database.get_matched_links('Evaluation', ['*', '*'], {'toplevel': True})
+        actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel=True)
 
         assert len(actual) == 2
 
@@ -483,13 +480,13 @@ class TestInMemoryDB:
         )
 
         ret = database.get_matched_type_template(
-            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': True}
+            ['Evaluation', 'Reactome', 'Concept'], toplevel_only=True
         )
 
         assert len(ret) == 0
 
         ret = database.get_matched_type_template(
-            ['Evaluation', 'Reactome', 'Concept'], {'toplevel_only': False}
+            ['Evaluation', 'Reactome', 'Concept'], toplevel_only=False
         )
 
         assert len(ret) == 1
@@ -525,7 +522,7 @@ class TestInMemoryDB:
         ret = database.get_matched_type('EvaluationLink')
         assert len(ret) == 2
 
-        ret = database.get_matched_type('EvaluationLink', {'toplevel_only': True})
+        ret = database.get_matched_type('EvaluationLink', toplevel_only=True)
         assert len(ret) == 1
 
     def test_get_node_name(self, database):
