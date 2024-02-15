@@ -3349,7 +3349,7 @@ class TestRedisMongoDB:
                 ),
             )
         ]
-        actual = database.get_matched_links('Evaluation', ['*', '*'], {'toplevel_only': True})
+        actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
 
         assert expected == actual
         assert len(actual) == 1
@@ -3395,7 +3395,7 @@ class TestRedisMongoDB:
         ret = database.get_matched_type('Evaluation')
         assert len(ret[0]) == 2
 
-        ret = database.get_matched_type('Evaluation', {'toplevel_only': True})
+        ret = database.get_matched_type('Evaluation', toplevel_only=True)
 
         assert len(ret) == 1
 

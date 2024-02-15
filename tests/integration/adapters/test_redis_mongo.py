@@ -1,10 +1,13 @@
 import os
+import random
+import string
 import subprocess
 
 import pytest
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import WILDCARD, AtomDB
+from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 from .animals_kb import (
     animal,
@@ -127,7 +130,7 @@ class TestRedisMongo:
 
         assert db._retrieve_name(human) == "human"
 
-        links = db._retrieve_incoming_set(mammal)
+        _, links = db._retrieve_incoming_set(mammal)
         assert len(links) == 5
         for link in links:
             outgoing = db._retrieve_outgoing_set(link)
@@ -139,7 +142,7 @@ class TestRedisMongo:
                 [mammal, animal],
             ]
 
-        templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
+        _, templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
         assert len(templates) == 12
         assert tuple(
             [
@@ -214,7 +217,7 @@ class TestRedisMongo:
             ]
         )
 
-        patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
+        _, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
         assert len(patterns) == 4
         assert (
             tuple(
@@ -414,26 +417,26 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) == 'mammal'
-            assert db._retrieve_incoming_set(cat_handle) == [inheritance_cat_mammal_handle]
-            assert db._retrieve_incoming_set(dog_handle) == [inheritance_dog_mammal_handle]
-            assert sorted(db._retrieve_incoming_set(mammal_handle)) == sorted(
+            assert db._retrieve_incoming_set(cat_handle)[1] == [inheritance_cat_mammal_handle]
+            assert db._retrieve_incoming_set(dog_handle)[1] == [inheritance_dog_mammal_handle]
+            assert sorted(db._retrieve_incoming_set(mammal_handle)[1]) == sorted(
                 [inheritance_cat_mammal_handle, inheritance_dog_mammal_handle]
             )
-            assert db._retrieve_incoming_set(inheritance_cat_mammal_handle) == []
-            assert db._retrieve_incoming_set(inheritance_dog_mammal_handle) == []
+            assert db._retrieve_incoming_set(inheritance_cat_mammal_handle)[1] == []
+            assert db._retrieve_incoming_set(inheritance_dog_mammal_handle)[1] == []
             assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
                 [cat_handle, mammal_handle]
             )
             assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
                 [dog_handle, mammal_handle]
             )
-            assert sorted(db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')) == sorted(
+            assert sorted(db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')) == sorted(
+            assert sorted(db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
@@ -453,52 +456,52 @@ class TestRedisMongo:
                     keys.add(key)
             assert set([p.decode() for p in db.redis.keys('patterns:*')]) == keys
 
-            assert sorted(db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')) == sorted(
+            assert sorted(db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')) == sorted(
+            assert sorted(db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')) == sorted(
+            assert sorted(db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')) == sorted(
+            assert sorted(db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10') == [
+            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126') == [
+            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b') == [
+            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf') == [
+            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a') == [
+            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff') == [
+            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5') == [
+            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3') == [
+            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
 
@@ -507,142 +510,142 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) == 'mammal'
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == []
+            assert db._retrieve_incoming_set(cat_handle)[1] == []
+            assert db._retrieve_incoming_set(dog_handle)[1] == []
+            assert db._retrieve_incoming_set(mammal_handle)[1] == []
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba') == []
-            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad') == []
-            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5') == []
-            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754') == []
-            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91') == []
-            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885') == []
-            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10') == []
-            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126') == []
-            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b') == []
-            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf') == []
-            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a') == []
-            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff') == []
-            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5') == []
-            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3') == []
+            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == []
+            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == []
+            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == []
+            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == []
+            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == []
+            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == []
+            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == []
+            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == []
+            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == []
+            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == []
+            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == []
+            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == []
+            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == []
+            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == []
 
         def _check_asserts_3():
             assert db.count_atoms() == (2, 0)
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) is None
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == []
+            assert db._retrieve_incoming_set(cat_handle)[1] == []
+            assert db._retrieve_incoming_set(dog_handle)[1] == []
+            assert db._retrieve_incoming_set(mammal_handle)[1] == []
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba') == []
-            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad') == []
-            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5') == []
-            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754') == []
-            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91') == []
-            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885') == []
-            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10') == []
-            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126') == []
-            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b') == []
-            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf') == []
-            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a') == []
-            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff') == []
-            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5') == []
-            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3') == []
+            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == []
+            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == []
+            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == []
+            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == []
+            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == []
+            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == []
+            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == []
+            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == []
+            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == []
+            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == []
+            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == []
+            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == []
+            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == []
+            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == []
 
         def _check_asserts_4():
             assert db.count_atoms() == (2, 1)
             assert db._retrieve_name(cat_handle) is None
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) == 'mammal'
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == [inheritance_dog_mammal_handle]
-            assert db._retrieve_incoming_set(mammal_handle) == [inheritance_dog_mammal_handle]
+            assert db._retrieve_incoming_set(cat_handle)[1] == []
+            assert db._retrieve_incoming_set(dog_handle)[1] == [inheritance_dog_mammal_handle]
+            assert db._retrieve_incoming_set(mammal_handle)[1] == [inheritance_dog_mammal_handle]
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
                 [dog_handle, mammal_handle]
             )
-            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba') == [
+            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad') == [
+            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5') == [
+            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
             ]
-            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754') == [
+            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
             ]
-            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91') == [
+            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
             ]
-            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885') == [
+            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
             ]
-            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10') == [
+            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126') == [
+            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b') == [
+            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf') == [
+            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a') == []
-            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff') == []
-            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5') == []
-            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3') == []
+            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == []
+            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == []
+            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == []
+            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == []
 
         def _check_asserts_5():
             assert db.count_atoms() == (2, 1)
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) is None
             assert db._retrieve_name(mammal_handle) == 'mammal'
-            assert db._retrieve_incoming_set(cat_handle) == [inheritance_cat_mammal_handle]
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == [inheritance_cat_mammal_handle]
+            assert db._retrieve_incoming_set(cat_handle)[1] == [inheritance_cat_mammal_handle]
+            assert db._retrieve_incoming_set(dog_handle)[1] == []
+            assert db._retrieve_incoming_set(mammal_handle)[1] == [inheritance_cat_mammal_handle]
             assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
                 [cat_handle, mammal_handle]
             )
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba') == [
+            assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad') == [
+            assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5') == [
+            assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754') == [
+            assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91') == [
+            assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885') == [
+            assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10') == []
-            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126') == []
-            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b') == []
-            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf') == []
-            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a') == [
+            assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == []
+            assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == []
+            assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == []
+            assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == []
+            assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff') == [
+            assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5') == [
+            assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
-            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3') == [
+            assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
 
@@ -696,5 +699,73 @@ class TestRedisMongo:
         _add_nested_links()
         db.delete_atom(inheritance_cat_mammal_handle)
         _check_asserts_2()
+
+        _db_down()
+
+    def test_retrieve_members_with_pagination(self):
+        _db_up()
+        db = self._connect_db()
+
+        def _add_links():
+            for name in [
+                ''.join([random.choice(string.ascii_lowercase) for i in range(5)])
+                for j in range(1000)
+            ]:
+                db.add_link(
+                    {
+                        'type': 'Inheritance',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'snet'},
+                            {'type': 'Concept', 'name': name},
+                        ],
+                    }
+                )
+            db.commit()
+
+        def _asserts_incoming_set():
+            _, all_links_1 = db._retrieve_incoming_set(snet_handle)
+
+            cursor = '0'
+            all_links_2 = []
+            while cursor != 0:
+                cursor, links = db._retrieve_incoming_set(
+                    snet_handle, cursor=cursor, chunk_size=100
+                )
+                all_links_2.extend(links)
+
+            assert sorted(all_links_1) == sorted(all_links_2)
+
+        def _asserts_templates():
+            _, all_templates_1 = db._retrieve_template(type_hash)
+
+            cursor = '0'
+            all_templates_2 = []
+            while cursor != 0:
+                cursor, templates = db._retrieve_template(type_hash, cursor=cursor, chunk_size=100)
+                all_templates_2.extend(templates)
+
+            assert sorted(all_templates_1) == sorted(all_templates_2)
+
+        def _asserts_patterns():
+            pattern_hash = ExpressionHasher.composite_hash([type_hash, *[snet_handle, '*']])
+            _, all_patterns_1 = db._retrieve_pattern(pattern_hash)
+
+            cursor = '0'
+            all_patterns_2 = []
+            while cursor != 0:
+                cursor, templates = db._retrieve_pattern(
+                    pattern_hash, cursor=cursor, chunk_size=100
+                )
+                all_patterns_2.extend(templates)
+
+            assert sorted(all_patterns_1) == sorted(all_patterns_2)
+
+        snet_handle = AtomDB.node_handle('Concept', 'snet')
+        type_hash = db._get_atom_type_hash('Inheritance')
+
+        _add_links()
+        _asserts_incoming_set()
+        _asserts_templates()
+        _asserts_patterns()
 
         _db_down()
