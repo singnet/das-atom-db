@@ -9,7 +9,7 @@ from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
 
-from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
+from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB, IncomingLinksT
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
     ConnectionMongoDBException,
@@ -466,18 +466,19 @@ class RedisMongoDB(AtomDB):
 
     def get_incoming_links(
         self, atom_handle: str, **kwargs
-    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-        _, links = self._retrieve_incoming_set(atom_handle, **kwargs)
+    ) -> Union[Tuple[int, List[IncomingLinksT]], List[IncomingLinksT]]:
+        cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
-        if not links:
-            return []
-
-        if kwargs.get('handles_only', False):
-            return links
-
-        links_document = [self.get_atom(handle, **kwargs) for handle in links]
-
-        return links_document
+        if kwargs.get('cursor') is not None:
+            if kwargs.get('handles_only', False):
+                return cursor, links
+            else:
+                return cursor, [self.get_atom(handle, **kwargs) for handle in links]
+        else:
+            if kwargs.get('handles_only', False):
+                return links
+            else:
+                return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self,

@@ -13,6 +13,8 @@ from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 WILDCARD = '*'
 UNORDERED_LINK_TYPES = []
 
+IncomingLinksT = Union[str, dict, Tuple[dict, list]]
+
 
 class AtomDB(ABC):
     key_pattern = re.compile(r"key_\d+")
@@ -325,9 +327,15 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> List[Any]:
+        """Get all links pointing to Atom
+
+        Args:
+            atom_handle (str): The atom handle
+
+        Returns:
+            List[Any]: A list of handles or documents or tuple
+        """
         ...  # pragma no cover
 
     @abstractmethod
