@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
+from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB, IncomingLinksT
 from hyperon_das_atomdb.entity import Database, Link
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -376,20 +376,12 @@ class InMemoryDB(AtomDB):
 
         return patterns_matched
 
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> List[Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]]:
-        links = self.db.incoming_set.get(atom_handle)
-
-        if not links:
-            return []
-
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> List[IncomingLinksT]:
+        links = self.db.incoming_set.get(atom_handle, [])
         if kwargs.get('handles_only', False):
             return links
-
-        links_document = [self.get_atom(handle, **kwargs) for handle in links]
-
-        return links_document
+        else:
+            return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self,
