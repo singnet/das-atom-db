@@ -120,6 +120,36 @@ class TestRedisMongo:
         )
         return db
 
+    def test_metta_mapping(self):
+        _db_up()
+        db = RedisMongoDB(
+            mongo_port=mongo_port,
+            mongo_username='dbadmin',
+            mongo_password='dassecret',
+            redis_port=redis_port,
+            redis_cluster=False,
+            redis_ssl=False,
+            use_metta_mapping=True
+        )
+        self._add_atoms(db)
+        assert db.count_atoms() == (0, 0)
+        db.commit()
+        assert db.count_atoms() == (14, 26)
+        self._check_basic_patterns(db, toplevel_only=True)
+        db = RedisMongoDB(
+            mongo_port=mongo_port,
+            mongo_username='dbadmin',
+            mongo_password='dassecret',
+            redis_port=redis_port,
+            redis_cluster=False,
+            redis_ssl=False,
+            use_metta_mapping=False
+        )
+        assert db.count_atoms() == (14, 26)
+        with pytest.raises(Exception):
+            self._check_basic_patterns(db, toplevel_only=True)
+        _db_down()
+
     def test_redis_retrieve(self):
         _db_up()
         db = self._connect_db()
@@ -258,12 +288,12 @@ class TestRedisMongo:
 
         _db_down()
 
-    def _check_basic_patterns(self, db):
+    def _check_basic_patterns(self, db, toplevel_only=False):
         assert sorted(
             [
                 answer[1][0]
                 for answer in db.get_matched_links(
-                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
+                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")], toplevel_only=toplevel_only
                 )
             ]
         ) == sorted([human, monkey, chimp, rhino])
@@ -271,7 +301,7 @@ class TestRedisMongo:
             [
                 answer[1][1]
                 for answer in db.get_matched_links(
-                    "Inheritance", [db.node_handle("Concept", "mammal"), WILDCARD]
+                    "Inheritance", [db.node_handle("Concept", "mammal"), WILDCARD], toplevel_only=toplevel_only
                 )
             ]
         ) == sorted([animal])
@@ -279,7 +309,7 @@ class TestRedisMongo:
             [
                 answer[1][0]
                 for answer in db.get_matched_links(
-                    "Similarity", [WILDCARD, db.node_handle("Concept", "human")]
+                    "Similarity", [WILDCARD, db.node_handle("Concept", "human")], toplevel_only=toplevel_only
                 )
             ]
         ) == sorted([monkey, chimp, ent])
@@ -287,7 +317,7 @@ class TestRedisMongo:
             [
                 answer[1][1]
                 for answer in db.get_matched_links(
-                    "Similarity", [db.node_handle("Concept", "human"), WILDCARD]
+                    "Similarity", [db.node_handle("Concept", "human"), WILDCARD], toplevel_only=toplevel_only
                 )
             ]
         ) == sorted([monkey, chimp, ent])
