@@ -98,6 +98,7 @@ class RedisMongoDB(AtomDB):
         """
         self.database_name = 'das'
         self._setup_databases(**kwargs)
+        self.use_metta_mapping = kwargs.get("use_metta_mapping", False);
         self.mongo_link_collection = {
             "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
             "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
@@ -274,21 +275,28 @@ class RedisMongoDB(AtomDB):
         if arity >= 0:
             if arity == 0:
                 return self.mongo_nodes_collection.find_one(mongo_filter)
-            elif arity == 2:
-                document = self.mongo_link_collection["2"].find_one(mongo_filter)
-                if document:
-                    document["targets"] = self._get_mongo_document_keys(document)
-                return document
-            elif arity == 1:
-                document = self.mongo_link_collection["1"].find_one(mongo_filter)
-                if document:
-                    document["targets"] = self._get_mongo_document_keys(document)
-                return document
             else:
-                document = self.mongo_link_collection["N"].find_one(mongo_filter)
-                if document:
-                    document["targets"] = self._get_mongo_document_keys(document)
-                return document
+                if self.use_metta_mapping:
+                    document = self.mongo_link_collection["N"].find_one(mongo_filter)
+                    if document:
+                        document["targets"] = self._get_mongo_document_keys(document)
+                    return document
+                else:
+                    if arity == 2:
+                        document = self.mongo_link_collection["2"].find_one(mongo_filter)
+                        if document:
+                            document["targets"] = self._get_mongo_document_keys(document)
+                        return document
+                    elif arity == 1:
+                        document = self.mongo_link_collection["1"].find_one(mongo_filter)
+                        if document:
+                            document["targets"] = self._get_mongo_document_keys(document)
+                        return document
+                    else:
+                        document = self.mongo_link_collection["N"].find_one(mongo_filter)
+                        if document:
+                            document["targets"] = self._get_mongo_document_keys(document)
+                        return document
 
         # The order of keys in search is important. Greater to smallest
         # probability of proper arity
@@ -593,13 +601,16 @@ class RedisMongoDB(AtomDB):
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
         handle, link, targets = self._add_link(link_params, toplevel)
-        arity = len(targets)
-        if arity == 1:
-            collection_name = MongoCollectionNames.LINKS_ARITY_1
-        elif arity == 2:
-            collection_name = MongoCollectionNames.LINKS_ARITY_2
-        else:
+        if self.use_metta_mapping:
             collection_name = MongoCollectionNames.LINKS_ARITY_N
+        else:
+            arity = len(targets)
+            if arity == 1:
+                collection_name = MongoCollectionNames.LINKS_ARITY_1
+            elif arity == 2:
+                collection_name = MongoCollectionNames.LINKS_ARITY_2
+            else:
+                collection_name = MongoCollectionNames.LINKS_ARITY_N
         _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
         buffer.add(_HashableDocument(link))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
