@@ -157,11 +157,12 @@ class InMemoryDB(AtomDB):
 
     def _filter_non_toplevel(self, matches: list) -> list:
         matches_toplevel_only = []
-        for match in matches:
-            link_handle = match[0]
-            links = self.db.link.get_table(len(match[-1]))
-            if links[link_handle]['is_toplevel']:
-                matches_toplevel_only.append(match)
+        if len(matches) > 0:
+            for match in matches:
+                link_handle = match[0]
+                links = self.db.link.get_table(len(match[-1]))
+                if links[link_handle]['is_toplevel']:
+                    matches_toplevel_only.append(match)
         return matches_toplevel_only
 
     def _build_targets_list(self, link: Dict[str, Any]):
@@ -341,12 +342,7 @@ class InMemoryDB(AtomDB):
                 details=f'link_handle: {link_handle}',
             )
 
-    def get_matched_links(
-        self,
-        link_type: str,
-        target_handles: List[str],
-        **kwargs: Optional[Dict[str, Any]],
-    ) -> list:
+    def get_matched_links(self, link_type: str, target_handles: List[str], **kwargs) -> list:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
             return [link_handle]
@@ -370,9 +366,8 @@ class InMemoryDB(AtomDB):
 
         patterns_matched = self.db.patterns.get(pattern_hash, [])
 
-        if len(patterns_matched) > 0:
-            if kwargs.get('toplevel_only'):
-                return self._filter_non_toplevel(patterns_matched)
+        if kwargs.get('toplevel_only'):
+            return self._filter_non_toplevel(patterns_matched)
 
         return patterns_matched
 
@@ -383,25 +378,19 @@ class InMemoryDB(AtomDB):
         else:
             return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self,
-        template: List[Any],
-        **kwargs: Optional[Dict[str, Any]],
-    ) -> List[str]:
+    def get_matched_type_template(self, template: List[Any], **kwargs) -> list:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
         templates_matched = self.db.templates.get(template_hash, [])
-        if len(templates_matched) > 0:
-            if kwargs.get('toplevel_only'):
-                return self._filter_non_toplevel(templates_matched)
+        if kwargs.get('toplevel_only'):
+            return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_matched_type(self, link_type: str, **kwargs: Optional[Dict[str, Any]]) -> List[str]:
+    def get_matched_type(self, link_type: str, **kwargs) -> list:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self.db.templates.get(link_type_hash, [])
-        if len(templates_matched) > 0:
-            if kwargs.get('toplevel_only'):
-                return self._filter_non_toplevel(templates_matched)
+        if kwargs.get('toplevel_only'):
+            return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
     def get_atom(

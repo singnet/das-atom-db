@@ -6,3 +6,4 @@
 [#96] Adjust retrieve methods for sets in Redis - incoming_set, templates, patterns
 [#98] Refactor get_incoming_links() in all AtomDB adapters
 [#100] Add support to MeTTa loader nodes/links mapping
+[#102] Update get_matched_links(), get_matched_type_template() e get_matched_type()
