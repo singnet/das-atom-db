@@ -769,3 +769,147 @@ class TestRedisMongo:
         _asserts_patterns()
 
         _db_down()
+
+    def test_get_matched_with_pagination(self):
+        _db_up()
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.commit()
+
+        response = db.get_matched_links('Similarity', [human, monkey], cursor=0)
+        assert response == (None, [AtomDB.link_handle('Similarity', [human, monkey])])
+
+        response = db.get_matched_links('Fake', [human, monkey], cursor=0)
+        assert response == (None, [])
+
+        response = db.get_matched_links('Similarity', [human, '*'], cursor=0)
+        assert (response[0], sorted(response[1])) == (
+            0,
+            [
+                (
+                    '16f7e407087bfa0b35b13d13a1aadcae',
+                    ('af12f10f9ae2002a1607ba0b47ba8407', '4e8e26e3276af8a5c2ac2cc2dc95c6d2'),
+                ),
+                (
+                    'b5459e299a5c5e8662c427f7e01b3bf1',
+                    ('af12f10f9ae2002a1607ba0b47ba8407', '5b34c54bee150c04f9fa584b899dc030'),
+                ),
+                (
+                    'bad7472f41a0e7d601ca294eb4607c3a',
+                    ('af12f10f9ae2002a1607ba0b47ba8407', '1cdffc6b0b89ff41d68bec237481d1e1'),
+                ),
+            ],
+        )
+
+        template = ['Inheritance', 'Concept', 'Concept']
+
+        response = db.get_matched_type_template(template, cursor=0)
+        assert (response[0], sorted(response[1])) == (
+            0,
+            [
+                (
+                    '116df61c01859c710d178ba14a483509',
+                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
+                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    '4120e428ab0fa162a04328e5217912ff',
+                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    '75756335011dcedb71a0d9a7bd2da9e8',
+                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    '906fa505ae3bc6336d80a5f9aaa47b3b',
+                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
+                ),
+                (
+                    '959924e3aab197af80a84c1ab261fd65',
+                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
+                    'b0f428929706d1d991e4d712ad08f9ab',
+                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    'c93e1e758c53912638438e2a7d7f7b7f',
+                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    'e4685d56969398253b6f77efd21dc347',
+                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
+                    'ee1c03e6d1f104ccd811cfbba018451a',
+                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
+                    'f31dfe97db782e8cec26de18dddf8965',
+                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    'fbf03d17d6a40feff828a3f2c6e86f05',
+                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+            ],
+        )
+
+        response = db.get_matched_type('Inheritance', cursor=0)
+        assert (response[0], sorted(response[1])) == (
+            0,
+            [
+                (
+                    '116df61c01859c710d178ba14a483509',
+                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
+                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    '4120e428ab0fa162a04328e5217912ff',
+                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    '75756335011dcedb71a0d9a7bd2da9e8',
+                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    '906fa505ae3bc6336d80a5f9aaa47b3b',
+                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
+                ),
+                (
+                    '959924e3aab197af80a84c1ab261fd65',
+                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
+                    'b0f428929706d1d991e4d712ad08f9ab',
+                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
+                    'c93e1e758c53912638438e2a7d7f7b7f',
+                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    'e4685d56969398253b6f77efd21dc347',
+                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
+                    'ee1c03e6d1f104ccd811cfbba018451a',
+                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
+                    'f31dfe97db782e8cec26de18dddf8965',
+                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
+                    'fbf03d17d6a40feff828a3f2c6e86f05',
+                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+            ],
+        )
+        _db_down()

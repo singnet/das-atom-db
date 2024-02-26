@@ -327,14 +327,15 @@ class RedisMongoDB(AtomDB):
             index += 1
 
     def _filter_non_toplevel(self, matches: list) -> list:
-        if isinstance(matches[0], list):
-            matches = matches[0]
         matches_toplevel_only = []
-        for match in matches:
-            link_handle = match[0]
-            link = self._retrieve_mongo_document(link_handle, len(match[-1]))
-            if link['is_toplevel']:
-                matches_toplevel_only.append(match)
+        if len(matches) > 0:
+            if isinstance(matches[0], list):
+                matches = matches[0]
+            for match in matches:
+                link_handle = match[0]
+                link = self._retrieve_mongo_document(link_handle, len(match[-1]))
+                if link['is_toplevel']:
+                    matches_toplevel_only.append(match)
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
@@ -432,17 +433,17 @@ class RedisMongoDB(AtomDB):
         return True
 
     def get_matched_links(
-        self,
-        link_type: str,
-        target_handles: List[str],
-        **kwargs: Optional[Dict[str, Any]],
-    ):
+        self, link_type: str, target_handles: List[str], **kwargs
+    ) -> Union[tuple, list]:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                document = self._retrieve_mongo_document(link_handle, len(target_handles))
-                return [link_handle] if document else []
-            except ValueError:
+                if kwargs.get('cursor') is not None:
+                    return None, [link_handle]
+                return [link_handle]
+            except LinkDoesNotExist:
+                if kwargs.get('cursor') is not None:
+                    return None, []
                 return []
 
         if link_type == WILDCARD:
@@ -451,18 +452,17 @@ class RedisMongoDB(AtomDB):
             link_type_hash = self._get_atom_type_hash(link_type)
 
         if link_type_hash is None:
+            if kwargs.get('cursor') is not None:
+                return None, []
             return []
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        _, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
-        if len(patterns_matched) > 0:
-            if kwargs.get("toplevel_only"):
-                return self._filter_non_toplevel(patterns_matched)
-
-        return patterns_matched
+        cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
+        toplevel_only = kwargs.get('toplevel_only', False)
+        return self._process_matched_results(patterns_matched, cursor, toplevel_only)
 
     def get_incoming_links(
         self, atom_handle: str, **kwargs
@@ -480,30 +480,22 @@ class RedisMongoDB(AtomDB):
             else:
                 return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self,
-        template: List[Any],
-        **kwargs: Optional[Dict[str, Any]],
-    ) -> List[str]:
+    def get_matched_type_template(self, template: List[Any], **kwargs) -> Union[tuple, list]:
         try:
             template = self._build_named_type_hash_template(template)
             template_hash = ExpressionHasher.composite_hash(template)
-            _, templates_matched = self._retrieve_template(template_hash, **kwargs)
-            if len(templates_matched) > 0:
-                if kwargs.get("toplevel_only"):
-                    return self._filter_non_toplevel(templates_matched)
-            return templates_matched
+            cursor, templates_matched = self._retrieve_template(template_hash, **kwargs)
+            toplevel_only = kwargs.get('toplevel_only', False)
+            return self._process_matched_results(templates_matched, cursor, toplevel_only)
         except Exception as exception:
             logger().error(f'Failed to get matched type template - Details: {str(exception)}')
             raise ValueError(str(exception))
 
-    def get_matched_type(self, link_type: str, **kwargs: Optional[Dict[str, Any]]) -> List[str]:
+    def get_matched_type(self, link_type: str, **kwargs) -> Union[tuple, list]:
         named_type_hash = self._get_atom_type_hash(link_type)
-        _, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
-        if len(templates_matched) > 0:
-            if kwargs.get("toplevel_only"):
-                return self._filter_non_toplevel(templates_matched)
-        return templates_matched
+        cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
+        toplevel_only = kwargs.get('toplevel_only', False)
+        return self._process_matched_results(templates_matched, cursor, toplevel_only)
 
     def get_link_type(self, link_handle: str) -> str:
         document = self.get_atom(link_handle)
@@ -687,7 +679,7 @@ class RedisMongoDB(AtomDB):
             chunk_size = kwargs.get('chunk_size', 1000)
             cursor, members = self.redis.sscan(name=key, cursor=cursor, count=chunk_size)
         else:
-            cursor = 0
+            cursor = None
             members = self.redis.smembers(key)
 
         return cursor, members
@@ -759,6 +751,19 @@ class RedisMongoDB(AtomDB):
         for handle in incoming_buffer:
             key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
             self.redis.sadd(key, *incoming_buffer[handle])
+
+    def _process_matched_results(
+        self, matched: list, cursor: int = None, toplevel_only: bool = False
+    ) -> Union[tuple, list]:
+        if toplevel_only:
+            answer = self._filter_non_toplevel(matched)
+        else:
+            answer = matched
+
+        if cursor is not None:
+            return cursor, answer
+        else:
+            return answer
 
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
         if pattern_index_templates is not None:

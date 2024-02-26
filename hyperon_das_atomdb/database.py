@@ -313,7 +313,9 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_links(self, link_type: str, target_handles: List[str]):
+    def get_matched_links(
+        self, link_type: str, target_handles: List[str], **kwargs
+    ) -> Union[tuple, list]:
         """
         Get links that match the specified type and targets.
 
@@ -339,7 +341,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_type_template(self, template: List[Any]) -> List[str]:
+    def get_matched_type_template(self, template: List[Any], **kwargs) -> Union[tuple, list]:
         """
         Get nodes that match a specified template.
 
@@ -352,7 +354,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_type(self, link_type: str):
+    def get_matched_type(self, link_type: str, **kwargs) -> Union[tuple, list]:
         """
         Get links that match a specified link type.
 
