@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hyperon-das-atomdb"
-version = "0.3.8"
+version = "0.4.0"
 description = "Persistence layer for Distributed AtomSpace"
 authors = ["marcocapozzoli <marcocapozzoli90@gmail.com>"]
 readme = "README.md"
