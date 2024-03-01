@@ -1,4 +1,3 @@
-import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
@@ -46,7 +45,7 @@ class MongoFieldNames(str, Enum):
 
 
 class KeyPrefix(str, Enum):
-    INCOMING_SET = 'incomming_set'
+    INCOMING_SET = 'incoming_set'
     OUTGOING_SET = 'outgoing_set'
     PATTERNS = 'patterns'
     TEMPLATES = 'templates'
@@ -98,7 +97,7 @@ class RedisMongoDB(AtomDB):
         """
         self.database_name = 'das'
         self._setup_databases(**kwargs)
-        self.use_metta_mapping = kwargs.get("use_metta_mapping", False);
+        self.use_metta_mapping = kwargs.get("use_metta_mapping", True)
         self.mongo_link_collection = {
             "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
             "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
@@ -127,6 +126,7 @@ class RedisMongoDB(AtomDB):
         self.named_type_hash = {}
         self.typedef_mark_hash = ExpressionHasher._compute_hash(":")
         self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
+        self.hash_length = len(self.typedef_base_type_hash)
         self.typedef_composite_type_hash = ExpressionHasher.composite_hash(
             [
                 self.typedef_mark_hash,
@@ -134,7 +134,6 @@ class RedisMongoDB(AtomDB):
                 self.typedef_base_type_hash,
             ]
         )
-        self.use_targets = [KeyPrefix.PATTERNS, KeyPrefix.TEMPLATES]
         self.mongo_bulk_insertion_buffer = {
             collection_name: tuple([collection, set()])
             for collection_name, collection in self.all_mongo_collections
@@ -223,7 +222,7 @@ class RedisMongoDB(AtomDB):
         redis_connection = {
             "host": redis_hostname,
             "port": redis_port,
-            "decode_responses": False,
+            "decode_responses": True,
             "ssl": redis_ssl,
         }
 
@@ -232,11 +231,9 @@ class RedisMongoDB(AtomDB):
             redis_connection["username"] = redis_username
 
         if redis_cluster:
-            self.redis = RedisCluster(**redis_connection)
+            return RedisCluster(**redis_connection)
         else:
-            self.redis = Redis(**redis_connection)
-
-        return self.redis
+            return Redis(**redis_connection)
 
     def _setup_indexes(self):
         self.default_pattern_index_templates = []
@@ -337,8 +334,8 @@ class RedisMongoDB(AtomDB):
     def _filter_non_toplevel(self, matches: list) -> list:
         matches_toplevel_only = []
         if len(matches) > 0:
-            if isinstance(matches[0], list):
-                matches = matches[0]
+            # if isinstance(matches[0], list):
+            #    matches = matches[0]
             for match in matches:
                 link_handle = match[0]
                 link = self._retrieve_mongo_document(link_handle, len(match[-1]))
@@ -470,7 +467,8 @@ class RedisMongoDB(AtomDB):
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        return self._process_matched_results(patterns_matched, cursor, toplevel_only)
+        r = self._process_matched_results(patterns_matched, cursor, toplevel_only)
+        return r
 
     def get_incoming_links(
         self, atom_handle: str, **kwargs
@@ -632,7 +630,7 @@ class RedisMongoDB(AtomDB):
     def _retrieve_incoming_set(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
-        return (cursor, [member.decode() for member in members])
+        return (cursor, [member for member in members])
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
@@ -640,38 +638,61 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_and_delete_incoming_set(self, handle: str) -> List[str]:
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        data = [member.decode() for member in self.redis.smembers(key)]
+        data = [member for member in self.redis.smembers(key)]
         self.redis.delete(key)
         return data
 
-    def _retrieve_outgoing_set(self, handle: str) -> List[str]:
+    def _retrieve_outgoing_set(self, handle: str, delete=False) -> List[str]:
         key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
-        return [member.decode() for member in self.redis.lrange(key, 0, -1)]
-
-    def _retrieve_and_delete_outgoing_set(self, handle: str) -> List[str]:
-        key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
-        data = [member.decode() for member in self.redis.lrange(key, 0, -1)]
-        self.redis.delete(key)
-        return data
+        if delete:
+            value = self.redis.getdel(key)
+        else:
+            value = self.redis.get(key)
+        if value is None:
+            return []
+        arity = len(value) // self.hash_length
+        return [
+            value[(offset * self.hash_length) : ((offset + 1) * self.hash_length)]
+            for offset in range(arity)
+        ]
 
     def _retrieve_name(self, handle: str) -> str:
         key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
-        if name := self.redis.get(key):
-            return name.decode()
+        name = self.redis.get(key)
+        if name:
+            return name
+        else:
+            return None
+
+    def _retrieve_hash_targets_value(
+        self, key_prefix: str, handle: str, **kwargs
+    ) -> Tuple[int, List[str]]:
+        key = _build_redis_key(key_prefix, handle)
+        cursor, members = self._get_redis_members(key, **kwargs)
+        if len(members) == 0:
+            return (cursor, [])
+        else:
+            n = len(next(iter(members))) // self.hash_length
+            return (
+                cursor,
+                [
+                    [
+                        member[(offset * self.hash_length) : ((offset + 1) * self.hash_length)]
+                        for offset in range(n)
+                    ]
+                    for member in members
+                ],
+            )
 
     def _retrieve_template(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
-        key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
-        cursor, members = self._get_redis_members(key, **kwargs)
-        return (cursor, [pickle.loads(member) for member in members])
+        return self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, handle, **kwargs)
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
     def _retrieve_pattern(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
-        key = _build_redis_key(KeyPrefix.PATTERNS, handle)
-        cursor, members = self._get_redis_members(key, **kwargs)
-        return (cursor, [pickle.loads(member) for member in members])
+        return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
     def _get_redis_members(self, key, **kwargs) -> Tuple[int, list]:
         """
@@ -710,11 +731,11 @@ class RedisMongoDB(AtomDB):
         for document in documents:
             handle = document[MongoFieldNames.ID_HASH]
             targets = self._get_mongo_document_keys(document)
+            targets_str = "".join(targets)
             arity = len(targets)
             named_type = document[MongoFieldNames.TYPE_NAME]
             named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
-
-            value = pickle.dumps(tuple([handle, tuple(targets)]))
+            value = f"{handle}{targets_str}"
 
             if self.pattern_index_templates:
                 index_templates = self.pattern_index_templates.get(named_type, [])
@@ -729,7 +750,7 @@ class RedisMongoDB(AtomDB):
                     if documents:
                         self._update_link_index(documents, delete_atom=True)
 
-                outgoing_atoms = self._retrieve_and_delete_outgoing_set(handle)
+                outgoing_atoms = self._retrieve_outgoing_set(handle, delete=True)
 
                 for atom_handle in outgoing_atoms:
                     self._delete_smember_incoming_set(atom_handle, handle)
@@ -742,7 +763,7 @@ class RedisMongoDB(AtomDB):
                     self.redis.srem(key, value)
             else:
                 key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
-                self.redis.rpush(key, *targets)
+                self.redis.set(key, targets_str)
 
                 for target in targets:
                     buffer = incoming_buffer.get(target, None)
