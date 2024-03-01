@@ -143,8 +143,6 @@ class PartialFilterExpressionOptions(Enum):
     LESS_THAN = "$lt"
     EQUAL = "$eq"
     EXISTS = "$exists"
-    AND = "$and"
-    OR = "$or"
     IN = "$in"
 
 
