@@ -8,7 +8,7 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExist,
     NodeDoesNotExist,
 )
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils import ExpressionHasher
 
 WILDCARD = '*'
 UNORDERED_LINK_TYPES = []

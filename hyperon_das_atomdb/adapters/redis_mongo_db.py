@@ -18,7 +18,7 @@ from hyperon_das_atomdb.exceptions import (
     NodeDoesNotExist,
 )
 from hyperon_das_atomdb.logger import logger
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils import ExpressionHasher
 
 
 def _build_redis_key(prefix, key):
@@ -98,7 +98,7 @@ class RedisMongoDB(AtomDB):
         """
         self.database_name = 'das'
         self._setup_databases(**kwargs)
-        self.use_metta_mapping = kwargs.get("use_metta_mapping", False);
+        self.use_metta_mapping = kwargs.get("use_metta_mapping", False)
         self.mongo_link_collection = {
             "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
             "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),

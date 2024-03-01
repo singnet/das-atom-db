@@ -7,7 +7,7 @@ import pytest
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import WILDCARD, AtomDB
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils import ExpressionHasher
 
 from .animals_kb import (
     animal,
@@ -129,7 +129,7 @@ class TestRedisMongo:
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,
-            use_metta_mapping=True
+            use_metta_mapping=True,
         )
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
@@ -143,7 +143,7 @@ class TestRedisMongo:
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,
-            use_metta_mapping=False
+            use_metta_mapping=False,
         )
         assert db.count_atoms() == (14, 26)
         with pytest.raises(Exception):
@@ -293,7 +293,9 @@ class TestRedisMongo:
             [
                 answer[1][0]
                 for answer in db.get_matched_links(
-                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")], toplevel_only=toplevel_only
+                    "Inheritance",
+                    [WILDCARD, db.node_handle("Concept", "mammal")],
+                    toplevel_only=toplevel_only,
                 )
             ]
         ) == sorted([human, monkey, chimp, rhino])
@@ -301,7 +303,9 @@ class TestRedisMongo:
             [
                 answer[1][1]
                 for answer in db.get_matched_links(
-                    "Inheritance", [db.node_handle("Concept", "mammal"), WILDCARD], toplevel_only=toplevel_only
+                    "Inheritance",
+                    [db.node_handle("Concept", "mammal"), WILDCARD],
+                    toplevel_only=toplevel_only,
                 )
             ]
         ) == sorted([animal])
@@ -309,7 +313,9 @@ class TestRedisMongo:
             [
                 answer[1][0]
                 for answer in db.get_matched_links(
-                    "Similarity", [WILDCARD, db.node_handle("Concept", "human")], toplevel_only=toplevel_only
+                    "Similarity",
+                    [WILDCARD, db.node_handle("Concept", "human")],
+                    toplevel_only=toplevel_only,
                 )
             ]
         ) == sorted([monkey, chimp, ent])
@@ -317,7 +323,9 @@ class TestRedisMongo:
             [
                 answer[1][1]
                 for answer in db.get_matched_links(
-                    "Similarity", [db.node_handle("Concept", "human"), WILDCARD], toplevel_only=toplevel_only
+                    "Similarity",
+                    [db.node_handle("Concept", "human"), WILDCARD],
+                    toplevel_only=toplevel_only,
                 )
             ]
         ) == sorted([monkey, chimp, ent])

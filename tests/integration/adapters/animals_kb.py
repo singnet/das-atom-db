@@ -1,4 +1,4 @@
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils import ExpressionHasher
 
 inheritance_hash = ExpressionHasher.named_type_hash("Inheritance")
 similarity_hash = ExpressionHasher.named_type_hash("Similarity")

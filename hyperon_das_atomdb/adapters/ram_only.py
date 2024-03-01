@@ -9,8 +9,7 @@ from hyperon_das_atomdb.exceptions import (
     NodeDoesNotExist,
 )
 from hyperon_das_atomdb.logger import logger
-from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from hyperon_das_atomdb.utils.patterns import build_patern_keys
+from hyperon_das_atomdb.utils import ExpressionHasher, build_patern_keys
 
 
 class InMemoryDB(AtomDB):
