@@ -1,4 +1,3 @@
-import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
@@ -20,8 +19,10 @@ from hyperon_das_atomdb.exceptions import (
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
+
 def _build_redis_key(prefix, key):
     return prefix + ":" + key
+
 
 class MongoCollectionNames(str, Enum):
     NODES = 'nodes'
@@ -96,7 +97,7 @@ class RedisMongoDB(AtomDB):
         """
         self.database_name = 'das'
         self._setup_databases(**kwargs)
-        self.use_metta_mapping = kwargs.get("use_metta_mapping", True);
+        self.use_metta_mapping = kwargs.get("use_metta_mapping", True)
         self.mongo_link_collection = {
             "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
             "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
@@ -333,7 +334,7 @@ class RedisMongoDB(AtomDB):
     def _filter_non_toplevel(self, matches: list) -> list:
         matches_toplevel_only = []
         if len(matches) > 0:
-            #if isinstance(matches[0], list):
+            # if isinstance(matches[0], list):
             #    matches = matches[0]
             for match in matches:
                 link_handle = match[0]
@@ -651,7 +652,7 @@ class RedisMongoDB(AtomDB):
             return []
         arity = len(value) // self.hash_length
         return [
-            value[offset * self.hash_length : (offset + 1) * self.hash_length]
+            value[(offset * self.hash_length) : ((offset + 1) * self.hash_length)]
             for offset in range(arity)
         ]
 
@@ -663,7 +664,9 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> Tuple[int, List[str]]:
+    def _retrieve_hash_targets_value(
+        self, key_prefix: str, handle: str, **kwargs
+    ) -> Tuple[int, List[str]]:
         key = _build_redis_key(key_prefix, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
         if len(members) == 0:
@@ -674,11 +677,11 @@ class RedisMongoDB(AtomDB):
                 cursor,
                 [
                     [
-                        member[offset * self.hash_length : (offset + 1) * self.hash_length]
+                        member[(offset * self.hash_length) : ((offset + 1) * self.hash_length)]
                         for offset in range(n)
                     ]
                     for member in members
-                ]
+                ],
             )
 
     def _retrieve_template(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
