@@ -120,36 +120,6 @@ class TestRedisMongo:
         )
         return db
 
-    def test_metta_mapping(self):
-        _db_up()
-        db = RedisMongoDB(
-            mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
-            redis_port=redis_port,
-            redis_cluster=False,
-            redis_ssl=False,
-            use_metta_mapping=True
-        )
-        self._add_atoms(db)
-        assert db.count_atoms() == (0, 0)
-        db.commit()
-        assert db.count_atoms() == (14, 26)
-        self._check_basic_patterns(db, toplevel_only=True)
-        db = RedisMongoDB(
-            mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
-            redis_port=redis_port,
-            redis_cluster=False,
-            redis_ssl=False,
-            use_metta_mapping=False
-        )
-        assert db.count_atoms() == (14, 26)
-        with pytest.raises(Exception):
-            self._check_basic_patterns(db, toplevel_only=True)
-        _db_down()
-
     def test_redis_retrieve(self):
         _db_up()
         db = self._connect_db()
@@ -249,49 +219,33 @@ class TestRedisMongo:
 
         _, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
         assert len(patterns) == 4
-        assert (
-            tuple(
-                [
+        assert ([
                     "75756335011dcedb71a0d9a7bd2da9e8",
-                    tuple(["5b34c54bee150c04f9fa584b899dc030", "bdfe4e7a431f73386f37c6448afe5840"]),
-                ]
-            )
-            in patterns
-        )
-        assert (
-            tuple(
-                [
+                    "5b34c54bee150c04f9fa584b899dc030", 
+                    "bdfe4e7a431f73386f37c6448afe5840",
+                ] in patterns)
+        assert ([
                     "fbf03d17d6a40feff828a3f2c6e86f05",
-                    tuple(["99d18c702e813b07260baf577c60c455", "bdfe4e7a431f73386f37c6448afe5840"]),
-                ]
-            )
-            in patterns
-        )
-        assert (
-            tuple(
-                [
+                    "99d18c702e813b07260baf577c60c455", 
+                    "bdfe4e7a431f73386f37c6448afe5840",
+                ] in patterns)
+        assert ([
                     "f31dfe97db782e8cec26de18dddf8965",
-                    tuple(["1cdffc6b0b89ff41d68bec237481d1e1", "bdfe4e7a431f73386f37c6448afe5840"]),
-                ]
-            )
-            in patterns
-        )
-        assert (
-            tuple(
-                [
+                    "1cdffc6b0b89ff41d68bec237481d1e1", 
+                    "bdfe4e7a431f73386f37c6448afe5840",
+                ] in patterns)
+        assert ([
                     "c93e1e758c53912638438e2a7d7f7b7f",
-                    tuple(["af12f10f9ae2002a1607ba0b47ba8407", "bdfe4e7a431f73386f37c6448afe5840"]),
-                ]
-            )
-            in patterns
-        )
+                    "af12f10f9ae2002a1607ba0b47ba8407", 
+                    "bdfe4e7a431f73386f37c6448afe5840",
+                ] in patterns)
 
         _db_down()
 
     def _check_basic_patterns(self, db, toplevel_only=False):
         assert sorted(
             [
-                answer[1][0]
+                answer[1]
                 for answer in db.get_matched_links(
                     "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")], toplevel_only=toplevel_only
                 )
@@ -299,7 +253,7 @@ class TestRedisMongo:
         ) == sorted([human, monkey, chimp, rhino])
         assert sorted(
             [
-                answer[1][1]
+                answer[2]
                 for answer in db.get_matched_links(
                     "Inheritance", [db.node_handle("Concept", "mammal"), WILDCARD], toplevel_only=toplevel_only
                 )
@@ -307,7 +261,7 @@ class TestRedisMongo:
         ) == sorted([animal])
         assert sorted(
             [
-                answer[1][0]
+                answer[1]
                 for answer in db.get_matched_links(
                     "Similarity", [WILDCARD, db.node_handle("Concept", "human")], toplevel_only=toplevel_only
                 )
@@ -315,7 +269,7 @@ class TestRedisMongo:
         ) == sorted([monkey, chimp, ent])
         assert sorted(
             [
-                answer[1][1]
+                answer[2]
                 for answer in db.get_matched_links(
                     "Similarity", [db.node_handle("Concept", "human"), WILDCARD], toplevel_only=toplevel_only
                 )
@@ -341,7 +295,7 @@ class TestRedisMongo:
         assert db.count_atoms() == (14, 26)
         assert sorted(
             [
-                answer[1][0]
+                answer[1]
                 for answer in db.get_matched_links(
                     "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
                 )
@@ -378,7 +332,7 @@ class TestRedisMongo:
         assert db.get_link_targets(new_link_handle) == new_link["targets"]
         assert sorted(
             [
-                answer[1][0]
+                answer[1]
                 for answer in db.get_matched_links(
                     "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
                 )
@@ -462,14 +416,14 @@ class TestRedisMongo:
             )
             assert sorted(db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
             assert sorted(db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
 
@@ -484,55 +438,55 @@ class TestRedisMongo:
                         template, link['named_type_hash'], link['targets'], len(link['targets'])
                     )
                     keys.add(key)
-            assert set([p.decode() for p in db.redis.keys('patterns:*')]) == keys
+            assert set([p for p in db.redis.keys('patterns:*')]) == keys
 
             assert sorted(db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
             assert sorted(db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
             assert sorted(db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
             assert sorted(db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1]) == sorted(
                 [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
                 ]
             )
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
 
         def _check_asserts_2():
@@ -598,34 +552,34 @@ class TestRedisMongo:
                 [dog_handle, mammal_handle]
             )
             assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
             ]
             assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
             ]
             assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
             ]
             assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
             ]
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == []
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == []
@@ -645,38 +599,38 @@ class TestRedisMongo:
             )
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == []
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == []
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == []
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == []
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
             assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
 
         _db_up()
@@ -816,18 +770,21 @@ class TestRedisMongo:
         assert (response[0], sorted(response[1])) == (
             0,
             [
-                (
+                [
                     '16f7e407087bfa0b35b13d13a1aadcae',
-                    ('af12f10f9ae2002a1607ba0b47ba8407', '4e8e26e3276af8a5c2ac2cc2dc95c6d2'),
-                ),
-                (
+                    'af12f10f9ae2002a1607ba0b47ba8407', 
+                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2',
+                ],
+                [
                     'b5459e299a5c5e8662c427f7e01b3bf1',
-                    ('af12f10f9ae2002a1607ba0b47ba8407', '5b34c54bee150c04f9fa584b899dc030'),
-                ),
-                (
+                    'af12f10f9ae2002a1607ba0b47ba8407', 
+                    '5b34c54bee150c04f9fa584b899dc030',
+                ],
+                [
                     'bad7472f41a0e7d601ca294eb4607c3a',
-                    ('af12f10f9ae2002a1607ba0b47ba8407', '1cdffc6b0b89ff41d68bec237481d1e1'),
-                ),
+                    'af12f10f9ae2002a1607ba0b47ba8407', 
+                    '1cdffc6b0b89ff41d68bec237481d1e1',
+                ],
             ],
         )
 
@@ -837,54 +794,66 @@ class TestRedisMongo:
         assert (response[0], sorted(response[1])) == (
             0,
             [
-                (
+                [
                     '116df61c01859c710d178ba14a483509',
-                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
-                ),
-                (
+                    'c1db9b517073e51eb7ef6fed608ec204', 
+                    'b99ae727c787f1b13b452fd4c9ce1b9a',
+                ],
+                [
                     '1c3bf151ea200b2d9e088a1178d060cb',
-                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'bdfe4e7a431f73386f37c6448afe5840', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     '4120e428ab0fa162a04328e5217912ff',
-                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'bb34ce95f161a6b37ff54b3d4c817857', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     '75756335011dcedb71a0d9a7bd2da9e8',
-                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    '5b34c54bee150c04f9fa584b899dc030', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     '906fa505ae3bc6336d80a5f9aaa47b3b',
-                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
-                ),
-                (
+                    'd03e59654221c1e8fcda404fd5c8d6cb', 
+                    '08126b066d32ee37743e255a2558cccd',
+                ],
+                [
                     '959924e3aab197af80a84c1ab261fd65',
-                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
-                ),
-                (
+                    '08126b066d32ee37743e255a2558cccd', 
+                    'b99ae727c787f1b13b452fd4c9ce1b9a',
+                ],
+                [
                     'b0f428929706d1d991e4d712ad08f9ab',
-                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'b99ae727c787f1b13b452fd4c9ce1b9a', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     'c93e1e758c53912638438e2a7d7f7b7f',
-                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    'af12f10f9ae2002a1607ba0b47ba8407', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     'e4685d56969398253b6f77efd21dc347',
-                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
-                ),
-                (
+                    'b94941d8cd1c0ee4ad3dd3dcab52b964', 
+                    '80aff30094874e75028033a38ce677bb',
+                ],
+                [
                     'ee1c03e6d1f104ccd811cfbba018451a',
-                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
-                ),
-                (
+                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2', 
+                    '80aff30094874e75028033a38ce677bb',
+                ],
+                [
                     'f31dfe97db782e8cec26de18dddf8965',
-                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    '1cdffc6b0b89ff41d68bec237481d1e1', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     'fbf03d17d6a40feff828a3f2c6e86f05',
-                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
+                    '99d18c702e813b07260baf577c60c455', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
             ],
         )
 
@@ -892,54 +861,66 @@ class TestRedisMongo:
         assert (response[0], sorted(response[1])) == (
             0,
             [
-                (
+                [
                     '116df61c01859c710d178ba14a483509',
-                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
-                ),
-                (
+                    'c1db9b517073e51eb7ef6fed608ec204', 
+                    'b99ae727c787f1b13b452fd4c9ce1b9a',
+                ],
+                [
                     '1c3bf151ea200b2d9e088a1178d060cb',
-                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'bdfe4e7a431f73386f37c6448afe5840', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     '4120e428ab0fa162a04328e5217912ff',
-                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'bb34ce95f161a6b37ff54b3d4c817857', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     '75756335011dcedb71a0d9a7bd2da9e8',
-                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    '5b34c54bee150c04f9fa584b899dc030', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     '906fa505ae3bc6336d80a5f9aaa47b3b',
-                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
-                ),
-                (
+                    'd03e59654221c1e8fcda404fd5c8d6cb', 
+                    '08126b066d32ee37743e255a2558cccd',
+                ],
+                [
                     '959924e3aab197af80a84c1ab261fd65',
-                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
-                ),
-                (
+                    '08126b066d32ee37743e255a2558cccd', 
+                    'b99ae727c787f1b13b452fd4c9ce1b9a',
+                ],
+                [
                     'b0f428929706d1d991e4d712ad08f9ab',
-                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
-                ),
-                (
+                    'b99ae727c787f1b13b452fd4c9ce1b9a', 
+                    '0a32b476852eeb954979b87f5f6cb7af',
+                ],
+                [
                     'c93e1e758c53912638438e2a7d7f7b7f',
-                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    'af12f10f9ae2002a1607ba0b47ba8407', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     'e4685d56969398253b6f77efd21dc347',
-                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
-                ),
-                (
+                    'b94941d8cd1c0ee4ad3dd3dcab52b964', 
+                    '80aff30094874e75028033a38ce677bb',
+                ],
+                [
                     'ee1c03e6d1f104ccd811cfbba018451a',
-                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
-                ),
-                (
+                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2', 
+                    '80aff30094874e75028033a38ce677bb',
+                ],
+                [
                     'f31dfe97db782e8cec26de18dddf8965',
-                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
-                (
+                    '1cdffc6b0b89ff41d68bec237481d1e1', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
+                [
                     'fbf03d17d6a40feff828a3f2c6e86f05',
-                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
-                ),
+                    '99d18c702e813b07260baf577c60c455', 
+                    'bdfe4e7a431f73386f37c6448afe5840',
+                ],
             ],
         )
         _db_down()
