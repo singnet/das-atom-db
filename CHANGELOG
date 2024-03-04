@@ -1,10 +1,1 @@
-[#46 #48] Add error log message to adapters and Implement get_all_links()
-[#86] Implement reindex() in all AtomDB adapters
-[HOTFIX] Add 'type' in documents returned by get_atom()
-[#84] Add delete_atom method in the InMemoryDB adapter
-[#85] Add delete_atom method in the RedisMongoDB adapter
-[#96] Adjust retrieve methods for sets in Redis - incoming_set, templates, patterns
-[#98] Refactor get_incoming_links() in all AtomDB adapters
-[#100] Add support to MeTTa loader nodes/links mapping
-[#102] Update get_matched_links(), get_matched_type_template() e get_matched_type()
-[#105] Fix MeTTa->Nodes/Links mapping
+[#48] BUGFIX - Unexpected behavior when adding an existing link to InMemoryDB
