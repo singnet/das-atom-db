@@ -23,7 +23,6 @@ class InMemoryDB(AtomDB):
         self.database_name = database_name
         self.named_type_table = {}  # keyed by named type hash
         self.all_named_types = set()
-        self.all_atom_handles = set()
         self.db: Database = Database(
             atom_type={},
             node={},
@@ -106,7 +105,7 @@ class InMemoryDB(AtomDB):
 
     def _delete_incoming_set(self, link_handle: str, atoms_handle: List[str]) -> None:
         for atom_handle in atoms_handle:
-            handles = self.db.incoming_set.get(atom_handle, [])
+            handles = self.db.incoming_set.get(atom_handle, set())
             if len(handles) > 0:
                 handles.remove(link_handle)
 
@@ -127,11 +126,11 @@ class InMemoryDB(AtomDB):
             self.db.templates[named_type_hash] = set([(key, tuple(targets_hash))])
 
     def _delete_templates(self, link_document: dict, targets_hash: List[str]) -> None:
-        template_composite_type = self.db.templates.get(link_document['composite_type_hash'], [])
+        template_composite_type = self.db.templates.get(link_document['composite_type_hash'], set())
         if len(template_composite_type) > 0:
             template_composite_type.remove((link_document['_id'], tuple(targets_hash)))
 
-        template_named_type = self.db.templates.get(link_document['named_type_hash'], [])
+        template_named_type = self.db.templates.get(link_document['named_type_hash'], set())
         if len(template_named_type) > 0:
             template_named_type.remove((link_document['_id'], tuple(targets_hash)))
 
@@ -148,7 +147,7 @@ class InMemoryDB(AtomDB):
     def _delete_patterns(self, link_document: dict, targets_hash: List[str]) -> None:
         pattern_keys = build_patern_keys([link_document['named_type_hash'], *targets_hash])
         for pattern_key in pattern_keys:
-            pattern = self.db.patterns.get(pattern_key, [])
+            pattern = self.db.patterns.get(pattern_key, set())
             if len(pattern) > 0:
                 pattern.remove((link_document['_id'], tuple(targets_hash)))
 
@@ -201,10 +200,6 @@ class InMemoryDB(AtomDB):
 
             self._delete_patterns(atom, targets_hash)
         else:
-            atom_handle = atom['_id']
-            if atom_handle in self.all_atom_handles:
-                return
-            self.all_atom_handles.add(atom_handle)
             atom_type = atom['named_type']
             self._add_atom_type(_name=atom_type)
             if 'name' not in atom:
@@ -377,7 +372,7 @@ class InMemoryDB(AtomDB):
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> List[IncomingLinksT]:
-        links = self.db.incoming_set.get(atom_handle, [])
+        links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get('handles_only', False):
             return links
         else:

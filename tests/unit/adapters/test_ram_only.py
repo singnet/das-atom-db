@@ -714,7 +714,7 @@ class TestInMemoryDB:
         assert links == database.db.incoming_set.get(m)
 
         links = database.get_incoming_links(atom_handle=s, handles_only=True)
-        assert links == []
+        assert links == set()
 
     def test_get_atom_type(self, database: InMemoryDB):
         h = database.get_node_handle('Concept', 'human')
