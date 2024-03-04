@@ -1,1 +1,1 @@
-[#48] BUGFIX - Unexpected behavior when adding an existing link to InMemoryDB
+[#48] BUGFIX - Change from list to set in 'incoming_set', 'templates' and 'patterns'
