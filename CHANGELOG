@@ -1,1 +1,1 @@
-[#48] BUGFIX - Change from list to set in 'incoming_set', 'templates' and 'patterns'
+[#88] Change RAM-only AtomDB to use sets instead of lists when proper
