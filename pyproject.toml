@@ -1,10 +1,15 @@
 [tool.poetry]
 name = "hyperon-das-atomdb"
-version = "0.4.0"
+version = "0.4.2"
 description = "Persistence layer for Distributed AtomSpace"
 authors = ["marcocapozzoli <marcocapozzoli90@gmail.com>"]
 readme = "README.md"
 packages = [{include = "hyperon_das_atomdb"}]
+
+[tool.poetry.urls]
+"Code" = "https://github.com/singnet/das-atom-db"
+"Bug Tracker" = "https://github.com/singnet/das-atom-db/issues"
+"Releases" = "https://github.com/singnet/das-atom-db/releases"
 
 [tool.poetry.dependencies]
 python = "^3.8.5"
