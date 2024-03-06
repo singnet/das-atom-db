@@ -89,23 +89,23 @@ class InMemoryDB(AtomDB):
         self.db.atom_type.pop(key, None)
         self.all_named_types.remove(_name)
 
-    def _add_outgoing_set(self, key: str, targets_hash: Dict[str, Any]) -> None:
+    def _add_outgoing_set(self, key: str, targets_hash: List[str]) -> None:
         self.db.outgoing_set[key] = targets_hash
 
     def _get_and_delete_outgoing_set(self, handle: str) -> List[str]:
         return self.db.outgoing_set.pop(handle, None)
 
-    def _add_incoming_set(self, key: str, targets_hash: Dict[str, Any]) -> None:
+    def _add_incoming_set(self, key: str, targets_hash: List[str]) -> None:
         for target_hash in targets_hash:
             incoming_set = self.db.incoming_set.get(target_hash)
             if incoming_set is None:
-                self.db.incoming_set[target_hash] = [key]
+                self.db.incoming_set[target_hash] = set([key])
             else:
-                self.db.incoming_set[target_hash].append(key)
+                self.db.incoming_set[target_hash].add(key)
 
     def _delete_incoming_set(self, link_handle: str, atoms_handle: List[str]) -> None:
         for atom_handle in atoms_handle:
-            handles = self.db.incoming_set.get(atom_handle, [])
+            handles = self.db.incoming_set.get(atom_handle, set())
             if len(handles) > 0:
                 handles.remove(link_handle)
 
@@ -116,21 +116,21 @@ class InMemoryDB(AtomDB):
         template_named_type_hash = self.db.templates.get(named_type_hash)
 
         if template_composite_type_hash is not None:
-            template_composite_type_hash.append((key, tuple(targets_hash)))
+            template_composite_type_hash.add((key, tuple(targets_hash)))
         else:
-            self.db.templates[composite_type_hash] = [(key, tuple(targets_hash))]
+            self.db.templates[composite_type_hash] = set([(key, tuple(targets_hash))])
 
         if template_named_type_hash is not None:
-            template_named_type_hash.append((key, tuple(targets_hash)))
+            template_named_type_hash.add((key, tuple(targets_hash)))
         else:
-            self.db.templates[named_type_hash] = [(key, tuple(targets_hash))]
+            self.db.templates[named_type_hash] = set([(key, tuple(targets_hash))])
 
     def _delete_templates(self, link_document: dict, targets_hash: List[str]) -> None:
-        template_composite_type = self.db.templates.get(link_document['composite_type_hash'], [])
+        template_composite_type = self.db.templates.get(link_document['composite_type_hash'], set())
         if len(template_composite_type) > 0:
             template_composite_type.remove((link_document['_id'], tuple(targets_hash)))
 
-        template_named_type = self.db.templates.get(link_document['named_type_hash'], [])
+        template_named_type = self.db.templates.get(link_document['named_type_hash'], set())
         if len(template_named_type) > 0:
             template_named_type.remove((link_document['_id'], tuple(targets_hash)))
 
@@ -140,14 +140,14 @@ class InMemoryDB(AtomDB):
         for pattern_key in pattern_keys:
             pattern_key_hash = self.db.patterns.get(pattern_key)
             if pattern_key_hash is not None:
-                pattern_key_hash.append((key, tuple(targets_hash)))
+                pattern_key_hash.add((key, tuple(targets_hash)))
             else:
-                self.db.patterns[pattern_key] = [(key, tuple(targets_hash))]
+                self.db.patterns[pattern_key] = set([(key, tuple(targets_hash))])
 
     def _delete_patterns(self, link_document: dict, targets_hash: List[str]) -> None:
         pattern_keys = build_patern_keys([link_document['named_type_hash'], *targets_hash])
         for pattern_key in pattern_keys:
-            pattern = self.db.patterns.get(pattern_key, [])
+            pattern = self.db.patterns.get(pattern_key, set())
             if len(pattern) > 0:
                 pattern.remove((link_document['_id'], tuple(targets_hash)))
 
@@ -364,7 +364,7 @@ class InMemoryDB(AtomDB):
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
-        patterns_matched = self.db.patterns.get(pattern_hash, [])
+        patterns_matched = self.db.patterns.get(pattern_hash, set())
 
         if kwargs.get('toplevel_only'):
             return self._filter_non_toplevel(patterns_matched)
@@ -372,7 +372,7 @@ class InMemoryDB(AtomDB):
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> List[IncomingLinksT]:
-        links = self.db.incoming_set.get(atom_handle, [])
+        links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get('handles_only', False):
             return links
         else:
