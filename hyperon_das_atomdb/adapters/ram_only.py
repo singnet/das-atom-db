@@ -364,7 +364,7 @@ class InMemoryDB(AtomDB):
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
-        patterns_matched = self.db.patterns.get(pattern_hash, set())
+        patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
         if kwargs.get('toplevel_only'):
             return self._filter_non_toplevel(patterns_matched)
@@ -374,21 +374,21 @@ class InMemoryDB(AtomDB):
     def get_incoming_links(self, atom_handle: str, **kwargs) -> List[IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get('handles_only', False):
-            return links
+            return list(links)
         else:
             return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: List[Any], **kwargs) -> list:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
-        templates_matched = self.db.templates.get(template_hash, [])
+        templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get('toplevel_only'):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
     def get_matched_type(self, link_type: str, **kwargs) -> list:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        templates_matched = self.db.templates.get(link_type_hash, [])
+        templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get('toplevel_only'):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
@@ -481,7 +481,7 @@ class InMemoryDB(AtomDB):
         node = self.db.node.pop(handle, None)
 
         if node:
-            handles = self.db.incoming_set.pop(handle, [])
+            handles = self.db.incoming_set.pop(handle, set())
 
             if handles:
                 for handle in handles:
