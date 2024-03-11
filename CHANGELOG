@@ -1,1 +1,1 @@
-[#88] Change RAM-only AtomDB to use sets instead of lists when proper
+[#112] Fix return of the functions get_matched_links(), get_incoming_links(), get_matched_type_template(), get_matched_type() from set to list
