@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
+from pymongo import errors as pymongo_errors
 from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
@@ -834,3 +835,48 @@ class RedisMongoDB(AtomDB):
                 )
 
             self._update_link_index([document], delete_atom=True)
+
+    def create_field_index(self, collection_name: str, indexes: tuple) -> str:
+        idx_name = ""
+
+        if collection_name == 'node':
+            collections = [self.mongo_nodes_collection]
+        elif collection_name == 'link':
+            collections = self.mongo_link_collection.values()
+        else:
+            raise ValueError("Invalid collection_name")
+
+        index_list, index_options = indexes
+
+        if not isinstance(index_list, list) or not isinstance(index_options, dict):
+            raise ValueError("Invalid input parameters for index creation")
+
+        for collection in collections:
+            existing_indexes = collection.list_indexes()
+            existing_index_names = [index.get('name') for index in existing_indexes]
+            proposed_index_name = index_options.get('name')
+            if proposed_index_name in existing_index_names:
+                logger().info(
+                    f"Index '{proposed_index_name}' already exists in collection '{collection_name}'"
+                )
+                return proposed_index_name
+
+        try:
+            exc = ""
+            for collection in collections:
+                idx_name = collection.create_index(index_list, **index_options)
+        except pymongo_errors.OperationFailure as e:
+            exc = e
+            logger().error(f"Error creating index in collection '{collection_name}': {str(e)}")
+        except Exception as e:
+            exc = e
+            logger().error(f"Error: {str(e)}")
+        finally:
+            if not idx_name:
+                return (
+                    f"Index creation failed, Details: {str(exc)}"
+                    if exc
+                    else "Index creation failed"
+                )
+
+        return idx_name
