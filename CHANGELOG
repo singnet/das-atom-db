@@ -1,1 +1,1 @@
-[#112] Fix return of the functions get_matched_links(), get_incoming_links(), get_matched_type_template(), get_matched_type() from set to list
+[#114] Add create_field_index() to RedisMongoDB adapter
