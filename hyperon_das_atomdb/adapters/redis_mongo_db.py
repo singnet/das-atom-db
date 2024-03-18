@@ -1,5 +1,6 @@
 import sys
 from copy import deepcopy
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -84,6 +85,34 @@ class _HashableDocument:
 
     def __str__(self):
         return str(self.base)
+
+
+@dataclass
+class FieldIndex:
+    collection: str
+    key: str = ""
+    direction: Optional[str] = 'asc'
+    conditionals: Optional[dict] = None
+
+
+class Index:
+    def __init__(self, collection: str, key: str, direction: Optional[str] = 'asc', **kwargs):
+        new_kwargs = {'collection': collection, 'key': key, 'direction': direction}
+
+        for key, value in kwargs.items():
+            key = 'named_type' if key == 'type' else key
+            new_kwargs['conditionals'] = {key: {"$eq": value}}
+            break  # only one key-value pair
+
+        self.index = FieldIndex(**new_kwargs)
+
+    def create(self) -> tuple:
+        index_conditionals = {"name": f"{self.index.key}_index_{self.index.direction}"}
+        if self.index.conditionals is not None:
+            index_conditionals["partialFilterExpression"] = self.index.conditionals
+        index_list = [(self.index.key, 1 if self.index.direction == "asc" else -1)]
+
+        return self.index.collection, (index_list, index_conditionals)
 
 
 class RedisMongoDB(AtomDB):
@@ -836,7 +865,9 @@ class RedisMongoDB(AtomDB):
 
             self._update_link_index([document], delete_atom=True)
 
-    def create_field_index(self, collection_name: str, indexes: tuple) -> str:
+    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+        collection_name, indexes = Index(atom_type, field, type=type).create()
+
         idx_name = ""
 
         if collection_name == 'node':

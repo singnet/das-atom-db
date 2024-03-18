@@ -932,3 +932,48 @@ class TestRedisMongo:
             ],
         )
         _db_down()
+
+    def test_create_field_index(self):
+        _db_up()
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.add_link(
+            {
+                "type": "Expression",
+                "targets": [
+                    {"type": "Symbol", "name": 'Similarity', "is_literal": False},
+                    {"type": "Symbol", "name": '"human"', "is_literal": True},
+                    {"type": "Symbol", "name": '"monkey"', "is_literal": True},
+                ],
+                "score": 0.5,
+            }
+        )
+        db.commit()
+
+        link_collections = list(db.mongo_link_collection.values())
+
+        links_2 = link_collections[0]
+        links_1 = link_collections[1]
+        links_n = link_collections[2]
+
+        response = links_n.find({'named_type': 'Expression', 'score': 0.5}).explain()
+
+        with pytest.raises(KeyError):
+            response['queryPlanner']['winningPlan']['inputStage']['indexName']
+
+        # Create the index
+        my_index = db.create_field_index(atom_type='link', field='score', type='Expression')
+
+        links_2_index_names = [idx.get('name') for idx in links_2.list_indexes()]
+        links_1_index_names = [idx.get('name') for idx in links_1.list_indexes()]
+        links_n_index_names = [idx.get('name') for idx in links_n.list_indexes()]
+
+        assert my_index in links_2_index_names
+        assert my_index in links_1_index_names
+        assert my_index in links_n_index_names
+
+        # Using the index
+        response = links_n.find({'named_type': 'Expression', 'score': 0.5}).explain()
+
+        assert my_index == response['queryPlanner']['winningPlan']['inputStage']['indexName']
+        _db_down()

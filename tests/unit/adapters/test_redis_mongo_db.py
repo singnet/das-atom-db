@@ -1998,58 +1998,56 @@ class TestRedisMongoDB:
     def test_create_field_index_node_collection(self, database):
         database.mongo_nodes_collection = mock.Mock()
         database.mongo_link_collection = {}
-        collection_name = 'node'
-        indexes = (['name'], {'name': 'name_index'})
+        atom_type = 'node'
+        field = 'name'
+        type = 'Type'
         database.mongo_nodes_collection.list_indexes.return_value = []
-        database.mongo_nodes_collection.create_index.return_value = 'name_index'
-        result = database.create_field_index(collection_name, indexes)
+        database.mongo_nodes_collection.create_index.return_value = 'name_index_asc'
+        result = database.create_field_index(atom_type, field, type)
 
-        assert result == 'name_index'
+        assert result == 'name_index_asc'
         database.mongo_nodes_collection.list_indexes.assert_called_once()
         database.mongo_nodes_collection.create_index.assert_called_once_with(
-            ['name'], name='name_index'
+            [('name', 1)],
+            name='name_index_asc',
+            partialFilterExpression={'named_type': {'$eq': 'Type'}},
         )
 
     def test_create_field_index_link_collection(self, database):
         database.mongo_nodes_collection = mock.Mock()
         database.mongo_link_collection = {'link1': mock.Mock()}
-        collection_name = 'link'
-        indexes = (['source', 1], {'name': 'link_index'})
+        atom_type = 'link'
+        field = 'field'
+        type = 'Type'
         database.mongo_link_collection['link1'].list_indexes.return_value = []
-        database.mongo_link_collection['link1'].create_index.return_value = 'link_index'
-        result = database.create_field_index(collection_name, indexes)
+        database.mongo_link_collection['link1'].create_index.return_value = 'link_index_asc'
+        result = database.create_field_index(atom_type, field, type)
 
-        assert result == 'link_index'
+        assert result == 'link_index_asc'
         for link_collection in database.mongo_link_collection.values():
             link_collection.list_indexes.assert_called_once()
         database.mongo_link_collection['link1'].create_index.assert_called_once_with(
-            ['source', 1], name='link_index'
+            [('field', 1)],
+            name='field_index_asc',
+            partialFilterExpression={'named_type': {'$eq': 'Type'}},
         )
 
     def test_create_field_index_invalid_collection(self, database):
-        collection_name = 'invalid_collection'
-        indexes = (['name'], {'name': 'name_index'})
         with pytest.raises(ValueError):
-            database.create_field_index(collection_name, indexes)
-
-    def test_create_field_index_invalid_input(self, database):
-        collection_name = 'node'
-        indexes = ('name', {'name': 'name_index'})
-        with pytest.raises(ValueError):
-            database.create_field_index(collection_name, indexes)
+            database.create_field_index('invalid_atom_type', 'field', 'type')
 
     def test_create_field_index_operation_failure(self, database):
         database.mongo_nodes_collection = mock.Mock()
-        collection_name = 'node'
-        indexes = (['name'], {'name': 'name_index'})
         database.mongo_nodes_collection.list_indexes.return_value = []
         database.mongo_nodes_collection.create_index.side_effect = OperationFailure(
             'Index creation failed'
         )
-        result = database.create_field_index(collection_name, indexes)
+        result = database.create_field_index('node', 'field', 'Type')
 
         assert result == 'Index creation failed, Details: Index creation failed'
         database.mongo_nodes_collection.list_indexes.assert_called_once()
         database.mongo_nodes_collection.create_index.assert_called_once_with(
-            ['name'], name='name_index'
+            [('field', 1)],
+            name='field_index_asc',
+            partialFilterExpression={'named_type': {'$eq': 'Type'}},
         )
