@@ -592,3 +592,7 @@ class AtomDB(ABC):
             handle (str): Atom handle
         """
         ...  # pragma no cover
+
+    @abstractmethod
+    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+        ...  # pragma no cover

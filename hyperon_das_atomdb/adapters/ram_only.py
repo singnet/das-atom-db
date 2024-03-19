@@ -497,3 +497,6 @@ class InMemoryDB(AtomDB):
                     message='This atom does not exist',
                     details=f'handle: {handle}',
                 )
+
+    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+        pass
