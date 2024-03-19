@@ -97,7 +97,6 @@ class MongoDBIndex(Index):
         conditionals = None
 
         for key, value in kwargs.items():
-            key = 'named_type' if key == 'type' else key
             conditionals = {key: {"$eq": value}}
             break  # only one key-value pair
 
@@ -884,7 +883,7 @@ class RedisMongoDB(AtomDB):
         try:
             exc = ""
             for collection in collections:
-                index_id, conditionals = MongoDBIndex(collection).create(field, type=type)
+                index_id, conditionals = MongoDBIndex(collection).create(field, named_type=type)
                 self.mongo_custom_indexes_collection.update_one(
                     filter={'_id': index_id},
                     update={'$set': {'_id': index_id, 'conditionals': conditionals}},
