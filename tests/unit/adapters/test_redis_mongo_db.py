@@ -1998,15 +1998,14 @@ class TestRedisMongoDB:
     def test_create_field_index_node_collection(self, database):
         database.mongo_nodes_collection = mock.Mock()
         database.mongo_link_collection = {}
-        atom_type = 'node'
-        field = 'name'
-        type = 'Type'
-        database.mongo_nodes_collection.list_indexes.return_value = []
         database.mongo_nodes_collection.create_index.return_value = 'name_index_asc'
-        result = database.create_field_index(atom_type, field, type)
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='name_index_asc',
+        ):
+            result = database.create_field_index('node', 'name', 'Type')
 
         assert result == 'name_index_asc'
-        database.mongo_nodes_collection.list_indexes.assert_called_once()
         database.mongo_nodes_collection.create_index.assert_called_once_with(
             [('name', 1)],
             name='name_index_asc',
@@ -2016,19 +2015,17 @@ class TestRedisMongoDB:
     def test_create_field_index_link_collection(self, database):
         database.mongo_nodes_collection = mock.Mock()
         database.mongo_link_collection = {'link1': mock.Mock()}
-        atom_type = 'link'
-        field = 'field'
-        type = 'Type'
-        database.mongo_link_collection['link1'].list_indexes.return_value = []
         database.mongo_link_collection['link1'].create_index.return_value = 'link_index_asc'
-        result = database.create_field_index(atom_type, field, type)
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='link_index_asc',
+        ):
+            result = database.create_field_index('link', 'field', 'Type')
 
         assert result == 'link_index_asc'
-        for link_collection in database.mongo_link_collection.values():
-            link_collection.list_indexes.assert_called_once()
         database.mongo_link_collection['link1'].create_index.assert_called_once_with(
             [('field', 1)],
-            name='field_index_asc',
+            name='link_index_asc',
             partialFilterExpression={'named_type': {'$eq': 'Type'}},
         )
 
@@ -2038,16 +2035,21 @@ class TestRedisMongoDB:
 
     def test_create_field_index_operation_failure(self, database):
         database.mongo_nodes_collection = mock.Mock()
-        database.mongo_nodes_collection.list_indexes.return_value = []
         database.mongo_nodes_collection.create_index.side_effect = OperationFailure(
             'Index creation failed'
         )
         result = database.create_field_index('node', 'field', 'Type')
 
         assert result == 'Index creation failed, Details: Index creation failed'
-        database.mongo_nodes_collection.list_indexes.assert_called_once()
-        database.mongo_nodes_collection.create_index.assert_called_once_with(
-            [('field', 1)],
-            name='field_index_asc',
-            partialFilterExpression={'named_type': {'$eq': 'Type'}},
-        )
+
+    def test_create_field_index_already_exists(self, database):
+        database.mongo_nodes_collection = mock.Mock()
+        database.mongo_link_collection = {}
+        database.mongo_nodes_collection.list_indexes.return_value = []
+        database.mongo_nodes_collection.create_index.return_value = 'name_index_asc'
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='name_index_asc',
+        ):
+            database.create_field_index('node', 'name', 'Type')
+        assert database.create_field_index('node', 'name', 'Type') == 'name_index_asc'

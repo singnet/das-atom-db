@@ -1,11 +1,11 @@
 import sys
 from copy import deepcopy
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from pymongo import MongoClient
 from pymongo import errors as pymongo_errors
+from pymongo.collection import Collection
 from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
@@ -18,6 +18,7 @@ from hyperon_das_atomdb.exceptions import (
     LinkDoesNotExist,
     NodeDoesNotExist,
 )
+from hyperon_das_atomdb.index import Index
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
@@ -33,6 +34,7 @@ class MongoCollectionNames(str, Enum):
     LINKS_ARITY_2 = 'links_2'
     LINKS_ARITY_N = 'links_n'
     DAS_CONFIG = 'das_config'
+    CUSTOM_INDEXES = 'custom_indexes'
 
 
 class MongoFieldNames(str, Enum):
@@ -87,32 +89,33 @@ class _HashableDocument:
         return str(self.base)
 
 
-@dataclass
-class FieldIndex:
-    collection: str
-    key: str = ""
-    direction: Optional[str] = 'asc'
-    conditionals: Optional[dict] = None
+class MongoDBIndex(Index):
+    def __init__(self, collection: Collection) -> None:
+        self.collection = collection
 
-
-class Index:
-    def __init__(self, collection: str, key: str, direction: Optional[str] = 'asc', **kwargs):
-        new_kwargs = {'collection': collection, 'key': key, 'direction': direction}
+    def create(self, field: str, **kwargs) -> Tuple[str, Any]:
+        conditionals = None
 
         for key, value in kwargs.items():
             key = 'named_type' if key == 'type' else key
-            new_kwargs['conditionals'] = {key: {"$eq": value}}
+            conditionals = {key: {"$eq": value}}
             break  # only one key-value pair
 
-        self.index = FieldIndex(**new_kwargs)
+        index_id = self.generate_index_id(field)
 
-    def create(self) -> tuple:
-        index_conditionals = {"name": f"{self.index.key}_index_{self.index.direction}"}
-        if self.index.conditionals is not None:
-            index_conditionals["partialFilterExpression"] = self.index.conditionals
-        index_list = [(self.index.key, 1 if self.index.direction == "asc" else -1)]
+        index_conditionals = {"name": index_id}
 
-        return self.index.collection, (index_list, index_conditionals)
+        if conditionals is not None:
+            index_conditionals["partialFilterExpression"] = conditionals
+
+        index_list = [(field, 1)]  # store the index in ascending order
+
+        return self.collection.create_index(index_list, **index_conditionals), conditionals
+
+    def index_exists(self, index_id: str) -> bool:
+        indexes = self.collection.list_indexes()
+        index_ids = [index.get('name') for index in indexes]
+        return True if index_id in index_ids else False
 
 
 class RedisMongoDB(AtomDB):
@@ -135,6 +138,9 @@ class RedisMongoDB(AtomDB):
         }
         self.mongo_nodes_collection = self.mongo_db.get_collection(MongoCollectionNames.NODES)
         self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
+        self.mongo_custom_indexes_collection = self.mongo_db.get_collection(
+            MongoCollectionNames.CUSTOM_INDEXES
+        )
         self.all_mongo_collections = [
             (
                 MongoCollectionNames.LINKS_ARITY_1,
@@ -866,48 +872,47 @@ class RedisMongoDB(AtomDB):
             self._update_link_index([document], delete_atom=True)
 
     def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
-        collection_name, indexes = Index(atom_type, field, type=type).create()
-
-        idx_name = ""
-
-        if collection_name == 'node':
+        if atom_type == 'node':
             collections = [self.mongo_nodes_collection]
-        elif collection_name == 'link':
+        elif atom_type == 'link':
             collections = self.mongo_link_collection.values()
         else:
-            raise ValueError("Invalid collection_name")
+            raise ValueError("Invalid atom_type")
 
-        index_list, index_options = indexes
-
-        if not isinstance(index_list, list) or not isinstance(index_options, dict):
-            raise ValueError("Invalid input parameters for index creation")
-
-        for collection in collections:
-            existing_indexes = collection.list_indexes()
-            existing_index_names = [index.get('name') for index in existing_indexes]
-            proposed_index_name = index_options.get('name')
-            if proposed_index_name in existing_index_names:
-                logger().info(
-                    f"Index '{proposed_index_name}' already exists in collection '{collection_name}'"
-                )
-                return proposed_index_name
+        index_id = ""
 
         try:
             exc = ""
             for collection in collections:
-                idx_name = collection.create_index(index_list, **index_options)
+                index_id, conditionals = MongoDBIndex(collection).create(field, type=type)
+                if not self.mongo_custom_indexes_collection.find_one({'_id': index_id}):
+                    self.mongo_custom_indexes_collection.insert_one(
+                        {'_id': index_id, 'conditionals': conditionals}
+                    )
         except pymongo_errors.OperationFailure as e:
             exc = e
-            logger().error(f"Error creating index in collection '{collection_name}': {str(e)}")
+            logger().error(f"Error creating index in collection '{collection}': {str(e)}")
         except Exception as e:
             exc = e
             logger().error(f"Error: {str(e)}")
         finally:
-            if not idx_name:
+            if not index_id:
                 return (
                     f"Index creation failed, Details: {str(exc)}"
                     if exc
                     else "Index creation failed"
                 )
 
-        return idx_name
+        return index_id
+
+    def retrieve_mongo_document_by_index(
+        self, collection: Collection, index_id: str, **kwargs
+    ) -> List[Dict[str, Any]]:
+        if MongoDBIndex(collection).index_exists(index_id):
+            kwargs.update(
+                self.mongo_custom_indexes_collection.find_one({'_id': index_id})['conditionals']
+            )
+            pymongo_cursor = collection.find(kwargs).hint(
+                index_id
+            )  # Using the hint() method is an additional measure to ensure its use
+            return [document for document in pymongo_cursor]

@@ -939,13 +939,12 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.add_link(
             {
-                "type": "Expression",
+                "type": "Similarity",
                 "targets": [
-                    {"type": "Symbol", "name": 'Similarity', "is_literal": False},
-                    {"type": "Symbol", "name": '"human"', "is_literal": True},
-                    {"type": "Symbol", "name": '"monkey"', "is_literal": True},
+                    {"type": "Concept", "name": 'human'},
+                    {"type": "Concept", "name": 'monkey'},
                 ],
-                "score": 0.5,
+                "tag": 'DAS',
             }
         )
         db.commit()
@@ -956,13 +955,13 @@ class TestRedisMongo:
         links_1 = link_collections[1]
         links_n = link_collections[2]
 
-        response = links_n.find({'named_type': 'Expression', 'score': 0.5}).explain()
+        response = links_n.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
 
         with pytest.raises(KeyError):
             response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', field='score', type='Expression')
+        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity')
 
         links_2_index_names = [idx.get('name') for idx in links_2.list_indexes()]
         links_1_index_names = [idx.get('name') for idx in links_1.list_indexes()]
@@ -973,7 +972,16 @@ class TestRedisMongo:
         assert my_index in links_n_index_names
 
         # Using the index
-        response = links_n.find({'named_type': 'Expression', 'score': 0.5}).explain()
+        response = links_n.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
 
         assert my_index == response['queryPlanner']['winningPlan']['inputStage']['indexName']
+
+        # Retrieve the document using the index
+        doc = db.retrieve_mongo_document_by_index(links_n, my_index, tag='DAS')
+        assert doc[0]['_id'] == ExpressionHasher.expression_hash(
+            ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
+        )
+        assert doc[0]['key_0'] == human
+        assert doc[0]['key_1'] == monkey
+
         _db_down()
