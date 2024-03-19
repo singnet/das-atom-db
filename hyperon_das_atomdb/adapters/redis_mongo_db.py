@@ -885,10 +885,11 @@ class RedisMongoDB(AtomDB):
             exc = ""
             for collection in collections:
                 index_id, conditionals = MongoDBIndex(collection).create(field, type=type)
-                if not self.mongo_custom_indexes_collection.find_one({'_id': index_id}):
-                    self.mongo_custom_indexes_collection.insert_one(
-                        {'_id': index_id, 'conditionals': conditionals}
-                    )
+                self.mongo_custom_indexes_collection.update_one(
+                    filter={'_id': index_id},
+                    update={'$set': {'_id': index_id, 'conditionals': conditionals}},
+                    upsert=True,
+                )
         except pymongo_errors.OperationFailure as e:
             exc = e
             logger().error(f"Error creating index in collection '{collection}': {str(e)}")
