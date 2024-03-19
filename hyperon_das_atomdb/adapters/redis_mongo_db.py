@@ -1,3 +1,5 @@
+import base64
+import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
@@ -34,7 +36,6 @@ class MongoCollectionNames(str, Enum):
     LINKS_ARITY_2 = 'links_2'
     LINKS_ARITY_N = 'links_n'
     DAS_CONFIG = 'das_config'
-    CUSTOM_INDEXES = 'custom_indexes'
 
 
 class MongoFieldNames(str, Enum):
@@ -54,6 +55,7 @@ class KeyPrefix(str, Enum):
     PATTERNS = 'patterns'
     TEMPLATES = 'templates'
     NAMED_ENTITIES = 'names'
+    CUSTOM_INDEXES = 'custom_indexes'
 
 
 class NodeDocuments:
@@ -137,9 +139,6 @@ class RedisMongoDB(AtomDB):
         }
         self.mongo_nodes_collection = self.mongo_db.get_collection(MongoCollectionNames.NODES)
         self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
-        self.mongo_custom_indexes_collection = self.mongo_db.get_collection(
-            MongoCollectionNames.CUSTOM_INDEXES
-        )
         self.all_mongo_collections = [
             (
                 MongoCollectionNames.LINKS_ARITY_1,
@@ -729,6 +728,12 @@ class RedisMongoDB(AtomDB):
     def _retrieve_pattern(self, handle: str, **kwargs) -> Tuple[int, List[str]]:
         return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
+    def _retrieve_custom_index(self, index_id: str) -> dict:
+        key = _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id)
+        custom_index_str = self.redis.get(key)
+        custom_index_bytes = base64.b64decode(custom_index_str)
+        return pickle.loads(custom_index_bytes)
+
     def _get_redis_members(self, key, **kwargs) -> Tuple[int, list]:
         """
         Retrieve members from a Redis set, with optional cursor-based paging.
@@ -884,10 +889,13 @@ class RedisMongoDB(AtomDB):
             exc = ""
             for collection in collections:
                 index_id, conditionals = MongoDBIndex(collection).create(field, named_type=type)
-                self.mongo_custom_indexes_collection.update_one(
-                    filter={'_id': index_id},
-                    update={'$set': {'_id': index_id, 'conditionals': conditionals}},
-                    upsert=True,
+                serialized_conditionals = pickle.dumps(conditionals)
+                serialized_conditionals_str = base64.b64encode(serialized_conditionals).decode(
+                    'utf-8'
+                )
+                self.redis.set(
+                    _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id),
+                    serialized_conditionals_str,
                 )
         except pymongo_errors.OperationFailure as e:
             exc = e
@@ -909,9 +917,7 @@ class RedisMongoDB(AtomDB):
         self, collection: Collection, index_id: str, **kwargs
     ) -> List[Dict[str, Any]]:
         if MongoDBIndex(collection).index_exists(index_id):
-            kwargs.update(
-                self.mongo_custom_indexes_collection.find_one({'_id': index_id})['conditionals']
-            )
+            kwargs.update(self._retrieve_custom_index(index_id))
             pymongo_cursor = collection.find(kwargs).hint(
                 index_id
             )  # Using the hint() method is an additional measure to ensure its use
