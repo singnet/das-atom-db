@@ -913,7 +913,7 @@ class RedisMongoDB(AtomDB):
 
         return index_id
 
-    def retrieve_mongo_document_by_index(
+    def _retrieve_mongo_documents_by_index(
         self, collection: Collection, index_id: str, **kwargs
     ) -> List[Dict[str, Any]]:
         if MongoDBIndex(collection).index_exists(index_id):
@@ -922,3 +922,5 @@ class RedisMongoDB(AtomDB):
                 index_id
             )  # Using the hint() method is an additional measure to ensure its use
             return [document for document in pymongo_cursor]
+        else:
+            raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
