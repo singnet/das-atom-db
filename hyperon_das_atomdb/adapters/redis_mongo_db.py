@@ -691,7 +691,7 @@ class RedisMongoDB(AtomDB):
             else:
                 self._update_node_index(document, **kwargs)
 
-    def _update_node_index(self, document: Iterable[Dict[str, Any]], **kwargs) -> None:
+    def _update_node_index(self, document: Dict[str, Any], **kwargs) -> None:
         handle = document[MongoFieldNames.ID_HASH]
         node_name = document[MongoFieldNames.NODE_NAME]
         key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
