@@ -28,11 +28,8 @@ def _build_redis_key(prefix, key):
 
 
 class MongoCollectionNames(str, Enum):
-    NODES = 'nodes'
+    ATOMS = 'atoms'
     ATOM_TYPES = 'atom_types'
-    LINKS_ARITY_1 = 'links_1'
-    LINKS_ARITY_2 = 'links_2'
-    LINKS_ARITY_N = 'links_n'
     DAS_CONFIG = 'das_config'
     CUSTOM_INDEXES = 'custom_indexes'
 
@@ -130,30 +127,13 @@ class RedisMongoDB(AtomDB):
         self.database_name = 'das'
         self._setup_databases(**kwargs)
         self.use_metta_mapping = kwargs.get("use_metta_mapping", True)
-        self.mongo_link_collection = {
-            "2": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_2),
-            "1": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_1),
-            "N": self.mongo_db.get_collection(MongoCollectionNames.LINKS_ARITY_N),
-        }
-        self.mongo_nodes_collection = self.mongo_db.get_collection(MongoCollectionNames.NODES)
+        self.mongo_atoms_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOMS)
         self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
         self.mongo_custom_indexes_collection = self.mongo_db.get_collection(
             MongoCollectionNames.CUSTOM_INDEXES
         )
         self.all_mongo_collections = [
-            (
-                MongoCollectionNames.LINKS_ARITY_1,
-                self.mongo_link_collection["1"],
-            ),
-            (
-                MongoCollectionNames.LINKS_ARITY_2,
-                self.mongo_link_collection["2"],
-            ),
-            (
-                MongoCollectionNames.LINKS_ARITY_N,
-                self.mongo_link_collection["N"],
-            ),
-            (MongoCollectionNames.NODES, self.mongo_nodes_collection),
+            (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
         self.mongo_das_config_collection = None
@@ -301,45 +281,13 @@ class RedisMongoDB(AtomDB):
             self.named_type_hash[atom_type] = named_type_hash
         return named_type_hash
 
-    def _retrieve_mongo_document(self, handle: str, arity=-1) -> dict:
+    def _retrieve_mongo_document(self, handle: str) -> dict:
         mongo_filter = {MongoFieldNames.ID_HASH: handle}
-        document = None
-        if arity >= 0:
-            if arity == 0:
-                return self.mongo_nodes_collection.find_one(mongo_filter)
-            else:
-                if self.use_metta_mapping:
-                    document = self.mongo_link_collection["N"].find_one(mongo_filter)
-                    if document:
-                        document["targets"] = self._get_mongo_document_keys(document)
-                    return document
-                else:
-                    if arity == 2:
-                        document = self.mongo_link_collection["2"].find_one(mongo_filter)
-                        if document:
-                            document["targets"] = self._get_mongo_document_keys(document)
-                        return document
-                    elif arity == 1:
-                        document = self.mongo_link_collection["1"].find_one(mongo_filter)
-                        if document:
-                            document["targets"] = self._get_mongo_document_keys(document)
-                        return document
-                    else:
-                        document = self.mongo_link_collection["N"].find_one(mongo_filter)
-                        if document:
-                            document["targets"] = self._get_mongo_document_keys(document)
-                        return document
-
-        # The order of keys in search is important. Greater to smallest
-        # probability of proper arity
-        document = self.mongo_nodes_collection.find_one(mongo_filter)
-        if document:
-            return document
-        for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
-            document = collection.find_one(mongo_filter)
-            if document:
+        document = self.mongo_atoms_collection.find_one(mongo_filter)
+        if document := self.mongo_atoms_collection.find_one(mongo_filter):
+            if self._is_document_link(document):
                 document["targets"] = self._get_mongo_document_keys(document)
-                return document
+            return document
         return None
 
     def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
@@ -373,14 +321,14 @@ class RedisMongoDB(AtomDB):
             #    matches = matches[0]
             for match in matches:
                 link_handle = match[0]
-                link = self._retrieve_mongo_document(link_handle, len(match[-1]))
+                link = self._retrieve_mongo_document(link_handle)
                 if link['is_toplevel']:
                     matches_toplevel_only.append(match)
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
-        document = self._retrieve_mongo_document(node_handle, 0)
+        document = self._retrieve_mongo_document(node_handle)
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
@@ -413,36 +361,35 @@ class RedisMongoDB(AtomDB):
         }
         return [
             document[MongoFieldNames.ID_HASH]
-            for document in self.mongo_nodes_collection.find(mongo_filter)
+            for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         if names:
             return [
                 document[MongoFieldNames.NODE_NAME]
-                for document in self.mongo_nodes_collection.find(
+                for document in self.mongo_atoms_collection.find(
                     {MongoFieldNames.TYPE_NAME: node_type}
                 )
             ]
         else:
             return [
                 document[MongoFieldNames.ID_HASH]
-                for document in self.mongo_nodes_collection.find(
+                for document in self.mongo_atoms_collection.find(
                     {MongoFieldNames.TYPE_NAME: node_type}
                 )
             ]
 
     def get_all_links(self, link_type: str) -> List[str]:
         links_handle = []
-        for collection in [self.mongo_link_collection[key] for key in ["2", "1", "N"]]:
-            documents = collection.find({MongoFieldNames.TYPE_NAME: link_type})
-            for document in documents:
-                links_handle.append(document[MongoFieldNames.ID_HASH])
+        documents = self.mongo_atoms_collection.find({MongoFieldNames.TYPE_NAME: link_type})
+        for document in documents:
+            links_handle.append(document[MongoFieldNames.ID_HASH])
         return links_handle
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
-        document = self._retrieve_mongo_document(link_handle, len(target_handles))
+        document = self._retrieve_mongo_document(link_handle)
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
@@ -502,8 +449,7 @@ class RedisMongoDB(AtomDB):
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        r = self._process_matched_results(patterns_matched, cursor, toplevel_only)
-        return r
+        return self._process_matched_results(patterns_matched, cursor, toplevel_only)
 
     def get_incoming_links(
         self, atom_handle: str, **kwargs
@@ -545,8 +491,7 @@ class RedisMongoDB(AtomDB):
     def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
         document = self._retrieve_mongo_document(handle)
         if document:
-            atom = self._convert_atom_format(document, **kwargs)
-            return atom
+            return self._convert_atom_format(document, **kwargs)
         else:
             logger().error(
                 f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
@@ -561,9 +506,9 @@ class RedisMongoDB(AtomDB):
         if atom is not None:
             return atom['named_type']
 
-    def get_atom_as_dict(self, handle, arity=-1) -> dict:
+    def get_atom_as_dict(self, handle) -> dict:
         answer = {}
-        document = self._retrieve_mongo_document(handle, arity)
+        document = self._retrieve_mongo_document(handle)
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
@@ -574,11 +519,12 @@ class RedisMongoDB(AtomDB):
         return answer
 
     def count_atoms(self) -> Tuple[int, int]:
-        node_count = self.mongo_nodes_collection.estimated_document_count()
-        link_count = 0
-        for collection in self.mongo_link_collection.values():
-            link_count += collection.estimated_document_count()
-        return (node_count, link_count)
+        atoms_count = self.mongo_atoms_collection.estimated_document_count()
+        nodes_count = self.mongo_atoms_collection.count_documents(
+            {MongoFieldNames.COMPOSITE_TYPE: {'$exists': False}}
+        )
+        links_count = atoms_count - nodes_count
+        return (nodes_count, links_count)
 
     def clear_database(self) -> None:
         """
@@ -598,25 +544,23 @@ class RedisMongoDB(AtomDB):
         id_tag = MongoFieldNames.ID_HASH
         for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
             if buffer:
+                if key == MongoCollectionNames.ATOM_TYPES:
+                    logger().error('Failed to commit Atom Types. This operation is not allowed')
+                    raise InvalidOperationException
+
                 documents = [d.base for d in buffer]
 
                 for document in documents:
                     collection.replace_one({id_tag: document[id_tag]}, document, upsert=True)
 
-                if key == MongoCollectionNames.NODES:
-                    self._update_node_index(documents)
-                elif key == MongoCollectionNames.ATOM_TYPES:
-                    logger().error('Failed to commit Atom Types. This operation is not allowed')
-                    raise InvalidOperationException
-                else:
-                    self._update_link_index(documents)
+                self._update_atom_indexes(documents)
 
             buffer.clear()
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
         if sys.getsizeof(node_params['name']) < self.max_mongo_db_document_size:
-            _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.NODES]
+            _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
             buffer.add(_HashableDocument(node))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
                 self.commit()
@@ -626,17 +570,7 @@ class RedisMongoDB(AtomDB):
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
         handle, link, targets = self._add_link(link_params, toplevel)
-        if self.use_metta_mapping:
-            collection_name = MongoCollectionNames.LINKS_ARITY_N
-        else:
-            arity = len(targets)
-            if arity == 1:
-                collection_name = MongoCollectionNames.LINKS_ARITY_1
-            elif arity == 2:
-                collection_name = MongoCollectionNames.LINKS_ARITY_2
-            else:
-                collection_name = MongoCollectionNames.LINKS_ARITY_N
-        _, buffer = self.mongo_bulk_insertion_buffer[collection_name]
+        _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
         buffer.add(_HashableDocument(link))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
             self.commit()
@@ -645,9 +579,8 @@ class RedisMongoDB(AtomDB):
     def _get_and_delete_links_by_handles(self, handles: List[str]) -> Dict[str, Any]:
         documents = []
         for handle in handles:
-            if any(
-                (document := collection.find_one_and_delete({MongoFieldNames.ID_HASH: handle}))
-                for collection in self.mongo_link_collection.values()
+            if document := self.mongo_atoms_collection.find_one_and_delete(
+                {MongoFieldNames.ID_HASH: handle}
             ):
                 documents.append(document)
         return documents
@@ -751,73 +684,82 @@ class RedisMongoDB(AtomDB):
 
         return cursor, members
 
-    def _update_node_index(self, documents: Iterable[Dict[str, any]], **kwargs) -> None:
+    def _update_atom_indexes(self, documents: Iterable[Dict[str, any]], **kwargs) -> None:
         for document in documents:
-            handle = document[MongoFieldNames.ID_HASH]
-            node_name = document[MongoFieldNames.NODE_NAME]
-            key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
-            if kwargs.get('delete_atom', False):
-                self.redis.delete(key)
+            if self._is_document_link(document):
+                self._update_link_index(document, **kwargs)
             else:
-                self.redis.set(key, node_name)
+                self._update_node_index(document, **kwargs)
 
-    def _update_link_index(self, documents: Iterable[Dict[str, any]], **kwargs) -> None:
-        incoming_buffer = {}
-        for document in documents:
-            handle = document[MongoFieldNames.ID_HASH]
-            targets = self._get_mongo_document_keys(document)
-            targets_str = "".join(targets)
-            arity = len(targets)
-            named_type = document[MongoFieldNames.TYPE_NAME]
-            named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
-            value = f"{handle}{targets_str}"
+    def _update_node_index(self, document: Iterable[Dict[str, Any]], **kwargs) -> None:
+        handle = document[MongoFieldNames.ID_HASH]
+        node_name = document[MongoFieldNames.NODE_NAME]
+        key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
+        if kwargs.get('delete_atom', False):
+            self.redis.delete(key)
+            if links_handle := self._retrieve_and_delete_incoming_set(handle):
+                documents = self._get_and_delete_links_by_handles(links_handle)
+                for document in documents:
+                    self._update_link_index(document, delete_atom=True)
+        else:
+            self.redis.set(key, node_name)
 
-            if self.pattern_index_templates:
-                index_templates = self.pattern_index_templates.get(named_type, [])
-            else:
-                index_templates = self.default_pattern_index_templates
+    def _update_link_index(self, document: Dict[str, Any], **kwargs) -> None:
+        handle = document[MongoFieldNames.ID_HASH]
+        targets = self._get_mongo_document_keys(document)
+        targets_str = "".join(targets)
+        arity = len(targets)
+        named_type = document[MongoFieldNames.TYPE_NAME]
+        named_type_hash = document[MongoFieldNames.TYPE_NAME_HASH]
+        value = f"{handle}{targets_str}"
 
-            if kwargs.get('delete_atom', False):
-                links_handle = self._retrieve_and_delete_incoming_set(handle)
+        if self.pattern_index_templates:
+            index_templates = self.pattern_index_templates.get(named_type, [])
+        else:
+            index_templates = self.default_pattern_index_templates
 
-                if links_handle:
-                    documents = self._get_and_delete_links_by_handles(links_handle)
-                    if documents:
-                        self._update_link_index(documents, delete_atom=True)
+        if kwargs.get('delete_atom', False):
+            links_handle = self._retrieve_and_delete_incoming_set(handle)
 
-                outgoing_atoms = self._retrieve_outgoing_set(handle, delete=True)
+            if links_handle:
+                docs = self._get_and_delete_links_by_handles(links_handle)
+                for doc in docs:
+                    self._update_link_index(doc, delete_atom=True)
 
-                for atom_handle in outgoing_atoms:
-                    self._delete_smember_incoming_set(atom_handle, handle)
+            outgoing_atoms = self._retrieve_outgoing_set(handle, delete=True)
 
-                for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
-                    self._delete_smember_template(document[type_hash], value)
+            for atom_handle in outgoing_atoms:
+                self._delete_smember_incoming_set(atom_handle, handle)
 
-                for template in index_templates:
-                    key = self._apply_index_template(template, named_type_hash, targets, arity)
-                    self.redis.srem(key, value)
-            else:
-                key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
-                self.redis.set(key, targets_str)
+            for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
+                self._delete_smember_template(document[type_hash], value)
 
-                for target in targets:
-                    buffer = incoming_buffer.get(target, None)
-                    if buffer is None:
-                        buffer = []
-                        incoming_buffer[target] = buffer
-                    buffer.append(handle)
+            for template in index_templates:
+                key = self._apply_index_template(template, named_type_hash, targets, arity)
+                self.redis.srem(key, value)
+        else:
+            incoming_buffer = {}
+            key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
+            self.redis.set(key, targets_str)
 
-                for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
-                    key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
-                    self.redis.sadd(key, value)
+            for target in targets:
+                buffer = incoming_buffer.get(target, None)
+                if buffer is None:
+                    buffer = []
+                    incoming_buffer[target] = buffer
+                buffer.append(handle)
 
-                for template in index_templates:
-                    key = self._apply_index_template(template, named_type_hash, targets, arity)
-                    self.redis.sadd(key, value)
+            for type_hash in [MongoFieldNames.TYPE, MongoFieldNames.TYPE_NAME_HASH]:
+                key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
+                self.redis.sadd(key, value)
 
-        for handle in incoming_buffer:
-            key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-            self.redis.sadd(key, *incoming_buffer[handle])
+            for template in index_templates:
+                key = self._apply_index_template(template, named_type_hash, targets, arity)
+                self.redis.sadd(key, value)
+
+            for handle in incoming_buffer:
+                key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
+                self.redis.sadd(key, *incoming_buffer[handle])
 
     def _process_matched_results(
         self, matched: list, cursor: int = None, toplevel_only: bool = False
@@ -832,63 +774,45 @@ class RedisMongoDB(AtomDB):
         else:
             return answer
 
+    def _is_document_link(self, document: Dict[str, Any]) -> bool:
+        return True if MongoFieldNames.COMPOSITE_TYPE in document else False
+
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
         if pattern_index_templates is not None:
             self.pattern_index_templates = deepcopy(pattern_index_templates)
         self.redis.flushall()
-        for collection in self.mongo_link_collection.values():
-            self._update_link_index(collection.find({}))
+        self._update_atom_indexes(self.mongo_atoms_collection.find({}))
 
     def delete_atom(self, handle: str, **kwargs) -> None:
         self.commit()
 
         mongo_filter = {MongoFieldNames.ID_HASH: handle}
 
-        node = self.mongo_nodes_collection.find_one_and_delete(mongo_filter)
+        document = self.mongo_atoms_collection.find_one_and_delete(mongo_filter)
 
-        if node:
-            self._update_node_index([node], delete_atom=True)
-
-            links_handle = self._retrieve_and_delete_incoming_set(handle)
-
-            if links_handle:
-                documents = self._get_and_delete_links_by_handles(links_handle)
-                self._update_link_index(documents, delete_atom=True)
-        else:
-            for collection in self.mongo_link_collection.values():
-                document = collection.find_one_and_delete(mongo_filter)
-                if document:
-                    break
-            else:
-                logger().error(
-                    f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
-                )
-                raise AtomDoesNotExist(
-                    message='This atom does not exist',
-                    details=f'handle: {handle}',
-                )
-
-            self._update_link_index([document], delete_atom=True)
+        if not document:
+            logger().error(
+                f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
+            )
+            raise AtomDoesNotExist(
+                message='This atom does not exist',
+                details=f'handle: {handle}',
+            )
+        self._update_atom_indexes([document], delete_atom=True)
 
     def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
-        if atom_type == 'node':
-            collections = [self.mongo_nodes_collection]
-        elif atom_type == 'link':
-            collections = self.mongo_link_collection.values()
-        else:
-            raise ValueError("Invalid atom_type")
+        collection = self.mongo_atoms_collection
 
         index_id = ""
 
         try:
             exc = ""
-            for collection in collections:
-                index_id, conditionals = MongoDBIndex(collection).create(field, named_type=type)
-                self.mongo_custom_indexes_collection.update_one(
-                    filter={'_id': index_id},
-                    update={'$set': {'_id': index_id, 'conditionals': conditionals}},
-                    upsert=True,
-                )
+            index_id, conditionals = MongoDBIndex(collection).create(field, named_type=type)
+            self.mongo_custom_indexes_collection.update_one(
+                filter={'_id': index_id},
+                update={'$set': {'_id': index_id, 'conditionals': conditionals}},
+                upsert=True,
+            )
         except pymongo_errors.OperationFailure as e:
             exc = e
             logger().error(f"Error creating index in collection '{collection}': {str(e)}")
