@@ -126,7 +126,6 @@ class RedisMongoDB(AtomDB):
         """
         self.database_name = 'das'
         self._setup_databases(**kwargs)
-        self.use_metta_mapping = kwargs.get("use_metta_mapping", True)
         self.mongo_atoms_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOMS)
         self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
         self.mongo_custom_indexes_collection = self.mongo_db.get_collection(
