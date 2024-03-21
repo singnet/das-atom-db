@@ -949,13 +949,9 @@ class TestRedisMongo:
         )
         db.commit()
 
-        link_collections = list(db.mongo_link_collection.values())
+        collection = db.mongo_atoms_collection
 
-        links_2 = link_collections[0]
-        links_1 = link_collections[1]
-        links_n = link_collections[2]
-
-        response = links_n.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
+        response = collection.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
 
         with pytest.raises(KeyError):
             response['queryPlanner']['winningPlan']['inputStage']['indexName']
@@ -963,21 +959,17 @@ class TestRedisMongo:
         # Create the index
         my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity')
 
-        links_2_index_names = [idx.get('name') for idx in links_2.list_indexes()]
-        links_1_index_names = [idx.get('name') for idx in links_1.list_indexes()]
-        links_n_index_names = [idx.get('name') for idx in links_n.list_indexes()]
+        collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
 
-        assert my_index in links_2_index_names
-        assert my_index in links_1_index_names
-        assert my_index in links_n_index_names
+        assert my_index in collection_index_names
 
         # Using the index
-        response = links_n.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
+        response = collection.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
 
         assert my_index == response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
         # Retrieve the document using the index
-        doc = db.retrieve_mongo_document_by_index(links_n, my_index, tag='DAS')
+        doc = db.retrieve_mongo_document_by_index(collection, my_index, tag='DAS')
         assert doc[0]['_id'] == ExpressionHasher.expression_hash(
             ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
         )
