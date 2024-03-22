@@ -92,14 +92,14 @@ class MongoDBIndex(Index):
     def __init__(self, collection: Collection) -> None:
         self.collection = collection
 
-    def create(self, field: str, **kwargs) -> Tuple[str, Any]:
+    def create(self, atom_type: str, field: str, **kwargs) -> Tuple[str, Any]:
         conditionals = None
 
         for key, value in kwargs.items():
             conditionals = {key: {"$eq": value}}
             break  # only one key-value pair
 
-        index_id = self.generate_index_id(field)
+        index_id = f"{atom_type}_{self.generate_index_id(field, conditionals)}"
 
         index_conditionals = {"name": index_id}
 
@@ -661,10 +661,28 @@ class RedisMongoDB(AtomDB):
         return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
     def _retrieve_custom_index(self, index_id: str) -> dict:
-        key = _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id)
-        custom_index_str = self.redis.get(key)
-        custom_index_bytes = base64.b64decode(custom_index_str)
-        return pickle.loads(custom_index_bytes)
+        try:
+            key = _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id)
+            custom_index_str = self.redis.get(key)
+
+            if custom_index_str is None:
+                logger().info(f"Custom index with ID {index_id} not found in Redis")
+                return None
+
+            custom_index_bytes = base64.b64decode(custom_index_str)
+            custom_index = pickle.loads(custom_index_bytes)
+
+            if not isinstance(custom_index, dict):
+                logger().error(f"Custom index with ID {index_id} is not a dictionary")
+                raise ValueError("Custom index is not a dictionary")
+
+            return custom_index
+        except ConnectionError as e:
+            logger().error(f"Error connecting to Redis: {e}")
+            raise e
+        except Exception as e:
+            logger().error(f"Unexpected error retrieving custom index with ID {index_id}: {e}")
+            raise e
 
     def _get_redis_members(self, key, **kwargs) -> Tuple[int, list]:
         """
@@ -781,6 +799,52 @@ class RedisMongoDB(AtomDB):
     def _is_document_link(self, document: Dict[str, Any]) -> bool:
         return True if MongoFieldNames.COMPOSITE_TYPE in document else False
 
+    def _calculate_composite_type_hash(self, composite_type: List[Any]) -> str:
+        def calculate_composite_type_hashes(composite_type: List[Any]) -> List[str]:
+            response = []
+            for type in composite_type:
+                if isinstance(type, list):
+                    _hash = calculate_composite_type_hashes(type)
+                    response.append(ExpressionHasher.composite_hash(_hash))
+                else:
+                    response.append(ExpressionHasher.named_type_hash(type))
+            return response
+
+        composite_type_hashes_list = calculate_composite_type_hashes(composite_type)
+        return ExpressionHasher.composite_hash(composite_type_hashes_list)
+
+    def _retrieve_mongo_documents_by_index(
+        self, collection: Collection, index_id: str, **kwargs
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        if MongoDBIndex(collection).index_exists(index_id):
+            cursor = kwargs.pop('cursor', None)
+            chunk_size = kwargs.pop('chunk_size', 500)
+
+            try:
+                kwargs.update(self._retrieve_custom_index(index_id))
+            except Exception as e:
+                raise e
+
+            # Using the hint() method is an additional measure to ensure its use
+            pymongo_cursor = collection.find(kwargs).hint(index_id)
+
+            if cursor is not None:
+                pymongo_cursor.skip(cursor).limit(chunk_size)
+
+                documents = [document for document in pymongo_cursor]
+
+                if not documents:
+                    return 0, []
+
+                if len(documents) < chunk_size:
+                    return 0, documents
+                else:
+                    return cursor + chunk_size, documents
+
+            return 0, [document for document in pymongo_cursor]
+        else:
+            raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
+
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
         if pattern_index_templates is not None:
             self.pattern_index_templates = deepcopy(pattern_index_templates)
@@ -804,23 +868,34 @@ class RedisMongoDB(AtomDB):
             )
         self._update_atom_indexes([document], delete_atom=True)
 
-    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+    def create_field_index(
+        self,
+        atom_type: str,
+        field: str,
+        type: Optional[str] = None,
+        composite_type: Optional[List[Any]] = None,
+    ) -> str:
+        if type and composite_type:
+            raise ValueError("Both type and composite_type cannot be specified")
+
+        if type:
+            kwargs = {MongoFieldNames.TYPE_NAME: type}
+        elif composite_type:
+            kwargs = {MongoFieldNames.TYPE: self._calculate_composite_type_hash(composite_type)}
+
         collection = self.mongo_atoms_collection
 
         index_id = ""
 
         try:
             exc = ""
-            for collection in collections:
-                index_id, conditionals = MongoDBIndex(collection).create(field, named_type=type)
-                serialized_conditionals = pickle.dumps(conditionals)
-                serialized_conditionals_str = base64.b64encode(serialized_conditionals).decode(
-                    'utf-8'
-                )
-                self.redis.set(
-                    _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id),
-                    serialized_conditionals_str,
-                )
+            index_id, conditionals = MongoDBIndex(collection).create(atom_type, field, **kwargs)
+            serialized_conditionals = pickle.dumps(conditionals)
+            serialized_conditionals_str = base64.b64encode(serialized_conditionals).decode('utf-8')
+            self.redis.set(
+                _build_redis_key(KeyPrefix.CUSTOM_INDEXES, index_id),
+                serialized_conditionals_str,
+            )
         except pymongo_errors.OperationFailure as e:
             exc = e
             logger().error(f"Error creating index in collection '{collection}': {str(e)}")
@@ -837,14 +912,13 @@ class RedisMongoDB(AtomDB):
 
         return index_id
 
-    def _retrieve_mongo_documents_by_index(
-        self, collection: Collection, index_id: str, **kwargs
-    ) -> List[Dict[str, Any]]:
-        if MongoDBIndex(collection).index_exists(index_id):
-            kwargs.update(self._retrieve_custom_index(index_id))
-            pymongo_cursor = collection.find(kwargs).hint(
-                index_id
-            )  # Using the hint() method is an additional measure to ensure its use
-            return [document for document in pymongo_cursor]
-        else:
-            raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
+    def get_atoms_by_index(self, index_id: str, **kwargs) -> Union[Tuple[int, list], list]:
+        try:
+            documents = self._retrieve_mongo_documents_by_index(
+                self.mongo_atoms_collection, index_id, **kwargs
+            )
+            cursor, documents = documents
+            return cursor, [self.get_atom(document['_id']) for document in documents]
+        except Exception as e:
+            logger().error(f"Error retrieving atoms by index: {str(e)}")
+            raise e

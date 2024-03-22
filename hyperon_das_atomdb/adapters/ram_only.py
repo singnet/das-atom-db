@@ -498,5 +498,11 @@ class InMemoryDB(AtomDB):
                     details=f'handle: {handle}',
                 )
 
-    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+    def create_field_index(
+        self,
+        atom_type: str,
+        field: str,
+        type: Optional[str] = None,
+        composite_type: Optional[List[Any]] = None,
+    ) -> str:
         pass

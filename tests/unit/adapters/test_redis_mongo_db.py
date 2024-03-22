@@ -1897,24 +1897,24 @@ class TestRedisMongoDB:
         assert result == 'name_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('name', 1)],
-            name='name_index_asc',
-            partialFilterExpression={'named_type': {'$eq': 'Type'}},
+            name='node_name_index_asc',
+            partialFilterExpression={MongoFieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
     def test_create_field_index_link_collection(self, database):
         database.mongo_atoms_collection = mock.Mock()
-        database.mongo_atoms_collection.create_index.return_value = 'link_index_asc'
+        database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
             'hyperon_das_atomdb.index.Index.generate_index_id',
-            return_value='link_index_asc',
+            return_value='field_index_asc',
         ):
             result = database.create_field_index('link', 'field', 'Type')
 
-        assert result == 'link_index_asc'
+        assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('field', 1)],
-            name='link_index_asc',
-            partialFilterExpression={'named_type': {'$eq': 'Type'}},
+            name='link_field_index_asc',
+            partialFilterExpression={MongoFieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
     @pytest.mark.skip(reason="Maybe change the way to handle this test")
