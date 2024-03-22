@@ -969,11 +969,10 @@ class TestRedisMongo:
         assert my_index == response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
         # Retrieve the document using the index
-        doc = db.retrieve_mongo_document_by_index(collection, my_index, tag='DAS')
-        assert doc[0]['_id'] == ExpressionHasher.expression_hash(
+        _, doc = db.get_atoms_by_index(my_index, tag='DAS')
+        assert doc[0]['handle'] == ExpressionHasher.expression_hash(
             ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
         )
-        assert doc[0]['key_0'] == human
-        assert doc[0]['key_1'] == monkey
+        assert doc[0]['targets'] == [human, monkey]
 
         _db_down()

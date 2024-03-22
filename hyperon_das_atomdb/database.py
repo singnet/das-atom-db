@@ -594,5 +594,11 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def create_field_index(self, atom_type: str, field: str, type: Optional[str] = None) -> str:
+    def create_field_index(
+        self,
+        atom_type: str,
+        field: str,
+        type: Optional[str] = None,
+        composite_type: Optional[List[Any]] = None,
+    ) -> str:
         ...  # pragma no cover
