@@ -602,3 +602,7 @@ class AtomDB(ABC):
         composite_type: Optional[List[Any]] = None,
     ) -> str:
         ...  # pragma no cover
+
+    @abstractmethod
+    def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
+        ...  # pragma no cover

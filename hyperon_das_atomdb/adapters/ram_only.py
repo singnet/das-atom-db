@@ -1,7 +1,7 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB, IncomingLinksT
-from hyperon_das_atomdb.entity import Database, Link
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
     InvalidOperationException,
@@ -11,6 +11,17 @@ from hyperon_das_atomdb.exceptions import (
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_patern_keys
+
+
+@dataclass
+class Database:
+    atom_type: Dict[str, Any]
+    node: Dict[str, Any]
+    link: Dict[str, Any]
+    outgoing_set: Dict[str, Any]
+    incoming_set: Dict[str, Any]
+    patterns: Dict[str, List[Tuple]]
+    templates: Dict[str, List[Tuple]]
 
 
 class InMemoryDB(AtomDB):
@@ -26,7 +37,7 @@ class InMemoryDB(AtomDB):
         self.db: Database = Database(
             atom_type={},
             node={},
-            link=Link(arity_1={}, arity_2={}, arity_n={}),
+            link={},
             outgoing_set={},
             incoming_set={},
             patterns={},
@@ -34,18 +45,15 @@ class InMemoryDB(AtomDB):
         )
 
     def _get_link(self, handle: str) -> Optional[Dict[str, Any]]:
-        for table in self.db.link.all_tables():
-            link = table.get(handle)
-            if link is not None:
-                return link
+        link = self.db.link.get(handle)
+        if link is not None:
+            return link
         return None
 
     def _get_and_delete_link(self, link_handle: str) -> Dict[str, Any]:
-        for link_table in self.db.link.all_tables():
-            if link_table:
-                link_document = link_table.pop(link_handle, None)
-                if link_document:
-                    return link_document
+        link_document = self.db.link.pop(link_handle, None)
+        if link_document:
+            return link_document
 
     def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
         if isinstance(template, str):
@@ -160,7 +168,7 @@ class InMemoryDB(AtomDB):
         if len(matches) > 0:
             for match in matches:
                 link_handle = match[0]
-                links = self.db.link.get_table(len(match[-1]))
+                links = self.db.link
                 if links[link_handle]['is_toplevel']:
                     matches_toplevel_only.append(match)
         return matches_toplevel_only
@@ -175,6 +183,10 @@ class InMemoryDB(AtomDB):
             targets.append(handle)
             count += 1
         return targets
+
+    def _update_atom_indexes(self, documents: Iterable[Dict[str, any]], **kwargs) -> None:
+        for document in documents:
+            self._update_index(document, **kwargs)
 
     def _update_index(self, atom: Dict[str, Any], **kwargs):
         if kwargs.get('delete_atom', False):
@@ -284,16 +296,14 @@ class InMemoryDB(AtomDB):
 
     def get_all_links(self, link_type: str) -> List[str]:
         answer = []
-        for table in self.db.link.all_tables():
-            if table:
-                for _, link in table.items():
-                    if link['named_type'] == link_type:
-                        answer.append(link['_id'])
+        for _, link in self.db.link.items():
+            if link['named_type'] == link_type:
+                answer.append(link['_id'])
         return answer
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
-        if link_handle in self.db.link.get_table(len(target_handles)):
+        if link_handle in self.db.link:
             return link_handle
         else:
             logger().error(
@@ -400,8 +410,10 @@ class InMemoryDB(AtomDB):
         if document is None:
             document = self._get_link(handle)
         if document:
-            atom = self._convert_atom_format(document, **kwargs)
-            return atom
+            if not kwargs.get('no_convert', False):
+                return self._convert_atom_format(document, **kwargs)
+            else:
+                return document
         else:
             logger().error(
                 f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
@@ -442,11 +454,7 @@ class InMemoryDB(AtomDB):
         )
 
     def count_atoms(self) -> Tuple[int, int]:
-        nodes = len(self.db.node)
-        links = 0
-        for table in self.db.link.all_tables():
-            links += len(table)
-        return (nodes, links)
+        return (len(self.db.node), len(self.db.link))
 
     def clear_database(self) -> None:
         self.named_type_table = {}
@@ -454,7 +462,7 @@ class InMemoryDB(AtomDB):
         self.db = Database(
             atom_type={},
             node={},
-            link=Link(arity_1={}, arity_2={}, arity_n={}),
+            link={},
             outgoing_set={},
             incoming_set={},
             patterns={},
@@ -469,8 +477,7 @@ class InMemoryDB(AtomDB):
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
         handle, link, targets = self._add_link(link_params, toplevel)
-        link_db = self.db.link.get_table(len(targets))
-        link_db[handle] = link
+        self.db.link[handle] = link
         self._update_index(link)
         return link
 
@@ -506,3 +513,12 @@ class InMemoryDB(AtomDB):
         composite_type: Optional[List[Any]] = None,
     ) -> str:
         pass
+
+    def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
+        for document in documents:
+            handle = document['_id']
+            if 'name' in document:
+                self.db.node[handle] = document
+            else:
+                self.db.link[handle] = document
+            self._update_index(document)

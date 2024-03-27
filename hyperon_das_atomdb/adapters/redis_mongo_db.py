@@ -489,7 +489,10 @@ class RedisMongoDB(AtomDB):
     def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
         document = self._retrieve_mongo_document(handle)
         if document:
-            return self._convert_atom_format(document, **kwargs)
+            if not kwargs.get('no_convert', False):
+                return self._convert_atom_format(document, **kwargs)
+            else:
+                return document
         else:
             logger().error(
                 f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
@@ -922,3 +925,11 @@ class RedisMongoDB(AtomDB):
         except Exception as e:
             logger().error(f"Error retrieving atoms by index: {str(e)}")
             raise e
+
+    def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
+        _id = MongoFieldNames.ID_HASH
+        [
+            self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
+            for document in documents
+        ]
+        self._update_atom_indexes(documents)
