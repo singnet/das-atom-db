@@ -976,3 +976,43 @@ class TestRedisMongo:
         assert doc[0]['targets'] == [human, monkey]
 
         _db_down()
+
+    def test_bulk_insert(self):
+        _db_up()
+        db = self._connect_db()
+        assert db.count_atoms() == (0, 0)
+
+        documents = [
+            {
+                '_id': 'node1',
+                'composite_type_hash': 'ConceptHash',
+                'name': 'human',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': 'node2',
+                'composite_type_hash': 'ConceptHash',
+                'name': 'monkey',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': db.link_handle('Similarity', ['node1', 'node2']),
+                'composite_type_hash': 'CompositeTypeHash',
+                'is_toplevel': True,
+                'composite_type': ['SimilarityHash', 'ConceptHash', 'ConceptHash'],
+                'named_type': 'Similarity',
+                'named_type_hash': 'SimilarityHash',
+                'key_0': 'node1',
+                'key_1': 'node2',
+            },
+        ]
+
+        db.bulk_insert(documents)
+
+        assert db.count_atoms() == (2, 1)
+        assert db.get_matched_links('Similarity', ['node1', 'node2']) == [
+            db.link_handle('Similarity', ['node1', 'node2'])
+        ]
+        assert db.get_all_links('Similarity') == [db.link_handle('Similarity', ['node1', 'node2'])]
+        assert db.get_all_nodes('Concept') == ['node1', 'node2']
+        _db_down()

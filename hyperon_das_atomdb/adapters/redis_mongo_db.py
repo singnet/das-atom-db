@@ -927,9 +927,13 @@ class RedisMongoDB(AtomDB):
             raise e
 
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
-        _id = MongoFieldNames.ID_HASH
-        [
-            self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
-            for document in documents
-        ]
-        self._update_atom_indexes(documents)
+        try:
+            _id = MongoFieldNames.ID_HASH
+            [
+                self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
+                for document in documents
+            ]
+            self._update_atom_indexes(documents)
+        except Exception:
+            logger().error("Error bulk inserting documents")
+            return None

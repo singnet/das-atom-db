@@ -515,10 +515,14 @@ class InMemoryDB(AtomDB):
         pass
 
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
-        for document in documents:
-            handle = document['_id']
-            if 'name' in document:
-                self.db.node[handle] = document
-            else:
-                self.db.link[handle] = document
-            self._update_index(document)
+        try:
+            for document in documents:
+                handle = document['_id']
+                if 'name' in document:
+                    self.db.node[handle] = document
+                else:
+                    self.db.link[handle] = document
+                self._update_index(document)
+        except Exception:
+            logger().error("Error bulk inserting documents")
+            return None
