@@ -410,8 +410,8 @@ class InMemoryDB(AtomDB):
         if document is None:
             document = self._get_link(handle)
         if document:
-            if not kwargs.get('no_convert', False):
-                return self._convert_atom_format(document, **kwargs)
+            if not kwargs.get('no_target_format', False):
+                return self._transform_to_target_format(document, **kwargs)
             else:
                 return document
         else:

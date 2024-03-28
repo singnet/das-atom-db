@@ -35,7 +35,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _convert_atom_format(
+    def _transform_to_target_format(
         self, document: Dict[str, Any], **kwargs
     ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
         answer = {'handle': document['_id'], 'type': document['named_type']}
