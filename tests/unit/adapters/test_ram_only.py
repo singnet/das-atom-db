@@ -1147,3 +1147,37 @@ class TestInMemoryDB:
                 ('167a378d17b1eda5587292814c8d0769', 'e24c839b9ffaf295c5d9be05171cf5d1'),
             )
         }
+
+    def test_bulk_insert(self):
+        db = InMemoryDB()
+
+        assert db.count_atoms() == (0, 0)
+
+        documents = [
+            {
+                '_id': 'node1',
+                'composite_type_hash': 'ConceptHash',
+                'name': 'human',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': 'node2',
+                'composite_type_hash': 'ConceptHash',
+                'name': 'monkey',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': 'link1',
+                'composite_type_hash': 'CompositeTypeHash',
+                'is_toplevel': True,
+                'composite_type': ['SimilarityHash', 'ConceptHash', 'ConceptHash'],
+                'named_type': 'Similarity',
+                'named_type_hash': 'SimilarityHash',
+                'key_0': 'node1',
+                'key_1': 'node2',
+            },
+        ]
+
+        db.bulk_insert(documents)
+
+        assert db.count_atoms() == (2, 1)
