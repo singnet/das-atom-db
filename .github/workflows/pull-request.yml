@@ -1,9 +1,11 @@
 ---
-name: Run Unit & Integration tests
+name: Check Pull Request
 
 on:
-  workflow_dispatch:
-    inputs:
+  pull_request:
+    branches:
+      - develop
+      - master
 
 jobs:
   tests:
@@ -28,6 +30,3 @@ jobs:
 
       - name: Run Unit Tests
         run: make unit-tests unit-tests-coverage
-
-      - name: Run Integration Tests
-        run: make integration-tests
