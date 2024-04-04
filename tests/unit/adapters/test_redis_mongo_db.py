@@ -1891,6 +1891,9 @@ class TestRedisMongoDB:
         with mock.patch(
             'hyperon_das_atomdb.index.Index.generate_index_id',
             return_value='name_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
         ):
             result = database.create_field_index('node', 'name', 'Type')
 
@@ -1907,6 +1910,9 @@ class TestRedisMongoDB:
         with mock.patch(
             'hyperon_das_atomdb.index.Index.generate_index_id',
             return_value='field_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
         ):
             result = database.create_field_index('link', 'field', 'Type')
 
@@ -1927,7 +1933,11 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection.create_index.side_effect = OperationFailure(
             'Index creation failed'
         )
-        result = database.create_field_index('node', 'field', 'Type')
+        with mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
+        ):
+            result = database.create_field_index('node', 'field', 'Type')
 
         assert result == 'Index creation failed, Details: Index creation failed'
 
@@ -1938,6 +1948,9 @@ class TestRedisMongoDB:
         with mock.patch(
             'hyperon_das_atomdb.index.Index.generate_index_id',
             return_value='name_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
         ):
             database.create_field_index('node', 'name', 'Type')
         assert database.create_field_index('node', 'name', 'Type') == 'name_index_asc'
