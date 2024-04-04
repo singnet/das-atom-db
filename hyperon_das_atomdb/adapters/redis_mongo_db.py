@@ -103,12 +103,15 @@ class MongoDBIndex(Index):
 
         index_conditionals = {"name": index_id}
 
-        if conditionals is not None:
+        if conditionals:
             index_conditionals["partialFilterExpression"] = conditionals
 
         index_list = [(field, 1)]  # store the index in ascending order
 
-        return self.collection.create_index(index_list, **index_conditionals), conditionals
+        if not self.index_exists(index_id):
+            return self.collection.create_index(index_list, **index_conditionals), conditionals
+        else:
+            return index_id, conditionals
 
     def index_exists(self, index_id: str) -> bool:
         indexes = self.collection.list_indexes()
