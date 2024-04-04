@@ -93,7 +93,7 @@ class MongoDBIndex(Index):
         self.collection = collection
 
     def create(self, atom_type: str, field: str, **kwargs) -> Tuple[str, Any]:
-        conditionals = ''
+        conditionals = {}
 
         for key, value in kwargs.items():
             conditionals = {key: {"$eq": value}}
