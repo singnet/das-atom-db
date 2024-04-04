@@ -34,7 +34,7 @@ class FieldNames(str, Enum):
 
 
 class RedisPostgreSQLLobeDB(RedisMongoDB):
-    """A concrete implementation using Redis and PostgreSQL database"""
+    """A concrete implementation using Redis and a PostgreSQL Lobe"""
 
     def __repr__(self) -> str:
         return "<Atom database RedisPostgreSQLLobe>"  # pragma no cover
@@ -140,6 +140,7 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
     def _parser(self, cursor: PostgreSQLCursor, table_name: str) -> Table:
         table = Table(table_name)
 
+        # Get information about the constrainst and data type
         cursor.execute(
             f"""
             SELECT 
@@ -364,36 +365,36 @@ if __name__ == "__main__":
         redis_cluster=False,
         redis_ssl=False,
     )
-    marco = db.get_node_handle(node_type='Symbol', node_name='"Marco"')
-    recife = db.get_node_handle(node_type='Symbol', node_name='"Recife"')
-    contractor_name = db.get_node_handle(node_type='Symbol', node_name='contractor.name')
+    # marco = db.get_node_handle(node_type='Symbol', node_name='"Marco"')
+    # recife = db.get_node_handle(node_type='Symbol', node_name='"Recife"')
+    # contractor_name = db.get_node_handle(node_type='Symbol', node_name='contractor.name')
 
-    contractor_id_link = db.get_link_handle(
-        link_type='Expression',
-        target_handles=[
-            db.get_node_handle('Symbol', 'contractor'),
-            db.get_node_handle('Symbol', '"1"'),
-        ],
-    )
-    contractor_name_link = db.get_link_handle(
-        link_type='Expression', target_handles=[contractor_name, contractor_id_link, marco]
-    )
+    # contractor_id_link = db.get_link_handle(
+    #     link_type='Expression',
+    #     target_handles=[
+    #         db.get_node_handle('Symbol', 'contractor'),
+    #         db.get_node_handle('Symbol', '"1"'),
+    #     ],
+    # )
+    # contractor_name_link = db.get_link_handle(
+    #     link_type='Expression', target_handles=[contractor_name, contractor_id_link, marco]
+    # )
 
-    atom = db.get_matched_links(link_type='Expression', target_handles=[contractor_name, '*', '*'])
+    # atom = db.get_matched_links(link_type='Expression', target_handles=[contractor_name, '*', '*'])
 
-    atom1 = db.get_atom(contractor_name_link)
-    atom2 = db.get_atom_type(contractor_name_link)
-    atom3 = db.get_atom_as_dict(contractor_name_link)
+    # atom1 = db.get_atom(contractor_name_link)
+    # atom2 = db.get_atom_type(contractor_name_link)
+    # atom3 = db.get_atom_as_dict(contractor_name_link)
 
-    node1 = db.get_node_name(marco)
-    node2 = db.get_node_type(marco)
-    node3 = db.get_all_nodes('Symbol')
+    # node1 = db.get_node_name(marco)
+    # node2 = db.get_node_type(marco)
+    # node3 = db.get_all_nodes('Symbol')
 
-    link1 = db.get_all_links('Expression')
-    link2 = db.get_link_targets(contractor_id_link)
-    link3 = db.is_ordered(contractor_id_link)
-    link4 = db.get_incoming_links(marco)
-    link5 = db.get_matched_type_template(['Expression', 'Symbol', 'Symbol'])
-    link6 = db.get_matched_type('Expression')
-    db.count_atoms()
+    # link1 = db.get_all_links('Expression')
+    # link2 = db.get_link_targets(contractor_id_link)
+    # link3 = db.is_ordered(contractor_id_link)
+    # link4 = db.get_incoming_links(marco)
+    # link5 = db.get_matched_type_template(['Expression', 'Symbol', 'Symbol'])
+    # link6 = db.get_matched_type('Expression')
+    # db.count_atoms()
     print('END')

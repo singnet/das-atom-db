@@ -1,20 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Dict, List
 
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-
-
-class FieldNames(str, Enum):
-    ID_HASH = '_id'
-    NODE_NAME = 'name'
-    TYPE_NAME = 'named_type'
-    TYPE_NAME_HASH = 'named_type_hash'
-    TYPE = 'composite_type_hash'
-    COMPOSITE_TYPE = 'composite_type'
-    KEY_PREFIX = 'key'
-    KEYS = 'keys'
 
 
 @dataclass
@@ -40,25 +28,22 @@ class Table:
 
 class SQLMapper(ABC):
     @abstractmethod
-    def map_table(self, table: Table) -> None:
+    def map_table(self, table: Table) -> List[Dict[str, Any]]:
         ...  # pragma: no cover
 
 
 class SQL2AtomeseMapper(SQLMapper):
-    def map_table(self, table: Table) -> None:
-        return self._to_atoms_type_atomese(table.to_dict())
+    def map_table(self, table: Table) -> List[Dict[str, Any]]:
+        return self._to_atoms_type_atomese(table)
 
-    def _to_atoms_type_atomese(self, table: Table) -> Dict[str, Any]:
+    def _to_atoms_type_atomese(self, table: Table) -> List[Dict[str, Any]]:
         """WIP"""
         ...  # pragma no cover
 
 
 class SQL2MettaMapper(SQLMapper):
-    def map_table(self, table: Table) -> None:
+    def map_table(self, table: Table) -> List[Dict[str, Any]]:
         return self._to_atoms_type_metta(table)
-
-    def node(self, name: str, type: str = "Symbol", **kwargs) -> Dict[str, Any]:
-        return self._create_node(name, type, **kwargs)
 
     def _to_atoms_type_metta(self, table: Table) -> List[Dict[str, Any]]:
         atoms = [self._create_node(name=table.table_name, is_literal=False)]
@@ -68,6 +53,9 @@ class SQL2MettaMapper(SQLMapper):
             key_0 = {'type': 'Symbol', 'name': table.table_name, 'is_literal': False}
             key_1 = {'type': 'Symbol', 'name': pk_value, 'is_literal': True}
             pk_link = {'type': 'Expression', 'targets': [key_0, key_1]}
+            
+            atoms.append(self._create_node(**key_1))
+            
             for key, value in list(row.items())[1:]:
                 key_0 = {'type': 'Symbol', 'name': f'{table.table_name}.{key}', 'is_literal': False}
                 key_1 = pk_link
@@ -76,6 +64,7 @@ class SQL2MettaMapper(SQLMapper):
                 for answer in answers:
                     if answer not in atoms:
                         atoms.append(answer)
+
         return atoms
 
     def _is_literal(self, name: str) -> bool:
