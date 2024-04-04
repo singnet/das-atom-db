@@ -1,11 +1,13 @@
 # from copy import deepcopy
 from enum import Enum
+import json
 from typing import Any, Dict, List, Optional, Tuple, Union
-from hyperon_das_atomdb.exceptions import NodeDoesNotExist, AtomDoesNotExist
+
 import psycopg2
 from psycopg2.extensions import cursor as PostgreSQLCursor
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist, NodeDoesNotExist
 
 # from hyperon_das_atomdb.database import WILDCARD
 # from hyperon_das_atomdb.exceptions import (
@@ -17,7 +19,7 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
 # )
 from hyperon_das_atomdb.logger import logger
 
-# from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.mapper import Table, create_mapper
 
 
@@ -42,6 +44,9 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
         self.database_name = 'das'
         self.pattern_index_templates = None
         self.table_names = []
+        self.named_type_hash = {}
+        self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
+        self.hash_length = len(self.typedef_base_type_hash)
         self.mapper = create_mapper(kwargs.get('mapper', 'sql2metta'))
         self._setup_databases(**kwargs)
         self._setup_indexes()
@@ -86,7 +91,6 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                 for pos1 in [True, False]:
                     for pos2 in [True, False]:
                         if named_type and pos0 and pos1 and pos2:
-                            # not a pattern but an actual atom
                             continue
                         template = {}
                         template[FieldNames.TYPE_NAME] = named_type
@@ -132,6 +136,7 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                 table = self._parser(cursor, table_name)
                 atoms = self.mapper.map_table(table)
                 self._update_atom_indexes(atoms)
+                self._insert_atoms(atoms)
 
     def _parser(self, cursor: PostgreSQLCursor, table_name: str) -> Table:
         table = Table(table_name)
@@ -228,6 +233,11 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
 
         return table
 
+    def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
+        for atom in atoms:
+            key = f'atoms:{atom["_id"]}'
+            self.redis.set(key, json.dumps(atom))
+
     def _value_exists_in_db(self, value: Any) -> bool:
         with self.postgresql_db.cursor() as cursor:
             for table_name in self.table_names:
@@ -245,42 +255,22 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                     return True
             return False
 
-    def _retrieve_document(self, value: str) -> dict:
-        if self._value_exists_in_db(value):
-            return self.mapper.node(value)
+    def _retrieve_document(self, handle: str) -> dict:
+        key = f'atoms:{handle}'
+        document = self.redis.get(key)
+        if document is not None:
+            return json.loads(document)
         return None
+
+
+
+
+
+
+
 
     def _get_and_delete_links_by_handles(self, handles: List[str]) -> Dict[str, Any]:
         pass
-
-    def get_node_handle(self, node_type: str, node_name: str) -> str:
-        document = self._retrieve_document(eval(node_name))
-        if document is not None:
-            return document[FieldNames.ID_HASH]
-        else:
-            logger().error(
-                f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
-            )
-            raise NodeDoesNotExist(
-                message="This node does not exist",
-                details=f"{node_type}:{node_name}",
-            )
-    
-    def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
-        document = self._retrieve_document(handle)
-        if document:
-            if not kwargs.get('no_target_format', False):
-                return self._transform_to_target_format(document, **kwargs)
-            else:
-                return document
-        else:
-            logger().error(
-                f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
-            )
-            raise AtomDoesNotExist(
-                message='This atom does not exist',
-                details=f'handle: {handle}',
-            )
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
         pass
@@ -342,6 +332,26 @@ if __name__ == "__main__":
         redis_cluster=False,
         redis_ssl=False,
     )
-    handle = db.get_node_handle(node_type='Symbol', node_name='"Capozzoli"')
-    atom = db.get_atom(handle)
+    marco = db.get_node_handle(node_type='Symbol', node_name='"Marco"')
+    recife = db.get_node_handle(node_type='Symbol', node_name='"Recife"')
+    contractor_name = db.get_node_handle(node_type='Symbol', node_name='contractor.name')
+    
+    contractor_id_link = db.get_link_handle(
+        link_type='Expression',
+        target_handles=[
+            db.get_node_handle('Symbol', 'contractor'),
+            db.get_node_handle('Symbol', '"1"')
+        ]
+    )
+    contractor_name_link = db.get_link_handle(
+        link_type='Expression',
+        target_handles=[
+            contractor_name,
+            contractor_id_link,
+            marco            
+        ]
+    )
+    
+    atom = db.get_matched_links(link_type='Expression', target_handles=[contractor_name, '*', '*'])
+    
     print('END')
