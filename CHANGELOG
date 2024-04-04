@@ -1,3 +1,3 @@
 [#127] Create bulk_insert() in Adapters
-[#220] Fix bug in create_field_index() method
+[#132] Fix bug in create_field_index() method
  
