@@ -93,7 +93,7 @@ class MongoDBIndex(Index):
         self.collection = collection
 
     def create(self, atom_type: str, field: str, **kwargs) -> Tuple[str, Any]:
-        conditionals = None
+        conditionals = {}
 
         for key, value in kwargs.items():
             conditionals = {key: {"$eq": value}}
@@ -880,6 +880,8 @@ class RedisMongoDB(AtomDB):
     ) -> str:
         if type and composite_type:
             raise ValueError("Both type and composite_type cannot be specified")
+
+        kwargs = {}
 
         if type:
             kwargs = {MongoFieldNames.TYPE_NAME: type}
