@@ -284,7 +284,7 @@ class RedisMongoDB(AtomDB):
         document = self.mongo_atoms_collection.find_one(mongo_filter)
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
             if self._is_document_link(document):
-                document["targets"] = self._get_mongo_document_keys(document)
+                document["targets"] = self._get_document_keys(document)
             return document
         return None
 
@@ -298,7 +298,7 @@ class RedisMongoDB(AtomDB):
                 answer.append(v)
             return answer
 
-    def _get_mongo_document_keys(self, document: Dict) -> List[str]:
+    def _get_document_keys(self, document: Dict) -> List[str]:
         answer = document.get(MongoFieldNames.KEYS, None)
         if answer is not None:
             return answer
@@ -731,7 +731,7 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, document: Dict[str, Any], **kwargs) -> None:
         handle = document[MongoFieldNames.ID_HASH]
-        targets = self._get_mongo_document_keys(document)
+        targets = self._get_document_keys(document)
         targets_str = "".join(targets)
         arity = len(targets)
         named_type = document[MongoFieldNames.TYPE_NAME]

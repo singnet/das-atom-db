@@ -1,6 +1,6 @@
 # from copy import deepcopy
-from enum import Enum
 import json
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import psycopg2
@@ -18,7 +18,6 @@ from hyperon_das_atomdb.exceptions import AtomDoesNotExist, NodeDoesNotExist
 #     NodeDoesNotExist,
 # )
 from hyperon_das_atomdb.logger import logger
-
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.mapper import Table, create_mapper
 
@@ -257,34 +256,64 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
 
     def _retrieve_document(self, handle: str) -> dict:
         key = f'atoms:{handle}'
-        document = self.redis.get(key)
-        if document is not None:
-            return json.loads(document)
+        answer = self.redis.get(key)
+        if answer is not None:
+            document = json.loads(answer)
+            if self._is_document_link(document):
+                document["targets"] = self._get_document_keys(document)
+            return document
         return None
 
-
-
-
-
-
-
+    def _retrieve_all_documents(self, key: str = None, value: Any = None):
+        answers = self.redis.mget(self.redis.keys('atoms:*'))
+        all_documents = [json.loads(answer) for answer in answers]
+        if key and value is not None:
+            if value is True:
+                return [document for document in all_documents if key in document]
+            elif value is False:
+                return [document for document in all_documents if key not in document]
+            else:
+                return [document for document in all_documents if document[key] == value]
+        else:
+            return all_documents
 
     def _get_and_delete_links_by_handles(self, handles: List[str]) -> Dict[str, Any]:
         pass
 
-    def get_matched_node_name(self, node_type: str, substring: str) -> str:
+    def _retrieve_documents_by_index(
+        self, collection: Any, index_id: str, **kwargs
+    ) -> Tuple[int, List[Dict[str, Any]]]:
         pass
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
-        pass
+        if names:
+            return [
+                document[FieldNames.NODE_NAME]
+                for document in self._retrieve_all_documents(
+                    key=FieldNames.TYPE_NAME, value=node_type
+                )
+            ]
+        else:
+            return [
+                document[FieldNames.ID_HASH]
+                for document in self._retrieve_all_documents(
+                    key=FieldNames.TYPE_NAME, value=node_type
+                )
+            ]
 
     def get_all_links(self, link_type: str) -> List[str]:
-        pass
+        links_handle = []
+        documents = self._retrieve_all_documents(key=FieldNames.TYPE_NAME, value=link_type)
+        for document in documents:
+            links_handle.append(document[FieldNames.ID_HASH])
+        return links_handle
 
     def count_atoms(self) -> Tuple[int, int]:
-        pass
+        atoms = len(self._retrieve_all_documents())
+        nodes = len(self._retrieve_all_documents(FieldNames.COMPOSITE_TYPE, False))
+        return nodes, atoms - nodes
 
-    def clear_database(self) -> None:
+    def get_matched_node_name(self, node_type: str, substring: str) -> str:
         pass
 
     def commit(self) -> None:
@@ -317,6 +346,9 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
         pass
 
+    def clear_database(self) -> None:
+        pass
+
 
 if __name__ == "__main__":
     db = RedisPostgreSQLLobeDB(
@@ -335,23 +367,33 @@ if __name__ == "__main__":
     marco = db.get_node_handle(node_type='Symbol', node_name='"Marco"')
     recife = db.get_node_handle(node_type='Symbol', node_name='"Recife"')
     contractor_name = db.get_node_handle(node_type='Symbol', node_name='contractor.name')
-    
+
     contractor_id_link = db.get_link_handle(
         link_type='Expression',
         target_handles=[
             db.get_node_handle('Symbol', 'contractor'),
-            db.get_node_handle('Symbol', '"1"')
-        ]
+            db.get_node_handle('Symbol', '"1"'),
+        ],
     )
     contractor_name_link = db.get_link_handle(
-        link_type='Expression',
-        target_handles=[
-            contractor_name,
-            contractor_id_link,
-            marco            
-        ]
+        link_type='Expression', target_handles=[contractor_name, contractor_id_link, marco]
     )
-    
+
     atom = db.get_matched_links(link_type='Expression', target_handles=[contractor_name, '*', '*'])
-    
+
+    atom1 = db.get_atom(contractor_name_link)
+    atom2 = db.get_atom_type(contractor_name_link)
+    atom3 = db.get_atom_as_dict(contractor_name_link)
+
+    node1 = db.get_node_name(marco)
+    node2 = db.get_node_type(marco)
+    node3 = db.get_all_nodes('Symbol')
+
+    link1 = db.get_all_links('Expression')
+    link2 = db.get_link_targets(contractor_id_link)
+    link3 = db.is_ordered(contractor_id_link)
+    link4 = db.get_incoming_links(marco)
+    link5 = db.get_matched_type_template(['Expression', 'Symbol', 'Symbol'])
+    link6 = db.get_matched_type('Expression')
+    db.count_atoms()
     print('END')

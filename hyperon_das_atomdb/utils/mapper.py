@@ -56,48 +56,26 @@ class SQL2AtomeseMapper(SQLMapper):
 class SQL2MettaMapper(SQLMapper):
     def map_table(self, table: Table) -> None:
         return self._to_atoms_type_metta(table)
-    
+
     def node(self, name: str, type: str = "Symbol", **kwargs) -> Dict[str, Any]:
         return self._create_node(name, type, **kwargs)
 
     def _to_atoms_type_metta(self, table: Table) -> List[Dict[str, Any]]:
         atoms = [self._create_node(name=table.table_name, is_literal=False)]
 
-        # for column in table.columns:
-        #     if column['constraint_type'] == 'PK':
-        #         continue
-
-        #     atoms.append(self._create_node(name=f"{table.table_name}.{column['name']}"))
-
         for row in table.rows:
             _, pk_value = list(row.items())[0]
-
             key_0 = {'type': 'Symbol', 'name': table.table_name, 'is_literal': False}
             key_1 = {'type': 'Symbol', 'name': pk_value, 'is_literal': True}
-
-            # if self._check_numerical_type(pk_value) == 'int':
-            #     key_1['value_as_int'] = pk_value
-            # elif self._check_numerical_type(pk_value) == 'float':
-            #     key_1['value_as_float'] = pk_value
-
             pk_link = {'type': 'Expression', 'targets': [key_0, key_1]}
-
             for key, value in list(row.items())[1:]:
                 key_0 = {'type': 'Symbol', 'name': f'{table.table_name}.{key}', 'is_literal': False}
                 key_1 = pk_link
                 key_2 = {'type': 'Symbol', 'name': value, 'is_literal': True}
-
-                # if self._check_numerical_type(value) == 'int':
-                #     key_2['value_as_int'] = value
-                # elif self._check_numerical_type(value) == 'float':
-                #     key_2['value_as_float'] = value
-
                 answers = self._create_link(targets=[key_0, key_1, key_2])
-
                 for answer in answers:
                     if answer not in atoms:
                         atoms.append(answer)
-
         return atoms
 
     def _is_literal(self, name: str) -> bool:
@@ -177,11 +155,8 @@ class SQL2MettaMapper(SQLMapper):
                 atom = self._create_link(**target, toplevel=False)[0]
                 composite_type.append(atom['composite_type'])
                 atom_hash = atom['composite_type_hash']
-
             composite_type_hash.append(atom_hash)
-
             targets_hash.append(atom['_id'])
-
             targets_atom.append(atom)
 
         link = {
