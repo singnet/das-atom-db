@@ -237,7 +237,7 @@ class TestInMemoryDB:
         with pytest.raises(NodeDoesNotExist) as exc_info:
             database.get_node_handle(node_type="Concept-Fake", node_name="fake")
         assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "This node does not exist"
+        assert exc_info.value.args[0] == "Nonexistent node"
 
     def test_get_link_handle(self, database: InMemoryDB):
         human = database.get_node_handle('Concept', 'human')
@@ -250,7 +250,7 @@ class TestInMemoryDB:
         with pytest.raises(LinkDoesNotExist) as exc_info:
             database.get_link_handle(link_type='Singularity', target_handles=['Fake-1', 'Fake-2'])
         assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "This link does not exist"
+        assert exc_info.value.args[0] == "Nonexistent link"
 
     def test_node_exists_true(self, database: InMemoryDB):
         ret = database.node_exists(node_type="Concept", node_name="human")
@@ -281,7 +281,7 @@ class TestInMemoryDB:
         with pytest.raises(LinkDoesNotExist) as exc_info:
             database.get_link_targets('link_handle_Fake')
         assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "This link does not exist"
+        assert exc_info.value.args[0] == "Nonexistent link"
 
     def test_is_ordered_true(self, database: InMemoryDB):
         human = database.get_node_handle('Concept', 'human')
@@ -295,7 +295,7 @@ class TestInMemoryDB:
             database.is_ordered('handle_123')
 
         assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "This link does not exist"
+        assert exc_info.value.args[0] == "Nonexistent link"
 
     def test_get_matched_links_without_wildcard(self, database):
         link_type = 'Similarity'
@@ -354,7 +354,7 @@ class TestInMemoryDB:
         with pytest.raises(LinkDoesNotExist) as exc_info:
             database.get_matched_links(link_type, [chimp, chimp])
         assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "This link does not exist"
+        assert exc_info.value.args[0] == "Nonexistent link"
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
         database.add_link(
@@ -537,7 +537,7 @@ class TestInMemoryDB:
         with pytest.raises(NodeDoesNotExist) as exc_info:
             database.get_node_name('handle-test')
         assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "This node does not exist"
+        assert exc_info.value.args[0] == "Nonexistent node"
 
     def test_get_node_type(self, database):
         handle = database.get_node_handle('Concept', 'monkey')
@@ -549,7 +549,7 @@ class TestInMemoryDB:
         with pytest.raises(NodeDoesNotExist) as exc_info:
             database.get_node_type('handle-test')
         assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "This node does not exist"
+        assert exc_info.value.args[0] == "Nonexistent node"
 
     def test_get_matched_node_name(self, database: InMemoryDB):
         expected = sorted(
@@ -681,7 +681,7 @@ class TestInMemoryDB:
 
         with pytest.raises(AtomDoesNotExist) as exc:
             database.get_atom(handle='test')
-        assert exc.value.message == 'This atom does not exist'
+        assert exc.value.message == 'Nonexistent atom'
         assert exc.value.details == 'handle: test'
 
     def test_get_atom_as_dist(self, database: InMemoryDB):
