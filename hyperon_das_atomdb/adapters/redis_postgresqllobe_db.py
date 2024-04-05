@@ -1,4 +1,3 @@
-# from copy import deepcopy
 import json
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -7,16 +6,7 @@ import psycopg2
 from psycopg2.extensions import cursor as PostgreSQLCursor
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist, NodeDoesNotExist
-
-# from hyperon_das_atomdb.database import WILDCARD
-# from hyperon_das_atomdb.exceptions import (
-#     AtomDoesNotExist,
-#     ConnectionMongoDBException,
-#     InvalidOperationException,
-#     LinkDoesNotExist,
-#     NodeDoesNotExist,
-# )
+from hyperon_das_atomdb.exceptions import ParserException
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.mapper import Table, create_mapper
@@ -117,143 +107,136 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                 user=postgresql_username,
                 password=postgresql_password,
             )
-        except psycopg2.OperationalError as e:
+        except psycopg2.Error as e:
             logger().error(f'An error occourred when connection to PostgreSQL - Details: {str(e)}')
             raise e
 
     def _fetch(self) -> None:
-        with self.postgresql_db.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public';
-                """
-            )
-            self.table_names = [table[0] for table in cursor.fetchall()]
-            for table_name in self.table_names:
-                table = self._parser(cursor, table_name)
-                atoms = self.mapper.map_table(table)
-                self._update_atom_indexes(atoms)
-                self._insert_atoms(atoms)
+        try:
+            with self.postgresql_db.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public';
+                    """
+                )
+                self.table_names = [table[0] for table in cursor.fetchall()]
+                for table_name in self.table_names:
+                    table = self._parser(cursor, table_name)
+                    atoms = self.mapper.map_table(table)
+                    self._update_atom_indexes(atoms)
+                    self._insert_atoms(atoms)
+        except (psycopg2.Error, Exception) as e:
+            logger().error(f"Error during fetching data from PostgreSQL Lobe - Details: {str(e)}")
+            raise e
 
     def _parser(self, cursor: PostgreSQLCursor, table_name: str) -> Table:
         table = Table(table_name)
 
-        # Get information about the constrainst and data type
-        cursor.execute(
-            f"""
-            SELECT 
-                cols.column_name,
-                cols.data_type,
-                CASE 
-                    WHEN cons.constraint_type = 'PRIMARY KEY' THEN 'PK'
-                    WHEN cons.constraint_type = 'FOREIGN KEY' THEN 'FK'
-                    ELSE ''
-                END AS type
-            FROM 
-                information_schema.columns cols
-            LEFT JOIN 
-                (
-                    SELECT 
-                        kcu.column_name,
-                        tc.constraint_type
-                    FROM 
-                        information_schema.key_column_usage kcu
-                    JOIN 
-                        information_schema.table_constraints tc 
-                        ON kcu.constraint_name = tc.constraint_name
-                        AND kcu.constraint_schema = tc.constraint_schema
-                    WHERE 
-                        tc.table_name = '{table_name}'
-                ) cons 
-                ON cols.column_name = cons.column_name
-            WHERE 
-                cols.table_name = '{table_name}'
-            ORDER BY 
-                CASE 
-                    WHEN cons.constraint_type = 'PRIMARY KEY' THEN 0 
-                    ELSE 1 
-                END;
-            """
-        )
-        columns = cursor.fetchall()
-        for column in columns:
-            table.add_column(*column)
+        try:
+            # Get information about the constrainst and data type
+            cursor.execute(
+                f"""
+                SELECT 
+                    cols.column_name,
+                    cols.data_type,
+                    CASE 
+                        WHEN cons.constraint_type = 'PRIMARY KEY' THEN 'PK'
+                        WHEN cons.constraint_type = 'FOREIGN KEY' THEN 'FK'
+                        ELSE ''
+                    END AS type
+                FROM 
+                    information_schema.columns cols
+                LEFT JOIN 
+                    (
+                        SELECT 
+                            kcu.column_name,
+                            tc.constraint_type
+                        FROM 
+                            information_schema.key_column_usage kcu
+                        JOIN 
+                            information_schema.table_constraints tc 
+                            ON kcu.constraint_name = tc.constraint_name
+                            AND kcu.constraint_schema = tc.constraint_schema
+                        WHERE 
+                            tc.table_name = '{table_name}'
+                    ) cons 
+                    ON cols.column_name = cons.column_name
+                WHERE 
+                    cols.table_name = '{table_name}'
+                ORDER BY 
+                    CASE 
+                        WHEN cons.constraint_type = 'PRIMARY KEY' THEN 0 
+                        ELSE 1 
+                    END;
+                """
+            )
+            columns = cursor.fetchall()
+            for column in columns:
+                table.add_column(*column)
 
-        # Pk column
-        cursor.execute(
-            f"""
-            SELECT column_name
-            FROM information_schema.key_column_usage
-            WHERE constraint_name = (
-                SELECT constraint_name
-                FROM information_schema.table_constraints
-                WHERE table_name = '{table_name}' AND constraint_type = 'PRIMARY KEY'
-            ) AND table_name = '{table_name}';       
-            """
-        )
-        pk_column = cursor.fetchone()[0]
+            # Pk column
+            cursor.execute(
+                f"""
+                SELECT column_name
+                FROM information_schema.key_column_usage
+                WHERE constraint_name = (
+                    SELECT constraint_name
+                    FROM information_schema.table_constraints
+                    WHERE table_name = '{table_name}' AND constraint_type = 'PRIMARY KEY'
+                ) AND table_name = '{table_name}';       
+                """
+            )
+            pk_column = cursor.fetchone()[0]
 
-        # Pk Data
-        cursor.execute(
-            f"""
-            SELECT {pk_column} FROM {table_name};
-            """
-        )
-        pk_table = cursor.fetchall()
+            # Pk Data
+            cursor.execute(
+                f"""
+                SELECT {pk_column} FROM {table_name};
+                """
+            )
+            pk_table = cursor.fetchall()
 
-        # Non PK columns
-        cursor.execute(
-            f"""
-            SELECT 
-                string_agg(column_name, ',')
-            FROM 
-                information_schema.columns
-            WHERE 
-                table_name = '{table_name}'
-                AND column_name != '{pk_column}'        
-            """
-        )
-        non_pk_column = cursor.fetchone()[0]
+            # Non PK columns
+            cursor.execute(
+                f"""
+                SELECT 
+                    string_agg(column_name, ',')
+                FROM 
+                    information_schema.columns
+                WHERE 
+                    table_name = '{table_name}'
+                    AND column_name != '{pk_column}'        
+                """
+            )
+            non_pk_column = cursor.fetchone()[0]
 
-        # Non PK Data
-        cursor.execute(
-            f"""
-            SELECT {non_pk_column} FROM {table_name}
-            """
-        )
-        non_pk_table = cursor.fetchall()
+            # Non PK Data
+            cursor.execute(
+                f"""
+                SELECT {non_pk_column} FROM {table_name}
+                """
+            )
+            non_pk_table = cursor.fetchall()
 
-        # Sorted data where PK column is first
-        rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
+            # Sorted data where PK column is first
+            rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
 
-        for row in rows:
-            table.add_row({key: value for key, value in zip(table.get_column_names(), row)})
+            for row in rows:
+                table.add_row({key: value for key, value in zip(table.get_column_names(), row)})
 
-        return table
+            return table
+        except (psycopg2.Error, TypeError) as e:
+            logger().error(f"Error: {e}")
+            raise ParserException(
+                message=f"Error during parsing table '{table_name}'", details=str(e)
+            )
 
     def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
         for atom in atoms:
             key = f'atoms:{atom["_id"]}'
             self.redis.set(key, json.dumps(atom))
-
-    def _value_exists_in_db(self, value: Any) -> bool:
-        with self.postgresql_db.cursor() as cursor:
-            for table_name in self.table_names:
-                cursor.execute(
-                    f"""
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM {table_name}
-                        WHERE ({table_name}::text ILIKE '%{value}%')
-                    );
-                    """
-                )
-                value_exists = cursor.fetchone()[0]
-                if value_exists:
-                    return True
-            return False
 
     def _retrieve_document(self, handle: str) -> dict:
         key = f'atoms:{handle}'
@@ -315,22 +298,22 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
         return nodes, atoms - nodes
 
     def get_matched_node_name(self, node_type: str, substring: str) -> str:
-        pass
+        raise NotImplementedError("The method 'get_matched_node_name' is not implemented yet")
 
     def commit(self) -> None:
-        pass
+        raise NotImplementedError("The method 'commit' is not implemented yet")
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
-        pass
+        raise NotImplementedError("The method 'add_node' is not implemented yet")
 
     def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
-        pass
+        raise NotImplementedError("The method 'add_link' is not implemented yet")
 
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
-        pass
+        raise NotImplementedError("The method 'reindex' is not implemented yet")
 
     def delete_atom(self, handle: str, **kwargs) -> None:
-        pass
+        raise NotImplementedError("The method 'delete_atom' is not implemented yet")
 
     def create_field_index(
         self,
@@ -339,62 +322,13 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
     ) -> str:
-        pass
+        raise NotImplementedError("The method 'create_field_index' is not implemented yet")
 
     def get_atoms_by_index(self, index_id: str, **kwargs) -> Union[Tuple[int, list], list]:
-        pass
+        raise NotImplementedError("The method 'get_atoms_by_index' is not implemented yet")
 
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
-        pass
+        raise NotImplementedError("The method 'bulk_insert' is not implemented yet")
 
     def clear_database(self) -> None:
-        pass
-
-
-if __name__ == "__main__":
-    db = RedisPostgreSQLLobeDB(
-        postgresql_database_name='postgres',
-        postgresql_hostname='127.0.0.1',
-        postgresql_port=5432,
-        postgresql_username='postgres',
-        postgresql_password='postgres',
-        redis_hostname='127.0.0.1',
-        redis_port=8379,
-        redis_username=None,
-        redis_password=None,
-        redis_cluster=False,
-        redis_ssl=False,
-    )
-    # marco = db.get_node_handle(node_type='Symbol', node_name='"Marco"')
-    # recife = db.get_node_handle(node_type='Symbol', node_name='"Recife"')
-    # contractor_name = db.get_node_handle(node_type='Symbol', node_name='contractor.name')
-
-    # contractor_id_link = db.get_link_handle(
-    #     link_type='Expression',
-    #     target_handles=[
-    #         db.get_node_handle('Symbol', 'contractor'),
-    #         db.get_node_handle('Symbol', '"1"'),
-    #     ],
-    # )
-    # contractor_name_link = db.get_link_handle(
-    #     link_type='Expression', target_handles=[contractor_name, contractor_id_link, marco]
-    # )
-
-    # atom = db.get_matched_links(link_type='Expression', target_handles=[contractor_name, '*', '*'])
-
-    # atom1 = db.get_atom(contractor_name_link)
-    # atom2 = db.get_atom_type(contractor_name_link)
-    # atom3 = db.get_atom_as_dict(contractor_name_link)
-
-    # node1 = db.get_node_name(marco)
-    # node2 = db.get_node_type(marco)
-    # node3 = db.get_all_nodes('Symbol')
-
-    # link1 = db.get_all_links('Expression')
-    # link2 = db.get_link_targets(contractor_id_link)
-    # link3 = db.is_ordered(contractor_id_link)
-    # link4 = db.get_incoming_links(marco)
-    # link5 = db.get_matched_type_template(['Expression', 'Symbol', 'Symbol'])
-    # link6 = db.get_matched_type('Expression')
-    # db.count_atoms()
-    print('END')
+        raise NotImplementedError("The method 'clear_database' is not implemented yet")

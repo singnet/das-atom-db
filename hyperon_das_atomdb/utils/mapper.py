@@ -53,9 +53,9 @@ class SQL2MettaMapper(SQLMapper):
             key_0 = {'type': 'Symbol', 'name': table.table_name, 'is_literal': False}
             key_1 = {'type': 'Symbol', 'name': pk_value, 'is_literal': True}
             pk_link = {'type': 'Expression', 'targets': [key_0, key_1]}
-            
+
             atoms.append(self._create_node(**key_1))
-            
+
             for key, value in list(row.items())[1:]:
                 key_0 = {'type': 'Symbol', 'name': f'{table.table_name}.{key}', 'is_literal': False}
                 key_1 = pk_link
