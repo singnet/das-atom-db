@@ -1523,7 +1523,7 @@ class TestRedisMongoDB:
         with pytest.raises(NodeDoesNotExist) as exc_info:
             database.get_node_handle(node_type, node_name)
         assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "This node does not exist"
+        assert exc_info.value.args[0] == "Nonexistent node"
 
     def test_get_link_handle(self, database):
         human = ExpressionHasher.terminal_hash('Concept', 'human')
@@ -1540,7 +1540,7 @@ class TestRedisMongoDB:
         with pytest.raises(LinkDoesNotExist) as exc_info:
             database.get_link_handle(link_type='Similarity', target_handles=[brazil, travel])
         assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "This link does not exist"
+        assert exc_info.value.args[0] == "Nonexistent link"
 
     def test_get_link_targets(self, database):
         human = database.get_node_handle('Concept', 'human')
