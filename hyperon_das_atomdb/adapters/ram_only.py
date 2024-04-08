@@ -191,7 +191,7 @@ class InMemoryDB(AtomDB):
     def _update_index(self, atom: Dict[str, Any], **kwargs):
         if kwargs.get('delete_atom', False):
             if atom is None:
-                raise LinkDoesNotExist('link not exist')
+                raise LinkDoesNotExist('Nonexistent link')
 
             link_handle = atom['_id']
 
@@ -241,7 +241,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
             )
             raise NodeDoesNotExist(
-                message='This node does not exist',
+                message='Nonexistent node',
                 details=f'{node_type}:{node_name}',
             )
 
@@ -252,7 +252,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve node name for handle: {node_handle}. This node may not exist.'
             )
             raise NodeDoesNotExist(
-                message='This node does not exist',
+                message='Nonexistent node',
                 details=f'node_handle: {node_handle}',
             )
         return node['name']
@@ -264,7 +264,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve node type for handle: {node_handle}. This node may not exist.'
             )
             raise NodeDoesNotExist(
-                message='This node does not exist',
+                message='Nonexistent node',
                 details=f'node_handle: {node_handle}',
             )
         return node['named_type']
@@ -310,7 +310,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve link handle for {link_type}:{target_handles}. This link may not exist.'
             )
             raise LinkDoesNotExist(
-                message='This link does not exist',
+                message='Nonexistent link',
                 details=f'{link_type}:{target_handles}',
             )
 
@@ -323,7 +323,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve link type for {link_handle}. This link may not exist.'
             )
             raise LinkDoesNotExist(
-                message='This link does not exist',
+                message='Nonexistent link',
                 details=f'link_handle: {link_handle}',
             )
 
@@ -334,7 +334,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve link targets for {link_handle}. This link may not exist.'
             )
             raise LinkDoesNotExist(
-                message='This link does not exist',
+                message='Nonexistent link',
                 details=f'link_handle: {link_handle}',
             )
         return answer
@@ -348,7 +348,7 @@ class InMemoryDB(AtomDB):
                 'Failed to retrieve document for link handle: {link_handle}. The link may not exist.'
             )
             raise LinkDoesNotExist(
-                message='This link does not exist',
+                message='Nonexistent link',
                 details=f'link_handle: {link_handle}',
             )
 
@@ -419,7 +419,7 @@ class InMemoryDB(AtomDB):
                 f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
             )
             raise AtomDoesNotExist(
-                message='This atom does not exist',
+                message='Nonexistent atom',
                 details=f'handle: {handle}',
             )
 
@@ -449,7 +449,7 @@ class InMemoryDB(AtomDB):
             }
         logger().error(f'Failed to retrieve atom for handle: {handle}. This link may not exist.')
         raise AtomDoesNotExist(
-            message='This atom does not exist',
+            message='Nonexistent atom',
             details=f'handle: {handle}',
         )
 
@@ -501,7 +501,7 @@ class InMemoryDB(AtomDB):
                     f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
                 )
                 raise AtomDoesNotExist(
-                    message='This atom does not exist',
+                    message='Nonexistent atom',
                     details=f'handle: {handle}',
                 )
 

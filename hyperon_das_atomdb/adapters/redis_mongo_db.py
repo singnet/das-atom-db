@@ -337,7 +337,7 @@ class RedisMongoDB(AtomDB):
                 f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
             )
             raise NodeDoesNotExist(
-                message="This node does not exist",
+                message="Nonexistent node",
                 details=f"{node_type}:{node_name}",
             )
 
@@ -398,7 +398,7 @@ class RedisMongoDB(AtomDB):
                 f'Failed to retrieve link handle for {link_type}:{target_handles}. This link may not exist.'
             )
             raise LinkDoesNotExist(
-                message="This link does not exist",
+                message="Nonexistent link",
                 details=f"{link_type}:{target_handles}",
             )
 
@@ -501,7 +501,7 @@ class RedisMongoDB(AtomDB):
                 f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
             )
             raise AtomDoesNotExist(
-                message='This atom does not exist',
+                message='Nonexistent atom',
                 details=f'handle: {handle}',
             )
 
@@ -869,7 +869,7 @@ class RedisMongoDB(AtomDB):
                 f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
             )
             raise AtomDoesNotExist(
-                message='This atom does not exist',
+                message='Nonexistent atom',
                 details=f'handle: {handle}',
             )
         self._update_atom_indexes([document], delete_atom=True)
