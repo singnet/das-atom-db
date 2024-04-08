@@ -1,7 +1,5 @@
-import os
 import random
 import string
-import subprocess
 
 import pytest
 
@@ -22,85 +20,14 @@ from .animals_kb import (
     rhino,
     similarity_docs,
 )
-
-redis_port = "15926"
-mongo_port = "15927"
-scripts_path = "./tests/integration/scripts/"
-devnull = open(os.devnull, 'w')
-
-DAS_MONGODB_HOSTNAME = os.environ.get("DAS_MONGODB_HOSTNAME")
-DAS_MONGODB_PORT = os.environ.get("DAS_MONGODB_PORT")
-DAS_MONGODB_USERNAME = os.environ.get("DAS_MONGODB_USERNAME")
-DAS_MONGODB_PASSWORD = os.environ.get("DAS_MONGODB_PASSWORD")
-DAS_REDIS_HOSTNAME = os.environ.get("DAS_REDIS_HOSTNAME")
-DAS_REDIS_PORT = os.environ.get("DAS_REDIS_PORT")
-DAS_REDIS_USERNAME = os.environ.get("DAS_REDIS_USERNAME")
-DAS_REDIS_PASSWORD = os.environ.get("DAS_REDIS_PASSWORD")
-DAS_USE_REDIS_CLUSTER = os.environ.get("DAS_USE_REDIS_CLUSTER")
-DAS_USE_REDIS_SSL = os.environ.get("DAS_USE_REDIS_SSL")
-
-os.environ["DAS_MONGODB_HOSTNAME"] = "localhost"
-os.environ["DAS_MONGODB_PORT"] = mongo_port
-os.environ["DAS_MONGODB_USERNAME"] = "dbadmin"
-os.environ["DAS_MONGODB_PASSWORD"] = "dassecret"
-os.environ["DAS_REDIS_HOSTNAME"] = "localhost"
-os.environ["DAS_REDIS_PORT"] = redis_port
-os.environ["DAS_REDIS_USERNAME"] = ""
-os.environ["DAS_REDIS_PASSWORD"] = ""
-os.environ["DAS_USE_REDIS_CLUSTER"] = "false"
-os.environ["DAS_USE_REDIS_SSL"] = "false"
-
-
-def _db_up():
-    subprocess.call(
-        ["bash", f"{scripts_path}/redis-up.sh", redis_port], stdout=devnull, stderr=devnull
-    )
-    subprocess.call(
-        ["bash", f"{scripts_path}/mongo-up.sh", mongo_port], stdout=devnull, stderr=devnull
-    )
-
-
-def _db_down():
-    subprocess.call(
-        ["bash", f"{scripts_path}/redis-down.sh", redis_port], stdout=devnull, stderr=devnull
-    )
-    subprocess.call(
-        ["bash", f"{scripts_path}/mongo-down.sh", mongo_port], stdout=devnull, stderr=devnull
-    )
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup(request):
-    def restore_environment():
-        if DAS_MONGODB_HOSTNAME:
-            os.environ["DAS_MONGODB_HOSTNAME"] = DAS_MONGODB_HOSTNAME
-        if DAS_MONGODB_PORT:
-            os.environ["DAS_MONGODB_PORT"] = DAS_MONGODB_PORT
-        if DAS_MONGODB_USERNAME:
-            os.environ["DAS_MONGODB_USERNAME"] = DAS_MONGODB_USERNAME
-        if DAS_MONGODB_PASSWORD:
-            os.environ["DAS_MONGODB_PASSWORD"] = DAS_MONGODB_PASSWORD
-        if DAS_REDIS_HOSTNAME:
-            os.environ["DAS_REDIS_HOSTNAME"] = DAS_REDIS_HOSTNAME
-        if DAS_REDIS_PORT:
-            os.environ["DAS_REDIS_PORT"] = DAS_REDIS_PORT
-        if DAS_REDIS_USERNAME:
-            os.environ["DAS_REDIS_USERNAME"] = DAS_REDIS_USERNAME
-        if DAS_REDIS_PASSWORD:
-            os.environ["DAS_REDIS_PASSWORD"] = DAS_REDIS_PASSWORD
-        if DAS_USE_REDIS_CLUSTER:
-            os.environ["DAS_USE_REDIS_CLUSTER"] = DAS_USE_REDIS_CLUSTER
-        if DAS_USE_REDIS_SSL:
-            os.environ["DAS_USE_REDIS_SSL"] = DAS_USE_REDIS_SSL
-
-    def enforce_containers_removal():
-        _db_down()
-
-    request.addfinalizer(restore_environment)
-    request.addfinalizer(enforce_containers_removal)
+from .helpers import Database, _db_down, _db_up, cleanup, mongo_port, redis_port
 
 
 class TestRedisMongo:
+    @pytest.fixture(scope="session", autouse=True)
+    def _cleanup(self, request):
+        return cleanup(request)
+
     def _add_atoms(self, db: RedisMongoDB):
         for node in node_docs.values():
             db.add_node(node)
@@ -120,8 +47,50 @@ class TestRedisMongo:
         )
         return db
 
-    def test_redis_retrieve(self):
-        _db_up()
+    def _check_basic_patterns(self, db, toplevel_only=False):
+        assert sorted(
+            [
+                answer[1]
+                for answer in db.get_matched_links(
+                    "Inheritance",
+                    [WILDCARD, db.node_handle("Concept", "mammal")],
+                    toplevel_only=toplevel_only,
+                )
+            ]
+        ) == sorted([human, monkey, chimp, rhino])
+        assert sorted(
+            [
+                answer[2]
+                for answer in db.get_matched_links(
+                    "Inheritance",
+                    [db.node_handle("Concept", "mammal"), WILDCARD],
+                    toplevel_only=toplevel_only,
+                )
+            ]
+        ) == sorted([animal])
+        assert sorted(
+            [
+                answer[1]
+                for answer in db.get_matched_links(
+                    "Similarity",
+                    [WILDCARD, db.node_handle("Concept", "human")],
+                    toplevel_only=toplevel_only,
+                )
+            ]
+        ) == sorted([monkey, chimp, ent])
+        assert sorted(
+            [
+                answer[2]
+                for answer in db.get_matched_links(
+                    "Similarity",
+                    [db.node_handle("Concept", "human"), WILDCARD],
+                    toplevel_only=toplevel_only,
+                )
+            ]
+        ) == sorted([monkey, chimp, ent])
+
+    def test_redis_retrieve(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
@@ -242,50 +211,8 @@ class TestRedisMongo:
 
         _db_down()
 
-    def _check_basic_patterns(self, db, toplevel_only=False):
-        assert sorted(
-            [
-                answer[1]
-                for answer in db.get_matched_links(
-                    "Inheritance",
-                    [WILDCARD, db.node_handle("Concept", "mammal")],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([human, monkey, chimp, rhino])
-        assert sorted(
-            [
-                answer[2]
-                for answer in db.get_matched_links(
-                    "Inheritance",
-                    [db.node_handle("Concept", "mammal"), WILDCARD],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([animal])
-        assert sorted(
-            [
-                answer[1]
-                for answer in db.get_matched_links(
-                    "Similarity",
-                    [WILDCARD, db.node_handle("Concept", "human")],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([monkey, chimp, ent])
-        assert sorted(
-            [
-                answer[2]
-                for answer in db.get_matched_links(
-                    "Similarity",
-                    [db.node_handle("Concept", "human"), WILDCARD],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([monkey, chimp, ent])
-
-    def test_patterns(self):
-        _db_up()
+    def test_patterns(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
         db.commit()
@@ -293,8 +220,8 @@ class TestRedisMongo:
         self._check_basic_patterns(db)
         _db_down()
 
-    def test_commit(self):
-        _db_up()
+    def test_commit(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         assert db.count_atoms() == (0, 0)
         self._add_atoms(db)
@@ -348,8 +275,8 @@ class TestRedisMongo:
         ) == sorted([human, monkey, chimp, rhino, dog])
         _db_down()
 
-    def test_reindex(self):
-        _db_up()
+    def test_reindex(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
         db.commit()
@@ -358,7 +285,7 @@ class TestRedisMongo:
         self._check_basic_patterns(db)
         _db_down()
 
-    def test_delete_atom(self):
+    def test_delete_atom(self, _cleanup):
         def _add_all_links():
             db.add_link(
                 {
@@ -641,7 +568,7 @@ class TestRedisMongo:
                 [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
 
-        _db_up()
+        _db_up(Database.REDIS, Database.MONGO)
 
         db = self._connect_db()
 
@@ -694,8 +621,8 @@ class TestRedisMongo:
 
         _db_down()
 
-    def test_retrieve_members_with_pagination(self):
-        _db_up()
+    def test_retrieve_members_with_pagination(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
 
         def _add_links():
@@ -762,8 +689,8 @@ class TestRedisMongo:
 
         _db_down()
 
-    def test_get_matched_with_pagination(self):
-        _db_up()
+    def test_get_matched_with_pagination(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
         db.commit()
@@ -933,8 +860,8 @@ class TestRedisMongo:
         )
         _db_down()
 
-    def test_create_field_index(self):
-        _db_up()
+    def test_create_field_index(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
         db.add_link(
@@ -977,8 +904,8 @@ class TestRedisMongo:
 
         _db_down()
 
-    def test_bulk_insert(self):
-        _db_up()
+    def test_bulk_insert(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         assert db.count_atoms() == (0, 0)
 

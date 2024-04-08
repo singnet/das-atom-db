@@ -1,4 +1,4 @@
 [#127] Create bulk_insert() in Adapters
 [#132] Fix bug in create_field_index() method
 [das-query-engine#223] Update log messages
- 
+[#129] Create a new adapter called PostgresLobeDB

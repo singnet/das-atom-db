@@ -44,3 +44,7 @@ class RetryException(BaseException):
 
 class InvalidAtomDB(BaseException):
     ...  # pragma no cover
+
+
+class InvalidSQL(BaseException):
+    ...  # pragma no cover

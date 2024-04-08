@@ -282,12 +282,12 @@ class RedisMongoDB(AtomDB):
             self.named_type_hash[atom_type] = named_type_hash
         return named_type_hash
 
-    def _retrieve_mongo_document(self, handle: str) -> dict:
+    def _retrieve_document(self, handle: str) -> dict:
         mongo_filter = {MongoFieldNames.ID_HASH: handle}
         document = self.mongo_atoms_collection.find_one(mongo_filter)
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
             if self._is_document_link(document):
-                document["targets"] = self._get_mongo_document_keys(document)
+                document["targets"] = self._get_document_keys(document)
             return document
         return None
 
@@ -301,7 +301,7 @@ class RedisMongoDB(AtomDB):
                 answer.append(v)
             return answer
 
-    def _get_mongo_document_keys(self, document: Dict) -> List[str]:
+    def _get_document_keys(self, document: Dict) -> List[str]:
         answer = document.get(MongoFieldNames.KEYS, None)
         if answer is not None:
             return answer
@@ -322,14 +322,14 @@ class RedisMongoDB(AtomDB):
             #    matches = matches[0]
             for match in matches:
                 link_handle = match[0]
-                link = self._retrieve_mongo_document(link_handle)
+                link = self._retrieve_document(link_handle)
                 if link['is_toplevel']:
                     matches_toplevel_only.append(match)
         return matches_toplevel_only
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
-        document = self._retrieve_mongo_document(node_handle)
+        document = self._retrieve_document(node_handle)
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
@@ -390,7 +390,7 @@ class RedisMongoDB(AtomDB):
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
-        document = self._retrieve_mongo_document(link_handle)
+        document = self._retrieve_document(link_handle)
         if document is not None:
             return document[MongoFieldNames.ID_HASH]
         else:
@@ -412,7 +412,7 @@ class RedisMongoDB(AtomDB):
         return answer
 
     def is_ordered(self, link_handle: str) -> bool:
-        document = self._retrieve_mongo_document(link_handle)
+        document = self._retrieve_document(link_handle)
         if document is None:
             logger().error(
                 'Failed to retrieve document for link handle: {link_handle}. The handle may be invalid or the corresponding link does not exist.'
@@ -490,7 +490,7 @@ class RedisMongoDB(AtomDB):
         return document[MongoFieldNames.TYPE_NAME]
 
     def get_atom(self, handle: str, **kwargs) -> Dict[str, Any]:
-        document = self._retrieve_mongo_document(handle)
+        document = self._retrieve_document(handle)
         if document:
             if not kwargs.get('no_target_format', False):
                 return self._transform_to_target_format(document, **kwargs)
@@ -506,13 +506,13 @@ class RedisMongoDB(AtomDB):
             )
 
     def get_atom_type(self, handle: str) -> str:
-        atom = self._retrieve_mongo_document(handle)
+        atom = self._retrieve_document(handle)
         if atom is not None:
             return atom['named_type']
 
     def get_atom_as_dict(self, handle) -> dict:
         answer = {}
-        document = self._retrieve_mongo_document(handle)
+        document = self._retrieve_document(handle)
         if document:
             answer["handle"] = document[MongoFieldNames.ID_HASH]
             answer["type"] = document[MongoFieldNames.TYPE_NAME]
@@ -734,7 +734,7 @@ class RedisMongoDB(AtomDB):
 
     def _update_link_index(self, document: Dict[str, Any], **kwargs) -> None:
         handle = document[MongoFieldNames.ID_HASH]
-        targets = self._get_mongo_document_keys(document)
+        targets = self._get_document_keys(document)
         targets_str = "".join(targets)
         arity = len(targets)
         named_type = document[MongoFieldNames.TYPE_NAME]
@@ -819,7 +819,7 @@ class RedisMongoDB(AtomDB):
         composite_type_hashes_list = calculate_composite_type_hashes(composite_type)
         return ExpressionHasher.composite_hash(composite_type_hashes_list)
 
-    def _retrieve_mongo_documents_by_index(
+    def _retrieve_documents_by_index(
         self, collection: Collection, index_id: str, **kwargs
     ) -> Tuple[int, List[Dict[str, Any]]]:
         if MongoDBIndex(collection).index_exists(index_id):
@@ -922,7 +922,7 @@ class RedisMongoDB(AtomDB):
 
     def get_atoms_by_index(self, index_id: str, **kwargs) -> Union[Tuple[int, list], list]:
         try:
-            documents = self._retrieve_mongo_documents_by_index(
+            documents = self._retrieve_documents_by_index(
                 self.mongo_atoms_collection, index_id, **kwargs
             )
             cursor, documents = documents

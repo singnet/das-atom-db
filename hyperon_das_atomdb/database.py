@@ -126,6 +126,7 @@ class AtomDB(ABC):
         targets_hash = []
         composite_type = [link_type_hash]
         composite_type_hash = [link_type_hash]
+
         for target in targets:
             if 'targets' not in target.keys():
                 atom = self.add_node(target)
@@ -137,6 +138,7 @@ class AtomDB(ABC):
                 atom_hash = atom['composite_type_hash']
             composite_type_hash.append(atom_hash)
             targets_hash.append(atom['_id'])
+
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
         arity = len(targets)
