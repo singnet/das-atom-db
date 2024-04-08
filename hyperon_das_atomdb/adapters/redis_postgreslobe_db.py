@@ -3,10 +3,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import psycopg2
-from psycopg2.extensions import cursor as PostgreSQLCursor
+from psycopg2.extensions import cursor as PostgresCursor
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
-from hyperon_das_atomdb.exceptions import ParserException
+from hyperon_das_atomdb.exceptions import InvalidSQL
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.mapper import Table, create_mapper
@@ -23,11 +23,11 @@ class FieldNames(str, Enum):
     KEYS = 'keys'
 
 
-class RedisPostgreSQLLobeDB(RedisMongoDB):
-    """A concrete implementation using Redis and a PostgreSQL Lobe"""
+class RedisPostgresLobeDB(RedisMongoDB):
+    """A concrete implementation using Redis and a PostgresLobe"""
 
     def __repr__(self) -> str:
-        return "<Atom database RedisPostgreSQLLobe>"  # pragma no cover
+        return "<Atom database RedisPostgresLobe>"  # pragma no cover
 
     def __init__(self, **kwargs) -> None:
         self.database_name = 'das'
@@ -44,11 +44,11 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
 
     def _setup_databases(
         self,
-        postgresql_database_name='postgres',
-        postgresql_hostname='localhost',
-        postgresql_port=27017,
-        postgresql_username='postgres',
-        postgresql_password='postgres',
+        postgres_database_name='postgres',
+        postgres_hostname='localhost',
+        postgres_port=27017,
+        postgres_username='postgres',
+        postgres_password='postgres',
         redis_hostname='localhost',
         redis_port=6379,
         redis_username=None,
@@ -57,12 +57,12 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
         redis_ssl=True,
         **kwargs,
     ) -> None:
-        self.postgresql_db = self._connection_postgresql_db(
-            postgresql_database_name,
-            postgresql_hostname,
-            postgresql_port,
-            postgresql_username,
-            postgresql_password,
+        self.postgres_db = self._connection_postgres_db(
+            postgres_database_name,
+            postgres_hostname,
+            postgres_port,
+            postgres_username,
+            postgres_password,
         )
         self.redis = self._connection_redis(
             redis_hostname,
@@ -88,32 +88,32 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                         ]
                         self.default_pattern_index_templates.append(template)
 
-    def _connection_postgresql_db(
+    def _connection_postgres_db(
         self,
-        postgresql_database_name='postgres',
-        postgresql_hostname='localhost',
-        postgresql_port=5432,
-        postgresql_username='postgres',
-        postgresql_password='postgres',
+        postgres_database_name='postgres',
+        postgres_hostname='localhost',
+        postgres_port=5432,
+        postgres_username='postgres',
+        postgres_password='postgres',
     ) -> None:
         logger().info(
-            f"Connecting to PostgreSQL at {postgresql_username}:{postgresql_password}://{postgresql_hostname}:{postgresql_port}/{postgresql_database_name}"
+            f"Connecting to Postgres at {postgres_username}:{postgres_password}://{postgres_hostname}:{postgres_port}/{postgres_database_name}"
         )
         try:
             return psycopg2.connect(
-                database=postgresql_database_name,
-                host=postgresql_hostname,
-                port=postgresql_port,
-                user=postgresql_username,
-                password=postgresql_password,
+                database=postgres_database_name,
+                host=postgres_hostname,
+                port=postgres_port,
+                user=postgres_username,
+                password=postgres_password,
             )
         except psycopg2.Error as e:
-            logger().error(f'An error occourred when connection to PostgreSQL - Details: {str(e)}')
+            logger().error(f'An error occourred when connection to Postgres - Details: {str(e)}')
             raise e
 
     def _fetch(self) -> None:
         try:
-            with self.postgresql_db.cursor() as cursor:
+            with self.postgres_db.cursor() as cursor:
                 cursor.execute(
                     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
                 )
@@ -124,10 +124,10 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                     self._update_atom_indexes(atoms)
                     self._insert_atoms(atoms)
         except (psycopg2.Error, Exception) as e:
-            logger().error(f"Error during fetching data from PostgreSQL Lobe - Details: {str(e)}")
+            logger().error(f"Error during fetching data from Postgres Lobe - Details: {str(e)}")
             raise e
 
-    def _parser(self, cursor: PostgreSQLCursor, table_name: str) -> Table:
+    def _parser(self, cursor: PostgresCursor, table_name: str) -> Table:
         table = Table(table_name)
 
         try:
@@ -225,9 +225,7 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
             return table
         except (psycopg2.Error, TypeError, Exception) as e:
             logger().error(f"Error: {e}")
-            raise ParserException(
-                message=f"Error during parsing table '{table_name}'", details=str(e)
-            )
+            raise InvalidSQL(message=f"Error during parsing table '{table_name}'", details=str(e))
 
     def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
         for atom in atoms:

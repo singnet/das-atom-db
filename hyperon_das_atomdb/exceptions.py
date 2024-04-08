@@ -46,5 +46,5 @@ class InvalidAtomDB(BaseException):
     ...  # pragma no cover
 
 
-class ParserException(BaseException):
+class InvalidSQL(BaseException):
     ...  # pragma no cover

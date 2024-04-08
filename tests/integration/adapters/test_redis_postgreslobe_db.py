@@ -1,13 +1,13 @@
 import psycopg2
 import pytest
 
-from hyperon_das_atomdb.adapters import RedisPostgreSQLLobeDB
+from hyperon_das_atomdb.adapters import RedisPostgresLobeDB
 from hyperon_das_atomdb.database import WILDCARD
 
-from .helpers import Database, _db_down, _db_up, cleanup, postgresql_port, redis_port
+from .helpers import Database, _db_down, _db_up, cleanup, postgres_port, redis_port
 
 
-class TestRedisPostgreSQLLobeDB:
+class TestRedisPostgresLobeDB:
     @pytest.fixture(scope="session", autouse=True)
     def _cleanup(self, request):
         return cleanup(request)
@@ -16,7 +16,7 @@ class TestRedisPostgreSQLLobeDB:
         conn = psycopg2.connect(
             host='localhost',
             database='postgres',
-            port=postgresql_port,
+            port=postgres_port,
             user='dbadmin',
             password='dassecret',
         )
@@ -36,14 +36,14 @@ class TestRedisPostgreSQLLobeDB:
         conn.close()
 
     def test_initialization(self, _cleanup):
-        _db_up(Database.REDIS, Database.POSTGRESQL)
+        _db_up(Database.REDIS, Database.POSTGRES)
 
         self._populate_db()
 
-        db = RedisPostgreSQLLobeDB(
-            postgresql_port=postgresql_port,
-            postgresql_username='dbadmin',
-            postgresql_password='dassecret',
+        db = RedisPostgresLobeDB(
+            postgres_port=postgres_port,
+            postgres_username='dbadmin',
+            postgres_password='dassecret',
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,

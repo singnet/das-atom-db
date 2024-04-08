@@ -3,33 +3,33 @@ from unittest import mock
 
 import pytest
 
-from hyperon_das_atomdb.adapters.redis_postgresqllobe_db import RedisPostgreSQLLobeDB
+from hyperon_das_atomdb.adapters.redis_postgreslobe_db import RedisPostgresLobeDB
 
 
-class TestRedisPostgreSQLLobeDB:
+class TestRedisPostgresLobeDB:
     @pytest.fixture()
     def sql_lobe(self):
         redis = mock.MagicMock()
-        postgresql = mock.MagicMock()
+        postgres = mock.MagicMock()
         with mock.patch(
-            'hyperon_das_atomdb.adapters.redis_postgresqllobe_db.RedisPostgreSQLLobeDB._connection_postgresql_db',
-            return_value=postgresql,
+            'hyperon_das_atomdb.adapters.redis_postgreslobe_db.RedisPostgresLobeDB._connection_postgres_db',
+            return_value=postgres,
         ), mock.patch(
-            'hyperon_das_atomdb.adapters.redis_postgresqllobe_db.RedisPostgreSQLLobeDB._connection_redis',
+            'hyperon_das_atomdb.adapters.redis_postgreslobe_db.RedisPostgresLobeDB._connection_redis',
             return_value=redis,
         ):
-            yield RedisPostgreSQLLobeDB()
+            yield RedisPostgresLobeDB()
 
     def test_repr(self, sql_lobe):
-        assert repr(sql_lobe) == "<Atom database RedisPostgreSQLLobe>"
+        assert repr(sql_lobe) == "<Atom database RedisPostgresLobe>"
 
     def test_setup_databases(self, sql_lobe):
         sql_lobe._setup_databases(
-            postgresql_database_name='sql_lobe',
-            postgresql_hostname='test',
-            postgresql_port=5432,
-            postgresql_username='test',
-            postgresql_password='test',
+            postgres_database_name='sql_lobe',
+            postgres_hostname='test',
+            postgres_port=5432,
+            postgres_username='test',
+            postgres_password='test',
             redis_hostname='test',
             redis_port=6379,
             redis_username='test',
@@ -37,33 +37,33 @@ class TestRedisPostgreSQLLobeDB:
             redis_cluster=False,
             redis_ssl=False,
         )
-        sql_lobe._connection_postgresql_db.assert_called_with(
+        sql_lobe._connection_postgres_db.assert_called_with(
             'sql_lobe', 'test', 5432, 'test', 'test'
         )
         sql_lobe._connection_redis.assert_called_with('test', 6379, 'test', 'test', False, False)
 
     def test_fetch(self):
         with mock.patch(
-            'hyperon_das_atomdb.adapters.redis_postgresqllobe_db.RedisPostgreSQLLobeDB._setup_databases',
+            'hyperon_das_atomdb.adapters.redis_postgreslobe_db.RedisPostgresLobeDB._setup_databases',
             return_value=mock.MagicMock(),
         ), mock.patch(
-            'hyperon_das_atomdb.adapters.redis_postgresqllobe_db.RedisPostgreSQLLobeDB._setup_indexes',
+            'hyperon_das_atomdb.adapters.redis_postgreslobe_db.RedisPostgresLobeDB._setup_indexes',
             return_value=mock.MagicMock(),
         ), mock.patch(
-            'hyperon_das_atomdb.adapters.redis_postgresqllobe_db.RedisPostgreSQLLobeDB._fetch',
+            'hyperon_das_atomdb.adapters.redis_postgreslobe_db.RedisPostgresLobeDB._fetch',
             return_value=mock.MagicMock(),
         ):
-            sql_lobe = RedisPostgreSQLLobeDB()
+            sql_lobe = RedisPostgresLobeDB()
 
         sql_lobe._parser = mock.MagicMock()
         sql_lobe._update_atom_indexes = mock.MagicMock()
         sql_lobe._insert_atoms = mock.MagicMock()
         sql_lobe.mapper.map_table = mock.MagicMock()
-        sql_lobe.postgresql_db = mock.MagicMock()
+        sql_lobe.postgres_db = mock.MagicMock()
 
         cursor_mock = mock.MagicMock()
         cursor_mock.fetchall.return_value = [('table1',), ('table2',)]
-        sql_lobe.postgresql_db.cursor.return_value.__enter__.return_value = cursor_mock
+        sql_lobe.postgres_db.cursor.return_value.__enter__.return_value = cursor_mock
 
         sql_lobe._fetch()
 
