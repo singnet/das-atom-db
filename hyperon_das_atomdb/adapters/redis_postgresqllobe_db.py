@@ -115,11 +115,7 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
         try:
             with self.postgresql_db.cursor() as cursor:
                 cursor.execute(
-                    """
-                    SELECT table_name
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public';
-                    """
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
                 )
                 self.table_names = [table[0] for table in cursor.fetchall()]
                 for table_name in self.table_names:
@@ -202,12 +198,12 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
             cursor.execute(
                 f"""
                 SELECT 
-                    string_agg(column_name, ',')
-                FROM 
-                    information_schema.columns
-                WHERE 
-                    table_name = '{table_name}'
-                    AND column_name != '{pk_column}'        
+                    string_agg(column_name, ',' ORDER BY ordinal_position)
+                FROM (
+                    SELECT column_name, ordinal_position
+                    FROM information_schema.columns
+                    WHERE table_name = '{table_name}' AND column_name != '{pk_column}'
+                ) AS subquery;     
                 """
             )
             non_pk_column = cursor.fetchone()[0]
@@ -227,7 +223,7 @@ class RedisPostgreSQLLobeDB(RedisMongoDB):
                 table.add_row({key: value for key, value in zip(table.get_column_names(), row)})
 
             return table
-        except (psycopg2.Error, TypeError) as e:
+        except (psycopg2.Error, TypeError, Exception) as e:
             logger().error(f"Error: {e}")
             raise ParserException(
                 message=f"Error during parsing table '{table_name}'", details=str(e)
