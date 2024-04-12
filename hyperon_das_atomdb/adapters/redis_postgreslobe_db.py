@@ -1,8 +1,9 @@
 import json
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+import time
 import psycopg2
+from threading import Thread, Semaphore
 from psycopg2.extensions import cursor as PostgresCursor
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
@@ -113,16 +114,38 @@ class RedisPostgresLobeDB(RedisMongoDB):
 
     def _fetch(self) -> None:
         try:
+            start0 = time.time()
             with self.postgres_db.cursor() as cursor:
                 cursor.execute(
-                    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"  # remove public tables. Get All of them
                 )
+                
                 self.table_names = [table[0] for table in cursor.fetchall()]
+                print(f"\n** Quantiy of tables ** : {len(self.table_names)}")
+                
                 for table_name in self.table_names:
+                    print(f"\n==> '{table_name}' table processing...")
+                    start = time.time()
                     table = self._parser(cursor, table_name)
-                    atoms = self.mapper.map_table(table)
-                    self._update_atom_indexes(atoms)
-                    self._insert_atoms(atoms)
+                    print(f"|-> Time to parse: {time.time() - start}")
+                    start = time.time()
+                    self.atoms = self.mapper.map_table(table)
+                    print(f"|-> Time to map {len(self.atoms)} atoms: {time.time() - start}")
+                    
+                    _commit_atoms_thread = Thread(target=self._commit_atoms)
+                    self.semaphore = Semaphore(1)
+                    _commit_atoms_thread.start()
+
+                    
+                    # start = time.time()
+                    # self._update_atom_indexes(atoms)
+                    # print(f"|-> Time to update atom indexes: {time.time() - start}")
+                    # start = time.time()
+                    # self._insert_atoms(atoms)
+                    # print(f"|-> Time to insert atoms: {time.time() - start}")
+                    # print(f"==> '{table_name}' table processing finished")
+                
+                print(f"** Total time to fetch data **: {time.time() - start0}")
         except (psycopg2.Error, Exception) as e:
             logger().error(f"Error during fetching data from Postgres Lobe - Details: {str(e)}")
             raise e
@@ -134,38 +157,48 @@ class RedisPostgresLobeDB(RedisMongoDB):
             # Get information about the constrainst and data type
             cursor.execute(
                 f"""
-                SELECT 
-                    cols.column_name,
-                    cols.data_type,
-                    CASE 
-                        WHEN cons.constraint_type = 'PRIMARY KEY' THEN 'PK'
-                        WHEN cons.constraint_type = 'FOREIGN KEY' THEN 'FK'
-                        ELSE ''
-                    END AS type
-                FROM 
-                    information_schema.columns cols
-                LEFT JOIN 
-                    (
-                        SELECT 
-                            kcu.column_name,
-                            tc.constraint_type
-                        FROM 
-                            information_schema.key_column_usage kcu
-                        JOIN 
-                            information_schema.table_constraints tc 
-                            ON kcu.constraint_name = tc.constraint_name
-                            AND kcu.constraint_schema = tc.constraint_schema
-                        WHERE 
-                            tc.table_name = '{table_name}'
-                    ) cons 
-                    ON cols.column_name = cons.column_name
-                WHERE 
-                    cols.table_name = '{table_name}'
-                ORDER BY 
-                    CASE 
-                        WHEN cons.constraint_type = 'PRIMARY KEY' THEN 0 
-                        ELSE 1 
-                    END;
+                    SELECT 
+                        cols.column_name,
+                        cols.data_type,
+                        CASE 
+                            WHEN cons.constraint_type LIKE '%PRIMARY KEY%' THEN 'PK'
+                            WHEN cons.constraint_type LIKE '%FOREIGN KEY%' THEN 'FK'
+                            ELSE ''
+                        END AS type
+                    FROM 
+                        information_schema.columns cols
+                    LEFT JOIN 
+                        (
+                            SELECT 
+                                cols.column_name,
+                                STRING_AGG(cons.constraint_type, ', ') AS constraint_type
+                            FROM 
+                                information_schema.columns cols
+                            LEFT JOIN 
+                                information_schema.key_column_usage kcu 
+                            ON 
+                                cols.table_name = kcu.table_name 
+                            AND 
+                                cols.column_name = kcu.column_name
+                            LEFT JOIN 
+                                information_schema.table_constraints cons 
+                            ON 
+                                kcu.constraint_name = cons.constraint_name 
+                            AND 
+                                kcu.table_name = cons.table_name
+                            WHERE 
+                                cols.table_name = '{table_name}'
+                            GROUP BY 
+                                cols.column_name
+                        ) cons 
+                        ON cols.column_name = cons.column_name
+                    WHERE 
+                        cols.table_name = '{table_name}'
+                    ORDER BY 
+                        CASE 
+                            WHEN cons.constraint_type = 'PRIMARY KEY' THEN 0 
+                            ELSE 1 
+                        END;
                 """
             )
             columns = cursor.fetchall()
@@ -219,13 +252,28 @@ class RedisPostgresLobeDB(RedisMongoDB):
             # Sorted data where PK column is first
             rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
 
-            for row in rows:
-                table.add_row({key: value for key, value in zip(table.get_column_names(), row)})
+            [table.add_row({key: value for key, value in zip(table.get_column_names(), row)}) for row in rows]
 
             return table
         except (psycopg2.Error, TypeError, Exception) as e:
             logger().error(f"Error: {e}")
             raise InvalidSQL(message=f"Error during parsing table '{table_name}'", details=str(e))
+
+    def _commit_atoms(self):
+        while True:
+            if self.semaphore.acquire(blocking=False):
+                try:
+                    start = time.time()
+                    self._update_atom_indexes(self.atoms)
+                    print(f"|-> Time to update atom indexes: {time.time() - start}")
+                    start = time.time()
+                    self._insert_atoms(self.atoms)
+                    print(f"|-> Time to insert atoms: {time.time() - start}")
+                    # print(f"==> '{table_name}' table processing finished")
+                finally:
+                    self.semaphore.release()
+                break
+
 
     def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
         for atom in atoms:

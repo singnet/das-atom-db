@@ -42,30 +42,45 @@ class SQL2AtomeseMapper(SQLMapper):
 
 
 class SQL2MettaMapper(SQLMapper):
+    
+    def __init__(self):
+        self.unique_id = set()
+        self.buffer = []
+
     def map_table(self, table: Table) -> List[Dict[str, Any]]:
         return self._to_atoms_type_metta(table)
 
     def _to_atoms_type_metta(self, table: Table) -> List[Dict[str, Any]]:
-        atoms = [self._create_node(name=table.table_name, is_literal=False)]
-
+        self._add_node(name=table.table_name, is_literal=False)
+        
+        # count = 0
         for row in table.rows:
             _, pk_value = list(row.items())[0]
-            key_0 = {'type': 'Symbol', 'name': table.table_name, 'is_literal': False}
-            key_1 = {'type': 'Symbol', 'name': pk_value, 'is_literal': True}
-            pk_link = {'type': 'Expression', 'targets': [key_0, key_1]}
+            
+            pk_link = {
+                'type': 'Expression',
+                'targets': [
+                    {'type': 'Symbol', 'name': table.table_name, 'is_literal': False},
+                    {'type': 'Symbol', 'name': pk_value, 'is_literal': True}
+                ]
+            }
 
-            atoms.append(self._create_node(**key_1))
+            self._add_node(**{'type': 'Symbol', 'name': pk_value, 'is_literal': True})
 
             for key, value in list(row.items())[1:]:
-                key_0 = {'type': 'Symbol', 'name': f'{table.table_name}.{key}', 'is_literal': False}
-                key_1 = pk_link
-                key_2 = {'type': 'Symbol', 'name': value, 'is_literal': True}
-                answers = self._create_link(targets=[key_0, key_1, key_2])
-                for answer in answers:
-                    if answer not in atoms:
-                        atoms.append(answer)
+                self._add_link(
+                    targets=[
+                        {'type': 'Symbol', 'name': f'{table.table_name}.{key}', 'is_literal': False},
+                        pk_link,
+                        {'type': 'Symbol', 'name': value, 'is_literal': True}
+                    ]
+                )
 
-        return atoms
+            # count += 1
+            
+            # print(f"Quantity of rows of the table '{table.table_name}' processed: {count/len(table.rows)*100:.2f}%")
+        
+        return self.buffer
 
     def _is_literal(self, name: str) -> bool:
         if (
@@ -95,7 +110,7 @@ class SQL2MettaMapper(SQLMapper):
             except ValueError:
                 return None
 
-    def _create_node(self, name: str, type: str = "Symbol", **kwargs) -> Dict[str, Any]:
+    def _add_node(self, name: str, type: str = "Symbol", **kwargs) -> Dict[str, Any]:
         if (literal := kwargs.get('is_literal')) is None:
             literal = True if self._is_literal(name) else False
 
@@ -117,10 +132,15 @@ class SQL2MettaMapper(SQLMapper):
                 'name': name,
             }
         )
-
+        
+        if node['_id'] not in self.unique_id:
+            self.buffer.append(node)
+        
+        self.unique_id.add(node['_id'])
+        
         return node
 
-    def _create_link(
+    def _add_link(
         self,
         targets: List[Dict[str, Any]],
         type: str = "Expression",
@@ -137,11 +157,11 @@ class SQL2MettaMapper(SQLMapper):
 
         for target in targets:
             if 'targets' not in target.keys():
-                atom = self._create_node(**target)
+                atom = self._add_node(**target)
                 atom_hash = ExpressionHasher.named_type_hash(atom['named_type'])
                 composite_type.append(atom_hash)
             else:
-                atom = self._create_link(**target, toplevel=False)[0]
+                atom = self._add_link(**target, toplevel=False)
                 composite_type.append(atom['composite_type'])
                 atom_hash = atom['composite_type_hash']
             composite_type_hash.append(atom_hash)
@@ -159,11 +179,13 @@ class SQL2MettaMapper(SQLMapper):
 
         for item in range(len(targets)):
             link[f'key_{item}'] = targets_hash[item]
-
-        ret = [link]
-        ret.extend(targets_atom)
-
-        return ret
+        
+        if link['_id'] not in self.unique_id:
+            self.buffer.append(link)
+        
+        self.unique_id.add(link['_id'])
+        
+        return link
 
 
 def create_mapper(mapper: str) -> SQLMapper:
