@@ -943,3 +943,14 @@ class TestRedisMongo:
         assert db.get_all_links('Similarity') == [db.link_handle('Similarity', ['node1', 'node2'])]
         assert db.get_all_nodes('Concept') == ['node1', 'node2']
         _db_down()
+
+    def test_retrive_all_documents(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.commit()
+        response = db.retrieve_all_documents()
+        links = db.get_all_links('Inheritance') + db.get_all_links('Similarity')
+        nodes = db.get_all_nodes('Concept')
+        assert len(response) == len(links) + len(nodes)
+        _db_down()
