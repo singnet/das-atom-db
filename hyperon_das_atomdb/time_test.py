@@ -1,5 +1,4 @@
 import time
-
 from hyperon_das_atomdb.adapters import RedisPostgresLobeDB
 
 
@@ -17,7 +16,7 @@ def run():
         redis_cluster=False,
         redis_ssl=False,
         tables=['analysis'],
-        batch_size=100,
+        batch_size=5,
     )
     print(f"\n==> Total time to instantiate the class: {time.time() - start}")
     print("(nodes, links) = ", db.count_atoms())

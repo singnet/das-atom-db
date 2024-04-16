@@ -3,7 +3,7 @@ import time
 from enum import Enum
 from queue import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+import threading
 import psycopg2
 from psycopg2.extensions import cursor as PostgresCursor
 
@@ -12,6 +12,9 @@ from hyperon_das_atomdb.exceptions import InvalidSQL
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.mapper import Table, create_mapper
+
+import sys
+import psutil
 
 
 class FieldNames(str, Enum):
@@ -116,7 +119,6 @@ class RedisPostgresLobeDB(RedisMongoDB):
 
     def _fetch(self, tables: List[str] = None, batch_size: int = 100000) -> None:
         try:
-            start0 = time.time()
             with self.postgres_db.cursor() as cursor:
                 if tables is not None:
                     self.table_names = tables
@@ -130,13 +132,10 @@ class RedisPostgresLobeDB(RedisMongoDB):
                 print(f"\n** Quantiy of tables ** : {len(self.table_names)}")
 
                 for table_name in self.table_names:
-                    print(f"\n==> '{table_name}' table processing...")
-
                     start = time.time()
+                    print(f"\n==> '{table_name}' table processing...\n")
                     self._parser(cursor, table_name, batch_size)
-                    print(f"|-> Time to parse all the table: {time.time() - start}")
-
-                print(f"** Total time to fetch data **: {time.time() - start0}")
+                    print(f"|-> Time to process all the table: {time.time() - start}")
         except (psycopg2.Error, Exception) as e:
             logger().error(f"Error during fetching data from Postgres Lobe - Details: {str(e)}")
             raise e
@@ -223,9 +222,48 @@ class RedisPostgresLobeDB(RedisMongoDB):
             non_pk_column = cursor.fetchone()[0]
 
             cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+            
             total_rows = int(cursor.fetchone()[0])
+            
+            # num_batches = (total_rows + batch_size) // batch_size
+
+            # max_threads = 10
+
+            # batch_threads = min(num_batches, max_threads)
+            
+            # threads = []
+            # for i in range(0, total_rows, batch_size):
+            #     before_memory = psutil.virtual_memory().used
+            #     start_a = time.time()
+            #     # Pk Data
+            #     cursor.execute(
+            #         f"""SELECT {pk_column} FROM {table_name} LIMIT {batch_size} OFFSET {i};"""
+            #     )
+            #     pk_table = cursor.fetchall()
+
+            #     # Non PK Data
+            #     cursor.execute(
+            #         f"""SELECT {non_pk_column} FROM {table_name} LIMIT {batch_size} OFFSET {i};"""
+            #     )
+            #     non_pk_table = cursor.fetchall()
+                
+            #     if len(threads) >= batch_threads:
+            #         threads[0].join()
+            #         threads.pop(0)
+                
+            #     thread = threading.Thread(
+            #         target=self._process_batch,
+            #         args=(pk_table, non_pk_table, start_a, before_memory, pk_column, table_name, batch_size, i, non_pk_column, columns, total_rows)
+            #     )
+            #     threads.append(thread)
+            #     thread.start()
+
+            # for thread in threads:
+            #     thread.join()
 
             for i in range(0, total_rows, batch_size):
+                before_memory = psutil.virtual_memory().used
+                
                 start_a = time.time()
                 # Pk Data
                 cursor.execute(
@@ -270,11 +308,13 @@ class RedisPostgresLobeDB(RedisMongoDB):
 
                 percentage = min(i + batch_size, total_rows) / total_rows * 100
 
+                after_memory = psutil.virtual_memory().used
+                
                 print(
-                    f"\n|--> Parse progress: {percentage:.2f}% -- Time: {time.time() - start_a} -- Memory consumed: \n"
+                    f"\n|--> Progress: {percentage:.2f}% -- Time: {time.time() - start_a} -- Memory consumed: {abs(after_memory - before_memory) / 1000000:.2f} Mb \n"
                 )
 
-            return table
+            # return table
         except (psycopg2.Error, TypeError, Exception) as e:
             print(f"|-> Error during parser. Time to error: {time.time() - start0} - {str(e)}")
             logger().error(f"Error: {e}")
@@ -291,6 +331,49 @@ class RedisPostgresLobeDB(RedisMongoDB):
     #     except Exception as e:
     #         raise e
 
+    def _process_batch(self, pk_table, non_pk_table, start_a, before_memory, pk_column, table_name, batch_size, i, non_pk_column, columns, total_rows):
+        try:
+            current_thread_name = threading.current_thread().name
+
+            # Sorted data where PK column is first
+            rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
+
+            table = Table(table_name)
+
+            [table.add_column(*column) for column in columns]
+
+            column_names = table.get_column_names()
+            [
+                table.add_row({key: value for key, value in zip(column_names, row)})
+                for row in rows
+            ]
+
+            print(
+                f"|-> [{current_thread_name}] Time to parse {min(total_rows - i, batch_size)} rows: {time.time() - start_a}"
+            )
+
+            start = time.time()
+            atoms = self.mapper.map_table(table)
+            print(f"|-> [{current_thread_name}] Time to map {len(atoms)} atoms: {time.time() - start}")
+
+            start = time.time()
+            self._update_atom_indexes(atoms)
+            print(f"|-> [{current_thread_name}] Time to update indexes of {len(atoms)} atoms : {time.time() - start}")
+
+            start = time.time()
+            self._insert_atoms(atoms)
+            print(f"|-> [{current_thread_name}] Time to insert {len(atoms)} atoms: {time.time() - start}")
+
+            percentage = min(i + batch_size, total_rows) / total_rows * 100
+
+            after_memory = psutil.virtual_memory().used
+            
+            print(
+                f"\n|--> [{current_thread_name}] Progress: {percentage:.2f}% -- Time: {time.time() - start_a} -- Memory consumed: {abs(after_memory - before_memory) / 1000000:.2f} Mb \n"
+            )
+        except Exception as e:
+            raise e
+        
     def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
         for atom in atoms:
             key = f'atoms:{atom["_id"]}'
