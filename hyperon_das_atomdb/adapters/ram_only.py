@@ -527,7 +527,7 @@ class InMemoryDB(AtomDB):
             logger().error("Error bulk inserting documents")
             return None
 
-    def retrieve_all_documents(self) -> List[Dict[str, Any]]:
+    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
         try:
             answer = list(self.db.node.items())
             answer.extend(list(self.db.link.items()))

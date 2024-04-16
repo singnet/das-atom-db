@@ -610,5 +610,5 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def retrieve_all_documents(self) -> List[Dict[str, Any]]:
+    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
         ...  # pragma no cover

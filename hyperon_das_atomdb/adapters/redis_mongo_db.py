@@ -931,7 +931,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Error retrieving atoms by index: {str(e)}")
             raise e
 
-    def retrieve_all_documents(self) -> List[Dict[str, Any]]:
+    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
         try:
             return [document for document in self.mongo_atoms_collection.find()]
         except Exception as e:
