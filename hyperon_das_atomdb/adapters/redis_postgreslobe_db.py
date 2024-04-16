@@ -1,9 +1,10 @@
 import json
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
 import time
+from enum import Enum
+from queue import Queue
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import psycopg2
-from threading import Thread, Semaphore
 from psycopg2.extensions import cursor as PostgresCursor
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
@@ -37,10 +38,11 @@ class RedisPostgresLobeDB(RedisMongoDB):
         self.named_type_hash = {}
         self.typedef_base_type_hash = ExpressionHasher._compute_hash("Type")
         self.hash_length = len(self.typedef_base_type_hash)
+        self.atom_queue = Queue()
         self.mapper = create_mapper(kwargs.get('mapper', 'sql2metta'))
         self._setup_databases(**kwargs)
         self._setup_indexes()
-        self._fetch()
+        self._fetch(tables=kwargs.get('tables', None), batch_size=kwargs.get('batch_size', 100000))
         logger().info("Database setup finished")
 
     def _setup_databases(
@@ -112,48 +114,37 @@ class RedisPostgresLobeDB(RedisMongoDB):
             logger().error(f'An error occourred when connection to Postgres - Details: {str(e)}')
             raise e
 
-    def _fetch(self) -> None:
+    def _fetch(self, tables: List[str] = None, batch_size: int = 100000) -> None:
         try:
             start0 = time.time()
             with self.postgres_db.cursor() as cursor:
-                cursor.execute(
-                    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"  # remove public tables. Get All of them
-                )
-                
-                self.table_names = [table[0] for table in cursor.fetchall()]
+                if tables is not None:
+                    self.table_names = tables
+                else:
+                    cursor.execute(
+                        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+                    )
+
+                    self.table_names = [table[0] for table in cursor.fetchall()]
+
                 print(f"\n** Quantiy of tables ** : {len(self.table_names)}")
-                
+
                 for table_name in self.table_names:
                     print(f"\n==> '{table_name}' table processing...")
-                    start = time.time()
-                    table = self._parser(cursor, table_name)
-                    print(f"|-> Time to parse: {time.time() - start}")
-                    start = time.time()
-                    self.atoms = self.mapper.map_table(table)
-                    print(f"|-> Time to map {len(self.atoms)} atoms: {time.time() - start}")
-                    
-                    _commit_atoms_thread = Thread(target=self._commit_atoms)
-                    self.semaphore = Semaphore(1)
-                    _commit_atoms_thread.start()
 
-                    
-                    # start = time.time()
-                    # self._update_atom_indexes(atoms)
-                    # print(f"|-> Time to update atom indexes: {time.time() - start}")
-                    # start = time.time()
-                    # self._insert_atoms(atoms)
-                    # print(f"|-> Time to insert atoms: {time.time() - start}")
-                    # print(f"==> '{table_name}' table processing finished")
-                
+                    start = time.time()
+                    self._parser(cursor, table_name, batch_size)
+                    print(f"|-> Time to parse all the table: {time.time() - start}")
+
                 print(f"** Total time to fetch data **: {time.time() - start0}")
         except (psycopg2.Error, Exception) as e:
             logger().error(f"Error during fetching data from Postgres Lobe - Details: {str(e)}")
             raise e
 
-    def _parser(self, cursor: PostgresCursor, table_name: str) -> Table:
-        table = Table(table_name)
-
+    def _parser(self, cursor: PostgresCursor, table_name: str, batch_size: int = 100000) -> Table:
         try:
+            start0 = time.time()
+
             # Get information about the constrainst and data type
             cursor.execute(
                 f"""
@@ -202,8 +193,6 @@ class RedisPostgresLobeDB(RedisMongoDB):
                 """
             )
             columns = cursor.fetchall()
-            for column in columns:
-                table.add_column(*column)
 
             # Pk column
             cursor.execute(
@@ -219,14 +208,6 @@ class RedisPostgresLobeDB(RedisMongoDB):
             )
             pk_column = cursor.fetchone()[0]
 
-            # Pk Data
-            cursor.execute(
-                f"""
-                SELECT {pk_column} FROM {table_name};
-                """
-            )
-            pk_table = cursor.fetchall()
-
             # Non PK columns
             cursor.execute(
                 f"""
@@ -241,39 +222,74 @@ class RedisPostgresLobeDB(RedisMongoDB):
             )
             non_pk_column = cursor.fetchone()[0]
 
-            # Non PK Data
-            cursor.execute(
-                f"""
-                SELECT {non_pk_column} FROM {table_name}
-                """
-            )
-            non_pk_table = cursor.fetchall()
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+            total_rows = int(cursor.fetchone()[0])
 
-            # Sorted data where PK column is first
-            rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
+            for i in range(0, total_rows, batch_size):
+                start_a = time.time()
+                # Pk Data
+                cursor.execute(
+                    f"""SELECT {pk_column} FROM {table_name} LIMIT {batch_size} OFFSET {i};"""
+                )
+                pk_table = cursor.fetchall()
 
-            [table.add_row({key: value for key, value in zip(table.get_column_names(), row)}) for row in rows]
+                # Non PK Data
+                cursor.execute(
+                    f"""SELECT {non_pk_column} FROM {table_name} LIMIT {batch_size} OFFSET {i};"""
+                )
+                non_pk_table = cursor.fetchall()
+
+                # Sorted data where PK column is first
+                rows = [(*k, *v) for k, v in zip(pk_table, non_pk_table)]
+
+                table = Table(table_name)
+
+                [table.add_column(*column) for column in columns]
+
+                column_names = table.get_column_names()
+                [
+                    table.add_row({key: value for key, value in zip(column_names, row)})
+                    for row in rows
+                ]
+
+                print(
+                    f"|-> Time to parse {min(total_rows - i, batch_size)} rows: {time.time() - start_a}"
+                )
+
+                start = time.time()
+                atoms = self.mapper.map_table(table)
+                print(f"|-> Time to map {len(atoms)} atoms: {time.time() - start}")
+
+                start = time.time()
+                self._update_atom_indexes(atoms)
+                print(f"|-> Time to update indexes of {len(atoms)} atoms : {time.time() - start}")
+
+                start = time.time()
+                self._insert_atoms(atoms)
+                print(f"|-> Time to insert {len(atoms)} atoms: {time.time() - start}")
+
+                percentage = min(i + batch_size, total_rows) / total_rows * 100
+
+                print(
+                    f"\n|--> Parse progress: {percentage:.2f}% -- Time: {time.time() - start_a} -- Memory consumed: \n"
+                )
 
             return table
         except (psycopg2.Error, TypeError, Exception) as e:
+            print(f"|-> Error during parser. Time to error: {time.time() - start0} - {str(e)}")
             logger().error(f"Error: {e}")
             raise InvalidSQL(message=f"Error during parsing table '{table_name}'", details=str(e))
 
-    def _commit_atoms(self):
-        while True:
-            if self.semaphore.acquire(blocking=False):
-                try:
-                    start = time.time()
-                    self._update_atom_indexes(self.atoms)
-                    print(f"|-> Time to update atom indexes: {time.time() - start}")
-                    start = time.time()
-                    self._insert_atoms(self.atoms)
-                    print(f"|-> Time to insert atoms: {time.time() - start}")
-                    # print(f"==> '{table_name}' table processing finished")
-                finally:
-                    self.semaphore.release()
-                break
-
+    # def _commit_atoms(self, atoms):
+    #     try:
+    #         start = time.time()
+    #         self._update_atom_indexes(atoms)
+    #         print(f"|-> Time to update indexes of {len(atoms)} atoms : {time.time() - start}")
+    #         start = time.time()
+    #         self._insert_atoms(atoms)
+    #         print(f"|-> Time to insert {len(atoms)} atoms: {time.time() - start}")
+    #     except Exception as e:
+    #         raise e
 
     def _insert_atoms(self, atoms: Dict[str, Any]) -> None:
         for atom in atoms:
