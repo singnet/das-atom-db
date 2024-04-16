@@ -15,8 +15,8 @@ def run():
         redis_port=29500,
         redis_cluster=False,
         redis_ssl=False,
-        tables=['analysis'],
-        batch_size=5,
+        tables=['cvterm'],
+        batch_size=10000,
     )
     print(f"\n==> Total time to instantiate the class: {time.time() - start}")
     print("(nodes, links) = ", db.count_atoms())
