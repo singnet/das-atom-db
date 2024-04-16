@@ -608,3 +608,7 @@ class AtomDB(ABC):
     @abstractmethod
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
         ...  # pragma no cover
+
+    @abstractmethod
+    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
+        ...  # pragma no cover

@@ -2,3 +2,4 @@
 [#132] Fix bug in create_field_index() method
 [das-query-engine#223] Update log messages
 [#129] Create a new adapter called PostgresLobeDB
+[das-query-engine#214] Add retrieve_all_atoms method

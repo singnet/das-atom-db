@@ -1181,3 +1181,12 @@ class TestInMemoryDB:
         db.bulk_insert(documents)
 
         assert db.count_atoms() == (2, 1)
+
+    def test_retrieve_all_atoms(self, database: InMemoryDB):
+        expected = list(database.db.node.items()) + list(database.db.link.items())
+        actual = database.retrieve_all_atoms()
+        assert expected == actual
+
+        with pytest.raises(Exception):
+            database.db.node = None
+            database.retrieve_all_atoms()

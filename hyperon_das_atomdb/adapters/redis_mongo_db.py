@@ -931,6 +931,13 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Error retrieving atoms by index: {str(e)}")
             raise e
 
+    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
+        try:
+            return [document for document in self.mongo_atoms_collection.find()]
+        except Exception as e:
+            logger().error(f"Error retrieving all atoms: {str(e)}")
+            raise e
+
     def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
         try:
             _id = MongoFieldNames.ID_HASH
