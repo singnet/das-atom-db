@@ -1422,14 +1422,9 @@ class TestRedisMongoDB:
             for key, value in filter.items():
                 if isinstance(value, dict):
                     value = list(value.values())[0]
-                    if value is True:
-                        for atom in atoms:
-                            if key in atom:
-                                counter += 1
-                    else:
-                        for atom in atoms:
-                            if key not in atom:
-                                counter += 1
+                    for atom in atoms:
+                        if (value is True and key in atom) or (value is False and key not in atom):
+                            counter += 1
             return counter
 
         collection.insert_many = mock.Mock(side_effect=insert_many)
