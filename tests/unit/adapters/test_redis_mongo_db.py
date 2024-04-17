@@ -1419,9 +1419,17 @@ class TestRedisMongoDB:
         def count_documents(filter: Dict[str, Any]) -> int:
             atoms = atom_collection_mock_data + added_atoms
             counter = 0
-            for atom in atoms:
-                if list(filter.keys())[0] not in atom:
-                    counter += 1
+            for key, value in filter.items():
+                if isinstance(value, dict):
+                    value = list(value.values())[0]
+                    if value is True:
+                        for atom in atoms:
+                            if key in atom:
+                                counter += 1
+                    else:
+                        for atom in atoms:
+                            if key not in atom:
+                                counter += 1
             return counter
 
         collection.insert_many = mock.Mock(side_effect=insert_many)

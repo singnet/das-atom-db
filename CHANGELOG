@@ -3,3 +3,4 @@
 [das-query-engine#223] Update log messages
 [#129] Create a new adapter called PostgresLobeDB
 [das-query-engine#214] Add retrieve_all_atoms method
+[#124] Refactor count_documents() in RedisMongoDB
