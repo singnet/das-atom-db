@@ -381,12 +381,25 @@ class RedisMongoDB(AtomDB):
                 )
             ]
 
-    def get_all_links(self, link_type: str) -> List[str]:
-        links_handle = []
-        documents = self.mongo_atoms_collection.find({MongoFieldNames.TYPE_NAME: link_type})
-        for document in documents:
-            links_handle.append(document[MongoFieldNames.ID_HASH])
-        return links_handle
+    def get_all_links(self, link_type: str, **kwargs) -> Tuple[int, List[str]]:
+        pymongo_cursor = self.mongo_atoms_collection.find({MongoFieldNames.TYPE_NAME: link_type})
+
+        if kwargs.get('cursor') is not None:
+            cursor = kwargs.get('cursor')
+            chunk_size = kwargs.get('chunk_size', 500)
+            pymongo_cursor.skip(cursor).limit(chunk_size)
+
+            handles = [document[MongoFieldNames.ID_HASH] for document in pymongo_cursor]
+
+            if not handles:
+                return 0, []
+
+            if len(handles) < chunk_size:
+                return 0, handles
+            else:
+                return cursor + chunk_size, handles
+
+        return 0, [document[MongoFieldNames.ID_HASH] for document in pymongo_cursor]
 
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
@@ -427,11 +440,11 @@ class RedisMongoDB(AtomDB):
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
                 if kwargs.get('cursor') is not None:
-                    return None, [link_handle]
+                    return 0, [link_handle]
                 return [link_handle]
             except LinkDoesNotExist:
                 if kwargs.get('cursor') is not None:
-                    return None, []
+                    return 0, []
                 return []
 
         if link_type == WILDCARD:
@@ -441,7 +454,7 @@ class RedisMongoDB(AtomDB):
 
         if link_type_hash is None:
             if kwargs.get('cursor') is not None:
-                return None, []
+                return 0, []
             return []
 
         if link_type in UNORDERED_LINK_TYPES:

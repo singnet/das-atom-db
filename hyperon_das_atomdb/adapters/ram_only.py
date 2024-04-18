@@ -294,7 +294,7 @@ class InMemoryDB(AtomDB):
                 if value['composite_type_hash'] == node_type_hash
             ]
 
-    def get_all_links(self, link_type: str) -> List[str]:
+    def get_all_links(self, link_type: str, **kwargs) -> List[str]:
         answer = []
         for _, link in self.db.link.items():
             if link['named_type'] == link_type:

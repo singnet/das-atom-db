@@ -262,6 +262,19 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
+    def get_all_links(self, link_type: str, **kwargs) -> Union[List[str], Tuple[int, List[str]]]:
+        """
+        Get all link of a specific type.
+
+        Args:
+            link_type (str): The link type.
+
+        Returns:
+            Union[List[str], Tuple[int, List[str]]]: A list of link handles or a tuple containing the cursor number and the list of link handles.
+        """
+        ...  # pragma no cover
+
+    @abstractmethod
     def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
         """
         Get the handle of the link with the specified type and targets.
