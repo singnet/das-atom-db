@@ -696,10 +696,10 @@ class TestRedisMongo:
         db.commit()
 
         response = db.get_matched_links('Similarity', [human, monkey], cursor=0)
-        assert response == (None, [AtomDB.link_handle('Similarity', [human, monkey])])
+        assert response == (0, [AtomDB.link_handle('Similarity', [human, monkey])])
 
         response = db.get_matched_links('Fake', [human, monkey], cursor=0)
-        assert response == (None, [])
+        assert response == (0, [])
 
         response = db.get_matched_links('Similarity', [human, '*'], cursor=0)
         assert (response[0], sorted(response[1])) == (

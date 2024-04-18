@@ -440,11 +440,11 @@ class RedisMongoDB(AtomDB):
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
                 if kwargs.get('cursor') is not None:
-                    return None, [link_handle]
+                    return 0, [link_handle]
                 return [link_handle]
             except LinkDoesNotExist:
                 if kwargs.get('cursor') is not None:
-                    return None, []
+                    return 0, []
                 return []
 
         if link_type == WILDCARD:
@@ -454,7 +454,7 @@ class RedisMongoDB(AtomDB):
 
         if link_type_hash is None:
             if kwargs.get('cursor') is not None:
-                return None, []
+                return 0, []
             return []
 
         if link_type in UNORDERED_LINK_TYPES:
