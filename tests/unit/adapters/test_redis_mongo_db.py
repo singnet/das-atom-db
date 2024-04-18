@@ -1781,11 +1781,10 @@ class TestRedisMongoDB:
         assert (14, 28) == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
-        all_links_before = (
-            database.get_all_links('Similarity')
-            + database.get_all_links('Inheritance')
-            + database.get_all_links('Evaluation')
-        )
+        _, similarity = database.get_all_links('Similarity')
+        _, inheritance = database.get_all_links('Inheritance')
+        _, evaluation = database.get_all_links('Evaluation')
+        all_links_before = similarity + inheritance + evaluation
         database.add_link(
             {
                 'type': 'Similarity',
@@ -1797,12 +1796,10 @@ class TestRedisMongoDB:
         )
         database.commit()
         all_nodes_after = database.get_all_nodes('Concept')
-        all_links_after = (
-            database.get_all_links('Similarity')
-            + database.get_all_links('Inheritance')
-            + database.get_all_links('Evaluation')
-        )
-
+        _, similarity = database.get_all_links('Similarity')
+        _, inheritance = database.get_all_links('Inheritance')
+        _, evaluation = database.get_all_links('Evaluation')
+        all_links_after = similarity + inheritance + evaluation
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
         assert len(all_links_before) == 28
