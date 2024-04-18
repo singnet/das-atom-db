@@ -523,11 +523,12 @@ class RedisMongoDB(AtomDB):
         return answer
 
     def count_atoms(self) -> Tuple[int, int]:
-        atoms_count = self.mongo_atoms_collection.estimated_document_count()
         nodes_count = self.mongo_atoms_collection.count_documents(
             {MongoFieldNames.COMPOSITE_TYPE: {'$exists': False}}
         )
-        links_count = atoms_count - nodes_count
+        links_count = self.mongo_atoms_collection.count_documents(
+            {MongoFieldNames.COMPOSITE_TYPE: {'$exists': True}}
+        )
         return (nodes_count, links_count)
 
     def clear_database(self) -> None:
