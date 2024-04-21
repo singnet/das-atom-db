@@ -51,6 +51,15 @@ class AtomDB(ABC):
         if kwargs.get('targets_document', False):
             targets_document = [self.get_atom(target) for target in answer['targets']]
             return answer, targets_document
+        elif kwargs.get('deep_representation', False):
+            def _recursive_targets(targets, **kwargs):
+                return [self.get_atom(target, **kwargs) for target in targets]
+
+            if 'targets' in answer:
+                deep_targets = _recursive_targets(answer['targets'], **kwargs)
+                answer['targets'] = deep_targets
+
+            return answer
 
         return answer
 
@@ -66,82 +75,81 @@ class AtomDB(ABC):
         return (self.link_handle(atom_type, targets), composite_type)
 
     def _add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
-        reserved_parameters = ['_id', 'composite_type_hash', 'named_type']
-
-        if any(item in reserved_parameters for item in node_params.keys()):
-            raise AddNodeException(
-                message="This is a reserved field name in nodes",
-                details=str(reserved_parameters),
-            )
-
-        node_type = node_params.get('type')
-        node_name = node_params.get('name')
+        reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
+        
+        valid_params = {
+            key: value for key, value in node_params.items() if key not in reserved_parameters
+        }
+        
+        node_type = valid_params.get('type')
+        node_name = valid_params.get('name')
+        
         if node_type is None or node_name is None:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
-                details=node_params,
+                details=valid_params,
             )
-
+        
         handle = self.node_handle(node_type, node_name)
+        
         node = {
             '_id': handle,
             'composite_type_hash': ExpressionHasher.named_type_hash(node_type),
             'name': node_name,
             'named_type': node_type,
         }
-        node.update(node_params)
+        
+        node.update(valid_params)
         node.pop('type')
+        
         return (handle, node)
 
     def _add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
         reserved_parameters = [
+            'handle',
             '_id',
             'composite_type_hash',
-            'is_toplevel',
             'composite_type',
+            'is_toplevel',
             'named_type',
             'named_type_hash',
             'key_n',
         ]
-
-        if any(
-            item in reserved_parameters or re.search(AtomDB.key_pattern, item)
-            for item in link_params.keys()
-        ):
-            raise AddLinkException(
-                message="This is a reserved field name in links",
-                details=str(reserved_parameters),
-            )
-
-        link_type = link_params.get('type')
-        targets = link_params.get('targets')
+        
+        valid_params = {
+            key: value 
+            for key, value in link_params.items() 
+            if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
+        }
+        
+        link_type = valid_params.get('type')
+        targets = valid_params.get('targets')
+        
         if link_type is None or targets is None:
             raise AddLinkException(
                 message='The "type" and "targets" fields must be sent',
-                details=link_params,
+                details=valid_params,
             )
-
+        
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-
         targets_hash = []
         composite_type = [link_type_hash]
         composite_type_hash = [link_type_hash]
-
+        
         for target in targets:
-            if 'targets' not in target.keys():
+            if 'targets' not in target:
                 atom = self.add_node(target)
-                atom_hash = ExpressionHasher.named_type_hash(atom['named_type'])
+                atom_hash = atom['composite_type_hash']
                 composite_type.append(atom_hash)
             else:
                 atom = self.add_link(target, toplevel=False)
-                composite_type.append(atom['composite_type'])
                 atom_hash = atom['composite_type_hash']
+                composite_type.append(atom['composite_type'])
             composite_type_hash.append(atom_hash)
             targets_hash.append(atom['_id'])
-
+        
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
-
-        arity = len(targets)
+        
         link = {
             '_id': handle,
             'composite_type_hash': ExpressionHasher.composite_hash(composite_type_hash),
@@ -150,13 +158,14 @@ class AtomDB(ABC):
             'named_type': link_type,
             'named_type_hash': link_type_hash,
         }
-        for item in range(arity):
+        
+        for item in range(len(targets)):
             link[f'key_{item}'] = targets_hash[item]
-
-        link.update(link_params)
+        
+        link.update(valid_params)
         link.pop('type')
         link.pop('targets')
-
+        
         return (handle, link, targets_hash)
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
