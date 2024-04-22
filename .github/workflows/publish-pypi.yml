@@ -9,7 +9,7 @@ on:
 
 jobs:
   tag:
-    uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
+    uses: singnet/das/.github/workflows/run-semver.yml@master
     with:
       version: ${{ github.event.inputs.version }}
       version-strategy: bump-version-from-variable-value
