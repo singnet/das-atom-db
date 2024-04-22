@@ -1826,28 +1826,6 @@ class TestRedisMongoDB:
 
         added_atoms.clear()
 
-    def test_add_node_and_link_with_reserved_parameters(self, database):
-        with pytest.raises(AddNodeException) as exc:
-            database.add_node({'type': 'Concept', 'name': 'lion', 'named_type': 'Concept-type'})
-        assert exc.value.message == 'This is a reserved field name in nodes'
-        assert exc.value.details == "['_id', 'composite_type_hash', 'named_type']"
-        with pytest.raises(AddLinkException) as exc:
-            database.add_link(
-                {
-                    'type': 'Concept',
-                    'targets': [
-                        {'type': 'Concept', 'name': 'test-1'},
-                        {'type': 'Concept', 'name': 'test-2'},
-                    ],
-                    'key_1': 'custom_key',
-                }
-            )
-        assert exc.value.message == 'This is a reserved field name in links'
-        assert (
-            exc.value.details
-            == "['_id', 'composite_type_hash', 'is_toplevel', 'composite_type', 'named_type', 'named_type_hash', 'key_n']"
-        )
-
     def test_get_incoming_links(self, database):
         h = database.get_node_handle('Concept', 'human')
         m = database.get_node_handle('Concept', 'monkey')

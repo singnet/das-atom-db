@@ -52,6 +52,7 @@ class AtomDB(ABC):
             targets_document = [self.get_atom(target) for target in answer['targets']]
             return answer, targets_document
         elif kwargs.get('deep_representation', False):
+
             def _recursive_targets(targets, **kwargs):
                 return [self.get_atom(target, **kwargs) for target in targets]
 
@@ -76,32 +77,32 @@ class AtomDB(ABC):
 
     def _add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
-        
+
         valid_params = {
             key: value for key, value in node_params.items() if key not in reserved_parameters
         }
-        
+
         node_type = valid_params.get('type')
         node_name = valid_params.get('name')
-        
+
         if node_type is None or node_name is None:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
                 details=valid_params,
             )
-        
+
         handle = self.node_handle(node_type, node_name)
-        
+
         node = {
             '_id': handle,
             'composite_type_hash': ExpressionHasher.named_type_hash(node_type),
             'name': node_name,
             'named_type': node_type,
         }
-        
+
         node.update(valid_params)
         node.pop('type')
-        
+
         return (handle, node)
 
     def _add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
@@ -115,28 +116,30 @@ class AtomDB(ABC):
             'named_type_hash',
             'key_n',
         ]
-        
+
         valid_params = {
-            key: value 
-            for key, value in link_params.items() 
+            key: value
+            for key, value in link_params.items()
             if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
         }
-        
+
         link_type = valid_params.get('type')
         targets = valid_params.get('targets')
-        
+
         if link_type is None or targets is None:
             raise AddLinkException(
                 message='The "type" and "targets" fields must be sent',
                 details=valid_params,
             )
-        
+
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         targets_hash = []
         composite_type = [link_type_hash]
         composite_type_hash = [link_type_hash]
-        
+
         for target in targets:
+            if not isinstance(target, dict):
+                raise ValueError('The target must be a dictionary')
             if 'targets' not in target:
                 atom = self.add_node(target)
                 atom_hash = atom['composite_type_hash']
@@ -147,9 +150,9 @@ class AtomDB(ABC):
                 composite_type.append(atom['composite_type'])
             composite_type_hash.append(atom_hash)
             targets_hash.append(atom['_id'])
-        
+
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
-        
+
         link = {
             '_id': handle,
             'composite_type_hash': ExpressionHasher.composite_hash(composite_type_hash),
@@ -158,14 +161,14 @@ class AtomDB(ABC):
             'named_type': link_type,
             'named_type_hash': link_type_hash,
         }
-        
+
         for item in range(len(targets)):
             link[f'key_{item}'] = targets_hash[item]
-        
+
         link.update(valid_params)
         link.pop('type')
         link.pop('targets')
-        
+
         return (handle, link, targets_hash)
 
     def node_exists(self, node_type: str, node_name: str) -> bool:

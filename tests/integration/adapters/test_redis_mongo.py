@@ -957,3 +957,40 @@ class TestRedisMongo:
         nodes = db.get_all_nodes('Concept')
         assert len(response) == len(links) + len(nodes)
         _db_down()
+
+    def test_add_node_add_link(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
+        db = self._connect_db()
+        self._add_atoms(db)
+        db.commit()
+        human = db.node_handle('Concept', 'human')
+        monkey = db.node_handle('Concept', 'monkey')
+        link_handle = db.link_handle('Similarity', [human, monkey])
+
+        node_human = db.get_atom(human)
+
+        assert node_human['handle'] == human
+        assert node_human['name'] == 'human'
+        assert node_human['named_type'] == 'Concept'
+
+        node_human['score'] = 0.5
+
+        db.add_node(node_human)
+        db.commit()
+
+        assert db.get_atom(human)['score'] == 0.5
+
+        link_similarity = db.get_atom(link_handle, deep_representation=True)
+
+        assert link_similarity['handle'] == link_handle
+        assert link_similarity['type'] == 'Similarity'
+        assert link_similarity['targets'] == [db.get_atom(human), db.get_atom(monkey)]
+
+        link_similarity['score'] = 0.5
+
+        db.add_link(link_similarity)
+        db.commit()
+
+        assert db.get_atom(link_handle)['score'] == 0.5
+
+        _db_down()
