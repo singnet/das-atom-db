@@ -958,7 +958,7 @@ class TestRedisMongo:
         assert len(response) == len(links) + len(nodes)
         _db_down()
 
-    def test_add_node_add_link(self, _cleanup):
+    def test_add_fields_to_atoms(self, _cleanup):
         _db_up(Database.REDIS, Database.MONGO)
         db = self._connect_db()
         self._add_atoms(db)
