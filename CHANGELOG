@@ -5,3 +5,4 @@
 [das-query-engine#214] Add retrieve_all_atoms method
 [#124] Changed count_atoms() to return more accurate numbers
 [das-query-engine#197] Changed get_all_links() to return a tuple
+[#142] Changed add_link() and add_node() to work with get_atom returns
