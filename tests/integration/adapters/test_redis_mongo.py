@@ -994,3 +994,45 @@ class TestRedisMongo:
         assert db.get_atom(link_handle)['score'] == 0.5
 
         _db_down()
+
+    def test_commit_with_buffer(self, _cleanup):
+        _db_up(Database.REDIS, Database.MONGO)
+        db = self._connect_db()
+        assert db.count_atoms() == (0, 0)
+        buffer = [
+            {
+                '_id': '26d35e45817f4270f2b7cff971b04138',
+                'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
+                'name': 'dog',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': 'b7db6a9ed2191eb77ee54479570db9a4',
+                'composite_type_hash': 'd99a604c79ce3c2e76a2f43488d5d4c3',
+                'name': 'cat',
+                'named_type': 'Concept',
+            },
+            {
+                '_id': '3dab102938606f4549d68405ec9f4f61',
+                'composite_type_hash': 'ed73ea081d170e1d89fc950820ce1cee',
+                'is_toplevel': True,
+                'composite_type': [
+                    'a9dea78180588431ec64d6bc4872fdbc',
+                    'd99a604c79ce3c2e76a2f43488d5d4c3',
+                    'd99a604c79ce3c2e76a2f43488d5d4c3',
+                ],
+                'named_type': 'Similarity',
+                'named_type_hash': 'a9dea78180588431ec64d6bc4872fdbc',
+                'key_0': '26d35e45817f4270f2b7cff971b04138',
+                'key_1': 'b7db6a9ed2191eb77ee54479570db9a4',
+            },
+        ]
+        db.commit(buffer=buffer)
+        assert db.count_atoms() == (2, 1)
+        assert db.get_atom('26d35e45817f4270f2b7cff971b04138')['name'] == 'dog'
+        assert db.get_atom('b7db6a9ed2191eb77ee54479570db9a4')['name'] == 'cat'
+        assert db.get_atom('3dab102938606f4549d68405ec9f4f61')['targets'] == [
+            '26d35e45817f4270f2b7cff971b04138',
+            'b7db6a9ed2191eb77ee54479570db9a4',
+        ]
+        _db_down()

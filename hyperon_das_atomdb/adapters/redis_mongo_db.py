@@ -558,22 +558,32 @@ class RedisMongoDB(AtomDB):
 
         self.redis.flushall()
 
-    def commit(self) -> None:
+    def commit(self, **kwargs) -> None:
         id_tag = MongoFieldNames.ID_HASH
-        for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
-            if buffer:
-                if key == MongoCollectionNames.ATOM_TYPES:
-                    logger().error('Failed to commit Atom Types. This operation is not allowed')
-                    raise InvalidOperationException
 
-                documents = [d.base for d in buffer]
+        if kwargs.get('buffer'):
+            try:
+                for document in kwargs['buffer']:
+                    self.mongo_atoms_collection.replace_one(
+                        {id_tag: document[id_tag]}, document, upsert=True
+                    )
+                    self._update_atom_indexes([document])
+            except Exception as e:
+                logger().error(f'Failed to commit buffer - Details: {str(e)}')
+                raise e
+        else:
+            for key, (collection, buffer) in self.mongo_bulk_insertion_buffer.items():
+                if buffer:
+                    if key == MongoCollectionNames.ATOM_TYPES:
+                        logger().error('Failed to commit Atom Types. This operation is not allowed')
+                        raise InvalidOperationException
 
-                for document in documents:
-                    collection.replace_one({id_tag: document[id_tag]}, document, upsert=True)
+                    for hashtable in buffer:
+                        document = hashtable.base
+                        collection.replace_one({id_tag: document[id_tag]}, document, upsert=True)
+                        self._update_atom_indexes([document])
 
-                self._update_atom_indexes(documents)
-
-            buffer.clear()
+                buffer.clear()
 
     def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
         handle, node = self._add_node(node_params)
