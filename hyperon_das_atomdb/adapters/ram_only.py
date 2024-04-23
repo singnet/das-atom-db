@@ -535,3 +535,6 @@ class InMemoryDB(AtomDB):
         except Exception as e:
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
+
+    def commit(self, **kwargs) -> None:
+        raise NotImplementedError()
