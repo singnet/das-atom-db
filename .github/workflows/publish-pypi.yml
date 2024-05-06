@@ -18,7 +18,8 @@ jobs:
       main-branch: master
       version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
       version-require-confirmation: "true"
-      library: hyperon-das-atomdb
+      title: New version of hyperon-das-atomdb
+      deliverable: Library in PyPI named hyperon-das-atomdb
     secrets: inherit
 
   publish:
