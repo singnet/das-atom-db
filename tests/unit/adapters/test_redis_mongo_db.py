@@ -10,12 +10,7 @@ from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoFieldNames
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    LinkDoesNotExist,
-    NodeDoesNotExist,
-)
+from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 type_collection_mock_data = [
