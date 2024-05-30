@@ -44,6 +44,7 @@ class MongoFieldNames(str, Enum):
     COMPOSITE_TYPE = 'composite_type'
     KEY_PREFIX = 'key'
     KEYS = 'keys'
+    IS_TOPLEVEL = 'is_toplevel'
 
 
 class KeyPrefix(str, Enum):
