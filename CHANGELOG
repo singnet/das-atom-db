@@ -7,4 +7,4 @@
 [das-query-engine#197] Changed get_all_links() to return a tuple
 [#142] Changed add_link() and add_node() to work with get_atom returns
 [das-query-engine#114] Changed commit() to receive buffer as a kwargs parameter
-[#63] Added IS_TOPLEVEL in MongoFieldNames
+[#63] Changed MongoFieldNames to FieldNames and placed it generally for all adapters
