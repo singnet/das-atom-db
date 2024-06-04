@@ -9,13 +9,9 @@ from pymongo.errors import OperationFailure
 from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoFieldNames
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    LinkDoesNotExist,
-    NodeDoesNotExist,
-)
+from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
+from hyperon_das_atomdb.database import FieldNames
+from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 type_collection_mock_data = [
@@ -1401,14 +1397,15 @@ class TestRedisMongoDB:
             else:
                 ret = []
                 for atom in atom_collection_mock_data + added_atoms:
-                    if MongoFieldNames.TYPE_NAME in _filter:
-                        if _filter[MongoFieldNames.TYPE_NAME] == atom[MongoFieldNames.TYPE_NAME]:
+                    if FieldNames.TYPE_NAME in _filter:
+                        if _filter[FieldNames.TYPE_NAME] == atom[FieldNames.TYPE_NAME]:
                             ret.append(atom)
                     else:
                         if (
-                            _filter[MongoFieldNames.TYPE] == atom[MongoFieldNames.TYPE]
-                            and _filter[MongoFieldNames.NODE_NAME]['$regex']
-                            in atom[MongoFieldNames.NODE_NAME]
+                            _filter[FieldNames.COMPOSITE_TYPE_HASH]
+                            == atom[FieldNames.COMPOSITE_TYPE_HASH]
+                            and _filter[FieldNames.NODE_NAME]['$regex']
+                            in atom[FieldNames.NODE_NAME]
                         ):
                             ret.append(atom)
                 return ret
@@ -1879,7 +1876,7 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('name', 1)],
             name='node_name_index_asc',
-            partialFilterExpression={MongoFieldNames.TYPE_NAME: {'$eq': 'Type'}},
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
     def test_create_field_index_link_collection(self, database):
@@ -1898,7 +1895,7 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('field', 1)],
             name='link_field_index_asc',
-            partialFilterExpression={MongoFieldNames.TYPE_NAME: {'$eq': 'Type'}},
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
     @pytest.mark.skip(reason="Maybe change the way to handle this test")

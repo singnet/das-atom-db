@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from hyperon_das_atomdb.exceptions import (
@@ -14,6 +15,18 @@ WILDCARD = '*'
 UNORDERED_LINK_TYPES = []
 
 IncomingLinksT = Union[str, dict, Tuple[dict, list]]
+
+
+class FieldNames(str, Enum):
+    ID_HASH = '_id'
+    COMPOSITE_TYPE = 'composite_type'
+    COMPOSITE_TYPE_HASH = 'composite_type_hash'
+    NODE_NAME = 'name'
+    TYPE_NAME = 'named_type'
+    TYPE_NAME_HASH = 'named_type_hash'
+    KEY_PREFIX = 'key'
+    KEYS = 'keys'
+    IS_TOPLEVEL = 'is_toplevel'
 
 
 class AtomDB(ABC):
@@ -94,10 +107,10 @@ class AtomDB(ABC):
         handle = self.node_handle(node_type, node_name)
 
         node = {
-            '_id': handle,
-            'composite_type_hash': ExpressionHasher.named_type_hash(node_type),
-            'name': node_name,
-            'named_type': node_type,
+            FieldNames.ID_HASH: handle,
+            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.named_type_hash(node_type),
+            FieldNames.NODE_NAME: node_name,
+            FieldNames.TYPE_NAME: node_type,
         }
 
         node.update(valid_params)
@@ -154,12 +167,12 @@ class AtomDB(ABC):
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
         link = {
-            '_id': handle,
-            'composite_type_hash': ExpressionHasher.composite_hash(composite_type_hash),
-            'is_toplevel': toplevel,
-            'composite_type': composite_type,
-            'named_type': link_type,
-            'named_type_hash': link_type_hash,
+            FieldNames.ID_HASH: handle,
+            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
+            FieldNames.IS_TOPLEVEL: toplevel,
+            FieldNames.COMPOSITE_TYPE: composite_type,
+            FieldNames.TYPE_NAME: link_type,
+            FieldNames.TYPE_NAME_HASH: link_type_hash,
         }
 
         for item in range(len(targets)):
