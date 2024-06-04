@@ -1402,7 +1402,8 @@ class TestRedisMongoDB:
                             ret.append(atom)
                     else:
                         if (
-                            _filter[FieldNames.COMPOSITE_TYPE_HASH] == atom[FieldNames.COMPOSITE_TYPE_HASH]
+                            _filter[FieldNames.COMPOSITE_TYPE_HASH]
+                            == atom[FieldNames.COMPOSITE_TYPE_HASH]
                             and _filter[FieldNames.NODE_NAME]['$regex']
                             in atom[FieldNames.NODE_NAME]
                         ):

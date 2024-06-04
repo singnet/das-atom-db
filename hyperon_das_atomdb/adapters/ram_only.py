@@ -1,7 +1,13 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB, IncomingLinksT, FieldNames
+from hyperon_das_atomdb.database import (
+    UNORDERED_LINK_TYPES,
+    WILDCARD,
+    AtomDB,
+    FieldNames,
+    IncomingLinksT,
+)
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
     InvalidOperationException,
@@ -87,7 +93,7 @@ class InMemoryDB(AtomDB):
                 FieldNames.ID_HASH: key,
                 FieldNames.COMPOSITE_TYPE_HASH: composite_type_hash,
                 FieldNames.TYPE_NAME: _name,
-                FieldNames.TYPE_NAME_HASH: name_hash
+                FieldNames.TYPE_NAME_HASH: name_hash,
             }
             self.db.atom_type[key] = atom_type
             self.named_type_table[name_hash] = _name
@@ -134,7 +140,9 @@ class InMemoryDB(AtomDB):
             self.db.templates[named_type_hash] = set([(key, tuple(targets_hash))])
 
     def _delete_templates(self, link_document: dict, targets_hash: List[str]) -> None:
-        template_composite_type = self.db.templates.get(link_document[FieldNames.COMPOSITE_TYPE_HASH], set())
+        template_composite_type = self.db.templates.get(
+            link_document[FieldNames.COMPOSITE_TYPE_HASH], set()
+        )
         if len(template_composite_type) > 0:
             template_composite_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
@@ -275,7 +283,8 @@ class InMemoryDB(AtomDB):
         return [
             key
             for key, value in self.db.node.items()
-            if substring in value[FieldNames.NODE_NAME] and node_type_hash == value[FieldNames.COMPOSITE_TYPE_HASH]
+            if substring in value[FieldNames.NODE_NAME]
+            and node_type_hash == value[FieldNames.COMPOSITE_TYPE_HASH]
         ]
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:

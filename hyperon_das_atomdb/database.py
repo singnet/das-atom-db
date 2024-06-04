@@ -1,7 +1,8 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
     AddNodeException,
@@ -171,7 +172,7 @@ class AtomDB(ABC):
             FieldNames.IS_TOPLEVEL: toplevel,
             FieldNames.COMPOSITE_TYPE: composite_type,
             FieldNames.TYPE_NAME: link_type,
-            FieldNames.TYPE_NAME_HASH: link_type_hash
+            FieldNames.TYPE_NAME_HASH: link_type_hash,
         }
 
         for item in range(len(targets)):

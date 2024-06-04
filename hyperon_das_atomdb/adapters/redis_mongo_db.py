@@ -12,7 +12,13 @@ from pymongo.database import Database
 from redis import Redis
 from redis.cluster import RedisCluster
 
-from hyperon_das_atomdb.database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB, IncomingLinksT, FieldNames
+from hyperon_das_atomdb.database import (
+    UNORDERED_LINK_TYPES,
+    WILDCARD,
+    AtomDB,
+    FieldNames,
+    IncomingLinksT,
+)
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
     ConnectionMongoDBException,
@@ -358,16 +364,12 @@ class RedisMongoDB(AtomDB):
         if names:
             return [
                 document[FieldNames.NODE_NAME]
-                for document in self.mongo_atoms_collection.find(
-                    {FieldNames.TYPE_NAME: node_type}
-                )
+                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
         else:
             return [
                 document[FieldNames.ID_HASH]
-                for document in self.mongo_atoms_collection.find(
-                    {FieldNames.TYPE_NAME: node_type}
-                )
+                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
     def get_all_links(self, link_type: str, **kwargs) -> Tuple[int, List[str]]:
@@ -902,7 +904,9 @@ class RedisMongoDB(AtomDB):
         if type:
             kwargs = {FieldNames.TYPE_NAME: type}
         elif composite_type:
-            kwargs = {FieldNames.COMPOSITE_TYPE_HASH: self._calculate_composite_type_hash(composite_type)}
+            kwargs = {
+                FieldNames.COMPOSITE_TYPE_HASH: self._calculate_composite_type_hash(composite_type)
+            }
 
         collection = self.mongo_atoms_collection
 
