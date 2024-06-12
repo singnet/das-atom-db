@@ -39,7 +39,7 @@ jobs:
           pip install poetry
           poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
 
-      - name: Build and publish package
+      - name: Build and Publishing library version in PyPI
         run: |
           poetry version ${{ github.event.inputs.version }}
           poetry build
