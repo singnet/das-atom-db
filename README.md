@@ -82,10 +82,10 @@ pre-commit install
 
 ## Tests
 
-You can ran the command below to execute the unittests
+You can ran the command below to execute the unit tests
 
 ```bash
-make test-unit
+make unit-tests
 ```
 
 ## Documentation References

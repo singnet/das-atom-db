@@ -2,6 +2,9 @@ import random
 import string
 
 import pytest
+from unittest.mock import patch
+
+
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import WILDCARD, AtomDB
@@ -26,7 +29,14 @@ from .helpers import Database, _db_down, _db_up, cleanup, mongo_port, redis_port
 class TestRedisMongo:
     @pytest.fixture(scope="session", autouse=True)
     def _cleanup(self, request):
+        self.last_explain = []
         return cleanup(request)
+    
+    @pytest.fixture(autouse=True)
+    def _db(self):
+        _db_up(Database.REDIS, Database.MONGO)
+        yield self._connect_db()
+        _db_down()
 
     def _add_atoms(self, db: RedisMongoDB):
         for node in node_docs.values():
@@ -89,9 +99,17 @@ class TestRedisMongo:
             ]
         ) == sorted([monkey, chimp, ent])
 
-    def test_redis_retrieve(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def _find_and_explain(self, find_function):
+        mongo_find = find_function
+        self.last_explain = []
+        def find_explain(*args, **kwargs):
+            a = mongo_find(*args, **kwargs)
+            self.last_explain.append(a.explain())
+            return a
+        return find_explain
+
+    def test_redis_retrieve(self, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
         db.commit()
@@ -209,20 +227,15 @@ class TestRedisMongo:
             "bdfe4e7a431f73386f37c6448afe5840",
         ] in patterns
 
-        _db_down()
-
-    def test_patterns(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_patterns(self, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         db.commit()
         assert db.count_atoms() == (14, 26)
         self._check_basic_patterns(db)
-        _db_down()
 
-    def test_commit(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_commit(self, _cleanup, _db):
+        db = _db
         assert db.count_atoms() == (0, 0)
         self._add_atoms(db)
         assert db.count_atoms() == (0, 0)
@@ -273,11 +286,9 @@ class TestRedisMongo:
                 )
             ]
         ) == sorted([human, monkey, chimp, rhino, dog])
-        _db_down()
 
-    def test_reindex(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_reindex(self, _cleanup, _db):
+        db =  _db
         self._add_atoms(db)
         db.commit()
         db.reindex()
@@ -285,7 +296,7 @@ class TestRedisMongo:
         self._check_basic_patterns(db)
         _db_down()
 
-    def test_delete_atom(self, _cleanup):
+    def test_delete_atom(self, _cleanup, _db):
         def _add_all_links():
             db.add_link(
                 {
@@ -568,9 +579,7 @@ class TestRedisMongo:
                 [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
             ]
 
-        _db_up(Database.REDIS, Database.MONGO)
-
-        db = self._connect_db()
+        db = _db
 
         cat_handle = AtomDB.node_handle('Concept', 'cat')
         dog_handle = AtomDB.node_handle('Concept', 'dog')
@@ -619,11 +628,9 @@ class TestRedisMongo:
         db.delete_atom(inheritance_cat_mammal_handle)
         _check_asserts_2()
 
-        _db_down()
 
-    def test_retrieve_members_with_pagination(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_retrieve_members_with_pagination(self, _cleanup, _db):
+        db = _db
 
         def _add_links():
             for name in [
@@ -687,11 +694,9 @@ class TestRedisMongo:
         _asserts_templates()
         _asserts_patterns()
 
-        _db_down()
 
-    def test_get_matched_with_pagination(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_get_matched_with_pagination(self, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         db.commit()
 
@@ -858,11 +863,9 @@ class TestRedisMongo:
                 ],
             ],
         )
-        _db_down()
 
-    def test_create_field_index(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_create_field_index(self, monkeypatch, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         db.add_link(
             {
@@ -887,26 +890,62 @@ class TestRedisMongo:
         my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity')
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
-
+# 
         assert my_index in collection_index_names
 
-        # Using the index
+        # # Using the index
         response = collection.find({'named_type': 'Similarity', 'tag': 'DAS'}).explain()
 
         assert my_index == response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
-        # Retrieve the document using the index
+        # Adds explain to internal pymongo's find, explain can be retrieved on self.last_explain
+        monkeypatch.setattr(db.mongo_atoms_collection, "find", self._find_and_explain(db.mongo_atoms_collection.find))
+
+
         _, doc = db.get_atoms_by_index(my_index, tag='DAS')
         assert doc[0]['handle'] == ExpressionHasher.expression_hash(
             ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
         )
         assert doc[0]['targets'] == [human, monkey]
+        assert self.last_explain[0]['executionStats']['executionSuccess']
+        assert self.last_explain[0]['executionStats']['executionStages']['docsExamined'] == 1
+        assert self.last_explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
+        assert self.last_explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+        assert self.last_explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
+        assert self.last_explain[0]['executionStats']['executionStages']['inputStage']['indexName'] == my_index
 
-        _db_down()
+    def test_get_node_by_name(self, monkeypatch, _cleanup, _db):
+        db = _db
+        self._add_atoms(db)
+        db.commit()
+        # Adds explain to internal pymongo's find, explain can be retrieved on self.last_explain
+        monkeypatch.setattr(db.mongo_atoms_collection, "find", self._find_and_explain(db.mongo_atoms_collection.find))
+        result = db.get_matched_node_name('Concept', 'mammal')
+        assert len(result) == 1
+        assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+        assert self.last_explain[0]['executionStats']['executionSuccess']
+        assert self.last_explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
+        assert self.last_explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'TEXT_MATCH'
+        assert self.last_explain[0]['executionStats']['totalKeysExamined'] == 1
 
-    def test_bulk_insert(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_get_node_starting_name(self, monkeypatch, _cleanup, _db):
+        db = _db
+        self._add_atoms(db)
+        db.commit()
+        # Adds explain to internal pymongo's find, explain can be retrieved on self.last_explain
+        # db.mongo_atoms_collection.find = self.__find_and_explain(db.mongo_atoms_collection.find)
+        monkeypatch.setattr(db.mongo_atoms_collection, "find", self._find_and_explain(db.mongo_atoms_collection.find))
+
+        result = db.get_node_starting_with('Concept', 'mammal')
+        assert len(result) == 1
+        assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+        assert self.last_explain[0]['executionStats']['executionSuccess']
+        assert self.last_explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+        assert self.last_explain[0]['executionStats']['totalKeysExamined'] == 2
+        assert self.last_explain[0]['executionStats']['totalDocsExamined'] == 1
+
+    def test_bulk_insert(self, _cleanup, _db):
+        db = _db
         assert db.count_atoms() == (0, 0)
 
         documents = [
@@ -943,11 +982,9 @@ class TestRedisMongo:
         _, similarity = db.get_all_links('Similarity')
         assert similarity == [db.link_handle('Similarity', ['node1', 'node2'])]
         assert db.get_all_nodes('Concept') == ['node1', 'node2']
-        _db_down()
 
-    def test_retrieve_all_atoms(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_retrieve_all_atoms(self, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         db.commit()
         response = db.retrieve_all_atoms()
@@ -956,11 +993,9 @@ class TestRedisMongo:
         links = inheritance + similarity
         nodes = db.get_all_nodes('Concept')
         assert len(response) == len(links) + len(nodes)
-        _db_down()
 
-    def test_add_fields_to_atoms(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_add_fields_to_atoms(self, _cleanup, _db):
+        db = _db
         self._add_atoms(db)
         db.commit()
         human = db.node_handle('Concept', 'human')
@@ -993,11 +1028,9 @@ class TestRedisMongo:
 
         assert db.get_atom(link_handle)['score'] == 0.5
 
-        _db_down()
 
-    def test_commit_with_buffer(self, _cleanup):
-        _db_up(Database.REDIS, Database.MONGO)
-        db = self._connect_db()
+    def test_commit_with_buffer(self, _cleanup, _db):
+        db = _db
         assert db.count_atoms() == (0, 0)
         buffer = [
             {
@@ -1035,4 +1068,3 @@ class TestRedisMongo:
             '26d35e45817f4270f2b7cff971b04138',
             'b7db6a9ed2191eb77ee54479570db9a4',
         ]
-        _db_down()

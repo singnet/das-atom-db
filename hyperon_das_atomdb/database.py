@@ -29,6 +29,11 @@ class FieldNames(str, Enum):
     IS_TOPLEVEL = 'is_toplevel'
 
 
+class FieldIndexType(str, Enum):
+    DEFAULT = 'default'
+    TEXT = 'text'
+
+
 class AtomDB(ABC):
     key_pattern = re.compile(r"key_\d+")
 
@@ -633,6 +638,7 @@ class AtomDB(ABC):
         """
         ...  # pragma no cover
 
+    # TODO remove this from ABS class, check for compatibility issues first
     @abstractmethod
     def create_field_index(
         self,
@@ -640,6 +646,8 @@ class AtomDB(ABC):
         field: str,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
+        fields: Optional[List[str]] = None,
+        index_type: Optional[FieldIndexType] = None,
     ) -> str:
         ...  # pragma no cover
 

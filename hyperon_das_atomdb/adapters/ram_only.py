@@ -6,6 +6,7 @@ from hyperon_das_atomdb.database import (
     WILDCARD,
     AtomDB,
     FieldNames,
+    FieldIndexType,
     IncomingLinksT,
 )
 from hyperon_das_atomdb.exceptions import (
@@ -514,12 +515,15 @@ class InMemoryDB(AtomDB):
                     details=f'handle: {handle}',
                 )
 
+    # TODO remove this
     def create_field_index(
         self,
         atom_type: str,
         field: str,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
+        fields: Optional[List[str]] = None,
+        index_type: Optional[FieldIndexType] = None,
     ) -> str:
         pass
 

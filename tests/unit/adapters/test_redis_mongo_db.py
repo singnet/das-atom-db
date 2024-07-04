@@ -9,7 +9,7 @@ from pymongo.errors import OperationFailure
 from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
+from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoIndexType
 from hyperon_das_atomdb.database import FieldNames
 from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
@@ -1876,7 +1876,7 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('name', 1)],
             name='node_name_index_asc',
-            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}}
         )
 
     def test_create_field_index_link_collection(self, database):
