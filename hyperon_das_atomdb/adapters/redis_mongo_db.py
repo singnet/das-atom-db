@@ -5,7 +5,7 @@ from copy import deepcopy
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo import errors as pymongo_errors
 from pymongo.collection import Collection
 from pymongo.database import Database
@@ -101,23 +101,23 @@ class MongoDBIndex(Index):
             conditionals = {key: {"$eq": value}}
             break  # only one key-value pair
 
+        if fields:
+            index_id = f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}" + (f"_{index_type.value}" if index_type else "")
+        else:
+            index_id = f"{atom_type}_{self.generate_index_id(field, conditionals)}" + (f'_{index_type.value}' if index_type else "")
+
+
         index_type: MongoIndexType = index_type or (MongoIndexType.COMPOUND if fields is not None else MongoIndexType.FIELD)
-
-        # conditionals['index_type'] = index_type
-        index_id = f"{atom_type}_{self.generate_index_id(field, conditionals)}" + f'_{index_type.value}' if index_type else ''
         index_props = {'index_type': index_type, 'conditionals': conditionals, 'index_name': index_id}
-
-
         index_conditionals = {"name": index_id}
  
         if conditionals:
             index_conditionals["partialFilterExpression"] = index_props['conditionals']
 
-        # index_list = [(field, 1)]  # store the index in ascending order
         if index_type == MongoIndexType.TEXT:
             index_list = [((f, 'text') for f in fields)] if fields is not None else [(field, 'text')]
         else:
-            index_list = [((f, 1) for f in fields)] if fields is not None else [(field, 1)]
+            index_list = [(f, ASCENDING) for f in fields] if fields is not None else [(field, ASCENDING)] # store the index in ascending order
 
         if not self.index_exists(index_id):
             return self.collection.create_index(index_list, **index_conditionals), index_props
@@ -127,7 +127,8 @@ class MongoDBIndex(Index):
     def index_exists(self, index_id: str) -> bool:
         indexes = self.collection.list_indexes()
         index_ids = [index.get('name') for index in indexes]
-        return True if index_id in index_ids else False
+        return index_id in index_ids
+    
 
 
 class RedisMongoDB(AtomDB):
@@ -284,8 +285,7 @@ class RedisMongoDB(AtomDB):
         else:
             self.pattern_index_templates = None
         
-        # NOTE creating text index for naming search
-        self.create_field_index('node', field='name', index_type=FieldIndexType.TEXT)
+        # NOTE creating index for name search
         self.create_field_index('node', field='name')
 
     def _get_atom_type_hash(self, atom_type):
@@ -929,7 +929,7 @@ class RedisMongoDB(AtomDB):
     def create_field_index(
         self,
         atom_type: str,
-        field: str,
+        field: Optional[str] = None,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
         fields: Optional[List[str]] = None,
@@ -937,6 +937,9 @@ class RedisMongoDB(AtomDB):
     ) -> str:
         if type and composite_type:
             raise ValueError("Both type and composite_type cannot be specified")
+        
+        if field is None and fields is None:
+            raise ValueError("No field to create index: field and fields can not be None")
 
         kwargs = {}
 
@@ -955,7 +958,7 @@ class RedisMongoDB(AtomDB):
 
         try:
             exc = ""
-            index_id, index_props = MongoDBIndex(collection).create(atom_type, field, index_type=mongo_index_type,**kwargs)
+            index_id, index_props = MongoDBIndex(collection).create(atom_type, field, index_type=mongo_index_type, fields=fields, **kwargs)
             serialized_index_props = pickle.dumps(index_props)
             serialized_index_props_str = base64.b64encode(serialized_index_props).decode('utf-8')
             self.redis.set(

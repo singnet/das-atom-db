@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import pytest
+import re
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
@@ -10,7 +11,7 @@ from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoIndexType
-from hyperon_das_atomdb.database import FieldNames
+from hyperon_das_atomdb.database import FieldNames, FieldIndexType
 from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
@@ -1401,13 +1402,14 @@ class TestRedisMongoDB:
                         if _filter[FieldNames.TYPE_NAME] == atom[FieldNames.TYPE_NAME]:
                             ret.append(atom)
                     else:
-                        if (
-                            _filter[FieldNames.COMPOSITE_TYPE_HASH]
-                            == atom[FieldNames.COMPOSITE_TYPE_HASH]
-                            and _filter[FieldNames.NODE_NAME]['$regex']
-                            in atom[FieldNames.NODE_NAME]
-                        ):
-                            ret.append(atom)
+                        if _filter[FieldNames.COMPOSITE_TYPE_HASH] == atom[FieldNames.COMPOSITE_TYPE_HASH]:
+                            regex_filter = _filter.get(FieldNames.NODE_NAME, {}).get('$regex')
+                            text_filter = _filter.get('$text', {}).get('$search')
+                            if regex_filter is not None and re.findall(regex_filter, atom[FieldNames.NODE_NAME]):
+                                ret.append(atom)
+                                continue
+                            if text_filter is not None and text_filter in atom[FieldNames.NODE_NAME]:
+                                ret.append(atom)
                 return ret
 
         def estimated_document_count():
@@ -1711,6 +1713,14 @@ class TestRedisMongoDB:
         assert sorted(database.get_matched_node_name('blah', 'Concept')) == []
         assert sorted(database.get_matched_node_name('Concept', 'blah')) == []
 
+    def test_get_startswith_node_name(self, database: RedisMongoDB):
+        expected = [
+                database.get_node_handle('Concept', 'mammal'),
+        ]
+        actual = sorted(database.get_node_starting_with('Concept', 'ma'))
+
+        assert expected == actual
+
     def test_get_node_type(self, database):
         monkey = database.get_node_handle('Concept', 'monkey')
         resp_node = database.get_node_type(monkey)
@@ -1896,6 +1906,81 @@ class TestRedisMongoDB:
             [('field', 1)],
             name='link_field_index_asc',
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
+        )
+    
+    def test_create_text_index(self, database):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='field_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
+        ):
+            result = database.create_field_index('link', 'field', index_type=FieldIndexType.TEXT)
+
+        assert result == 'field_index_asc'
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [('field', 'text')],
+            name='link_field_index_asc_text'
+        )
+
+    def test_create_text_index_type(self, database):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='field_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
+        ):
+            result = database.create_field_index('link', 'field', 'Type', index_type=FieldIndexType.TEXT)
+
+        assert result == 'field_index_asc'
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [('field', 'text')],
+            name='link_field_index_asc_text',
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
+        )
+
+    def test_create_compound_index_type(self, database):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='field_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
+        ):
+            result = database.create_field_index('link', fields=['field', 'name'])
+
+        assert result == 'field_index_asc'
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [('field', 1), ('name', 1)],
+            name='link_field_index_asc',
+        )
+
+    def test_create_compound_index_type(self, database):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
+        with mock.patch(
+            'hyperon_das_atomdb.index.Index.generate_index_id',
+            return_value='field_index_asc',
+        ), mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
+            return_value=False,
+        ):
+            result = database.create_field_index('link', type='Type', fields=['field', 'name'])
+
+        assert result == 'field_index_asc'
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [('field', 1), ('name', 1)],
+            name='link_field_index_asc',
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
+
         )
 
     @pytest.mark.skip(reason="Maybe change the way to handle this test")

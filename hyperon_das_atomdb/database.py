@@ -643,7 +643,7 @@ class AtomDB(ABC):
     def create_field_index(
         self,
         atom_type: str,
-        field: str,
+        field: Optional[str] = None,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
         fields: Optional[List[str]] = None,
