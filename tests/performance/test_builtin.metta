@@ -1876,22 +1876,7 @@
 !(match &kb (person $x)
     (Sister $x (get_sister $x)))
 
-;; GET ALL AUNTS
-;(= (get_aunt $x)
-;    (match &kb
-;        (, (parent $p $x)
-;           (parent $gp $p)
-;           (parent $gp $q)
-;           (female $q))
-;        (different $q $p)
-;    )
-;)
-;!(match &kb (person $x)
-;    (Aunt $x (get_aunt $x)))
-
 ; GET ALL PREDECESSORS
 (= (get_pred $x) (match &kb (parent $p $x) $p))
 (= (get_pred $x) (match &kb (parent $p $x) (get_pred $p)))
 !(match &kb (person $x) (Pred $x (get_pred $x)))
-
-
