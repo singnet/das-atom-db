@@ -110,12 +110,12 @@ class MongoDBIndex(Index):
 
         if fields:
             index_id = (
-                f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}"
+                f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}" +
                 (f"_{index_type.value}" if index_type else "")
             )
         else:
             index_id = (
-                f"{atom_type}_{self.generate_index_id(field, conditionals)}"
+                f"{atom_type}_{self.generate_index_id(field, conditionals)}" +
                 (f'_{index_type.value}' if index_type else "")
             )
         index_type: MongoIndexType = (
@@ -123,6 +123,7 @@ class MongoDBIndex(Index):
             or
             (MongoIndexType.COMPOUND if fields is not None else MongoIndexType.FIELD)
         )
+        print(index_type)
         index_props = {'index_type': index_type, 'conditionals': conditionals, 'index_name': index_id}
         index_conditionals = {"name": index_id}
  
@@ -141,6 +142,8 @@ class MongoDBIndex(Index):
                 if fields is not None
                 else [(field, ASCENDING)] # store the index in ascending order
             )
+
+        print(index_list)
 
         if not self.index_exists(index_id):
             return self.collection.create_index(index_list, **index_conditionals), index_props

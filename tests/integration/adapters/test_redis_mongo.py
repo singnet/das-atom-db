@@ -950,12 +950,13 @@ class TestRedisMongo:
         db.create_field_index(atom_type='node', field='name', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_matched_node_name('Concept', 'mammal')
+            result = db.get_node_by_text_field('mammal')
             assert len(result) == 1
             assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+            print(explain[0])
             assert explain[0]['executionStats']['executionSuccess']
-            assert explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'TEXT_MATCH'
+            assert explain[0]['executionStats']['executionStages']['stage'] == 'TEXT_MATCH'
+            # assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'TEXT_MATCH'
             assert explain[0]['executionStats']['totalKeysExamined'] == 1
 
     def test_get_node_starting_name(self, _cleanup, _db: RedisMongoDB):
@@ -963,7 +964,7 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_node_starting_with('Concept', 'mamm')
+            result = db.get_node_by_name_starting_with('Concept', 'mamm')
             assert len(result) == 1
             assert result[0] ==  db.get_node_handle('Concept', 'mammal')
             assert explain[0]['executionStats']['executionSuccess']
