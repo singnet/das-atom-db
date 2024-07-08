@@ -42,7 +42,7 @@ class PyMongoFindExplain:
         self.original_find_function = collection.find
 
     def __enter__(self):
-        # Adds explain to internal pymongo's find, explain can be retrieved on self.last_explain
+        # Adds explain to internal pymongo's find
         self.explain = []
         def find_explain(*args, **kwargs):
             find = self.original_find_function(*args, **kwargs)

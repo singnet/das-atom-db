@@ -1402,14 +1402,25 @@ class TestRedisMongoDB:
                         if _filter[FieldNames.TYPE_NAME] == atom[FieldNames.TYPE_NAME]:
                             ret.append(atom)
                     else:
-                        if _filter[FieldNames.COMPOSITE_TYPE_HASH] == atom[FieldNames.COMPOSITE_TYPE_HASH]:
+                        text_filter = _filter.get('$text', {}).get('$search')
+                        regex_filter = next((k for k in _filter.keys() if isinstance( _filter[k], dict) and  '$regex' in _filter[k].keys()) , None)
+                        if _filter.get(FieldNames.COMPOSITE_TYPE_HASH) == atom[FieldNames.COMPOSITE_TYPE_HASH]:
                             regex_filter = _filter.get(FieldNames.NODE_NAME, {}).get('$regex')
-                            text_filter = _filter.get('$text', {}).get('$search')
                             if regex_filter is not None and re.findall(regex_filter, atom[FieldNames.NODE_NAME]):
                                 ret.append(atom)
                                 continue
                             if text_filter is not None and text_filter in atom[FieldNames.NODE_NAME]:
                                 ret.append(atom)
+                        else:
+                            if all([atom.get(k) is not None and _filter[k] == atom[k] for k in _filter.keys()]):
+                                ret.append(atom)
+                            else:
+                                if text_filter is not None and any([text_filter in str(v).split() for v in atom.values()]):
+                                    ret.append(atom)
+                                if regex_filter is not None and re.findall(_filter[regex_filter]['$regex'], atom.get(regex_filter, '')):
+                                    ret.append(atom)
+
+                            
                 return ret
 
         def estimated_document_count():
@@ -1717,7 +1728,26 @@ class TestRedisMongoDB:
         expected = [
                 database.get_node_handle('Concept', 'mammal'),
         ]
-        actual = sorted(database.get_node_starting_with('Concept', 'ma'))
+        actual = database.get_node_by_name_starting_with('Concept', 'ma')
+
+        assert expected == actual
+
+    def test_get_node_by_field(self, database: RedisMongoDB):
+        expected = [
+                database.get_node_handle('Concept', 'mammal'),
+        ]
+        actual = database.get_node_by_field([{'field': 'name', 'value': 'mammal'}])
+
+        assert expected == actual
+
+    def test_get_node_by_index(self, database: RedisMongoDB):
+        pass
+
+    def test_get_node_by_text_field(self, database: RedisMongoDB):
+        expected = [
+                database.get_node_handle('Concept', 'mammal'),
+        ]
+        actual = database.get_node_by_text_field("mammal", 'name')
 
         assert expected == actual
 
@@ -1918,7 +1948,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', 'field', index_type=FieldIndexType.TEXT)
+            result = database.create_field_index('link', 'field', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
@@ -1936,7 +1966,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', 'field', 'Type', index_type=FieldIndexType.TEXT)
+            result = database.create_field_index('link', 'field', 'Type', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(

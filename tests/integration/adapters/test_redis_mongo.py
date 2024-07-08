@@ -916,7 +916,7 @@ class TestRedisMongo:
         collection = db.mongo_atoms_collection
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity', index_type=FieldIndexType.TEXT)
+        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
 # 
@@ -938,7 +938,7 @@ class TestRedisMongo:
         db.commit()
         collection = db.mongo_atoms_collection
         # Create the index
-        my_index = db.create_field_index(atom_type='link', fields=['type', 'tag'], type='Similarity', index_type=FieldIndexType.DEFAULT)
+        my_index = db.create_field_index(atom_type='link', fields=['type', 'tag'], type='Similarity', index_type=FieldIndexType.BINARY_TREE)
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
         assert my_index in collection_index_names
 
@@ -947,7 +947,7 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         # Create index
-        db.create_field_index(atom_type='node', field='name', index_type=FieldIndexType.TEXT)
+        db.create_field_index(atom_type='node', field='name', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_matched_node_name('Concept', 'mammal')

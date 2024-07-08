@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, OrderedDict
 
 from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
@@ -412,6 +412,18 @@ class InMemoryDB(AtomDB):
         if kwargs.get('toplevel_only'):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
+    
+    def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+        raise NotImplemented()
+
+    def get_node_by_index(self, index_id: str) -> List[str]:
+        raise NotImplemented()
+
+    def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+        raise NotImplemented()
+    
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
+        raise NotImplemented()
 
     def get_atom(
         self, handle: str, **kwargs
@@ -515,7 +527,6 @@ class InMemoryDB(AtomDB):
                     details=f'handle: {handle}',
                 )
 
-    # TODO remove this
     def create_field_index(
         self,
         atom_type: str,

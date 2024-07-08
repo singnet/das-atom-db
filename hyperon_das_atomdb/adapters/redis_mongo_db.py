@@ -3,7 +3,7 @@ import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, OrderedDict
 
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo import errors as pymongo_errors
@@ -94,7 +94,14 @@ class MongoDBIndex(Index):
     def __init__(self, collection: Collection) -> None:
         self.collection = collection
 
-    def create(self, atom_type: str, field: str, fields: Optional[List[str]] = None, index_type: Optional[MongoIndexType] = None,**kwargs) -> Tuple[str, Any]:
+    def create(
+        self,
+        atom_type: str,
+        field: str,
+        fields: Optional[List[str]] = None,
+        index_type: Optional[MongoIndexType] = None,
+        **kwargs,
+    ) -> Tuple[str, Any]:
         conditionals = {}
 
         for key, value in kwargs.items():
@@ -102,12 +109,20 @@ class MongoDBIndex(Index):
             break  # only one key-value pair
 
         if fields:
-            index_id = f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}" + (f"_{index_type.value}" if index_type else "")
+            index_id = (
+                f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}"
+                (f"_{index_type.value}" if index_type else "")
+            )
         else:
-            index_id = f"{atom_type}_{self.generate_index_id(field, conditionals)}" + (f'_{index_type.value}' if index_type else "")
-
-
-        index_type: MongoIndexType = index_type or (MongoIndexType.COMPOUND if fields is not None else MongoIndexType.FIELD)
+            index_id = (
+                f"{atom_type}_{self.generate_index_id(field, conditionals)}"
+                (f'_{index_type.value}' if index_type else "")
+            )
+        index_type: MongoIndexType = (
+            index_type
+            or
+            (MongoIndexType.COMPOUND if fields is not None else MongoIndexType.FIELD)
+        )
         index_props = {'index_type': index_type, 'conditionals': conditionals, 'index_name': index_id}
         index_conditionals = {"name": index_id}
  
@@ -115,9 +130,17 @@ class MongoDBIndex(Index):
             index_conditionals["partialFilterExpression"] = index_props['conditionals']
 
         if index_type == MongoIndexType.TEXT:
-            index_list = [((f, 'text') for f in fields)] if fields is not None else [(field, 'text')]
+            index_list = (
+                [((f, 'text') for f in fields)]
+                if fields is not None
+                else [(field, 'text')]
+            )
         else:
-            index_list = [(f, ASCENDING) for f in fields] if fields is not None else [(field, ASCENDING)] # store the index in ascending order
+            index_list = (
+                [(f, ASCENDING) for f in fields]
+                if fields is not None
+                else [(field, ASCENDING)] # store the index in ascending order
+            )
 
         if not self.index_exists(index_id):
             return self.collection.create_index(index_list, **index_conditionals), index_props
@@ -373,14 +396,46 @@ class RedisMongoDB(AtomDB):
         node_type_hash = self._get_atom_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
-            '$text': {'$search': substring},
+            FieldNames.NODE_NAME: {'$regex': substring},
         }
         return [
             document[FieldNames.ID_HASH]
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
     
-    def get_node_starting_with(self, node_type: str, startswith: str):
+    def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+        mongo_filter = {q['field']:q['value'] for q in query}
+        return [
+            document[FieldNames.ID_HASH]
+            for document in self.mongo_atoms_collection.find(mongo_filter)
+        ]
+
+    def get_node_by_index(self, index_id: str) -> List[str]:
+        return self.get_atoms_by_index(index_id)
+
+    def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+
+        if field is not None:
+            mongo_filter = {
+                field: {'$regex': text_value},
+            }
+        else:
+            mongo_filter = {
+                '$text': {'$search': text_value}
+            }
+        
+        if text_index_id is not None:
+            return [
+                document[FieldNames.ID_HASH]
+                for document in self.mongo_atoms_collection.find(mongo_filter).hint(text_index_id)
+            ]
+        
+        return [
+                document[FieldNames.ID_HASH]
+                for document in self.mongo_atoms_collection.find(mongo_filter)
+            ]
+        
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str):
         node_type_hash = self._get_atom_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
@@ -393,7 +448,6 @@ class RedisMongoDB(AtomDB):
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
     
-
     def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
         if names:
             return [
@@ -877,7 +931,9 @@ class RedisMongoDB(AtomDB):
 
             try:
                 # Fallback to previous version
-                conditionals = self._retrieve_custom_index(index_id).get('conditionals', self._retrieve_custom_index(index_id))
+                conditionals = self._retrieve_custom_index(index_id).get(
+                    'conditionals', self._retrieve_custom_index(index_id)
+                )
                 kwargs.update(conditionals)
             except Exception as e:
                 raise e
@@ -925,7 +981,6 @@ class RedisMongoDB(AtomDB):
             )
         self._update_atom_indexes([document], delete_atom=True)
 
-    # TODO rename this to create_index
     def create_field_index(
         self,
         atom_type: str,
@@ -954,11 +1009,13 @@ class RedisMongoDB(AtomDB):
 
         index_id = ""
 
-        mongo_index_type = MongoIndexType.TEXT if index_type == FieldIndexType.TEXT else None
+        mongo_index_type = MongoIndexType.TEXT if index_type == FieldIndexType.TOKEN_INVERTED_LIST else None
 
         try:
             exc = ""
-            index_id, index_props = MongoDBIndex(collection).create(atom_type, field, index_type=mongo_index_type, fields=fields, **kwargs)
+            index_id, index_props = MongoDBIndex(collection).create(
+                atom_type, field, index_type=mongo_index_type, fields=fields, **kwargs
+            )
             serialized_index_props = pickle.dumps(index_props)
             serialized_index_props_str = base64.b64encode(serialized_index_props).decode('utf-8')
             self.redis.set(
