@@ -123,8 +123,10 @@ class MongoDBIndex(Index):
             or
             (MongoIndexType.COMPOUND if fields is not None else MongoIndexType.FIELD)
         )
-        print(index_type)
-        index_props = {'index_type': index_type, 'conditionals': conditionals, 'index_name': index_id}
+        index_props = {
+            'index_type': index_type, 'conditionals': conditionals, 
+            'index_name': index_id, 'fields': fields or [field]
+            }
         index_conditionals = {"name": index_id}
  
         if conditionals:
@@ -143,7 +145,6 @@ class MongoDBIndex(Index):
                 else [(field, ASCENDING)] # store the index in ascending order
             )
 
-        print(index_list)
 
         if not self.index_exists(index_id):
             return self.collection.create_index(index_list, **index_conditionals), index_props
@@ -407,14 +408,19 @@ class RedisMongoDB(AtomDB):
         ]
     
     def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
-        mongo_filter = {q['field']:q['value'] for q in query}
+        mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
         return [
             document[FieldNames.ID_HASH]
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
-    def get_node_by_index(self, index_id: str) -> List[str]:
-        return self.get_atoms_by_index(index_id)
+    def get_node_by_index(
+            self, 
+            index_id: str, 
+            cursor: Optional[int] = 0, 
+            chunk_size: Optional[int] = 500
+            ) -> Tuple[int, List[str]]:
+        return self.get_atoms_by_index(index_id, cursor=cursor, chunk_size=chunk_size)
 
     def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
 
