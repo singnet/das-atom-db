@@ -118,7 +118,7 @@ class TestRedisMongoDB:
 
         assert resp is True
 
-    def test_node_exists_false(self, database):
+    def test_node_exists_false(self, database: RedisMongoDB):
         node_type = 'Concept'
         node_name = 'human-fake'
 
@@ -126,7 +126,7 @@ class TestRedisMongoDB:
 
         assert resp is False
 
-    def test_link_exists(self, database):
+    def test_link_exists(self, database: RedisMongoDB):
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
 
@@ -134,7 +134,7 @@ class TestRedisMongoDB:
 
         assert resp is True
 
-    def test_link_exists_false(self, database):
+    def test_link_exists_false(self, database: RedisMongoDB):
         human = ExpressionHasher.terminal_hash('Concept', 'fake')
         monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
 
@@ -142,7 +142,7 @@ class TestRedisMongoDB:
 
         assert resp is False
 
-    def test_get_node_handle(self, database):
+    def test_get_node_handle(self, database: RedisMongoDB):
         node_type = 'Concept'
         node_name = 'human'
 
@@ -150,7 +150,7 @@ class TestRedisMongoDB:
 
         assert resp == ExpressionHasher.terminal_hash('Concept', 'human')
 
-    def test_get_node_handle_node_does_not_exist(self, database):
+    def test_get_node_handle_node_does_not_exist(self, database: RedisMongoDB):
         node_type = 'Fake'
         node_name = 'Fake2'
 
@@ -159,7 +159,7 @@ class TestRedisMongoDB:
         assert exc_info.type is NodeDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent node"
 
-    def test_get_link_handle(self, database):
+    def test_get_link_handle(self, database: RedisMongoDB):
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
 
@@ -167,7 +167,7 @@ class TestRedisMongoDB:
 
         assert resp is not None
 
-    def test_get_link_handle_link_does_not_exist(self, database):
+    def test_get_link_handle_link_does_not_exist(self, database: RedisMongoDB):
         brazil = ExpressionHasher.terminal_hash('Concept', 'brazil')
         travel = ExpressionHasher.terminal_hash('Concept', 'travel')
 
@@ -176,13 +176,13 @@ class TestRedisMongoDB:
         assert exc_info.type is LinkDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent link"
 
-    def test_get_link_targets(self, database):
+    def test_get_link_targets(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
         mammal = database.get_node_handle('Concept', 'mammal')
         handle = database.get_link_handle('Inheritance', [human, mammal])
         assert database.get_link_targets(handle)
 
-    def test_get_link_targets_invalid(self, database):
+    def test_get_link_targets_invalid(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
         mammal = database.get_node_handle('Concept', 'mammal')
         handle = database.get_link_handle('Inheritance', [human, mammal])
@@ -192,7 +192,7 @@ class TestRedisMongoDB:
         assert exc_info.type is ValueError
         assert exc_info.value.args[0] == f"Invalid handle: {handle}-Fake"
 
-    def test_is_ordered(self, database):
+    def test_is_ordered(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
         monkey = database.get_node_handle('Concept', 'monkey')
         mammal = database.get_node_handle('Concept', 'mammal')
@@ -201,7 +201,7 @@ class TestRedisMongoDB:
         assert database.is_ordered(link_1)
         assert database.is_ordered(link_2)
 
-    def test_is_ordered_invalid(self, database):
+    def test_is_ordered_invalid(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
         mammal = database.get_node_handle('Concept', 'mammal')
         link = database.get_link_handle('Inheritance', [human, mammal])
@@ -210,7 +210,7 @@ class TestRedisMongoDB:
         assert exc_info.type is ValueError
         assert exc_info.value.args[0] == f"Invalid handle: {link}-Fake"
 
-    def test_get_matched_links_without_wildcard(self, database):
+    def test_get_matched_links_without_wildcard(self, database: RedisMongoDB):
         link_type = 'Similarity'
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
@@ -220,7 +220,7 @@ class TestRedisMongoDB:
 
         assert expected == actual
 
-    def test_get_matched_links_link_equal_wildcard(self, database):
+    def test_get_matched_links_link_equal_wildcard(self, database: RedisMongoDB):
         link_type = '*'
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
@@ -235,7 +235,7 @@ class TestRedisMongoDB:
 
         assert expected == actual
 
-    def test_get_matched_links_link_diff_wildcard(self, database):
+    def test_get_matched_links_link_diff_wildcard(self, database: RedisMongoDB):
         link_type = 'Similarity'
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
         expected = [
@@ -254,7 +254,7 @@ class TestRedisMongoDB:
 
         assert expected == actual
 
-    def test_get_matched_links_toplevel_only(self, database):
+    def test_get_matched_links_toplevel_only(self, database: RedisMongoDB):
         expected = [
             [
                 'd542caa94b57219f1e489e3b03be7126',
@@ -267,7 +267,7 @@ class TestRedisMongoDB:
         assert expected == actual
         assert len(actual) == 1
 
-    def test_get_all_nodes(self, database):
+    def test_get_all_nodes(self, database: RedisMongoDB):
         ret = database.get_all_nodes('Concept')
         assert len(ret) == 14
         ret = database.get_all_nodes('Concept', True)
@@ -275,7 +275,7 @@ class TestRedisMongoDB:
         ret = database.get_all_nodes('ConceptFake')
         assert len(ret) == 0
 
-    def test_get_matched_type_template(self, database):
+    def test_get_matched_type_template(self, database: RedisMongoDB):
         v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
         v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
         v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
@@ -289,7 +289,7 @@ class TestRedisMongoDB:
         assert v1 == v5
         assert v2 == v6
 
-    def test_get_matched_type_template_error(self, database):
+    def test_get_matched_type_template_error(self, database: RedisMongoDB):
         with mock.patch(
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._build_named_type_hash_template',
             return_value=mock.MagicMock(side_effect=Exception("Test")),
@@ -298,13 +298,13 @@ class TestRedisMongoDB:
                 database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
             assert exc_info.type is ValueError
 
-    def test_get_matched_type(self, database):
+    def test_get_matched_type(self, database: RedisMongoDB):
         inheritance = database.get_matched_type('Inheritance')
         similarity = database.get_matched_type('Similarity')
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
-    def test_get_matched_type_toplevel_only(self, database):
+    def test_get_matched_type_toplevel_only(self, database: RedisMongoDB):
         ret = database.get_matched_type('Evaluation')
         assert len(ret) == 2
 
@@ -312,7 +312,7 @@ class TestRedisMongoDB:
 
         assert len(ret) == 1
 
-    def test_get_node_name(self, database):
+    def test_get_node_name(self, database: RedisMongoDB):
         node_type = 'Concept'
         node_name = 'monkey'
 
@@ -321,7 +321,7 @@ class TestRedisMongoDB:
 
         assert db_name == node_name
 
-    def test_get_node_name_value_error(self, database):
+    def test_get_node_name_value_error(self, database: RedisMongoDB):
         with mock.patch(
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_name',
             return_value=None,
@@ -331,7 +331,7 @@ class TestRedisMongoDB:
             assert exc_info.type is ValueError
             assert exc_info.value.args[0] == "Invalid handle: handle"
 
-    def test_get_matched_node_name(self, database):
+    def test_get_matched_node_name(self, database: RedisMongoDB):
         expected = sorted(
             [
                 database.get_node_handle('Concept', 'human'),
@@ -372,12 +372,12 @@ class TestRedisMongoDB:
 
         assert expected == actual
 
-    def test_get_node_type(self, database):
+    def test_get_node_type(self, database: RedisMongoDB):
         monkey = database.get_node_handle('Concept', 'monkey')
         resp_node = database.get_node_type(monkey)
         assert 'Concept' == resp_node
 
-    def test_get_node_type_without_cache(self, database):
+    def test_get_node_type_without_cache(self, database: RedisMongoDB):
         from hyperon_das_atomdb.adapters import redis_mongo_db
 
         redis_mongo_db.USE_CACHED_NODE_TYPES = False
@@ -385,14 +385,14 @@ class TestRedisMongoDB:
         resp_node = database.get_node_type(monkey)
         assert 'Concept' == resp_node
 
-    def test_get_link_type(self, database):
+    def test_get_link_type(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
         chimp = database.get_node_handle('Concept', 'chimp')
         link_handle = database.get_link_handle('Similarity', [human, chimp])
         resp_link = database.get_link_type(link_handle)
         assert 'Similarity' == resp_link
 
-    def test_get_link_type_without_cache(self, database):
+    def test_get_link_type_without_cache(self, database: RedisMongoDB):
         from hyperon_das_atomdb.adapters import redis_mongo_db
 
         redis_mongo_db.USE_CACHED_LINK_TYPES = False
@@ -402,12 +402,12 @@ class TestRedisMongoDB:
         resp_link = database.get_link_type(link_handle)
         assert 'Similarity' == resp_link
 
-    def test_atom_count(self, database):
+    def test_atom_count(self, database: RedisMongoDB):
         node_count, link_count = database.count_atoms()
         assert node_count == 14
         assert link_count == 28
 
-    def test_add_node(self, database):
+    def test_add_node(self, database: RedisMongoDB):
         assert (14, 28) == database.count_atoms()
         all_nodes_before = database.get_all_nodes('Concept')
         database.add_node(
@@ -431,7 +431,7 @@ class TestRedisMongoDB:
         assert new_node['name'] == 'lion'
         database.count_atoms()
 
-    def test_add_link(self, database):
+    def test_add_link(self, database: RedisMongoDB):
 
         assert (14, 28) == database.count_atoms()
 
@@ -480,7 +480,7 @@ class TestRedisMongoDB:
         assert new_node['name'] == 'cat'
 
 
-    def test_get_incoming_links(self, database):
+    def test_get_incoming_links(self, database: RedisMongoDB):
         h = database.get_node_handle('Concept', 'human')
         m = database.get_node_handle('Concept', 'monkey')
         s = database.get_link_handle('Similarity', [h, m])
@@ -508,7 +508,7 @@ class TestRedisMongoDB:
         links = database.get_incoming_links(atom_handle=s, handles_only=True)
         assert links == []
 
-    def test_get_atom_type(self, database):
+    def test_get_atom_type(self, database: RedisMongoDB):
         h = database.get_node_handle('Concept', 'human')
         m = database.get_node_handle('Concept', 'mammal')
         i = database.get_link_handle('Inheritance', [h, m])
@@ -517,7 +517,7 @@ class TestRedisMongoDB:
         assert 'Concept' == database.get_atom_type(m)
         assert 'Inheritance' == database.get_atom_type(i)
 
-    def test_create_field_index_node_collection(self, database):
+    def test_create_field_index_node_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'name_index_asc'
         with mock.patch(
@@ -536,7 +536,7 @@ class TestRedisMongoDB:
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}}
         )
 
-    def test_create_field_index_link_collection(self, database):
+    def test_create_field_index_link_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -555,7 +555,7 @@ class TestRedisMongoDB:
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
     
-    def test_create_text_index(self, database):
+    def test_create_text_index(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -573,7 +573,7 @@ class TestRedisMongoDB:
             name='link_field_index_asc_text'
         )
 
-    def test_create_text_index_type(self, database):
+    def test_create_text_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -592,7 +592,7 @@ class TestRedisMongoDB:
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
-    def test_create_compound_index_type(self, database):
+    def test_create_compound_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -610,7 +610,7 @@ class TestRedisMongoDB:
             name='link_field_index_asc',
         )
 
-    def test_create_compound_index_type(self, database):
+    def test_create_compound_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -631,11 +631,11 @@ class TestRedisMongoDB:
         )
 
     @pytest.mark.skip(reason="Maybe change the way to handle this test")
-    def test_create_field_index_invalid_collection(self, database):
+    def test_create_field_index_invalid_collection(self, database: RedisMongoDB):
         with pytest.raises(ValueError):
             database.create_field_index('invalid_atom_type', 'field', 'type')
 
-    def test_create_field_index_operation_failure(self, database):
+    def test_create_field_index_operation_failure(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.side_effect = OperationFailure(
             'Index creation failed'
@@ -648,7 +648,7 @@ class TestRedisMongoDB:
 
         assert result == 'Index creation failed, Details: Index creation failed'
 
-    def test_create_field_index_already_exists(self, database):
+    def test_create_field_index_already_exists(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.list_indexes.return_value = []
         database.mongo_atoms_collection.create_index.return_value = 'name_index_asc'

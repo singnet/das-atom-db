@@ -953,10 +953,8 @@ class TestRedisMongo:
             result = db.get_node_by_text_field('mammal')
             assert len(result) == 1
             assert result[0] ==  db.get_node_handle('Concept', 'mammal')
-            print(explain[0])
             assert explain[0]['executionStats']['executionSuccess']
             assert explain[0]['executionStats']['executionStages']['stage'] == 'TEXT_MATCH'
-            # assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'TEXT_MATCH'
             assert explain[0]['executionStats']['totalKeysExamined'] == 1
 
     def test_get_node_starting_name(self, _cleanup, _db: RedisMongoDB):
