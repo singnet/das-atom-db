@@ -17,6 +17,7 @@ redis = "^5.0.0"
 pymongo = "^4.5.0"
 python-dotenv = "^1.0.0"
 mongomock = "^4.1.2"
+setuptools = "^70.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
