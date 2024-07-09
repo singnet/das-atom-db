@@ -29,11 +29,15 @@ exit 1
 }
 
 echo -n "Running performance test using MeTTa's built-in Atom Space..."
-time (metta ${PWD}/tests/performance/test_builtin.metta 2>&1>/dev/null)
+log_file=$(mktemp --suffix='_perf_test_builtin').log
+time (metta ${PWD}/tests/performance/test_builtin.metta 2>&1>${log_file})
+echo "Check the log file for more details: ${log_file}"
 
 echo "-----"
 
 echo -n "Running performance test using DAS..."
-time (metta ${PWD}/tests/performance/test_das_ram_only.metta 2>&1>/dev/null)
+log_file=$(mktemp --suffix='_perf_test_das_ram_only').log
+time (metta ${PWD}/tests/performance/test_das_ram_only.metta 2>&1>${log_file})
+echo "Check the log file for more details: ${log_file}"
 
 echo "-----"
