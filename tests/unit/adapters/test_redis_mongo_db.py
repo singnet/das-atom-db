@@ -339,11 +339,11 @@ class TestRedisMongoDB:
                 database.get_node_handle('Concept', 'animal'),
             ]
         )
-        actual = sorted(database.get_matched_node_name('Concept', 'ma'))
+        actual = sorted(database.get_node_by_name('Concept', 'ma'))
 
         assert expected == actual
-        assert sorted(database.get_matched_node_name('blah', 'Concept')) == []
-        assert sorted(database.get_matched_node_name('Concept', 'blah')) == []
+        assert sorted(database.get_node_by_name('blah', 'Concept')) == []
+        assert sorted(database.get_node_by_name('Concept', 'blah')) == []
 
     def test_get_startswith_node_name(self, database: RedisMongoDB):
         expected = [
@@ -357,18 +357,31 @@ class TestRedisMongoDB:
         expected = [
                 database.get_node_handle('Concept', 'mammal'),
         ]
-        actual = database.get_node_by_field([{'field': 'name', 'value': 'mammal'}])
+        actual = database.get_atoms_by_field([{'field': 'name', 'value': 'mammal'}])
 
         assert expected == actual
 
-    def test_get_node_by_index(self, database: RedisMongoDB):
-        pass
+    def test_get_atoms_by_index(self, database: RedisMongoDB):
+        expected = [
+                database.get_node_handle('Concept', 'mammal'),
+        ]
+
+        result = database.create_field_index('node', field='name')
+
+
+        with mock.patch(
+            'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_custom_index',
+            return_value={'conditionals': {}},
+        ):
+
+            _, actual = database.get_atoms_by_index(result, [{'field': 'name', 'value': 'mammal'}])
+        assert expected[0] == actual[0]['handle']
 
     def test_get_node_by_text_field(self, database: RedisMongoDB):
         expected = [
                 database.get_node_handle('Concept', 'mammal'),
         ]
-        actual = database.get_node_by_text_field("mammal", 'name')
+        actual = database.get_atoms_by_text_field("mammal", 'name')
 
         assert expected == actual
 
@@ -478,7 +491,6 @@ class TestRedisMongoDB:
         assert new_node['handle'] == new_node_handle
         assert new_node['named_type'] == 'Concept'
         assert new_node['name'] == 'cat'
-
 
     def test_get_incoming_links(self, database: RedisMongoDB):
         h = database.get_node_handle('Concept', 'human')

@@ -396,7 +396,7 @@ class RedisMongoDB(AtomDB):
         document = self.get_atom(node_handle)
         return document[FieldNames.TYPE_NAME]
 
-    def get_matched_node_name(self, node_type: str, substring: str) -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> str:
         node_type_hash = self._get_atom_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
@@ -407,22 +407,24 @@ class RedisMongoDB(AtomDB):
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
     
-    def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+    def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
         mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
         return [
             document[FieldNames.ID_HASH]
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
-    def get_node_by_index(
+    def get_atoms_by_index(
             self, 
             index_id: str, 
+            query: List[OrderedDict[str, str]],
             cursor: Optional[int] = 0, 
             chunk_size: Optional[int] = 500
             ) -> Tuple[int, List[str]]:
-        return self.get_atoms_by_index(index_id, cursor=cursor, chunk_size=chunk_size)
+        mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
+        return self._get_atoms_by_index(index_id, cursor=cursor, chunk_size=chunk_size, **mongo_filter)
 
-    def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+    def get_atoms_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
 
         if field is not None:
             mongo_filter = {
@@ -1047,7 +1049,7 @@ class RedisMongoDB(AtomDB):
 
         return index_id
 
-    def get_atoms_by_index(self, index_id: str, **kwargs) -> Union[Tuple[int, list], list]:
+    def _get_atoms_by_index(self, index_id: str, **kwargs) -> Union[Tuple[int, list], list]:
         try:
             documents = self._retrieve_documents_by_index(
                 self.mongo_atoms_collection, index_id, **kwargs

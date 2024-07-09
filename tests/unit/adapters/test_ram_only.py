@@ -559,11 +559,11 @@ class TestInMemoryDB:
                 database.get_node_handle('Concept', 'animal'),
             ]
         )
-        actual = sorted(database.get_matched_node_name('Concept', 'ma'))
+        actual = sorted(database.get_node_by_name('Concept', 'ma'))
 
         assert expected == actual
-        assert sorted(database.get_matched_node_name('blah', 'Concept')) == []
-        assert sorted(database.get_matched_node_name('Concept', 'blah')) == []
+        assert sorted(database.get_node_by_name('blah', 'Concept')) == []
+        assert sorted(database.get_node_by_name('Concept', 'blah')) == []
 
     def test_add_node_without_type_parameter(self, database: InMemoryDB):
         with pytest.raises(AddNodeException) as exc_info:

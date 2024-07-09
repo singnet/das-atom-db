@@ -82,7 +82,7 @@ class AtomDB(ABC):
 
         return answer
 
-    def _recursive_link_split(self, params: Dict[str, Any]) -> (str, Any):
+    def _recursive_link_split(self, params: Dict[str, Any]) -> Tuple[str, Any]:
         name = params.get('name')
         atom_type = params['type']
         if name:
@@ -264,7 +264,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_node_name(self, node_type: str, substring: str) -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> str:
         """
         Get the name of a node of the specified type containing the given substring.
 
@@ -278,7 +278,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+    def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
         """
         Query the database by field and value, the performance is improved if the database already
         have indexes created for the fields, check 'create_field_index' to create indexes.
@@ -293,12 +293,19 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_node_by_index(self, index_id: str) -> List[str]:
+    def get_atoms_by_index(
+        self, 
+        index_id: str, 
+        query: List[OrderedDict[str, str]],             
+        cursor: Optional[int] = 0, 
+        chunk_size: Optional[int] = 500) -> List[str]:
         """
-        Query the database and return all nodes by a given index id.
+        Query the database and return all atoms by a given index id, filtering the atoms by the query
+        dict.
 
         Args:
             index_id (str): Index ID created by the function 'create_field_index'
+            query (List[Dict[str, str]]): List of dicts containing 'field' and 'value' keys
 
         Returns:
             List[str]: List of node IDs
@@ -306,7 +313,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+    def get_atoms_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
         """
         Query the database by a text field, use the text_value arg to query using a existing text index (text_index_id is optional),
         if a TOKEN_INVERTED_LIST type of index wasn't previously created the field arg must be provided or it will raise an Exception.

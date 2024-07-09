@@ -278,7 +278,8 @@ class InMemoryDB(AtomDB):
             )
         return node[FieldNames.TYPE_NAME]
 
-    def get_matched_node_name(self, node_type: str, substring: Optional[str] = '') -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> str:
+
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
 
         return [
@@ -413,13 +414,18 @@ class InMemoryDB(AtomDB):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
     
-    def get_node_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+    def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
         raise NotImplemented()
 
-    def get_node_by_index(self, index_id: str) -> List[str]:
+    def get_atoms_by_index(
+        self, 
+        index_id: str, 
+        query: List[OrderedDict[str, str]],             
+        cursor: Optional[int] = 0, 
+        chunk_size: Optional[int] = 500) -> List[str]:
         raise NotImplemented()
 
-    def get_node_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+    def get_atoms_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
         raise NotImplemented()
     
     def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
