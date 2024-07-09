@@ -10,7 +10,7 @@ EOF
 exit 1
 }
 
-metta --version | grep -E '0\.1\.1[2-9]' 2>&1>/dev/null || {
+metta --version | grep -E '^(0\.1\.1[2-9]|0\.[2-9])' 2>&1>/dev/null || {
 cat <<EOF
 metta version 0.1.12 or higher is required
 current installed version is $(metta --version), please upgrade:
