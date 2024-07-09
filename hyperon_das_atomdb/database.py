@@ -313,16 +313,24 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_atoms_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
+    def get_atoms_by_text_field(
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
+    ) -> List[str]:
         """
-        Query the database by a text field, use the text_value arg to query using a existing text index (text_index_id is optional),
-        if a TOKEN_INVERTED_LIST type of index wasn't previously created the field arg must be provided or it will raise an Exception.
-        When 'text_value' and 'field' value are provided, it will defaults to a regex search, creating a index to the field can improve
-        the performance.
+        Query the database by a text field, use the text_value arg to query using a existing text 
+        index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously 
+        created the field arg must be provided or it will raise an Exception.
+        When 'text_value' and 'field' value are provided, it will defaults to a regex search, 
+        creating a index to the field can improve the performance.
 
         Args:
-            text_value (str): Value to search for, if only this argument is provided it will use a TOKEN_INVERTED_LIST index in the search
-            field (Optional[str]): Field to be used to search, if this argument is provided it will not use TOKEN_INVERTED_LIST in the search
+            text_value (str): Value to search for, if only this argument is provided it will use 
+                a TOKEN_INVERTED_LIST index in the search
+            field (Optional[str]): Field to be used to search, if this argument is provided 
+                it will not use TOKEN_INVERTED_LIST in the search
             text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
 
 

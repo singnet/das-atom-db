@@ -103,10 +103,10 @@ class MongoDBIndex(Index):
         **kwargs,
     ) -> Tuple[str, Any]:
         conditionals = {}
-
-        for key, value in kwargs.items():
+        
+        if kwargs:
+            key, value = next(iter(kwargs.items())) # only one key-value pair
             conditionals = {key: {"$eq": value}}
-            break  # only one key-value pair
 
         if fields:
             index_id = (
@@ -134,7 +134,7 @@ class MongoDBIndex(Index):
 
         if index_type == MongoIndexType.TEXT:
             index_list = (
-                [((f, 'text') for f in fields)]
+                [(f, 'text') for f in fields]
                 if fields is not None
                 else [(field, 'text')]
             )
@@ -424,8 +424,12 @@ class RedisMongoDB(AtomDB):
         mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
         return self._get_atoms_by_index(index_id, cursor=cursor, chunk_size=chunk_size, **mongo_filter)
 
-    def get_atoms_by_text_field(self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None) -> List[str]:
-
+    def get_atoms_by_text_field(
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
+    ) -> List[str]:
         if field is not None:
             mongo_filter = {
                 field: {'$regex': text_value},
@@ -1020,7 +1024,11 @@ class RedisMongoDB(AtomDB):
 
         index_id = ""
 
-        mongo_index_type = MongoIndexType.TEXT if index_type == FieldIndexType.TOKEN_INVERTED_LIST else None
+        mongo_index_type = (
+            MongoIndexType.TEXT
+            if index_type == FieldIndexType.TOKEN_INVERTED_LIST
+            else None
+        )
 
         try:
             exc = ""
