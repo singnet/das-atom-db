@@ -1,0 +1,110 @@
+[
+    {
+        "_id": "3e419e4d468bdac682103ea2615d0902",
+        "composite_type_hash": "26a3ccbc2d2c83e0e39a01e0eccc4fd1",
+        "named_type": "Inheritance",
+        "named_type_hash": "e40489cd1e7102e35469c937e05c8bba"
+    },
+    {
+        "_id": "fb34c2def109acdd4c7b3c39bba142b2",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "snake",
+        "named_type_hash": "de1b2a7baf7850243db71c4abd4e5a39"
+    },
+    {
+        "_id": "93052a62616e8afd99a29c2ea7a84eb2",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "earthworm",
+        "named_type_hash": "35fa0b1f2fca4be6ed0fab8c315494c6"
+    },
+    {
+        "_id": "70d5310bc38a2f3014921b5a03b69782",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "triceratops",
+        "named_type_hash": "e6c008b012a13755d9bcb47f182e53d5"
+    },
+    {
+        "_id": "bd06bda419f3ae607812e944ef635baa",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "human",
+        "named_type_hash": "99e9bae675b12967251c175696f00a70"
+    },
+    {
+        "_id": "3028445ae4a8df2f220fe95b69c423f5",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "monkey",
+        "named_type_hash": "d0763edaa9d9bd2a9516280e9044d885"
+    },
+    {
+        "_id": "ad9b605df4ec82cb559192729324f7fb",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "mammal",
+        "named_type_hash": "f82c38962ba45f35aba678ee51d4797f"
+    },
+    {
+        "_id": "29cc3f7b7277215d002bd3c4c0753e14",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "dinosaur",
+        "named_type_hash": "03318769a5ee1354f7479acc69755e7c"
+    },
+    {
+        "_id": "77acd011f17414d823cebe9920a9cd27",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "plant",
+        "named_type_hash": "9ea0a36b3a20901fafe834eb519a595c"
+    },
+    {
+        "_id": "19e229d0e1acddfa8210b263fd94eb8c",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "reptile",
+        "named_type_hash": "74790f436b9dc6ae4d47bfb6c924d3ad"
+    },
+    {
+        "_id": "d3d7fcbfbb2581e62d56b5d600d6cc23",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "vine",
+        "named_type_hash": "a77b51765620b8b0c50236e9ea8907ab"
+    },
+    {
+        "_id": "80db0b8181369fe636f2c82b7eb163b9",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "chimp",
+        "named_type_hash": "46bdd2ce40657500dcb21ca51d22b29f"
+    },
+    {
+        "_id": "845005addea22e3272ba56edac5aa311",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "ent",
+        "named_type_hash": "645ec79f22bec5efe970061d395cf7c4"
+    },
+    {
+        "_id": "13159c17892af91350009b407b170b44",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "animal",
+        "named_type_hash": "1e4483e833025ac10e6184e75cb2d19d"
+    },
+    {
+        "_id": "0cc896470995bd4187a844163b6f1012",
+        "composite_type_hash": "26a3ccbc2d2c83e0e39a01e0eccc4fd1",
+        "named_type": "Similarity",
+        "named_type_hash": "a9dea78180588431ec64d6bc4872fdbc"
+    },
+    {
+        "_id": "01959fba970d810fdc38bf0c6b4884db",
+        "composite_type_hash": "26a3ccbc2d2c83e0e39a01e0eccc4fd1",
+        "named_type": "Concept",
+        "named_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3"
+    },
+    {
+        "_id": "26a3ccbc2d2c83e0e39a01e0eccc4fd1",
+        "composite_type_hash": "26a3ccbc2d2c83e0e39a01e0eccc4fd1",
+        "named_type": "Type",
+        "named_type_hash": "a1fa27779242b4902f7ae3bdd5c6d508"
+    },
+    {
+        "_id": "8b1109d7321c28cb68d4814573d41ad3",
+        "composite_type_hash": "01959fba970d810fdc38bf0c6b4884db",
+        "named_type": "rhino",
+        "named_type_hash": "c6318323cc5693ce1f8d220cc9a5030e"
+    }
+]

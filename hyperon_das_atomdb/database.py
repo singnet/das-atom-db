@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, OrderedDict
 
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -27,6 +27,11 @@ class FieldNames(str, Enum):
     KEY_PREFIX = 'key'
     KEYS = 'keys'
     IS_TOPLEVEL = 'is_toplevel'
+
+
+class FieldIndexType(str, Enum):
+    BINARY_TREE = 'binary_tree'
+    TOKEN_INVERTED_LIST = 'token_inverted_list'
 
 
 class AtomDB(ABC):
@@ -77,7 +82,7 @@ class AtomDB(ABC):
 
         return answer
 
-    def _recursive_link_split(self, params: Dict[str, Any]) -> (str, Any):
+    def _recursive_link_split(self, params: Dict[str, Any]) -> Tuple[str, Any]:
         name = params.get('name')
         atom_type = params['type']
         if name:
@@ -259,7 +264,7 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_node_name(self, node_type: str, substring: str) -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> str:
         """
         Get the name of a node of the specified type containing the given substring.
 
@@ -270,6 +275,83 @@ class AtomDB(ABC):
         Returns:
             str: The name of the matching node.
         """
+        ...  # pragma no cover
+
+    @abstractmethod
+    def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+        """
+        Query the database by field and value, the performance is improved if the database already
+        have indexes created for the fields, check 'create_field_index' to create indexes.
+        Ordering the fields as the index previously created can improve performance.
+
+        Args:
+            query (List[Dict[str, str]]): List of dicts containing 'field' and 'value' keys
+
+        Returns:
+            List[str]: List of node IDs
+        """        
+        ...  # pragma no cover
+
+    @abstractmethod
+    def get_atoms_by_index(
+        self, 
+        index_id: str, 
+        query: List[OrderedDict[str, str]],             
+        cursor: Optional[int] = 0, 
+        chunk_size: Optional[int] = 500) -> List[str]:
+        """
+        Query the database and return all atoms by a given index id, filtering the atoms by the query
+        dict.
+
+        Args:
+            index_id (str): Index ID created by the function 'create_field_index'
+            query (List[Dict[str, str]]): List of dicts containing 'field' and 'value' keys
+
+        Returns:
+            List[str]: List of node IDs
+        """        
+        ...  # pragma no cover
+
+    @abstractmethod
+    def get_atoms_by_text_field(
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
+    ) -> List[str]:
+        """
+        Query the database by a text field, use the text_value arg to query using a existing text 
+        index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously 
+        created the field arg must be provided or it will raise an Exception.
+        When 'text_value' and 'field' value are provided, it will defaults to a regex search, 
+        creating a index to the field can improve the performance.
+
+        Args:
+            text_value (str): Value to search for, if only this argument is provided it will use 
+                a TOKEN_INVERTED_LIST index in the search
+            field (Optional[str]): Field to be used to search, if this argument is provided 
+                it will not use TOKEN_INVERTED_LIST in the search
+            text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
+
+
+        Returns:
+            List[str]: List of node IDs ordered by the closest match
+        """        
+        ...  # pragma no cover
+    
+    @abstractmethod
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
+        """
+        Query the database by node name starting with 'startswith' value, this query is indexed
+        and the performance is improved by searching only the index that starts with the requested value
+
+        Args:
+            node_type (str): _description_
+            startswith (str): _description_
+
+        Returns:
+            List[str]: List of node IDs
+        """        
         ...  # pragma no cover
 
     @abstractmethod
@@ -637,9 +719,11 @@ class AtomDB(ABC):
     def create_field_index(
         self,
         atom_type: str,
-        field: str,
+        field: Optional[str] = None,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
+        fields: Optional[List[str]] = None,
+        index_type: Optional[FieldIndexType] = None,
     ) -> str:
         ...  # pragma no cover
 
