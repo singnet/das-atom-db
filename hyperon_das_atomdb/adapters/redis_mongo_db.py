@@ -3,7 +3,9 @@ import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from collections import OrderedDict
 
 from pymongo import ASCENDING, MongoClient
 from pymongo import errors as pymongo_errors
