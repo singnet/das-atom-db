@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union, OrderedDict
+from typing import Any, Dict, List, Optional, OrderedDict, Tuple, Union
 
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -289,16 +289,17 @@ class AtomDB(ABC):
 
         Returns:
             List[str]: List of node IDs
-        """        
+        """
         ...  # pragma no cover
 
     @abstractmethod
     def get_atoms_by_index(
-        self, 
-        index_id: str, 
-        query: List[OrderedDict[str, str]],             
-        cursor: Optional[int] = 0, 
-        chunk_size: Optional[int] = 500) -> List[str]:
+        self,
+        index_id: str,
+        query: List[OrderedDict[str, str]],
+        cursor: Optional[int] = 0,
+        chunk_size: Optional[int] = 500,
+    ) -> List[str]:
         """
         Query the database and return all atoms by a given index id, filtering the atoms by the query
         dict.
@@ -309,7 +310,7 @@ class AtomDB(ABC):
 
         Returns:
             List[str]: List of node IDs
-        """        
+        """
         ...  # pragma no cover
 
     @abstractmethod
@@ -320,25 +321,25 @@ class AtomDB(ABC):
         text_index_id: Optional[str] = None,
     ) -> List[str]:
         """
-        Query the database by a text field, use the text_value arg to query using a existing text 
-        index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously 
+        Query the database by a text field, use the text_value arg to query using a existing text
+        index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously
         created the field arg must be provided or it will raise an Exception.
-        When 'text_value' and 'field' value are provided, it will defaults to a regex search, 
+        When 'text_value' and 'field' value are provided, it will defaults to a regex search,
         creating a index to the field can improve the performance.
 
         Args:
-            text_value (str): Value to search for, if only this argument is provided it will use 
+            text_value (str): Value to search for, if only this argument is provided it will use
                 a TOKEN_INVERTED_LIST index in the search
-            field (Optional[str]): Field to be used to search, if this argument is provided 
+            field (Optional[str]): Field to be used to search, if this argument is provided
                 it will not use TOKEN_INVERTED_LIST in the search
             text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
 
 
         Returns:
             List[str]: List of node IDs ordered by the closest match
-        """        
+        """
         ...  # pragma no cover
-    
+
     @abstractmethod
     def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
         """
@@ -351,7 +352,7 @@ class AtomDB(ABC):
 
         Returns:
             List[str]: List of node IDs
-        """        
+        """
         ...  # pragma no cover
 
     @abstractmethod
