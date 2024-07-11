@@ -874,7 +874,7 @@ class TestRedisMongo:
             response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity')
+        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
 # 
@@ -916,7 +916,7 @@ class TestRedisMongo:
         collection = db.mongo_atoms_collection
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
 # 
@@ -978,7 +978,7 @@ class TestRedisMongo:
             }
         )
         db.commit()
-        my_index = db.create_field_index(atom_type='link', field='tag')
+        my_index = db.create_field_index(atom_type='link', fields=['tag'])
 
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
@@ -1014,7 +1014,7 @@ class TestRedisMongo:
             }
         )
         db.commit()
-        my_index = db.create_field_index(atom_type='link', field='tag', type='Similarity')
+        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
         
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             _, doc = db.get_atoms_by_index(my_index, [{'field': 'tag', 'value': 'DAS2'}])
@@ -1047,7 +1047,7 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         # Create index
-        db.create_field_index(atom_type='node', field='name', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+        db.create_field_index(atom_type='node', fields=['name'], index_type=FieldIndexType.TOKEN_INVERTED_LIST)
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_atoms_by_text_field('mammal')
