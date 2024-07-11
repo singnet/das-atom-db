@@ -3,8 +3,6 @@ import string
 
 import pytest
 
-
-
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
@@ -29,7 +27,7 @@ class TestRedisMongo:
     @pytest.fixture(scope="session", autouse=True)
     def _cleanup(self, request):
         return cleanup(request)
-    
+
     @pytest.fixture(autouse=True)
     def _db(self):
         _db_up(Database.REDIS, Database.MONGO)
@@ -277,7 +275,7 @@ class TestRedisMongo:
         ) == sorted([human, monkey, chimp, rhino, dog])
 
     def test_reindex(self, _cleanup, _db: RedisMongoDB):
-        db =  _db
+        db = _db
         self._add_atoms(db)
         db.commit()
         db.reindex()
@@ -877,7 +875,7 @@ class TestRedisMongo:
         my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
-# 
+        #
         assert my_index in collection_index_names
 
         # # Using the index
@@ -894,9 +892,16 @@ class TestRedisMongo:
             assert explain[0]['executionStats']['executionSuccess']
             assert explain[0]['executionStats']['executionStages']['docsExamined'] == 1
             assert explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
-            assert explain[0]['executionStats']['executionStages']['inputStage']['indexName'] == my_index
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['indexName']
+                == my_index
+            )
 
     def test_create_text_index(self, _cleanup, _db: RedisMongoDB):
         db: RedisMongoDB = _db
@@ -916,10 +921,15 @@ class TestRedisMongo:
         collection = db.mongo_atoms_collection
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+        my_index = db.create_field_index(
+            atom_type='link',
+            fields=['tag'],
+            type='Similarity',
+            index_type=FieldIndexType.TOKEN_INVERTED_LIST,
+        )
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
-# 
+        #
         assert my_index in collection_index_names
 
     def test_create_compound_index(self, _cleanup, _db: RedisMongoDB):
@@ -938,7 +948,12 @@ class TestRedisMongo:
         db.commit()
         collection = db.mongo_atoms_collection
         # Create the index
-        my_index = db.create_field_index(atom_type='link', fields=['type', 'tag'], type='Similarity', index_type=FieldIndexType.BINARY_TREE)
+        my_index = db.create_field_index(
+            atom_type='link',
+            fields=['type', 'tag'],
+            type='Similarity',
+            index_type=FieldIndexType.BINARY_TREE,
+        )
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
         assert my_index in collection_index_names
 
@@ -980,16 +995,22 @@ class TestRedisMongo:
         db.commit()
         my_index = db.create_field_index(atom_type='link', fields=['tag'])
 
-
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_atoms_by_field([{'field': 'tag', 'value': 'DAS'}])
             assert len(result) == 1
             assert explain[0]['executionStats']['executionSuccess']
             assert explain[0]['executionStats']['nReturned'] == 1
             assert explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
-            assert explain[0]['executionStats']['executionStages']['inputStage']['indexName'] == my_index
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['indexName']
+                == my_index
+            )
 
     def test_get_atoms_by_index(self, _cleanup, _db: RedisMongoDB):
         db: RedisMongoDB = _db
@@ -1014,8 +1035,9 @@ class TestRedisMongo:
             }
         )
         db.commit()
+
         my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
-        
+
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             _, doc = db.get_atoms_by_index(my_index, [{'field': 'tag', 'value': 'DAS2'}])
             assert doc[0]['handle'] == ExpressionHasher.expression_hash(
@@ -1025,9 +1047,16 @@ class TestRedisMongo:
             assert explain[0]['executionStats']['executionSuccess']
             assert explain[0]['executionStats']['nReturned'] == 1
             assert explain[0]['executionStats']['executionStages']['stage'] == 'FETCH'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
-            assert explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
-            assert explain[0]['executionStats']['executionStages']['inputStage']['indexName'] == my_index
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['keysExamined'] == 1
+            )
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['indexName']
+                == my_index
+            )
 
     def test_get_atoms_by_text_field_regex(self, _cleanup, _db: RedisMongoDB):
         db: RedisMongoDB = _db
@@ -1037,22 +1066,27 @@ class TestRedisMongo:
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_atoms_by_text_field('mammal', 'name')
             assert len(result) == 1
-            assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+            assert result[0] == db.get_node_handle('Concept', 'mammal')
             assert explain[0]['executionStats']['executionSuccess']
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            )
             assert explain[0]['executionStats']['totalKeysExamined'] == 14
 
-    def test_get_atoms_by_text_field_with_index(self,_cleanup, _db: RedisMongoDB):
+    def test_get_atoms_by_text_field_with_index(self, _cleanup, _db: RedisMongoDB):
         db: RedisMongoDB = _db
         self._add_atoms(db)
         db.commit()
         # Create index
-        db.create_field_index(atom_type='node', fields=['name'], index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+
+        db.create_field_index(
+            atom_type='node', fields=['name'], index_type=FieldIndexType.TOKEN_INVERTED_LIST
+        )
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_atoms_by_text_field('mammal')
             assert len(result) == 1
-            assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+            assert result[0] == db.get_node_handle('Concept', 'mammal')
             assert explain[0]['executionStats']['executionSuccess']
             assert explain[0]['executionStats']['executionStages']['stage'] == 'TEXT_MATCH'
             assert explain[0]['executionStats']['totalKeysExamined'] == 1
@@ -1064,9 +1098,11 @@ class TestRedisMongo:
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             result = db.get_node_by_name_starting_with('Concept', 'mamm')
             assert len(result) == 1
-            assert result[0] ==  db.get_node_handle('Concept', 'mammal')
+            assert result[0] == db.get_node_handle('Concept', 'mammal')
             assert explain[0]['executionStats']['executionSuccess']
-            assert explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            assert (
+                explain[0]['executionStats']['executionStages']['inputStage']['stage'] == 'IXSCAN'
+            )
             assert explain[0]['executionStats']['totalKeysExamined'] == 2
             assert explain[0]['executionStats']['totalDocsExamined'] == 1
 

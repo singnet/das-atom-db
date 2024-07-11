@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Tuple, Optional, List
+from typing import Any, Dict, List, Tuple
 
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 

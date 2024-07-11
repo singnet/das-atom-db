@@ -1,23 +1,18 @@
-from typing import Any, Dict, List, Optional
-from unittest import mock
-
-import pytest
-import re
-import mongomock
 import json
 import pathlib
+from unittest import mock
 
-from pymongo import MongoClient
-from pymongo.collection import Collection
-from pymongo.database import Database
+import mongomock
+import pytest
 from pymongo.errors import OperationFailure
 from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, MongoIndexType
-from hyperon_das_atomdb.database import FieldNames, FieldIndexType
+from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
+from hyperon_das_atomdb.database import FieldIndexType, FieldNames
 from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
 
 def loader(file_name):
     path = pathlib.Path(__file__).parent.resolve()
@@ -30,6 +25,7 @@ incoming_set_redis_mock_data = loader('incoming_set_redis_data.json')
 patterns_redis_mock_data = loader('patterns_redis_data.json')
 templates_redis_mock_data = loader('templates_redis_data.json')
 names_redis_mock_data = loader('names_redis_data.json')
+
 
 class TestRedisMongoDB:
     @pytest.fixture()
@@ -83,11 +79,7 @@ class TestRedisMongoDB:
         return redis_db
 
     @pytest.fixture(scope='function')
-    def database(
-        self,
-        mongo_db,
-        redis_db
-    ):
+    def database(self, mongo_db, redis_db):
         with mock.patch(
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db',
             return_value=mongo_db,
@@ -347,7 +339,7 @@ class TestRedisMongoDB:
 
     def test_get_startswith_node_name(self, database: RedisMongoDB):
         expected = [
-                database.get_node_handle('Concept', 'mammal'),
+            database.get_node_handle('Concept', 'mammal'),
         ]
         actual = database.get_node_by_name_starting_with('Concept', 'ma')
 
@@ -355,7 +347,7 @@ class TestRedisMongoDB:
 
     def test_get_node_by_field(self, database: RedisMongoDB):
         expected = [
-                database.get_node_handle('Concept', 'mammal'),
+            database.get_node_handle('Concept', 'mammal'),
         ]
         actual = database.get_atoms_by_field([{'field': 'name', 'value': 'mammal'}])
 
@@ -363,23 +355,21 @@ class TestRedisMongoDB:
 
     def test_get_atoms_by_index(self, database: RedisMongoDB):
         expected = [
-                database.get_node_handle('Concept', 'mammal'),
+            database.get_node_handle('Concept', 'mammal'),
         ]
 
         result = database.create_field_index('node', fields=['name'])
-
 
         with mock.patch(
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_custom_index',
             return_value={'conditionals': {}},
         ):
-
             _, actual = database.get_atoms_by_index(result, [{'field': 'name', 'value': 'mammal'}])
         assert expected[0] == actual[0]['handle']
 
     def test_get_node_by_text_field(self, database: RedisMongoDB):
         expected = [
-                database.get_node_handle('Concept', 'mammal'),
+            database.get_node_handle('Concept', 'mammal'),
         ]
         actual = database.get_atoms_by_text_field("mammal", 'name')
 
@@ -445,7 +435,6 @@ class TestRedisMongoDB:
         database.count_atoms()
 
     def test_add_link(self, database: RedisMongoDB):
-
         assert (14, 28) == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
@@ -545,7 +534,7 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection.create_index.assert_called_once_with(
             [('name', 1)],
             name='node_name_index_asc',
-            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}}
+            partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
 
     def test_create_field_index_link_collection(self, database: RedisMongoDB):
@@ -566,7 +555,7 @@ class TestRedisMongoDB:
             name='link_field_index_asc',
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
         )
-    
+
     def test_create_text_index(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
@@ -577,12 +566,13 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', ['field'], index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+            result = database.create_field_index(
+                'link', ['field'], index_type=FieldIndexType.TOKEN_INVERTED_LIST
+            )
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
-            [('field', 'text')],
-            name='link_field_index_asc_text'
+            [('field', 'text')], name='link_field_index_asc_text'
         )
 
     def test_create_text_index_type(self, database: RedisMongoDB):
@@ -595,7 +585,9 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', ['field'], 'Type', index_type=FieldIndexType.TOKEN_INVERTED_LIST)
+            result = database.create_field_index(
+                'link', ['field'], 'Type', index_type=FieldIndexType.TOKEN_INVERTED_LIST
+            )
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
@@ -622,7 +614,7 @@ class TestRedisMongoDB:
             name='link_field_index_asc',
         )
 
-    def test_create_compound_index_type(self, database: RedisMongoDB):
+    def test_create_compound_index_type_filter(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = 'field_index_asc'
         with mock.patch(
@@ -639,7 +631,6 @@ class TestRedisMongoDB:
             [('field', 1), ('name', 1)],
             name='link_field_index_asc',
             partialFilterExpression={FieldNames.TYPE_NAME: {'$eq': 'Type'}},
-
         )
 
     @pytest.mark.skip(reason="Maybe change the way to handle this test")

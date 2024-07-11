@@ -44,15 +44,18 @@ class PyMongoFindExplain:
     def __enter__(self):
         # Adds explain to internal pymongo's find
         self.explain = []
+
         def find_explain(*args, **kwargs):
             find = self.original_find_function(*args, **kwargs)
             self.explain.append(find.explain())
             return find
+
         self.collection.find = find_explain
         return self.explain
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.collection.find = self.original_find_function
+
 
 def _db_up(*database_names: List[Database]):
     if database_names:
@@ -112,4 +115,3 @@ def cleanup(request):
 
     request.addfinalizer(restore_environment)
     request.addfinalizer(enforce_containers_removal)
-
