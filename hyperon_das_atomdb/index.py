@@ -32,7 +32,7 @@ class Index(ABC):
 
 
         Returns:
-            Tuple[str, Any]: Returns the index id and the index proprieties dict
+            Tuple[str, Any]: Returns the index id and the index properties dict
         """
         ...  # pragma: no cover
 

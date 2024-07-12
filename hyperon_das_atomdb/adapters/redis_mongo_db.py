@@ -1,10 +1,10 @@
 import base64
+import collections
 import pickle
 import sys
-from collections import OrderedDict
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 
 from pymongo import ASCENDING, MongoClient
 from pymongo import errors as pymongo_errors
@@ -392,7 +392,7 @@ class RedisMongoDB(AtomDB):
         ]
 
     def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
-        mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
+        mongo_filter = collections.OrderedDict([(q['field'], q['value']) for q in query])
         return [
             document[FieldNames.ID_HASH]
             for document in self.mongo_atoms_collection.find(mongo_filter)
@@ -405,7 +405,7 @@ class RedisMongoDB(AtomDB):
         cursor: Optional[int] = 0,
         chunk_size: Optional[int] = 500,
     ) -> Tuple[int, List[str]]:
-        mongo_filter = OrderedDict([(q['field'], q['value']) for q in query])
+        mongo_filter = collections.OrderedDict([(q['field'], q['value']) for q in query])
         return self._get_atoms_by_index(
             index_id, cursor=cursor, chunk_size=chunk_size, **mongo_filter
         )
