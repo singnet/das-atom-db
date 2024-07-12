@@ -1,5 +1,6 @@
+from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
@@ -27,8 +28,8 @@ class Database:
     link: Dict[str, Any]
     outgoing_set: Dict[str, Any]
     incoming_set: Dict[str, Any]
-    patterns: Dict[str, List[Tuple]]
-    templates: Dict[str, List[Tuple]]
+    patterns: Dict[str, Set[Tuple]]
+    templates: Dict[str, Set[Tuple]]
 
 
 class InMemoryDB(AtomDB):
@@ -37,7 +38,7 @@ class InMemoryDB(AtomDB):
     def __repr__(self) -> str:
         return "<Atom database InMemory>"  # pragma no cover
 
-    def __init__(self, database_name: str = 'das') -> None:
+    def __init__(self, database_name: str = "das") -> None:
         self.database_name = database_name
         self.named_type_table = {}  # keyed by named type hash
         self.all_named_types = set()
@@ -57,12 +58,14 @@ class InMemoryDB(AtomDB):
             return link
         return None
 
-    def _get_and_delete_link(self, link_handle: str) -> Dict[str, Any]:
+    def _get_and_delete_link(self, link_handle: str) -> Optional[Dict[str, Any]]:
         link_document = self.db.link.pop(link_handle, None)
         if link_document:
             return link_document
 
-    def _build_named_type_hash_template(self, template: Union[str, List[Any]]) -> List[Any]:
+    def _build_named_type_hash_template(
+        self, template: Union[str, List[Any]]
+    ) -> Union[str, List[Any]]:
         if isinstance(template, str):
             return ExpressionHasher.named_type_hash(template)
         else:
@@ -70,11 +73,11 @@ class InMemoryDB(AtomDB):
 
     def _build_atom_type_key_hash(self, _name: str) -> str:
         name_hash = ExpressionHasher.named_type_hash(_name)
-        type_hash = ExpressionHasher.named_type_hash('Type')
+        type_hash = ExpressionHasher.named_type_hash("Type")
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
         return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
-    def _add_atom_type(self, _name: str, _type: Optional[str] = 'Type'):
+    def _add_atom_type(self, _name: str, _type: Optional[str] = "Type") -> None:
         if _name in self.all_named_types:
             return
 
@@ -107,14 +110,14 @@ class InMemoryDB(AtomDB):
     def _add_outgoing_set(self, key: str, targets_hash: List[str]) -> None:
         self.db.outgoing_set[key] = targets_hash
 
-    def _get_and_delete_outgoing_set(self, handle: str) -> List[str]:
+    def _get_and_delete_outgoing_set(self, handle: str) -> Optional[List[str]]:
         return self.db.outgoing_set.pop(handle, None)
 
     def _add_incoming_set(self, key: str, targets_hash: List[str]) -> None:
         for target_hash in targets_hash:
             incoming_set = self.db.incoming_set.get(target_hash)
             if incoming_set is None:
-                self.db.incoming_set[target_hash] = set([key])
+                self.db.incoming_set[target_hash] = {key}
             else:
                 self.db.incoming_set[target_hash].add(key)
 
@@ -133,12 +136,12 @@ class InMemoryDB(AtomDB):
         if template_composite_type_hash is not None:
             template_composite_type_hash.add((key, tuple(targets_hash)))
         else:
-            self.db.templates[composite_type_hash] = set([(key, tuple(targets_hash))])
+            self.db.templates[composite_type_hash] = {(key, tuple(targets_hash))}
 
         if template_named_type_hash is not None:
             template_named_type_hash.add((key, tuple(targets_hash)))
         else:
-            self.db.templates[named_type_hash] = set([(key, tuple(targets_hash))])
+            self.db.templates[named_type_hash] = {(key, tuple(targets_hash))}
 
     def _delete_templates(self, link_document: dict, targets_hash: List[str]) -> None:
         template_composite_type = self.db.templates.get(
@@ -151,7 +154,7 @@ class InMemoryDB(AtomDB):
         if len(template_named_type) > 0:
             template_named_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
-    def _add_patterns(self, named_type_hash: str, key: str, targets_hash: List[str]):
+    def _add_patterns(self, named_type_hash: str, key: str, targets_hash: List[str]) -> None:
         pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
 
         for pattern_key in pattern_keys:
@@ -159,7 +162,7 @@ class InMemoryDB(AtomDB):
             if pattern_key_hash is not None:
                 pattern_key_hash.add((key, tuple(targets_hash)))
             else:
-                self.db.patterns[pattern_key] = set([(key, tuple(targets_hash))])
+                self.db.patterns[pattern_key] = {(key, tuple(targets_hash))}
 
     def _delete_patterns(self, link_document: dict, targets_hash: List[str]) -> None:
         pattern_keys = build_patern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
@@ -172,7 +175,7 @@ class InMemoryDB(AtomDB):
         link_document = self._get_and_delete_link(link_handle)
         self._update_index(atom=link_document, delete_atom=True)
 
-    def _filter_non_toplevel(self, matches: list) -> list:
+    def _filter_non_toplevel(self, matches: list) -> List[Tuple]:
         matches_toplevel_only = []
         if len(matches) > 0:
             for match in matches:
@@ -182,11 +185,11 @@ class InMemoryDB(AtomDB):
                     matches_toplevel_only.append(match)
         return matches_toplevel_only
 
-    def _build_targets_list(self, link: Dict[str, Any]):
+    def _build_targets_list(self, link: Dict[str, Any]) -> List[Any]:
         targets = []
         count = 0
         while True:
-            handle = link.get(f'key_{count}')
+            handle = link.get(f"key_{count}")
             if handle is None:
                 break
             targets.append(handle)
@@ -197,10 +200,10 @@ class InMemoryDB(AtomDB):
         for document in documents:
             self._update_index(document, **kwargs)
 
-    def _update_index(self, atom: Dict[str, Any], **kwargs):
-        if kwargs.get('delete_atom', False):
+    def _update_index(self, atom: Optional[Dict[str, Any]], **kwargs) -> None:
+        if kwargs.get("delete_atom", False):
             if atom is None:
-                raise LinkDoesNotExist('Nonexistent link')
+                raise LinkDoesNotExist("Nonexistent link")
 
             link_handle = atom[FieldNames.ID_HASH]
 
@@ -247,22 +250,23 @@ class InMemoryDB(AtomDB):
             return node_handle
         else:
             logger().error(
-                f'Failed to retrieve node handle for {node_type}:{node_name}. This node may not exist.'
+                f"Failed to retrieve node handle for {node_type}:{node_name}. "
+                "This node may not exist."
             )
             raise NodeDoesNotExist(
-                message='Nonexistent node',
-                details=f'{node_type}:{node_name}',
+                message="Nonexistent node",
+                details=f"{node_type}:{node_name}",
             )
 
     def get_node_name(self, node_handle: str) -> str:
         node = self.db.node.get(node_handle)
         if node is None:
             logger().error(
-                f'Failed to retrieve node name for handle: {node_handle}. This node may not exist.'
+                f"Failed to retrieve node name for handle: {node_handle}. This node may not exist."
             )
             raise NodeDoesNotExist(
-                message='Nonexistent node',
-                details=f'node_handle: {node_handle}',
+                message="Nonexistent node",
+                details=f"node_handle: {node_handle}",
             )
         return node[FieldNames.NODE_NAME]
 
@@ -270,17 +274,16 @@ class InMemoryDB(AtomDB):
         node = self.db.node.get(node_handle)
         if node is None:
             logger().error(
-                f'Failed to retrieve node type for handle: {node_handle}. This node may not exist.'
+                f"Failed to retrieve node type for handle: {node_handle}. This node may not exist."
             )
             raise NodeDoesNotExist(
-                message='Nonexistent node',
-                details=f'node_handle: {node_handle}',
+                message="Nonexistent node",
+                details=f"node_handle: {node_handle}",
             )
         return node[FieldNames.TYPE_NAME]
 
-    def get_node_by_name(self, node_type: str, substring: str) -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> List[str]:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
-
         return [
             key
             for key, value in self.db.node.items()
@@ -317,11 +320,12 @@ class InMemoryDB(AtomDB):
             return link_handle
         else:
             logger().error(
-                f'Failed to retrieve link handle for {link_type}:{target_handles}. This link may not exist.'
+                f"Failed to retrieve link handle for {link_type}:{target_handles}. "
+                f"This link may not exist."
             )
             raise LinkDoesNotExist(
-                message='Nonexistent link',
-                details=f'{link_type}:{target_handles}',
+                message="Nonexistent link",
+                details=f"{link_type}:{target_handles}",
             )
 
     def get_link_type(self, link_handle: str) -> str:
@@ -330,22 +334,22 @@ class InMemoryDB(AtomDB):
             return link[FieldNames.TYPE_NAME]
         else:
             logger().error(
-                f'Failed to retrieve link type for {link_handle}. This link may not exist.'
+                f"Failed to retrieve link type for {link_handle}. This link may not exist."
             )
             raise LinkDoesNotExist(
-                message='Nonexistent link',
-                details=f'link_handle: {link_handle}',
+                message="Nonexistent link",
+                details=f"link_handle: {link_handle}",
             )
 
     def get_link_targets(self, link_handle: str) -> List[str]:
         answer = self.db.outgoing_set.get(link_handle)
         if answer is None:
             logger().error(
-                f'Failed to retrieve link targets for {link_handle}. This link may not exist.'
+                f"Failed to retrieve link targets for {link_handle}. This link may not exist."
             )
             raise LinkDoesNotExist(
-                message='Nonexistent link',
-                details=f'link_handle: {link_handle}',
+                message="Nonexistent link",
+                details=f"link_handle: {link_handle}",
             )
         return answer
 
@@ -355,14 +359,17 @@ class InMemoryDB(AtomDB):
             return True
         else:
             logger().error(
-                'Failed to retrieve document for link handle: {link_handle}. The link may not exist.'
+                f"Failed to retrieve document for link handle: {link_handle}. "
+                f"The link may not exist."
             )
             raise LinkDoesNotExist(
-                message='Nonexistent link',
-                details=f'link_handle: {link_handle}',
+                message="Nonexistent link",
+                details=f"link_handle: {link_handle}",
             )
 
-    def get_matched_links(self, link_type: str, target_handles: List[str], **kwargs) -> list:
+    def get_matched_links(
+        self, link_type: str, target_handles: List[str], **kwargs
+    ) -> List[Union[str, Tuple]]:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
             return [link_handle]
@@ -373,43 +380,43 @@ class InMemoryDB(AtomDB):
             link_type_hash = ExpressionHasher.named_type_hash(link_type)
 
         if link_type in UNORDERED_LINK_TYPES:
-            target_handles = sorted(target_handles)
             logger().error(
-                'Failed to get matched links: Queries with unordered links are not implemented. link_type: {link_type}'
+                "Failed to get matched links: Queries with unordered links are not implemented. "
+                f"link_type: {link_type}"
             )
             raise InvalidOperationException(
-                message='Queries with unordered links are not implemented',
-                details=f'link_type: {link_type}',
+                message="Queries with unordered links are not implemented",
+                details=f"link_type: {link_type}",
             )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
-        if kwargs.get('toplevel_only'):
+        if kwargs.get("toplevel_only"):
             return self._filter_non_toplevel(patterns_matched)
 
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> List[IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
-        if kwargs.get('handles_only', False):
+        if kwargs.get("handles_only", False):
             return list(links)
         else:
             return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(self, template: List[Any], **kwargs) -> list:
+    def get_matched_type_template(self, template: List[Any], **kwargs) -> List[Tuple]:
         template = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(template)
         templates_matched = list(self.db.templates.get(template_hash, set()))
-        if kwargs.get('toplevel_only'):
+        if kwargs.get("toplevel_only"):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_matched_type(self, link_type: str, **kwargs) -> list:
+    def get_matched_type(self, link_type: str, **kwargs) -> List[Tuple]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
-        if kwargs.get('toplevel_only'):
+        if kwargs.get("toplevel_only"):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
@@ -440,17 +447,18 @@ class InMemoryDB(AtomDB):
         if document is None:
             document = self._get_link(handle)
         if document:
-            if not kwargs.get('no_target_format', False):
+            if not kwargs.get("no_target_format", False):
                 return self._transform_to_target_format(document, **kwargs)
             else:
                 return document
         else:
             logger().error(
-                f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
+                f"Failed to retrieve atom for handle: {handle}. "
+                f"This link may not exist. - Details: {kwargs}"
             )
             raise AtomDoesNotExist(
-                message='Nonexistent atom',
-                details=f'handle: {handle}',
+                message="Nonexistent atom",
+                details=f"handle: {handle}",
             )
 
     def get_atom_type(self, handle: str) -> str:
@@ -466,25 +474,25 @@ class InMemoryDB(AtomDB):
         atom = self.db.node.get(handle)
         if atom is not None:
             return {
-                'handle': atom[FieldNames.ID_HASH],
-                'type': atom[FieldNames.TYPE_NAME],
-                'name': atom[FieldNames.NODE_NAME],
+                "handle": atom[FieldNames.ID_HASH],
+                "type": atom[FieldNames.TYPE_NAME],
+                "name": atom[FieldNames.NODE_NAME],
             }
         atom = self._get_link(handle)
         if atom is not None:
             return {
-                'handle': atom[FieldNames.ID_HASH],
-                'type': atom[FieldNames.TYPE_NAME],
-                'targets': self._build_targets_list(atom),
+                "handle": atom[FieldNames.ID_HASH],
+                "type": atom[FieldNames.TYPE_NAME],
+                "targets": self._build_targets_list(atom),
             }
-        logger().error(f'Failed to retrieve atom for handle: {handle}. This link may not exist.')
+        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
         raise AtomDoesNotExist(
-            message='Nonexistent atom',
-            details=f'handle: {handle}',
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
         )
 
     def count_atoms(self) -> Tuple[int, int]:
-        return (len(self.db.node), len(self.db.link))
+        return len(self.db.node), len(self.db.link)
 
     def clear_database(self) -> None:
         self.named_type_table = {}
@@ -511,7 +519,7 @@ class InMemoryDB(AtomDB):
         self._update_index(link)
         return link
 
-    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]]):
+    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
         raise NotImplementedError()
 
     def delete_atom(self, handle: str, **kwargs) -> None:
@@ -528,17 +536,18 @@ class InMemoryDB(AtomDB):
                 self._delete_link_and_update_index(handle)
             except LinkDoesNotExist:
                 logger().error(
-                    f'Failed to delete atom for handle: {handle}. This atom may not exist. - Details: {kwargs}'
+                    f"Failed to delete atom for handle: {handle}. "
+                    f"This atom may not exist. - Details: {kwargs}"
                 )
                 raise AtomDoesNotExist(
-                    message='Nonexistent atom',
-                    details=f'handle: {handle}',
+                    message="Nonexistent atom",
+                    details=f"handle: {handle}",
                 )
 
     def create_field_index(
         self,
         atom_type: str,
-        field: str,
+        field: Optional[str] = None,
         type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
         fields: Optional[List[str]] = None,
