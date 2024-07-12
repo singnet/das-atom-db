@@ -358,7 +358,7 @@ class TestRedisMongoDB:
             database.get_node_handle('Concept', 'mammal'),
         ]
 
-        result = database.create_field_index('node', field='name')
+        result = database.create_field_index('node', fields=['name'])
 
         with mock.patch(
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_custom_index',
@@ -528,7 +528,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('node', 'name', 'Type')
+            result = database.create_field_index('node', ['name'], 'Type')
 
         assert result == 'name_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
@@ -547,7 +547,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', 'field', 'Type')
+            result = database.create_field_index('link', ['field'], 'Type')
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
@@ -567,7 +567,7 @@ class TestRedisMongoDB:
             return_value=False,
         ):
             result = database.create_field_index(
-                'link', 'field', index_type=FieldIndexType.TOKEN_INVERTED_LIST
+                'link', ['field'], index_type=FieldIndexType.TOKEN_INVERTED_LIST
             )
 
         assert result == 'field_index_asc'
@@ -586,7 +586,7 @@ class TestRedisMongoDB:
             return_value=False,
         ):
             result = database.create_field_index(
-                'link', 'field', 'Type', index_type=FieldIndexType.TOKEN_INVERTED_LIST
+                'link', ['field'], 'Type', index_type=FieldIndexType.TOKEN_INVERTED_LIST
             )
 
         assert result == 'field_index_asc'
@@ -624,7 +624,9 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', type='Type', fields=['field', 'name'])
+            result = database.create_field_index(
+                'link', named_type='Type', fields=['field', 'name']
+            )
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
@@ -636,7 +638,7 @@ class TestRedisMongoDB:
     @pytest.mark.skip(reason="Maybe change the way to handle this test")
     def test_create_field_index_invalid_collection(self, database: RedisMongoDB):
         with pytest.raises(ValueError):
-            database.create_field_index('invalid_atom_type', 'field', 'type')
+            database.create_field_index('invalid_atom_type', ['field'], 'type')
 
     def test_create_field_index_operation_failure(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
@@ -647,7 +649,7 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('node', 'field', 'Type')
+            result = database.create_field_index('node', ['field'], 'Type')
 
         assert result == 'Index creation failed, Details: Index creation failed'
 
@@ -663,4 +665,4 @@ class TestRedisMongoDB:
             return_value=False,
         ):
             database.create_field_index('node', 'name', 'Type')
-        assert database.create_field_index('node', 'name', 'Type') == 'name_index_asc'
+        assert database.create_field_index('node', ['name'], 'Type') == 'name_index_asc'

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
@@ -18,14 +18,21 @@ class Index(ABC):
         return ExpressionHasher._compute_hash(f'{field}{conditionals}')
 
     @abstractmethod
-    def create(self, atom_type: str, field: str, **kwargs) -> Tuple[str, Any]:
+    def create(
+        self,
+        atom_type: str,
+        fields: List[str],
+        **kwargs,
+    ) -> Tuple[str, Any]:
         """Creates an index on the given field.
 
         Args:
-            field (str): The field to create the index on.
+            atom_type (str): Atom's type
+            fields (List[str]): The fields to create the index on.
+
 
         Returns:
-            Tuple[str, Any]: The index ID.
+            Tuple[str, Any]: Returns the index id and the index properties dict
         """
         ...  # pragma: no cover
 

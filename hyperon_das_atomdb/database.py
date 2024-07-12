@@ -720,10 +720,9 @@ class AtomDB(ABC):
     def create_field_index(
         self,
         atom_type: str,
-        field: Optional[str] = None,
-        type: Optional[str] = None,
+        fields: List[str],
+        named_type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
-        fields: Optional[List[str]] = None,
         index_type: Optional[FieldIndexType] = None,
     ) -> str:
         ...  # pragma no cover
