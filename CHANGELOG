@@ -9,3 +9,5 @@
 [das-query-engine#114] Changed commit() to receive buffer as a kwargs parameter
 [#63] Changed MongoFieldNames to FieldNames and placed it generally for all adapters
 [das#45] Round 1 - Initial refactoring of RAM Only DAS
+[#46] Add support for MongoDB indexes
+[#153] Refactoring create index
