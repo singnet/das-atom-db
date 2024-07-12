@@ -206,43 +206,90 @@ class InMemoryDB(AtomDB):
                 raise LinkDoesNotExist("Nonexistent link")
 
             link_handle = atom[FieldNames.ID_HASH]
-
-            handles = self.db.incoming_set.pop(link_handle, None)
-
-            if handles:
-                for handle in handles:
-                    self._delete_link_and_update_index(handle)
-
-            outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
-
-            if outgoing_atoms:
-                self._delete_incoming_set(link_handle, outgoing_atoms)
-
-            targets_hash = self._build_targets_list(atom)
-
-            self._delete_templates(atom, targets_hash)
-
-            self._delete_patterns(atom, targets_hash)
+            self._handle_deletion(link_handle, atom)
         else:
-            atom_type = atom[FieldNames.TYPE_NAME]
-            self._add_atom_type(_name=atom_type)
-            if FieldNames.NODE_NAME not in atom:
-                handle = atom[FieldNames.ID_HASH]
-                targets_hash = self._build_targets_list(atom)
-                self._add_atom_type(_name=atom_type)
-                self._add_outgoing_set(handle, targets_hash)
-                self._add_incoming_set(handle, targets_hash)
-                self._add_templates(
-                    atom[FieldNames.COMPOSITE_TYPE_HASH],
-                    atom[FieldNames.TYPE_NAME_HASH],
-                    handle,
-                    targets_hash,
-                )
-                self._add_patterns(
-                    atom[FieldNames.TYPE_NAME_HASH],
-                    handle,
-                    targets_hash,
-                )
+            self._handle_addition(atom)
+
+    def _handle_deletion(self, link_handle: str, atom: Dict[str, Any]) -> None:
+        self._delete_related_links(link_handle)
+        targets_hash = self._build_targets_list(atom)
+        self._delete_templates(atom, targets_hash)
+        self._delete_patterns(atom, targets_hash)
+
+    def _delete_related_links(self, link_handle: str) -> None:
+        handles = self.db.incoming_set.pop(link_handle, None)
+        if handles:
+            for handle in handles:
+                self._delete_link_and_update_index(handle)
+        outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
+        if outgoing_atoms:
+            self._delete_incoming_set(link_handle, outgoing_atoms)
+
+    def _handle_addition(self, atom: Dict[str, Any]) -> None:
+        atom_type = atom[FieldNames.TYPE_NAME]
+        self._add_atom_type(_name=atom_type)
+        if FieldNames.NODE_NAME not in atom:
+            handle = atom[FieldNames.ID_HASH]
+            targets_hash = self._build_targets_list(atom)
+            self._add_related_entries(atom, atom_type, handle, targets_hash)
+
+    def _add_related_entries(
+        self, atom: Dict[str, Any], atom_type: str, handle: str, targets_hash: List[str]
+    ) -> None:
+        self._add_atom_type(_name=atom_type)
+        self._add_outgoing_set(handle, targets_hash)
+        self._add_incoming_set(handle, targets_hash)
+        self._add_templates(
+            atom[FieldNames.COMPOSITE_TYPE_HASH],
+            atom[FieldNames.TYPE_NAME_HASH],
+            handle,
+            targets_hash,
+        )
+        self._add_patterns(atom[FieldNames.TYPE_NAME_HASH], handle, targets_hash)
+
+    # def _update_index(self, atom: Optional[Dict[str, Any]], **kwargs) -> None:
+    #     if kwargs.get("delete_atom", False):
+    #         if atom is None:
+    #             raise LinkDoesNotExist("Nonexistent link")
+    #
+    #         link_handle = atom[FieldNames.ID_HASH]
+    #
+    #         handles = self.db.incoming_set.pop(link_handle, None)
+    #
+    #         if handles:
+    #             for handle in handles:
+    #                 self._delete_link_and_update_index(handle)
+    #
+    #         outgoing_atoms = self._get_and_delete_outgoing_set(link_handle)
+    #
+    #         if outgoing_atoms:
+    #             self._delete_incoming_set(link_handle, outgoing_atoms)
+    #
+    #         targets_hash = self._build_targets_list(atom)
+    #
+    #         self._delete_templates(atom, targets_hash)
+    #
+    #         self._delete_patterns(atom, targets_hash)
+    #     else:
+    #         atom_type = atom[FieldNames.TYPE_NAME]
+    #         self._add_atom_type(_name=atom_type)
+    #         if FieldNames.NODE_NAME not in atom:
+    #             handle = atom[FieldNames.ID_HASH]
+    #             targets_hash = self._build_targets_list(atom)
+    #             self._add_atom_type(_name=atom_type)
+    #             self._add_outgoing_set(handle, targets_hash)
+    #             self._add_incoming_set(handle, targets_hash)
+    #             self._add_templates(
+    #                 atom[FieldNames.COMPOSITE_TYPE_HASH],
+    #                 atom[FieldNames.TYPE_NAME_HASH],
+    #                 handle,
+    #                 targets_hash,
+    #             )
+    #             self._add_patterns(
+    #                 atom[FieldNames.TYPE_NAME_HASH],
+    #                 handle,
+    #                 targets_hash,
+    #             )
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
