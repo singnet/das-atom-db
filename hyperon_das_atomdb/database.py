@@ -721,7 +721,7 @@ class AtomDB(ABC):
         self,
         atom_type: str,
         fields: List[str],
-        type: Optional[str] = None,
+        named_type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
         index_type: Optional[FieldIndexType] = None,
     ) -> str:

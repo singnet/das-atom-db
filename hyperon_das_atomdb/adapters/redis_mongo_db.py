@@ -103,6 +103,8 @@ class MongoDBIndex(Index):
         **kwargs,
     ) -> Tuple[str, Any]:
         conditionals = {}
+        if fields is None or len(fields) == 0:
+            raise ValueError("Fields can not be empty or None")
 
         if kwargs:
             key, value = next(iter(kwargs.items()))  # only one key-value pair
@@ -914,12 +916,12 @@ class RedisMongoDB(AtomDB):
     def _calculate_composite_type_hash(self, composite_type: List[Any]) -> str:
         def calculate_composite_type_hashes(composite_type: List[Any]) -> List[str]:
             response = []
-            for type in composite_type:
-                if isinstance(type, list):
-                    _hash = calculate_composite_type_hashes(type)
+            for t in composite_type:
+                if isinstance(t, list):
+                    _hash = calculate_composite_type_hashes(t)
                     response.append(ExpressionHasher.composite_hash(_hash))
                 else:
-                    response.append(ExpressionHasher.named_type_hash(type))
+                    response.append(ExpressionHasher.named_type_hash(t))
             return response
 
         composite_type_hashes_list = calculate_composite_type_hashes(composite_type)
@@ -988,17 +990,20 @@ class RedisMongoDB(AtomDB):
         self,
         atom_type: str,
         fields: List[str],
-        type: Optional[str] = None,
+        named_type: Optional[str] = None,
         composite_type: Optional[List[Any]] = None,
         index_type: Optional[FieldIndexType] = None,
     ) -> str:
-        if type and composite_type:
-            raise ValueError("Both type and composite_type cannot be specified")
+        if named_type and composite_type:
+            raise ValueError("Both named_type and composite_type cannot be specified")
+
+        if fields is None or len(fields) == 0:
+            raise ValueError("Fields can not be empty or None")
 
         kwargs = {}
 
-        if type:
-            kwargs = {FieldNames.TYPE_NAME: type}
+        if named_type:
+            kwargs = {FieldNames.TYPE_NAME: named_type}
         elif composite_type:
             kwargs = {
                 FieldNames.COMPOSITE_TYPE_HASH: self._calculate_composite_type_hash(composite_type)

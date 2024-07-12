@@ -872,7 +872,7 @@ class TestRedisMongo:
             response['queryPlanner']['winningPlan']['inputStage']['indexName']
 
         # Create the index
-        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
+        my_index = db.create_field_index(atom_type='link', fields=['tag'], named_type='Similarity')
 
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
         #
@@ -924,7 +924,7 @@ class TestRedisMongo:
         my_index = db.create_field_index(
             atom_type='link',
             fields=['tag'],
-            type='Similarity',
+            named_type='Similarity',
             index_type=FieldIndexType.TOKEN_INVERTED_LIST,
         )
 
@@ -951,7 +951,7 @@ class TestRedisMongo:
         my_index = db.create_field_index(
             atom_type='link',
             fields=['type', 'tag'],
-            type='Similarity',
+            named_type='Similarity',
             index_type=FieldIndexType.BINARY_TREE,
         )
         collection_index_names = [idx.get('name') for idx in collection.list_indexes()]
@@ -1036,7 +1036,7 @@ class TestRedisMongo:
         )
         db.commit()
 
-        my_index = db.create_field_index(atom_type='link', fields=['tag'], type='Similarity')
+        my_index = db.create_field_index(atom_type='link', fields=['tag'], named_type='Similarity')
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             _, doc = db.get_atoms_by_index(my_index, [{'field': 'tag', 'value': 'DAS2'}])

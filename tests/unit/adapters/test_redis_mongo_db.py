@@ -624,7 +624,9 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists',
             return_value=False,
         ):
-            result = database.create_field_index('link', type='Type', fields=['field', 'name'])
+            result = database.create_field_index(
+                'link', named_type='Type', fields=['field', 'name']
+            )
 
         assert result == 'field_index_asc'
         database.mongo_atoms_collection.create_index.assert_called_once_with(
