@@ -1,3 +1,5 @@
+[#153] Refactoring create index
+[#46] Add support for MongoDB indexes
 [#127] Create bulk_insert() in Adapters
 [#132] Fix bug in create_field_index() method
 [das-query-engine#223] Update log messages
