@@ -31,8 +31,5 @@ jobs:
       - name: Install dependencies
         run: poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
 
-      - name: Run Unit Tests
-        run: make unit-tests unit-tests-coverage
-
-      - name: Run Integration Tests
-        run: make integration-tests
+      - name: Run Lint & Tests
+        run: make pre-commit

@@ -18,4 +18,4 @@ unit-tests-coverage:
 integration-tests:
 	@py.test -sx -vv ./tests/integration
 
-pre-commit: unit-tests-coverage lint
+pre-commit: lint unit-tests-coverage unit-tests integration-tests
