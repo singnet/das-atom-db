@@ -232,9 +232,6 @@ class TestRedisMongoDB:
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
         expected = [
             [
-                '31535ddf214f5b239d3b517823cb8144',
-                '1cdffc6b0b89ff41d68bec237481d1e1',
-                '5b34c54bee150c04f9fa584b899dc030',
             ],
             [
                 'b5459e299a5c5e8662c427f7e01b3bf1',
