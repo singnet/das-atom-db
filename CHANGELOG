@@ -1,13 +1,1 @@
-[#127] Create bulk_insert() in Adapters
-[#132] Fix bug in create_field_index() method
-[das-query-engine#223] Update log messages
-[#129] Create a new adapter called PostgresLobeDB
-[das-query-engine#214] Add retrieve_all_atoms method
-[#124] Changed count_atoms() to return more accurate numbers
-[das-query-engine#197] Changed get_all_links() to return a tuple
-[#142] Changed add_link() and add_node() to work with get_atom returns
-[das-query-engine#114] Changed commit() to receive buffer as a kwargs parameter
-[#63] Changed MongoFieldNames to FieldNames and placed it generally for all adapters
-[das#45] Round 1 - Initial refactoring of RAM Only DAS
-[#46] Add support for MongoDB indexes
-[#153] Refactoring create index
+
