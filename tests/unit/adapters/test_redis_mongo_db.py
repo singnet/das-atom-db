@@ -406,12 +406,17 @@ class TestRedisMongoDB:
         assert 'Similarity' == resp_link
 
     def test_atom_count(self, database: RedisMongoDB):
-        node_count, link_count = database.count_atoms()
+        node_count, link_count = database.count_atoms({'precision': 'precise'})
         assert node_count == 14
         assert link_count == 28
 
+    def test_atom_count_fast(self, database: RedisMongoDB):
+        node_count, link_count = database.count_atoms()
+        assert node_count == 14 + 28
+        assert link_count == 0
+
     def test_add_node(self, database: RedisMongoDB):
-        assert (14, 28) == database.count_atoms()
+        assert (42, 0) == database.count_atoms()
         all_nodes_before = database.get_all_nodes('Concept')
         database.add_node(
             {
@@ -423,7 +428,7 @@ class TestRedisMongoDB:
         all_nodes_after = database.get_all_nodes('Concept')
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 15
-        assert (15, 28) == database.count_atoms()
+        assert (15, 28) == database.count_atoms({'precision': 'precise'})
         new_node_handle = database.get_node_handle('Concept', 'lion')
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
         assert new_node_handle not in all_nodes_before
@@ -435,7 +440,7 @@ class TestRedisMongoDB:
         database.count_atoms()
 
     def test_add_link(self, database: RedisMongoDB):
-        assert (14, 28) == database.count_atoms()
+        assert (42, 0) == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
         _, similarity = database.get_all_links('Similarity')
@@ -461,7 +466,7 @@ class TestRedisMongoDB:
         assert len(all_nodes_after) == 16
         assert len(all_links_before) == 28
         assert len(all_links_after) == 29
-        assert (16, 29) == database.count_atoms()
+        assert (16, 29) == database.count_atoms({'precision': 'precise'})
 
         new_node_handle = database.get_node_handle('Concept', 'lion')
         assert new_node_handle == ExpressionHasher.terminal_hash('Concept', 'lion')
