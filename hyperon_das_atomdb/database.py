@@ -526,17 +526,20 @@ class AtomDB(ABC):
         ...  # pragma no cover
 
     @abstractmethod
-    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Tuple[int, int]:
+    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
         """
         Count the total number of atoms in the database.
-        If the optional parameter 'precision' is set to 'precise' returns the node count and link count (slow).
+        If the optional parameter 'precise' is set to True returns the node count and link count (slow).
 
         Args:
-            parameters (Optional[Dict[str, Any]]): Dict containing the following key 'precision' - sets the count
-                precision as 'precise' or 'fast'. Default value for 'precision' is 'fast'. Defaults to None.
+            parameters (Optional[Dict[str, Any]]): Dict containing the following key 'precise' - sets the count
+                precision as 'precise' if True or 'fast' if False. Default value for 'precise' is False.
+                Defaults to None.
 
         Returns:
-            Tuple[int, int]: (node_count or atom_count, link_count).
+            Dict[str, int]: A dict containing str keys and integers, where the key 'node_count' has an integer which is
+                the count of node atoms, the key 'link_count' is the count of link atoms and 'atom_count' is the count
+                of all atoms.
         """
         ...  # pragma no cover
 

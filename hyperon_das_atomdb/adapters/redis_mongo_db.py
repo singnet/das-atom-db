@@ -615,17 +615,21 @@ class RedisMongoDB(AtomDB):
                 answer["name"] = document["name"]
         return answer
 
-    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Tuple[int, int]:
-        if parameters and parameters.get('precision') == 'precise':
+    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+        atom_count = self.mongo_atoms_collection.estimated_document_count()
+        return_count = {'atom_count': atom_count, 'node_count': 0, 'link_count': 0}
+        if parameters and parameters.get('precise'):
             nodes_count = self.mongo_atoms_collection.count_documents(
                 {FieldNames.COMPOSITE_TYPE: {'$exists': False}}
             )
             links_count = self.mongo_atoms_collection.count_documents(
                 {FieldNames.COMPOSITE_TYPE: {'$exists': True}}
             )
-            return nodes_count, links_count
+            return_count['node_count'] = nodes_count
+            return_count['link_count'] = links_count
+            return return_count
 
-        return self.mongo_atoms_collection.estimated_document_count(), 0
+        return return_count
 
     def clear_database(self) -> None:
         """

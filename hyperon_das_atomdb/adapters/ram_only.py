@@ -491,8 +491,11 @@ class InMemoryDB(AtomDB):
             details=f"handle: {handle}",
         )
 
-    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Tuple[int, int]:
-        return len(self.db.node), len(self.db.link)
+    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+        node_count = len(self.db.node)
+        link_count = len(self.db.link)
+        atom_count = node_count + link_count
+        return {'atom_count': atom_count, 'node_count': node_count, 'link_count': link_count}
 
     def clear_database(self) -> None:
         self.named_type_table = {}
