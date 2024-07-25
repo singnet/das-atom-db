@@ -411,10 +411,10 @@ class TestRedisMongoDB:
 
     def test_atom_count_fast(self, database: RedisMongoDB):
         response = database.count_atoms()
-        assert response == {'atom_count': 42, 'node_count': 0, 'link_count': 0}
+        assert response == {'atom_count': 42}
 
     def test_add_node(self, database: RedisMongoDB):
-        assert {'atom_count': 42, 'node_count': 0, 'link_count': 0} == database.count_atoms()
+        assert {'atom_count': 42} == database.count_atoms()
         all_nodes_before = database.get_all_nodes('Concept')
         database.add_node(
             {
@@ -439,7 +439,7 @@ class TestRedisMongoDB:
         assert new_node['name'] == 'lion'
 
     def test_add_link(self, database: RedisMongoDB):
-        assert {'atom_count': 42, 'node_count': 0, 'link_count': 0} == database.count_atoms()
+        assert {'atom_count': 42} == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
         _, similarity = database.get_all_links('Similarity')

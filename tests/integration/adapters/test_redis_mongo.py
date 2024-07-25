@@ -98,9 +98,9 @@ class TestRedisMongo:
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
         db = _db
         self._add_atoms(db)
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
         db.commit()
-        assert db.count_atoms() == {'atom_count': 40, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 40}
         assert db.count_atoms({'precise': True}) == {
             'atom_count': 40,
             'node_count': 14,
@@ -222,16 +222,16 @@ class TestRedisMongo:
         db = _db
         self._add_atoms(db)
         db.commit()
-        assert db.count_atoms() == {'atom_count': 40, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 40}
         self._check_basic_patterns(db)
 
     def test_commit(self, _cleanup, _db: RedisMongoDB):
         db = _db
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
         self._add_atoms(db)
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
         db.commit()
-        assert db.count_atoms() == {'atom_count': 40, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 40}
         assert sorted(
             [
                 answer[1]
@@ -287,7 +287,7 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         db.reindex()
-        assert db.count_atoms() == {'atom_count': 40, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 40}
         self._check_basic_patterns(db)
         _db_down()
 
@@ -435,7 +435,7 @@ class TestRedisMongo:
             ]
 
         def _check_asserts_2():
-            assert db.count_atoms() == {'atom_count': 3, 'node_count': 0, 'link_count': 0}
+            assert db.count_atoms() == {'atom_count': 3}
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) == 'mammal'
@@ -460,7 +460,7 @@ class TestRedisMongo:
             assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == []
 
         def _check_asserts_3():
-            assert db.count_atoms() == {'atom_count': 2, 'node_count': 0, 'link_count': 0}
+            assert db.count_atoms() == {'atom_count': 2}
             assert db._retrieve_name(cat_handle) == 'cat'
             assert db._retrieve_name(dog_handle) == 'dog'
             assert db._retrieve_name(mammal_handle) is None
@@ -598,7 +598,7 @@ class TestRedisMongo:
             'Inheritance', [dog_handle, mammal_handle]
         )
 
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
 
         _add_all_links()
         _check_asserts()
@@ -1128,7 +1128,7 @@ class TestRedisMongo:
 
     def test_bulk_insert(self, _cleanup, _db: RedisMongoDB):
         db = _db
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
 
         documents = [
             {
@@ -1157,7 +1157,7 @@ class TestRedisMongo:
 
         db.bulk_insert(documents)
 
-        assert db.count_atoms() == {'atom_count': 3, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 3}
         assert db.get_matched_links('Similarity', ['node1', 'node2']) == [
             db.link_handle('Similarity', ['node1', 'node2'])
         ]
@@ -1212,7 +1212,7 @@ class TestRedisMongo:
 
     def test_commit_with_buffer(self, _cleanup, _db: RedisMongoDB):
         db = _db
-        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert db.count_atoms() == {'atom_count': 0}
         buffer = [
             {
                 '_id': '26d35e45817f4270f2b7cff971b04138',

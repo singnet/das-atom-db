@@ -617,7 +617,7 @@ class RedisMongoDB(AtomDB):
 
     def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()
-        return_count = {'atom_count': atom_count, 'node_count': 0, 'link_count': 0}
+        return_count = {'atom_count': atom_count}
         if parameters and parameters.get('precise'):
             nodes_count = self.mongo_atoms_collection.count_documents(
                 {FieldNames.COMPOSITE_TYPE: {'$exists': False}}
