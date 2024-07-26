@@ -748,7 +748,7 @@ class TestInMemoryDB:
 
         db = InMemoryDB()
 
-        assert db.count_atoms() == (0, 0)
+        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
 
         db.add_link(
             {
@@ -769,7 +769,7 @@ class TestInMemoryDB:
             }
         )
 
-        assert db.count_atoms() == (3, 2)
+        assert db.count_atoms() == {'atom_count': 5, 'node_count': 3, 'link_count': 2}
         assert db.db.incoming_set == {
             dog_handle: {inheritance_dog_mammal_handle},
             cat_handle: {inheritance_cat_mammal_handle},
@@ -828,7 +828,7 @@ class TestInMemoryDB:
 
         db.delete_atom(inheritance_cat_mammal_handle)
         db.delete_atom(inheritance_dog_mammal_handle)
-        assert db.count_atoms() == (3, 0)
+        assert db.count_atoms() == {'atom_count': 3, 'node_count': 3, 'link_count': 0}
         assert db.db.incoming_set == {
             dog_handle: set(),
             cat_handle: set(),
@@ -872,7 +872,7 @@ class TestInMemoryDB:
         )
 
         db.delete_atom(mammal_handle)
-        assert db.count_atoms() == (2, 0)
+        assert db.count_atoms() == {'atom_count': 2, 'node_count': 2, 'link_count': 0}
         assert db.db.incoming_set == {
             dog_handle: set(),
             cat_handle: set(),
@@ -915,7 +915,7 @@ class TestInMemoryDB:
         )
 
         db.delete_atom(cat_handle)
-        assert db.count_atoms() == (2, 1)
+        assert db.count_atoms() == {'atom_count': 3, 'node_count': 2, 'link_count': 1}
         assert db.db.incoming_set == {
             dog_handle: {inheritance_dog_mammal_handle},
             mammal_handle: {inheritance_dog_mammal_handle},
@@ -967,7 +967,7 @@ class TestInMemoryDB:
         )
 
         db.delete_atom(dog_handle)
-        assert db.count_atoms() == (2, 1)
+        assert db.count_atoms() == {'atom_count': 3, 'node_count': 2, 'link_count': 1}
         assert db.db.incoming_set == {
             cat_handle: {inheritance_cat_mammal_handle},
             mammal_handle: {inheritance_cat_mammal_handle},
@@ -1033,7 +1033,7 @@ class TestInMemoryDB:
         )
 
         db.delete_atom(inheritance_cat_mammal_handle)
-        assert db.count_atoms() == (3, 0)
+        assert db.count_atoms() == {'atom_count': 3, 'node_count': 3, 'link_count': 0}
         assert db.db.incoming_set == {
             dog_handle: set(),
             cat_handle: set(),
@@ -1151,7 +1151,7 @@ class TestInMemoryDB:
     def test_bulk_insert(self):
         db = InMemoryDB()
 
-        assert db.count_atoms() == (0, 0)
+        assert db.count_atoms() == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
 
         documents = [
             {
@@ -1180,7 +1180,7 @@ class TestInMemoryDB:
 
         db.bulk_insert(documents)
 
-        assert db.count_atoms() == (2, 1)
+        assert db.count_atoms() == {'atom_count': 3, 'node_count': 2, 'link_count': 1}
 
     def test_retrieve_all_atoms(self, database: InMemoryDB):
         expected = list(database.db.node.items()) + list(database.db.link.items())
