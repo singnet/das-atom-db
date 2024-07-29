@@ -7,6 +7,9 @@ black:
 flake8:
 	@flake8 ./hyperon_das_atomdb ./tests --show-source --extend-ignore E501
 
+pylint:
+	@pylint ./hyperon_das_atomdb --rcfile=.pylintrc --disable=R
+
 lint: isort black flake8
 
 unit-tests:
@@ -19,3 +22,6 @@ integration-tests:
 	@py.test -sx -vv ./tests/integration
 
 pre-commit: lint unit-tests-coverage unit-tests integration-tests
+
+
+

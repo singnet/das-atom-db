@@ -1,6 +1,9 @@
-class BaseException(Exception):
+"""Custom exceptions for Atom DB"""
+
+
+class AtomDbBaseException(Exception):
     """
-    Base class to exceptions
+    Base class for Atom DB exceptions
     """
 
     def __init__(self, message: str, details: str = ""):
@@ -10,41 +13,41 @@ class BaseException(Exception):
         super().__init__(self.message, self.details)
 
 
-class ConnectionMongoDBException(BaseException):
-    ...  # pragma no cover
+class ConnectionMongoDBException(AtomDbBaseException):
+    """Exception raised for errors in the connection to MongoDB."""
 
 
-class NodeDoesNotExist(BaseException):
-    ...  # pragma no cover
+class NodeDoesNotExist(AtomDbBaseException):
+    """Exception raised when a node does not exist."""
 
 
-class LinkDoesNotExist(BaseException):
-    ...  # pragma no cover
+class LinkDoesNotExist(AtomDbBaseException):
+    """Exception raised when a link does not exist."""
 
 
-class AtomDoesNotExist(BaseException):
-    ...  # pragma no cover
+class AtomDoesNotExist(AtomDbBaseException):
+    """Exception raised when an atom does not exist."""
 
 
-class AddNodeException(BaseException):
-    ...  # pragma no cover
+class AddNodeException(AtomDbBaseException):
+    """Exception raised when adding a node fails."""
 
 
-class AddLinkException(BaseException):
-    ...  # pragma no cover
+class AddLinkException(AtomDbBaseException):
+    """Exception raised when adding a link fails."""
 
 
-class InvalidOperationException(BaseException):
-    ...  # pragma no cover
+class InvalidOperationException(AtomDbBaseException):
+    """Exception raised for invalid operations."""
 
 
-class RetryException(BaseException):
-    ...  # pragma no cover
+class RetryException(AtomDbBaseException):
+    """Exception raised for retryable errors."""
 
 
-class InvalidAtomDB(BaseException):
-    ...  # pragma no cover
+class InvalidAtomDB(AtomDbBaseException):
+    """Exception raised for invalid Atom DB operations."""
 
 
-class InvalidSQL(BaseException):
-    ...  # pragma no cover
+class InvalidSQL(AtomDbBaseException):
+    """Exception raised for invalid SQL operations."""
