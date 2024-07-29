@@ -1,70 +1,166 @@
-[MAIN]
+[MASTER]
 
-py-version = 3.10
-
-# Add files or directories matching the regex patterns to the ignore-list. The
-# regex matches against paths and can be in Posix or Windows format.
-ignore-paths=
-
-# Pickle collected data for later comparisons.
-persistent=yes
-
-# Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
-# number of processors available to use.
-jobs=1
-
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
-
-# Allow loading of arbitrary C extensions. Extensions are imported into the
-# active Python interpreter and may run arbitrary code.
-unsafe-load-any-extension=no
-
-# A comma-separated list of package or module names from where C extensions may
-# be loaded. Extensions are loading into the active Python interpreter and may
-# run arbitrary code
-extension-pkg-allow-list=
-
-# Control the amount of potential inferred values when inferring a single
-# object. This can help the performance when dealing with large functions or
-# complex, nested conditions.
-limit-inference-results=100
-
-# Specify a score threshold under which the program will exit with error.
-fail-under=10.0
-
-# Clear in-memory caches upon conclusion of linting. Useful if running pylint in
-# a server-like mode.
-clear-cache-post-run=no
+py-version=3.10
 
 
 [MESSAGES CONTROL]
 
-disable=
-    R,
-    too-many-arguments,
-    too-many-public-methods,
-    too-many-branches,
-    too-many-lines,
-
-
-[SIMILARITIES]
-
-# Minimum lines number of a similarity.
-min-similarity-lines=6
-
-# Ignore comments when computing similarities.
-ignore-comments=yes
-
-# Ignore docstrings when computing similarities.
-ignore-docstrings=yes
-
-# Ignore imports when computing similarities.
-ignore-imports=yes
-
-# Signatures are removed from the similarity computation
-ignore-signatures=yes
+disable=all
+enable=
+  abstract-method,
+  anomalous-backslash-in-string,
+  anomalous-unicode-escape-in-string,
+  astroid-error,
+  attribute-defined-outside-init,
+  bad-classmethod-argument,
+  bad-except-order,
+  bad-exception-context,
+  bad-format-character,
+  bad-format-string,
+  bad-format-string-key,
+  bad-mcs-classmethod-argument,
+  bad-mcs-method-argument,
+  bad-open-mode,
+  bad-option-value,
+  bad-reversed-sequence,
+  bad-staticmethod-argument,
+  bad-str-strip-call,
+  bad-string-format-type,
+  bad-super-call,
+  bare-except,
+  blacklisted-name,
+  broad-except,
+  c-extension-no-member,
+  cell-var-from-loop,
+  chained-comparison,
+  class-variable-slots-conflict,
+  comparison-with-itself,
+  consider-iterating-dictionary,
+  consider-merging-isinstance,
+  consider-swap-variables,
+  consider-using-dict-comprehension,
+  consider-using-enumerate,
+  consider-using-get,
+  consider-using-in,
+  consider-using-join,
+  consider-using-set-comprehension,
+  consider-using-sys-exit,
+  consider-using-ternary,
+  continue-in-finally,
+  dangerous-default-value,
+  deprecated-method,
+  deprecated-module,
+  dict-iter-missing-items,
+  duplicate-except,
+  duplicate-key,
+  duplicate-string-formatting-argument,
+  empty-docstring,
+  eval-used,
+  exec-used,
+  expression-not-assigned,
+  fatal,
+  format-combined-specification,
+  format-needs-mapping,
+  global-at-module-level,
+  global-statement,
+  global-variable-not-assigned,
+  import-outside-toplevel,
+  import-self,
+  inconsistent-return-statements,
+  init-is-generator,
+  invalid-all-object,
+  invalid-characters-in-docstring,
+  invalid-envvar-default,
+  invalid-format-index,
+  invalid-length-returned,
+  invalid-name,
+  invalid-slots-object,
+  literal-comparison,
+  logging-format-interpolation,
+  logging-format-truncated,
+  logging-not-lazy,
+  logging-too-few-args,
+  logging-too-many-args,
+  logging-unsupported-format,
+  lost-exception,
+  method-check-failed,
+  misplaced-bare-raise,
+  misplaced-future,
+  missing-format-argument-key,
+  missing-format-attribute,
+  missing-format-string-key,
+  missing-kwoa,
+  missing-parentheses-for-call-in-test,
+  mixed-format-string,
+  multiple-imports,
+  no-classmethod-decorator,
+  no-else-continue,
+  no-self-argument,
+  non-iterator-returned,
+  non-parent-init-called,
+  nonlocal-and-global,
+  nonlocal-without-binding,
+  notimplemented-raised,
+  parse-error,
+  pointless-statement,
+  pointless-string-statement,
+  possibly-unused-variable,
+  preferred-module,
+  protected-access,
+  raising-format-tuple,
+  redeclared-assigned-name,
+  redefined-argument-from-local,
+  redefined-builtin,
+  redefined-outer-name,
+  redundant-unittest-assert,
+  reimported,
+  relative-beyond-top-level,
+  return-arg-in-generator,
+  return-in-init,
+  self-assigning-variable,
+  self-cls-assignment,
+  shallow-copy-environ,
+  simplifiable-if-expression,
+  simplifiable-if-statement,
+  simplify-boolean-expression,
+  single-string-used-for-slots,
+  singleton-comparison,
+  subprocess-popen-preexec-fn,
+  subprocess-run-check,
+  super-init-not-called,
+  too-few-format-args,
+  too-many-format-args,
+  too-many-nested-blocks,
+  too-many-star-expressions,
+  trailing-comma-tuple,
+  truncated-format-string,
+  try-except-raise,
+  undefined-all-variable,
+  undefined-loop-variable,
+  undefined-variable,
+  unexpected-line-ending-format,
+  ungrouped-imports,
+  unidiomatic-typecheck,
+  unnecessary-comprehension,
+  unnecessary-pass,
+  unneeded-not,
+  unreachable,
+  unrecognized-inline-option,
+  unused-format-string-argument,
+  unused-format-string-key,
+  unused-import,
+  unused-variable,
+  unused-wildcard-import,
+  used-before-assignment,
+  used-prior-global-declaration,
+  useless-else-on-loop,
+  useless-object-inheritance,
+  using-constant-test,
+  wildcard-import,
+  wrong-exception-operation,
+  wrong-import-position,
+  wrong-spelling-in-comment,
+  wrong-spelling-in-docstring,
 
 
 [REPORTS]
@@ -76,7 +172,31 @@ output-format=parseable,colorized
 reports=no
 
 
+[SCORE]
+score=no
+
+
+[CLASSES]
+valid-classmethod-first-arg=cls
+valid-metaclass-classmethod-first-arg=mcs
+
+
+[EXCEPTIONS]
+overgeneral-exceptions=builtins.Exception
+
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,logger,T
+variable-rgx=(([a-z][a-z0-9_]{0,})|(_[a-z0-9_]*))$
+argument-rgx=(F|([a-z][a-z0-9_]{0,})|(_[a-z0-9_]*))$
+attr-rgx=(([a-z][a-z0-9_]{0,})|(_[a-z0-9_]*))$
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+bad-names=toto,tutu,tata
+
+
 [VARIABLES]
+
+dummy-variables-rgx=(_+[a-zA-Z0-9_]*?$)|dummy
 
 # Tells whether we should check for unused import in __init__ files.
 init-import=no
