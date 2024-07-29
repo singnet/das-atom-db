@@ -135,5 +135,3 @@ dmypy.json
 
 poetry.lock
 
-# pylint
-.pylintrc

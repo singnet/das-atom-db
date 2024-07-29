@@ -1,3 +1,11 @@
+"""
+This module provides utility functions for generating binary matrices and manipulating them.
+
+It includes functions to generate binary matrices of a given size, multiply binary matrices
+by string matrices, and build pattern keys using a list of hashes. These utilities are useful
+for various operations involving binary and string data manipulation.
+"""
+
 from typing import List
 
 from hyperon_das_atomdb.database import WILDCARD
