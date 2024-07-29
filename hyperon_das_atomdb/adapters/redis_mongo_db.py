@@ -110,12 +110,11 @@ class MongoDBIndex(Index):
             key, value = next(iter(kwargs.items()))  # only one key-value pair
             conditionals = {key: {"$eq": value}}
 
-        index_id = f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}" + (
-            f"_{index_type.value}" if index_type else ""
-        )
         index_type: MongoIndexType = index_type or (
             MongoIndexType.COMPOUND if len(fields) > 1 else MongoIndexType.FIELD
         )
+        index_id = self.generate_index_id(atom_type, fields, conditionals, [str(index_type.value)])
+
         index_props = {
             'index_type': index_type,
             'conditionals': conditionals,
