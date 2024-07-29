@@ -2,34 +2,96 @@
 name: Run Unit & Integration tests
 
 on:
+  workflow_call:
+
   pull_request:
     branches:
       - develop
       - master
 
   workflow_dispatch:
-    inputs:
 
 jobs:
-  tests:
+  lint:
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ^3.10
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pip3 install poetry
-
-      - name: Run poetry lock
-        run: poetry lock --no-update
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ^3.10
+          cache: "pip"
 
       - name: Install dependencies
-        run: poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
+        run: |-
+          pip3 install poetry
+          poetry lock --no-update
+          poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
 
-      - name: Run Lint & Tests
-        run: make pre-commit
+      - name: Perform Code Linting
+        run: make lint
+
+  unit-tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ^3.10
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |-
+          pip3 install poetry
+          poetry lock --no-update
+          poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
+
+      - name: Execute Unit Test Suite
+        run: make unit-tests
+
+  coverage:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ^3.10
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |-
+          pip3 install poetry
+          poetry lock --no-update
+          poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
+
+      - name: Generate Coverage Report
+        run: make unit-tests-coverage
+
+  integration-tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ^3.10
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |-
+          pip3 install poetry
+          poetry lock --no-update
+          poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
+
+      - name: Perform Integration Testing
+        run: make integration-tests
