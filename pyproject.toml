@@ -12,7 +12,7 @@ packages = [{include = "hyperon_das_atomdb"}]
 "Releases" = "https://github.com/singnet/das-atom-db/releases"
 
 [tool.poetry.dependencies]
-python = "^3.8.5"
+python = "^3.10"
 redis = "^5.0.0"
 pymongo = "^4.5.0"
 python-dotenv = "^1.0.0"
