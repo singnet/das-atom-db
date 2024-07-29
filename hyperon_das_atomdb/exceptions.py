@@ -14,14 +14,6 @@ class ConnectionMongoDBException(BaseException):
     ...  # pragma no cover
 
 
-class NodeDoesNotExist(BaseException):
-    ...  # pragma no cover
-
-
-class LinkDoesNotExist(BaseException):
-    ...  # pragma no cover
-
-
 class AtomDoesNotExist(BaseException):
     ...  # pragma no cover
 

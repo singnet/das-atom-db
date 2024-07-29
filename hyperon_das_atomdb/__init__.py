@@ -1,12 +1,10 @@
 from .database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
-from .exceptions import AtomDoesNotExist, LinkDoesNotExist, NodeDoesNotExist
+from .exceptions import AtomDoesNotExist
 
 __all__ = [
     'AtomDB',
     'WILDCARD',
     'UNORDERED_LINK_TYPES',
-    'NodeDoesNotExist',
-    'LinkDoesNotExist',
     'AtomDoesNotExist',
 ]
 
