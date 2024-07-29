@@ -108,7 +108,17 @@ class AtomDB(ABC):
 
     def _transform_to_target_format(
         self, document: dict[str, Any], **kwargs
-    ) -> dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]]:
+    ) -> (
+        dict[str, Any]
+        | tuple[
+            dict[str, Any],
+            list[
+                dict[str, Any]
+                | tuple[dict[str, Any], list[dict[str, Any]]]
+                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+            ]
+        ]  # TODO(angelo,andre): simplify this return type
+    ):
         answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
@@ -594,10 +604,16 @@ class AtomDB(ABC):
     @abstractmethod
     def get_atom(
         self, handle: str, **kwargs
-    ) -> (  # TODO(angelo): simplify this return type
+    ) -> (
         dict[str, Any]
-        | tuple[dict[str, Any], list[dict[str, Any]]]
-        | tuple[dict[str, Any], list[tuple[dict, list]]]
+        | tuple[
+            dict[str, Any],
+            list[
+                dict[str, Any]
+                | tuple[dict[str, Any], list[dict[str, Any]]]
+                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+            ]
+        ]  # TODO(angelo,andre): simplify this return type
     ):
         """
         Retrieve an atom by its handle.

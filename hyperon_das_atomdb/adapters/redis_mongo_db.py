@@ -623,10 +623,16 @@ class RedisMongoDB(AtomDB):
 
     def get_atom(
         self, handle: str, **kwargs
-    ) -> (  # TODO(angelo): simplify this return type
+    ) -> (
         dict[str, Any]
-        | tuple[dict[str, Any], list[dict[str, Any]]]
-        | tuple[dict[str, Any], list[tuple[dict, list]]]
+        | tuple[
+            dict[str, Any],
+            list[
+                dict[str, Any]
+                | tuple[dict[str, Any], list[dict[str, Any]]]
+                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+            ]
+        ]  # TODO(angelo,andre): simplify this return type
     ):
         document = self._retrieve_document(handle)
         if document:
