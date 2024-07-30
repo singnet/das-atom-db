@@ -111,9 +111,24 @@ class AtomDB(ABC):
                 dict[str, Any]
                 | tuple[dict[str, Any], list[dict[str, Any]]]
                 | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ]
+            ],
         ]  # TODO(angelo,andre): simplify this return type
     ):
+        """
+        Transform a document to the target format.
+
+        Args:
+            document (dict[str, Any]): The document to transform.
+            **kwargs: Additional keyword arguments for transformation options.
+
+        Returns:
+            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]] |
+            tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]:
+            The transformed document in the target format. If 'targets_document'
+            is True, returns a tuple with the document and its targets. If
+            'deep_representation' is True, returns a deep representation of the
+            document and its targets.
+        """
         answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
@@ -127,11 +142,15 @@ class AtomDB(ABC):
         if kwargs.get('targets_document', False):
             targets_document = [self.get_atom(target) for target in answer['targets']]
             return answer, targets_document
+        elif kwargs.get('deep_representation', False):
 
-        if kwargs.get('deep_representation', False):
+            def _recursive_targets(targets, **_kwargs):
+                return [self.get_atom(target, **_kwargs) for target in targets]
+
             if 'targets' in answer:
-                deep_targets = [self.get_atom(target, **kwargs) for target in answer['targets']]
+                deep_targets = _recursive_targets(answer['targets'], **kwargs)
                 answer['targets'] = deep_targets
+
             return answer
 
         return answer
@@ -151,6 +170,23 @@ class AtomDB(ABC):
     #     return self.link_handle(atom_type, targets), composite_type
 
     def _add_node(self, node_params: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        """
+        Add a node to the database with the specified parameters.
+
+        Args:
+            node_params (dict[str, Any]): A dictionary containing node parameters.
+                It should have the following keys:
+                - 'type': The type of the node.
+                - 'name': The name of the node.
+
+        Returns:
+            tuple[str, dict[str, Any]]: A tuple containing the handle of the node
+            and the node dictionary.
+
+        Raises:
+            AddNodeException: If the 'type' or 'name' fields are missing in
+            node_params.
+        """
         reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
 
         valid_params = {
@@ -183,6 +219,25 @@ class AtomDB(ABC):
     def _add_link(
         self, link_params: dict[str, Any], toplevel: bool = True
     ) -> tuple[str, dict[str, Any], list[str]]:
+        """
+        Add a link to the database with the specified parameters.
+
+        Args:
+            link_params (dict[str, Any]): A dictionary containing link parameters.
+                It should have the following keys:
+                - 'type': The type of the link.
+                - 'targets': A list of target elements.
+            toplevel (bool): A boolean flag to indicate toplevel links, i.e., links
+                which are not nested inside other links. Defaults to True.
+
+        Returns:
+            tuple[str, dict[str, Any], list[str]]: A tuple containing the handle of
+            the link, the link dictionary, and a list of target hashes.
+
+        Raises:
+            AddLinkException: If the 'type' or 'targets' fields are missing in
+            link_params.
+        """
         reserved_parameters = [
             'handle',
             '_id',
@@ -366,11 +421,11 @@ class AtomDB(ABC):
             query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each
                 containing a "field" and "value" key, representing the criteria for
                 filtering atoms.
-            cursor (Optional[int]): An optional cursor indicating the starting point
+            cursor (int | None): An optional cursor indicating the starting point
                 within the result set from which to return atoms. This can be used for
                 pagination or to resume a previous query. If not provided, the query
                 starts from the beginning.
-            chunk_size (Optional[int]): An optional size indicating the maximum number
+            chunk_size (int | None): An optional size indicating the maximum number
                 of atom IDs to return in one response. Useful for controlling response
                 size and managing large datasets. If not provided, a default value is
                 used.
@@ -394,18 +449,18 @@ class AtomDB(ABC):
         text_index_id: str | None = None,
     ) -> list[str]:
         """
-        Query the database by a text field, use the text_value arg to query using a existing text
+        Query the database by a text field, use the text_value arg to query using an existing text
         index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously
-        created the field arg must be provided or it will raise an Exception.
-        When 'text_value' and 'field' value are provided, it will defaults to a regex search,
+        created the field arg must be provided, or it will raise an Exception.
+        When 'text_value' and 'field' value are provided, it will default to a regex search,
         creating an index to the field can improve the performance.
 
         Args:
             text_value (str): Value to search for, if only this argument is provided it will use
                 a TOKEN_INVERTED_LIST index in the search
-            field (Optional[str]): Field to be used to search, if this argument is provided
+            field (str | None): Field to be used to search, if this argument is provided
                 it will not use TOKEN_INVERTED_LIST in the search
-            text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
+            text_index_id (str | None): TOKEN_INVERTED_LIST index id to search for
 
 
         Returns:
@@ -434,7 +489,7 @@ class AtomDB(ABC):
 
         Args:
             node_type (str): The node type.
-            names (bool, optional): If True, return node names instead of handles. Default is False.
+            names (bool): If True, return node names instead of handles. Default is False.
 
         Returns:
             list[str]: A list of node handles or names, depending on the value of 'names'.
@@ -607,7 +662,7 @@ class AtomDB(ABC):
                 dict[str, Any]
                 | tuple[dict[str, Any], list[dict[str, Any]]]
                 | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ]
+            ],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         """
@@ -629,7 +684,7 @@ class AtomDB(ABC):
     @abstractmethod
     def get_atom_type(self, handle: str) -> str:
         """
-        Retrieve the type of an atom by its handle.
+        Retrieve the atom's type by its handle.
 
         Args:
             handle (str): The handle of the atom to retrieve the type for.
@@ -644,7 +699,7 @@ class AtomDB(ABC):
 
         Args:
             handle (str): The atom handle.
-            arity (Optional[int]): The arity of the atom. Defaults to 0.
+            arity (int | None): The arity of the atom. Defaults to 0.
 
         Returns:
             dict[str, Any]: A dictionary representation of the atom.
@@ -673,9 +728,9 @@ class AtomDB(ABC):
         (slow), otherwise return the atom_count (fast).
 
         Args:
-            parameters (Optional[Dict[str, Any]]): An optional dictionary containing the
+            parameters (dict[str, Any] | None): An optional dictionary containing the
                 following key:
-                    'precise' (bool, optional)  If set to True, the count provides an accurate count
+                    'precise' (bool)  If set to True, the count provides an accurate count
                     but may be slower. If set to False, the count will be an estimate, which is
                     faster but less precise. Defaults to None.
 
@@ -688,12 +743,7 @@ class AtomDB(ABC):
 
     @abstractmethod
     def clear_database(self) -> None:
-        """
-        Clear the entire database, removing all data.
-
-        Returns:
-            None
-        """
+        """Clear the entire database, removing all data."""
 
     @abstractmethod
     def add_node(self, node_params: dict[str, Any]) -> dict[str, Any]:
@@ -810,8 +860,8 @@ class AtomDB(ABC):
                 Pattern template is also a dict:
 
                 {
-                    "named_type": True/False
-                    "selected_positions": [n1, n2, ...]
+                    "named_type": True/False,
+                    "selected_positions": [n1, n2, ...],
                 }
 
                 Pattern templates are applied to each link entered in the atom space in order to
@@ -827,7 +877,7 @@ class AtomDB(ABC):
                     Similarity(*, *)
 
                 If we create all possibilities of index entries to all links, the pattern index size
-                will grow exponentially so we limit the entries we want to create by each type of
+                will grow exponentially, so we limit the entries we want to create by each type of
                 link. This is what a pattern template for a given link type is. For instance if
                 we apply this pattern template:
 
@@ -881,11 +931,10 @@ class AtomDB(ABC):
         Args:
             atom_type (str): The type of the atom for which the index is created.
             fields (list[str]): A list of fields to be indexed.
-            named_type (Optional[str]): The named type of the atom. Defaults to None.
-            composite_type (Optional[list[Any]]): A list representing the composite type of
+            named_type (str | None): The named type of the atom. Defaults to None.
+            composite_type (list[Any] | None): A list representing the composite type of
                 the atom. Defaults to None.
-            index_type (Optional[FieldIndexType]): The type of the index to create.
-                Defaults to None.
+            index_type (FieldIndexType | None): The type of the index to create. Defaults to None.
 
         Returns:
             str: The ID of the created index.
@@ -899,9 +948,6 @@ class AtomDB(ABC):
         Args:
             documents (list[dict[str, Any]]): A list of dictionaries, each representing
                 a document to be inserted into the database.
-
-        Returns:
-            None
         """
 
     @abstractmethod
