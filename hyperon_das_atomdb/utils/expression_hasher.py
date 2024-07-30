@@ -1,5 +1,13 @@
+"""
+This module provides utility functions for hashing expressions and generating unique identifiers.
+
+It includes classes for computing hashes of various types of expressions, such as named types,
+terminals, and composite expressions. The module uses the MD5 hashing algorithm to generate
+hashes and provides methods for creating composite hashes from lists of elements.
+"""
+
 from hashlib import md5
-from typing import Any, List
+from typing import Any
 
 
 class ExpressionHasher:
@@ -20,7 +28,7 @@ class ExpressionHasher:
         )
 
     @staticmethod
-    def expression_hash(named_type_hash: str, elements: List[str]) -> str:
+    def expression_hash(named_type_hash: str, elements: list[str]) -> str:
         return ExpressionHasher.composite_hash([named_type_hash, *elements])
 
     @staticmethod
@@ -43,7 +51,7 @@ class ExpressionHasher:
 class StringExpressionHasher:
     @staticmethod
     def _compute_hash(text: str) -> str:
-        return str
+        return str  # TODO(angelo,andre): this seems wrong
 
     @staticmethod
     def named_type_hash(name: str) -> str:
@@ -54,11 +62,11 @@ class StringExpressionHasher:
         return f"<{named_type}: {terminal_name}>"
 
     @staticmethod
-    def expression_hash(named_type_hash: str, elements: List[str]) -> str:
+    def expression_hash(named_type_hash: str, elements: list[str]) -> str:
         return f"<{named_type_hash}: {elements}>"
 
     @staticmethod
-    def composite_hash(hash_list: List[str]) -> str:
+    def composite_hash(hash_list: list[str]) -> str:
         if len(hash_list) == 1:
             return hash_list[0]
         return f"{hash_list}"

@@ -1,3 +1,7 @@
+"""This module initializes the AtomDB package and imports key components."""
+
+# pylint: disable=wrong-import-position
+
 import sys
 
 if sys.version_info < (3, 10):
