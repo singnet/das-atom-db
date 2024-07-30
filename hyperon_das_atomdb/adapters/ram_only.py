@@ -44,9 +44,24 @@ class InMemoryDB(AtomDB):
     """A concrete implementation using hashtable (dict)"""
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the InMemoryDB instance.
+
+        This method is intended to provide a human-readable representation of the
+        InMemoryDB instance, which can be useful for debugging and logging purposes.
+
+        Returns:
+            str: A string representing the InMemoryDB instance.
+        """
         return "<Atom database InMemory>"  # pragma no cover
 
-    def __init__(self, database_name: str = "das") -> None:
+    def __init__(self, database_name: str = "das"):
+        """
+        Initialize an InMemoryDB instance.
+
+        Args:
+            database_name (str): The name of the database. Defaults to "das".
+        """
         self.database_name = database_name
         self.named_type_table = {}  # keyed by named type hash
         self.all_named_types = set()
@@ -61,27 +76,72 @@ class InMemoryDB(AtomDB):
         )
 
     def _get_link(self, handle: str) -> dict[str, Any] | None:
+        """
+        Retrieve a link from the database by its handle.
+
+        Args:
+            handle (str): The handle of the link to retrieve.
+
+        Returns:
+            dict[str, Any] | None: The link document if found, otherwise None.
+        """
         link = self.db.link.get(handle)
         if link is not None:
             return link
         return None
 
     def _get_and_delete_link(self, link_handle: str) -> dict[str, Any] | None:
+        """
+        Retrieve and delete a link from the database by its handle.
+
+        Args:
+            link_handle (str): The handle of the link to retrieve and delete.
+
+        Returns:
+            dict[str, Any] | None: The link document if found and deleted, otherwise None.
+        """
         return self.db.link.pop(link_handle, None)
 
     def _build_named_type_hash_template(self, template: str | list[Any]) -> str | list[Any]:
+        """
+        Build a named type hash template from the given template.
+
+        Args:
+            template (str | list[Any]): The template to build the named type hash from. It can be
+                either a string or a list of elements.
+
+        Returns:
+            str | list[Any]: The named type hash if the template is a string, or a list of named
+                type hashes if the template is a list.
+        """
         if isinstance(template, str):
             return ExpressionHasher.named_type_hash(template)
         return [self._build_named_type_hash_template(element) for element in template]
 
     @staticmethod
     def _build_atom_type_key_hash(_name: str) -> str:
+        """
+        Build a hash key for the given atom type name.
+
+        Args:
+            _name (str): The name of the atom type.
+
+        Returns:
+            str: The hash key for the atom type.
+        """
         name_hash = ExpressionHasher.named_type_hash(_name)
         type_hash = ExpressionHasher.named_type_hash("Type")
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
         return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
     def _add_atom_type(self, _name: str, _type: str | None = "Type") -> None:
+        """
+        Add a type atom to the database.
+
+        Args:
+            _name (str): The name of the atom to add.
+            _type (str | None): The type of the atom. Defaults to "Type".
+        """
         if _name in self.all_named_types:
             return
 
@@ -107,17 +167,46 @@ class InMemoryDB(AtomDB):
             self.named_type_table[name_hash] = _name
 
     def _delete_atom_type(self, _name: str) -> None:
+        """
+        Delete an atom type from the database.
+
+        Args:
+            _name (str): The name of the atom type to delete.
+        """
         key = self._build_atom_type_key_hash(_name)
         self.db.atom_type.pop(key, None)
         self.all_named_types.remove(_name)
 
     def _add_outgoing_set(self, key: str, targets_hash: list[str]) -> None:
+        """
+        Add an outgoing set to the database.
+
+        Args:
+            key (str): The key for the outgoing set.
+            targets_hash (list[str]): A list of target hashes to be added to the outgoing set.
+        """
         self.db.outgoing_set[key] = targets_hash
 
     def _get_and_delete_outgoing_set(self, handle: str) -> list[str] | None:
+        """
+        Retrieve and delete an outgoing set from the database by its handle.
+
+        Args:
+            handle (str): The handle of the outgoing set to retrieve and delete.
+
+        Returns:
+            list[str] | None: The outgoing set if found and deleted, otherwise None.
+        """
         return self.db.outgoing_set.pop(handle, None)
 
     def _add_incoming_set(self, key: str, targets_hash: list[str]) -> None:
+        """
+        Add an incoming set to the database.
+
+        Args:
+            key (str): The key for the incoming set.
+            targets_hash (list[str]): A list of target hashes to be added to the incoming set.
+        """
         for target_hash in targets_hash:
             incoming_set = self.db.incoming_set.get(target_hash)
             if incoming_set is None:
@@ -126,6 +215,13 @@ class InMemoryDB(AtomDB):
                 self.db.incoming_set[target_hash].add(key)
 
     def _delete_incoming_set(self, link_handle: str, atoms_handle: list[str]) -> None:
+        """
+        Delete an incoming set from the database.
+
+        Args:
+            link_handle (str): The handle of the link to delete.
+            atoms_handle (list[str]): A list of atom handles associated with the link.
+        """
         for atom_handle in atoms_handle:
             handles = self.db.incoming_set.get(atom_handle, set())
             if len(handles) > 0:
@@ -134,6 +230,15 @@ class InMemoryDB(AtomDB):
     def _add_templates(
         self, composite_type_hash: str, named_type_hash: str, key: str, targets_hash: list[str]
     ) -> None:
+        """
+        Add templates to the database.
+
+        Args:
+            composite_type_hash (str): The hash of the composite type.
+            named_type_hash (str): The hash of the named type.
+            key (str): The key for the template.
+            targets_hash (list[str]): A list of target hashes to be added to the template.
+        """
         template_composite_type_hash = self.db.templates.get(composite_type_hash)
         template_named_type_hash = self.db.templates.get(named_type_hash)
 
@@ -148,6 +253,13 @@ class InMemoryDB(AtomDB):
             self.db.templates[named_type_hash] = {(key, tuple(targets_hash))}
 
     def _delete_templates(self, link_document: dict, targets_hash: list[str]) -> None:
+        """
+        Delete templates from the database.
+
+        Args:
+            link_document (dict): The document of the link whose templates are to be deleted.
+            targets_hash (list[str]): A list of target hashes associated with the link.
+        """
         template_composite_type = self.db.templates.get(
             link_document[FieldNames.COMPOSITE_TYPE_HASH], set()
         )
@@ -159,6 +271,14 @@ class InMemoryDB(AtomDB):
             template_named_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
     def _add_patterns(self, named_type_hash: str, key: str, targets_hash: list[str]) -> None:
+        """
+        Add patterns to the database.
+
+        Args:
+            named_type_hash (str): The hash of the named type.
+            key (str): The key for the pattern.
+            targets_hash (list[str]): A list of target hashes to be added to the pattern.
+        """
         pattern_keys = build_pattern_keys([named_type_hash, *targets_hash])
 
         for pattern_key in pattern_keys:
@@ -169,6 +289,13 @@ class InMemoryDB(AtomDB):
                 self.db.patterns[pattern_key] = {(key, tuple(targets_hash))}
 
     def _delete_patterns(self, link_document: dict, targets_hash: list[str]) -> None:
+        """
+        Delete patterns from the database.
+
+        Args:
+            link_document (dict): The document of the link whose patterns are to be deleted.
+            targets_hash (list[str]): A list of target hashes associated with the link.
+        """
         pattern_keys = build_pattern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
         for pattern_key in pattern_keys:
             pattern = self.db.patterns.get(pattern_key, set())
@@ -176,12 +303,28 @@ class InMemoryDB(AtomDB):
                 pattern.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
     def _delete_link_and_update_index(self, link_handle: str) -> None:
+        """
+        Delete a link from the database and update the index.
+
+        Args:
+            link_handle (str): The handle of the link to delete.
+        """
         link_document = self._get_and_delete_link(link_handle)
         self._update_index(atom=link_document, delete_atom=True)
 
     def _filter_non_toplevel(
         self, matches: list[tuple[str, tuple[str, ...]]]
     ) -> list[tuple[str, tuple[str, ...]]]:
+        """
+        Filter out non-toplevel matches from the provided list.
+
+        Args:
+            matches (list[tuple[str, tuple[str, ...]]]): A list of matches, where each match is a
+                tuple containing a link handle and a tuple of target handles.
+
+        Returns:
+            list[tuple[str, tuple[str, ...]]]: A list of matches that are toplevel only.
+        """
         matches_toplevel_only: list[tuple[str, tuple[str, ...]]] = []
         if len(matches) > 0:
             for match in matches:
@@ -193,6 +336,15 @@ class InMemoryDB(AtomDB):
 
     @staticmethod
     def _build_targets_list(link: dict[str, Any]) -> list[Any]:
+        """
+        Build a list of target handles from the given link document.
+
+        Args:
+            link (dict[str, Any]): The link document from which to extract target handles.
+
+        Returns:
+            list[Any]: A list of target handles extracted from the link document.
+        """
         targets = []
         count = 0
         while True:
@@ -204,10 +356,28 @@ class InMemoryDB(AtomDB):
         return targets
 
     def _update_atom_indexes(self, documents: Iterable[dict[str, any]], **kwargs) -> None:
+        """
+        Update the indexes for the provided documents.
+
+        Args:
+            documents (Iterable[dict[str, any]]): An iterable of documents to update the indexes for.
+            **kwargs: Additional keyword arguments that may be used for updating the indexes.
+        """
         for document in documents:
             self._update_index(document, **kwargs)
 
     def _update_index(self, atom: dict[str, Any] | None, **kwargs) -> None:
+        """
+        Update the index for the provided atom.
+
+        Args:
+            atom (dict[str, Any] | None): The atom document to update the index for.
+            **kwargs: Additional keyword arguments that may be used for updating the index.
+                - delete_atom (bool): If True, the atom will be deleted from the index.
+
+        Raises:
+            AtomDoesNotExist: If the atom does not exist when attempting to delete it.
+        """
         if kwargs.get("delete_atom", False):
             if atom is None:
                 raise AtomDoesNotExist("Nonexistent atom")
