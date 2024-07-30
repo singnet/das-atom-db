@@ -2,13 +2,7 @@ import pytest
 
 from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    AtomDoesNotExist,
-    LinkDoesNotExist,
-    NodeDoesNotExist,
-)
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 
@@ -234,10 +228,10 @@ class TestInMemoryDB:
         assert expected == actual
 
     def test_get_node_handle_not_exist(self, database: InMemoryDB):
-        with pytest.raises(NodeDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_node_handle(node_type="Concept-Fake", node_name="fake")
-        assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent node"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_link_handle(self, database: InMemoryDB):
         human = database.get_node_handle('Concept', 'human')
@@ -247,10 +241,10 @@ class TestInMemoryDB:
         assert expected == actual
 
     def test_get_link_handle_not_exist(self, database: InMemoryDB):
-        with pytest.raises(LinkDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_link_handle(link_type='Singularity', target_handles=['Fake-1', 'Fake-2'])
-        assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent link"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_node_exists_true(self, database: InMemoryDB):
         ret = database.node_exists(node_type="Concept", node_name="human")
@@ -278,10 +272,10 @@ class TestInMemoryDB:
         assert ret is not None
 
     def test_get_link_targets_invalid(self, database: InMemoryDB):
-        with pytest.raises(LinkDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_link_targets('link_handle_Fake')
-        assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent link"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_is_ordered_true(self, database: InMemoryDB):
         human = database.get_node_handle('Concept', 'human')
@@ -291,11 +285,11 @@ class TestInMemoryDB:
         assert ret is True
 
     def test_is_ordered_false(self, database: InMemoryDB):
-        with pytest.raises(LinkDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.is_ordered('handle_123')
 
-        assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent link"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_matched_links_without_wildcard(self, database):
         link_type = 'Similarity'
@@ -351,10 +345,10 @@ class TestInMemoryDB:
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = 'Similarity-Fake'
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
-        with pytest.raises(LinkDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_matched_links(link_type, [chimp, chimp])
-        assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent link"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
         database.add_link(
@@ -534,10 +528,10 @@ class TestInMemoryDB:
         assert db_name == 'monkey'
 
     def test_get_node_name_error(self, database):
-        with pytest.raises(NodeDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_node_name('handle-test')
-        assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent node"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_node_type(self, database):
         handle = database.get_node_handle('Concept', 'monkey')
@@ -546,10 +540,10 @@ class TestInMemoryDB:
         assert db_type == 'Concept'
 
     def test_get_node_type_error(self, database):
-        with pytest.raises(NodeDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_node_type('handle-test')
-        assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent node"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_matched_node_name(self, database: InMemoryDB):
         expected = sorted(

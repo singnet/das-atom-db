@@ -10,7 +10,7 @@ from redis import Redis
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames
-from hyperon_das_atomdb.exceptions import LinkDoesNotExist, NodeDoesNotExist
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 
@@ -146,10 +146,10 @@ class TestRedisMongoDB:
         node_type = 'Fake'
         node_name = 'Fake2'
 
-        with pytest.raises(NodeDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_node_handle(node_type, node_name)
-        assert exc_info.type is NodeDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent node"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_link_handle(self, database: RedisMongoDB):
         human = ExpressionHasher.terminal_hash('Concept', 'human')
@@ -163,10 +163,10 @@ class TestRedisMongoDB:
         brazil = ExpressionHasher.terminal_hash('Concept', 'brazil')
         travel = ExpressionHasher.terminal_hash('Concept', 'travel')
 
-        with pytest.raises(LinkDoesNotExist) as exc_info:
+        with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_link_handle(link_type='Similarity', target_handles=[brazil, travel])
-        assert exc_info.type is LinkDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent link"
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
 
     def test_get_link_targets(self, database: RedisMongoDB):
         human = database.get_node_handle('Concept', 'human')
