@@ -183,6 +183,25 @@ class AtomDB(ABC):
     def _add_link(
         self, link_params: dict[str, Any], toplevel: bool = True
     ) -> tuple[str, dict[str, Any], list[str]]:
+        """
+        Add a link to the database with the specified parameters.
+
+        Args:
+            link_params (dict[str, Any]): A dictionary containing link parameters.
+                It should have the following keys:
+                - 'type': The type of the link.
+                - 'targets': A list of target elements.
+            toplevel (bool): A boolean flag to indicate toplevel links, i.e., links
+                which are not nested inside other links. Defaults to True.
+
+        Returns:
+            tuple[str, dict[str, Any], list[str]]: A tuple containing the handle of
+            the link, the link dictionary, and a list of target hashes.
+
+        Raises:
+            AddLinkException: If the 'type' or 'targets' fields are missing in
+            link_params.
+        """
         reserved_parameters = [
             'handle',
             '_id',
@@ -688,12 +707,7 @@ class AtomDB(ABC):
 
     @abstractmethod
     def clear_database(self) -> None:
-        """
-        Clear the entire database, removing all data.
-
-        Returns:
-            None
-        """
+        """Clear the entire database, removing all data."""
 
     @abstractmethod
     def add_node(self, node_params: dict[str, Any]) -> dict[str, Any]:
@@ -898,9 +912,6 @@ class AtomDB(ABC):
         Args:
             documents (list[dict[str, Any]]): A list of dictionaries, each representing
                 a document to be inserted into the database.
-
-        Returns:
-            None
         """
 
     @abstractmethod
