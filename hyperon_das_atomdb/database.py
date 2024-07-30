@@ -142,11 +142,15 @@ class AtomDB(ABC):
         if kwargs.get('targets_document', False):
             targets_document = [self.get_atom(target) for target in answer['targets']]
             return answer, targets_document
+        elif kwargs.get('deep_representation', False):
 
-        if kwargs.get('deep_representation', False):
+            def _recursive_targets(targets, **_kwargs):
+                return [self.get_atom(target, **_kwargs) for target in targets]
+
             if 'targets' in answer:
-                deep_targets = [self.get_atom(target, **kwargs) for target in answer['targets']]
+                deep_targets = _recursive_targets(answer['targets'], **kwargs)
                 answer['targets'] = deep_targets
+
             return answer
 
         return answer
