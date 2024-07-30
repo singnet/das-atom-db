@@ -1,3 +1,11 @@
+"""
+This module provides utility functions for hashing expressions and generating unique identifiers.
+
+It includes classes for computing hashes of various types of expressions, such as named types,
+terminals, and composite expressions. The module uses the MD5 hashing algorithm to generate
+hashes and provides methods for creating composite hashes from lists of elements.
+"""
+
 from hashlib import md5
 from typing import Any, List
 
