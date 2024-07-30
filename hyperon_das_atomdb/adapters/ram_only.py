@@ -24,7 +24,7 @@ from hyperon_das_atomdb.database import (
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from hyperon_das_atomdb.utils.patterns import build_patern_keys
+from hyperon_das_atomdb.utils.patterns import build_pattern_keys
 
 
 @dataclass
@@ -159,7 +159,7 @@ class InMemoryDB(AtomDB):
             template_named_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
     def _add_patterns(self, named_type_hash: str, key: str, targets_hash: list[str]) -> None:
-        pattern_keys = build_patern_keys([named_type_hash, *targets_hash])
+        pattern_keys = build_pattern_keys([named_type_hash, *targets_hash])
 
         for pattern_key in pattern_keys:
             pattern_key_hash = self.db.patterns.get(pattern_key)
@@ -169,7 +169,7 @@ class InMemoryDB(AtomDB):
                 self.db.patterns[pattern_key] = {(key, tuple(targets_hash))}
 
     def _delete_patterns(self, link_document: dict, targets_hash: list[str]) -> None:
-        pattern_keys = build_patern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
+        pattern_keys = build_pattern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
         for pattern_key in pattern_keys:
             pattern = self.db.patterns.get(pattern_key, set())
             if len(pattern) > 0:
