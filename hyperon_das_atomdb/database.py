@@ -1,7 +1,30 @@
+"""
+This module defines the abstract base class for Atom databases and provides various
+utility methods for managing nodes and links.
+
+The AtomDB class includes methods for adding, deleting, and retrieving nodes and links,
+as well as methods for querying the database by different criteria. It also supports
+indexing and pattern matching for efficient querying.
+
+Classes:
+    AtomDB: An abstract base class for Atom databases, providing a common interface
+        for different implementations.
+    FieldNames: An enumeration of field names used in the database.
+    FieldIndexType: An enumeration of index types used in the database.
+
+Constants:
+    WILDCARD: A constant representing a wildcard character.
+    UNORDERED_LINK_TYPES: A list of unordered link types.
+
+Type Aliases:
+    IncomingLinksT: A type alias for incoming links.
+"""
+
 import re
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from enum import Enum
-from typing import Any, Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, TypeAlias
 
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
@@ -9,10 +32,14 @@ from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 WILDCARD = '*'
 UNORDERED_LINK_TYPES = []
 
-IncomingLinksT = Union[str, dict, Tuple[dict, list]]
+IncomingLinksT: TypeAlias = (  # pylint: disable=invalid-name
+    str | dict[str, Any] | tuple[dict[str, Any], list[Any]]
+)
 
 
 class FieldNames(str, Enum):
+    """Enumeration of field names used in the AtomDB."""
+
     ID_HASH = '_id'
     COMPOSITE_TYPE = 'composite_type'
     COMPOSITE_TYPE_HASH = 'composite_type_hash'
@@ -25,11 +52,17 @@ class FieldNames(str, Enum):
 
 
 class FieldIndexType(str, Enum):
+    """Enumeration of index types used in the AtomDB."""
+
     BINARY_TREE = 'binary_tree'
     TOKEN_INVERTED_LIST = 'token_inverted_list'
 
 
 class AtomDB(ABC):
+    """
+    Abstract class for Atom databases.
+    """
+
     key_pattern = re.compile(r"key_\d+")
 
     def __repr__(self) -> str:
@@ -41,16 +74,61 @@ class AtomDB(ABC):
 
     @staticmethod
     def node_handle(node_type: str, node_name: str) -> str:
+        """
+        Generate a unique handle for a node based on its type and name.
+
+        Args:
+            node_type (str): The type of the node.
+            node_name (str): The name of the node.
+
+        Returns:
+            str: A unique handle for the node.
+        """
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
     @staticmethod
-    def link_handle(link_type: str, target_handles: List[str]) -> str:
+    def link_handle(link_type: str, target_handles: list[str]) -> str:
+        """
+        Generate a unique handle for a link based on its type and target handles.
+
+        Args:
+            link_type (str): The type of the link.
+            target_handles (list[str]): A list of target handles for the link.
+
+        Returns:
+            str: A unique handle for the link.
+        """
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
     def _transform_to_target_format(
-        self, document: Dict[str, Any], **kwargs
-    ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
+        self, document: dict[str, Any], **kwargs
+    ) -> (
+        dict[str, Any]
+        | tuple[
+            dict[str, Any],
+            list[
+                dict[str, Any]
+                | tuple[dict[str, Any], list[dict[str, Any]]]
+                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+            ],
+        ]  # TODO(angelo,andre): simplify this return type
+    ):
+        """
+        Transform a document to the target format.
+
+        Args:
+            document (dict[str, Any]): The document to transform.
+            **kwargs: Additional keyword arguments for transformation options.
+
+        Returns:
+            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]] |
+            tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]:
+            The transformed document in the target format. If 'targets_document'
+            is True, returns a tuple with the document and its targets. If
+            'deep_representation' is True, returns a deep representation of the
+            document and its targets.
+        """
         answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
@@ -66,8 +144,8 @@ class AtomDB(ABC):
             return answer, targets_document
         elif kwargs.get('deep_representation', False):
 
-            def _recursive_targets(targets, **kwargs):
-                return [self.get_atom(target, **kwargs) for target in targets]
+            def _recursive_targets(targets, **_kwargs):
+                return [self.get_atom(target, **_kwargs) for target in targets]
 
             if 'targets' in answer:
                 deep_targets = _recursive_targets(answer['targets'], **kwargs)
@@ -77,18 +155,38 @@ class AtomDB(ABC):
 
         return answer
 
-    def _recursive_link_split(self, params: Dict[str, Any]) -> Tuple[str, Any]:
-        name = params.get('name')
-        atom_type = params['type']
-        if name:
-            return (self.node_handle(atom_type, name), atom_type)
-        targets, composite_type = [
-            self._recursive_link_handle(target) for target in params['target']
-        ]
-        composite_type.insert(0, atom_type)
-        return (self.link_handle(atom_type, targets), composite_type)
+    # _recursive_link_split is not called anywhere in the code and
+    # self._recursive_link_handle is not defined in the class
+    # TODO(angelo,andre): remove this method or implement self._recursive_link_handle?
+    # def _recursive_link_split(self, params: dict[str, Any]) -> tuple[str, Any]:
+    #     name = params.get('name')
+    #     atom_type = params['type']
+    #     if name:
+    #         return self.node_handle(atom_type, name), atom_type
+    #     targets, composite_type = [
+    #         self._recursive_link_handle(target) for target in params['target']
+    #     ]
+    #     composite_type.insert(0, atom_type)
+    #     return self.link_handle(atom_type, targets), composite_type
 
-    def _add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+    def _add_node(self, node_params: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        """
+        Add a node to the database with the specified parameters.
+
+        Args:
+            node_params (dict[str, Any]): A dictionary containing node parameters.
+                It should have the following keys:
+                - 'type': The type of the node.
+                - 'name': The name of the node.
+
+        Returns:
+            tuple[str, dict[str, Any]]: A tuple containing the handle of the node
+            and the node dictionary.
+
+        Raises:
+            AddNodeException: If the 'type' or 'name' fields are missing in
+            node_params.
+        """
         reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
 
         valid_params = {
@@ -101,7 +199,7 @@ class AtomDB(ABC):
         if node_type is None or node_name is None:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
-                details=valid_params,
+                details=f"{valid_params=}",
             )
 
         handle = self.node_handle(node_type, node_name)
@@ -116,9 +214,30 @@ class AtomDB(ABC):
         node.update(valid_params)
         node.pop('type')
 
-        return (handle, node)
+        return handle, node
 
-    def _add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+    def _add_link(
+        self, link_params: dict[str, Any], toplevel: bool = True
+    ) -> tuple[str, dict[str, Any], list[str]]:
+        """
+        Add a link to the database with the specified parameters.
+
+        Args:
+            link_params (dict[str, Any]): A dictionary containing link parameters.
+                It should have the following keys:
+                - 'type': The type of the link.
+                - 'targets': A list of target elements.
+            toplevel (bool): A boolean flag to indicate toplevel links, i.e., links
+                which are not nested inside other links. Defaults to True.
+
+        Returns:
+            tuple[str, dict[str, Any], list[str]]: A tuple containing the handle of
+            the link, the link dictionary, and a list of target hashes.
+
+        Raises:
+            AddLinkException: If the 'type' or 'targets' fields are missing in
+            link_params.
+        """
         reserved_parameters = [
             'handle',
             '_id',
@@ -142,7 +261,7 @@ class AtomDB(ABC):
         if link_type is None or targets is None:
             raise AddLinkException(
                 message='The "type" and "targets" fields must be sent',
-                details=valid_params,
+                details=f"{valid_params=}",
             )
 
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -182,7 +301,7 @@ class AtomDB(ABC):
         link.pop('type')
         link.pop('targets')
 
-        return (handle, link, targets_hash)
+        return handle, link, targets_hash
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
         """
@@ -201,13 +320,13 @@ class AtomDB(ABC):
         except AtomDoesNotExist:
             return False
 
-    def link_exists(self, link_type: str, target_handles: List[str]) -> bool:
+    def link_exists(self, link_type: str, target_handles: list[str]) -> bool:
         """
         Check if a link with the specified type and targets exists in the database.
 
         Args:
             link_type (str): The link type.
-            targets (List[str]): A list of link target identifiers.
+            target_handles (list[str]): A list of link target identifiers.
 
         Returns:
             bool: True if the link exists, False otherwise.
@@ -230,7 +349,6 @@ class AtomDB(ABC):
         Returns:
             str: The node handle.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_node_name(self, node_handle: str) -> str:
@@ -243,7 +361,6 @@ class AtomDB(ABC):
         Returns:
             str: The node name.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_node_type(self, node_handle: str) -> str:
@@ -256,7 +373,6 @@ class AtomDB(ABC):
         Returns:
             str: The node type.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_node_by_name(self, node_type: str, substring: str) -> str:
@@ -270,126 +386,142 @@ class AtomDB(ABC):
         Returns:
             str: The name of the matching node.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_atoms_by_field(self, query: List[OrderedDict[str, str]]) -> List[str]:
+    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
         """
         Query the database by field and value, the performance is improved if the database already
         have indexes created for the fields, check 'create_field_index' to create indexes.
         Ordering the fields as the index previously created can improve performance.
 
         Args:
-            query (List[Dict[str, str]]): List of dicts containing 'field' and 'value' keys
+            query (list[dict[str, str]]): list of dicts containing 'field' and 'value' keys
 
         Returns:
-            List[str]: List of node IDs
+            list[str]: list of node IDs
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_atoms_by_index(
         self,
         index_id: str,
-        query: List[OrderedDict[str, str]],
-        cursor: Optional[int] = 0,
-        chunk_size: Optional[int] = 500,
-    ) -> List[str]:
+        query: list[OrderedDict[str, str]],
+        cursor: int | None = 0,
+        chunk_size: int | None = 500,
+    ) -> list[str]:
         """
-        Query the database and return all atoms by a given index id, filtering the atoms by the query
-        dict.
+        Queries the database to return all atoms matching a specific index ID, filtering
+        the results based on the provided query dictionary. This method is useful for
+        efficiently retrieving atoms that match certain criteria, especially when the
+        database has been indexed using the `create_field_index` function.
 
         Args:
-            index_id (str): Index ID created by the function 'create_field_index'
-            query (List[Dict[str, str]]): List of dicts containing 'field' and 'value' keys
+            index_id (str): The ID of the index to query against. This index should have
+                been created previously using the `create_field_index` method.
+            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each
+                containing a "field" and "value" key, representing the criteria for
+                filtering atoms.
+            cursor (int | None): An optional cursor indicating the starting point
+                within the result set from which to return atoms. This can be used for
+                pagination or to resume a previous query. If not provided, the query
+                starts from the beginning.
+            chunk_size (int | None): An optional size indicating the maximum number
+                of atom IDs to return in one response. Useful for controlling response
+                size and managing large datasets. If not provided, a default value is
+                used.
 
         Returns:
-            List[str]: List of node IDs
+            list[str]: A list of atom IDs that match the query criteria, filtered by the
+                specified index. The atoms are returned as a list of their unique
+                identifiers (IDs).
+
+        Note:
+            The `cursor` and `chunk_size` parameters are particularly useful for handling
+            large datasets by allowing the retrieval of results in manageable chunks
+            rather than all at once.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_atoms_by_text_field(
         self,
         text_value: str,
-        field: Optional[str] = None,
-        text_index_id: Optional[str] = None,
-    ) -> List[str]:
+        field: str | None = None,
+        text_index_id: str | None = None,
+    ) -> list[str]:
         """
-        Query the database by a text field, use the text_value arg to query using a existing text
+        Query the database by a text field, use the text_value arg to query using an existing text
         index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously
-        created the field arg must be provided or it will raise an Exception.
-        When 'text_value' and 'field' value are provided, it will defaults to a regex search,
-        creating a index to the field can improve the performance.
+        created the field arg must be provided, or it will raise an Exception.
+        When 'text_value' and 'field' value are provided, it will default to a regex search,
+        creating an index to the field can improve the performance.
 
         Args:
             text_value (str): Value to search for, if only this argument is provided it will use
                 a TOKEN_INVERTED_LIST index in the search
-            field (Optional[str]): Field to be used to search, if this argument is provided
+            field (str | None): Field to be used to search, if this argument is provided
                 it will not use TOKEN_INVERTED_LIST in the search
-            text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
+            text_index_id (str | None): TOKEN_INVERTED_LIST index id to search for
 
 
         Returns:
-            List[str]: List of node IDs ordered by the closest match
+            list[str]: list of node IDs ordered by the closest match
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
         """
         Query the database by node name starting with 'startswith' value, this query is indexed
-        and the performance is improved by searching only the index that starts with the requested value
+        and the performance is improved by searching only the index that starts with the
+        requested value.
 
         Args:
             node_type (str): _description_
             startswith (str): _description_
 
         Returns:
-            List[str]: List of node IDs
+            list[str]: list of node IDs
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_all_nodes(self, node_type: str, names: bool = False) -> List[str]:
+    def get_all_nodes(self, node_type: str, names: bool = False) -> list[str]:
         """
         Get all nodes of a specific type.
 
         Args:
             node_type (str): The node type.
-            names (bool, optional): If True, return node names instead of handles. Default is False.
+            names (bool): If True, return node names instead of handles. Default is False.
 
         Returns:
-            List[str]: A list of node handles or names, depending on the value of 'names'.
+            list[str]: A list of node handles or names, depending on the value of 'names'.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_all_links(self, link_type: str, **kwargs) -> Union[List[str], Tuple[int, List[str]]]:
+    def get_all_links(self, link_type: str, **kwargs) -> list[str] | tuple[int, list[str]]:
         """
-        Get all link of a specific type.
+        Get all links of a specific type.
 
         Args:
-            link_type (str): The link type.
+            link_type (str): The type of the link.
+            **kwargs: Additional arguments that may be used for filtering or
+                other purposes.
 
         Returns:
-            Union[List[str], Tuple[int, List[str]]]: A list of link handles or a tuple containing the cursor number and the list of link handles.
+            list[str] | tuple[int, list[str]]: A list of link handles or a tuple
+                containing an integer and a list of link handles.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_link_handle(self, link_type: str, target_handles: List[str]) -> str:
+    def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
         """
         Get the handle of the link with the specified type and targets.
 
         Args:
             link_type (str): The link type.
-            target_handles (List[str]): A list of link target identifiers.
+            target_handles (list[str]): A list of link target identifiers.
 
         Returns:
             str: The link handle.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_link_type(self, link_handle: str) -> str:
@@ -402,10 +534,9 @@ class AtomDB(ABC):
         Returns:
             str: The link type.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_link_targets(self, link_handle: str) -> List[str]:
+    def get_link_targets(self, link_handle: str) -> list[str]:
         """
         Get the target handles of a link specified by its handle.
 
@@ -413,9 +544,8 @@ class AtomDB(ABC):
             link_handle (str): The link handle.
 
         Returns:
-            List[str]: A list of target identifiers of the link.
+            list[str]: A list of target identifiers of the link.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def is_ordered(self, link_handle: str) -> bool:
@@ -428,129 +558,195 @@ class AtomDB(ABC):
         Returns:
             bool: True if the link is ordered, False otherwise.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_matched_links(
-        self, link_type: str, target_handles: List[str], **kwargs
-    ) -> Union[tuple, list]:
+        self, link_type: str, target_handles: list[str], **kwargs
+    ) -> (
+        list[str]
+        | list[list[str]]
+        | list[tuple[str, tuple[str, ...]]]
+        | tuple[int, list[str]]
+        | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
+    ):
         """
-        Get links that match the specified type and targets.
+        Retrieve links that match a specified link type and target handles.
 
         Args:
-            link_type (str): The link type.
-            target_handles (List[str]): A list of link target identifiers.
+            link_type (str): The type of the link to match.
+            target_handles (list[str]): A list of target handles to match.
+            **kwargs: Additional arguments that may be used for filtering or other
+                purposes.
 
         Returns:
-            [return-type]: The return type description (not specified in the code).
+            list[str] | list[list[str]] | list[tuple[str, tuple[str, ...]]] |
+            tuple[int, list[str]] | tuple[int, list[list[str]]]: A list of matching
+            link handles, a list of lists of matching link handles, a list of
+            tuples containing link handles and their targets, or a tuple containing
+            an integer and a list of matching link handles or lists of matching
+            link handles.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> List[Any]:
-        """Get all links pointing to Atom
+    def get_incoming_links(
+        self, atom_handle: str, **kwargs
+    ) -> tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]:
+        """
+        Retrieve incoming links for a specified atom handle.
 
         Args:
-            atom_handle (str): The atom handle
+            atom_handle (str): The handle of the atom for which to retrieve incoming links.
+            **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            List[Any]: A list of handles or documents or tuple
+            tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]: A tuple containing the count of
+            incoming links and a list of incoming links, or just a list of incoming links.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_type_template(self, template: List[Any], **kwargs) -> Union[tuple, list]:
+    def get_matched_type_template(
+        self, template: list[Any], **kwargs
+    ) -> (
+        list[tuple[str, tuple[str, ...]]]
+        | tuple[int, list[str] | list[str]]
+        | list[str]
+        | list[str]  # TODO(angelo): simplify this return type
+    ):
         """
-        Get nodes that match a specified template.
+        Retrieve links that match a specified type template.
 
         Args:
-            template (List[Any]): A list of template parameters (parameter type not specified in the code).
+            template (list[Any]): A list representing the type template to match.
+            **kwargs: Additional arguments that may be used for filtering or other
+                purposes.
 
         Returns:
-            List[str]: A list of identifiers of nodes matching the template.
+            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str] | list[str]] |
+            list[str] | list[str]: A list of tuples containing link handles and their
+            targets, a tuple containing an integer and a list of link handles or lists
+            of link handles, or a list of matching link handles.
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def get_matched_type(self, link_type: str, **kwargs) -> Union[tuple, list]:
+    def get_matched_type(
+        self, link_type: str, **kwargs
+    ) -> (
+        list[tuple[str, tuple[str, ...]]]
+        | tuple[int, list[str] | list[str]]
+        | list[str]
+        | list[str]  # TODO(angelo): simplify this return type
+    ):
         """
-        Get links that match a specified link type.
+        Retrieve links that match a specified link type.
 
         Args:
-            link_type (str): The link type.
+            link_type (str): The type of the link to match.
+            **kwargs: Additional arguments that may be used for filtering or other
+                purposes.
 
         Returns:
-            [return-type]: The return type description (not specified in the code).
+            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str] | list[str]] |
+            list[str] | list[str]: A list of tuples containing link handles and their
+            targets, a tuple containing an integer and a list of link handles or lists
+            of link handles, or a list of matching link handles.
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def get_atom(
         self, handle: str, **kwargs
-    ) -> Union[Tuple[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]]:
-        ...  # pragma no cover
+    ) -> (
+        dict[str, Any]
+        | tuple[
+            dict[str, Any],
+            list[
+                dict[str, Any]
+                | tuple[dict[str, Any], list[dict[str, Any]]]
+                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+            ],
+        ]  # TODO(angelo,andre): simplify this return type
+    ):
+        """
+        Retrieve an atom by its handle.
+
+        Args:
+            handle (str): The handle of the atom to retrieve.
+            **kwargs: Additional arguments that may be used for filtering or other
+                purposes.
+
+        Returns:
+            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]] |
+            tuple[dict[str, Any], list[tuple[dict, list]]]: A dictionary
+            representation of the atom, a tuple containing the atom dictionary and
+            a list of atom dictionaries, or a tuple containing the atom dictionary
+            and a list of tuples with atom dictionaries and lists.
+        """
 
     @abstractmethod
     def get_atom_type(self, handle: str) -> str:
-        ...  # pragma no cover
+        """
+        Retrieve the atom's type by its handle.
 
-    def get_atom_as_dict(self, handle: str, arity: int):
+        Args:
+            handle (str): The handle of the atom to retrieve the type for.
+
+        Returns:
+            str: The type of the atom.
+        """
+
+    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
         """
         Get an atom as a dictionary representation.
 
         Args:
             handle (str): The atom handle.
-            arity (int): The arity of the atom.
+            arity (int | None): The arity of the atom. Defaults to 0.
 
         Returns:
-            [return-type]: The return type description (not specified in the code).
+            dict[str, Any]: A dictionary representation of the atom.
         """
-        ...  # pragma no cover
 
-    def get_atom_as_deep_representation(self, handle: str, arity: int):
-        """
-        Get an atom as a deep representation.
-
-        Args:
-            handle (str): The atom handle.
-            arity (int): The arity of the atom.
-
-        Returns:
-            [return-type]: The return type description (not specified in the code).
-        """
-        ...  # pragma no cover
+    # this method is not called anywhere in the code
+    # TODO(angelo,andre): remove this method?
+    # def get_atom_as_deep_representation(self, handle: str, arity: int):
+    #     """
+    #     Get an atom as a deep representation.
+    #
+    #     Args:
+    #         handle (str): The atom handle.
+    #         arity (int): The arity of the atom.
+    #
+    #     Returns:
+    #         [return-type]: The return type description (not specified in the code).
+    #     """
+    #     ...  # pragma no cover
 
     @abstractmethod
-    def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+    def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         """
         Count the total number of atoms in the database.
-        If the optional parameter 'precise' is set to True returns the node count and link count (slow), otherwise
-        return the atom_count.
+        If the optional parameter 'precise' is set to True returns the node count and link count
+        (slow), otherwise return the atom_count (fast).
 
         Args:
-            parameters (Optional[Dict[str, Any]]): An optional dictionary containing the following key:
-                'precise' (bool, optional)  If set to True, the count provides an accurate count but may be slower.
-                If set to False, the count will be an estimate, which is faster but less precise.
-                Defaults to None.
+            parameters (dict[str, Any] | None): An optional dictionary containing the
+                following key:
+                    'precise' (bool)  If set to True, the count provides an accurate count
+                    but may be slower. If set to False, the count will be an estimate, which is
+                    faster but less precise. Defaults to None.
 
         Returns:
-            Dict[str, int]:A dictionary containing the following keys: 'node_count' (int): The count of node atoms;
-                'link_count' (int): The count of link atoms; 'atom_count' (int): The total count of all atoms;
+            dict[str, int]: A dictionary containing the following keys:
+                'node_count' (int): The count of node atoms
+                'link_count' (int): The count of link atoms
+                'atom_count' (int): The total count of all atoms
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def clear_database(self) -> None:
-        """
-        Clear the entire database, removing all data.
-
-        Returns:
-            None
-        """
-        ...  # pragma no cover
+        """Clear the entire database, removing all data."""
 
     @abstractmethod
-    def add_node(self, node_params: Dict[str, Any]) -> Dict[str, Any]:
+    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any]:
         """
         Adds a node to the database.
 
@@ -559,13 +755,13 @@ class AtomDB(ABC):
         'name' fields in the node_params dictionary.
 
         Args:
-            node_params (Dict[str, Any]): A dictionary containing
+            node_params (dict[str, Any]): A dictionary containing
                 node parameters. It should have the following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
         Returns:
-            Dict[str, Any]: The information about the added node,
+            dict[str, Any]: The information about the added node,
             including its unique key and other details.
 
         Raises:
@@ -585,10 +781,9 @@ class AtomDB(ABC):
                 }
             >>> db.add_node(node_params)
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def add_link(self, link_params: Dict[str, Any], toplevel: bool = True) -> Dict[str, Any]:
+    def add_link(self, link_params: dict[str, Any], toplevel: bool = True) -> dict[str, Any]:
         """
         Adds a link to the database.
 
@@ -598,7 +793,7 @@ class AtomDB(ABC):
             in the link_params dictionary.
 
         Args:
-            link_params (Dict[str, Any]): A dictionary containing
+            link_params (dict[str, Any]): A dictionary containing
                 link parameters.
                 It should have the following keys:
                 - 'type': The type of the link.
@@ -607,7 +802,7 @@ class AtomDB(ABC):
                 i.e. links which are not nested inside other links.
 
         Returns:
-            Dict[str, Any]: The information about the added link,
+            dict[str, Any]: The information about the added link,
                 including its unique key and other details.
 
         Raises:
@@ -648,16 +843,15 @@ class AtomDB(ABC):
                 }
             >>> db.add_link(link_params)
         """
-        ...  # pragma no cover
 
     @abstractmethod
-    def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
+    def reindex(self, pattern_index_templates: dict[str, dict[str, Any]] | None = None) -> None:
         """
         Reindex inverted pattern index according to passed templates.
 
         Args:
-            pattern_index_templates: indexes are specified by atom type in a dict mapping from atom types
-                to a pattern template:
+            pattern_index_templates: indexes are specified by atom type in a dict mapping from atom
+                types to a pattern template:
 
                 {
                     <atom type>: <pattern template>
@@ -666,25 +860,26 @@ class AtomDB(ABC):
                 Pattern template is also a dict:
 
                 {
-                    "named_type": True/False
-                    "selected_positions": [n1, n2, ...]
+                    "named_type": True/False,
+                    "selected_positions": [n1, n2, ...],
                 }
 
-                Pattern templates are applied to each link entered in the atom space in order to determine
-                which entries should be created in the inverted pattern index. Entries in the inverted
-                pattern index are like patterns where the link type and each of its targets may be replaced
-                by wildcards. For instance, given a similarity link Similarity(handle1, handle2) it could be
-                used to create any of the following entries in the inverted pattern index:
+                Pattern templates are applied to each link entered in the atom space in order to
+                determine which entries should be created in the inverted pattern index. Entries
+                in the inverted pattern index are like patterns where the link type and each of
+                its targets may be replaced by wildcards. For instance, given a similarity link
+                Similarity(handle1, handle2) it could be used to create any of the following
+                entries in the inverted pattern index:
 
                     *(handle1, handle2)
                     Similarity(*, handle2)
                     Similarity(handle1, *)
                     Similarity(*, *)
 
-                If we create all possibilities of index entries to all links, the pattern index size will
-                grow exponentially so we limit the entries we want to create by each type of link. This is
-                what a pattern template for a given link type is. For instance if we apply this pattern
-                template:
+                If we create all possibilities of index entries to all links, the pattern index size
+                will grow exponentially, so we limit the entries we want to create by each type of
+                link. This is what a pattern template for a given link type is. For instance if
+                we apply this pattern template:
 
                 {
                     "named_type": False
@@ -709,32 +904,72 @@ class AtomDB(ABC):
                     *(handle1, handle2)
                     Similarity(handle1, *)
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def delete_atom(self, handle: str, **kwargs) -> None:
-        """Delete a atom to the database
+        """Delete an atom from the database
 
         Args:
             handle (str): Atom handle
+
+        Raises:
+            AtomDoesNotExist: If the atom does not exist
         """
-        ...  # pragma no cover
 
     @abstractmethod
     def create_field_index(
         self,
         atom_type: str,
-        fields: List[str],
-        named_type: Optional[str] = None,
-        composite_type: Optional[List[Any]] = None,
-        index_type: Optional[FieldIndexType] = None,
+        fields: list[str],
+        named_type: str | None = None,
+        composite_type: list[Any] | None = None,
+        index_type: FieldIndexType | None = None,
     ) -> str:
-        ...  # pragma no cover
+        """
+        Create an index for the specified fields in the database.
+
+        Args:
+            atom_type (str): The type of the atom for which the index is created.
+            fields (list[str]): A list of fields to be indexed.
+            named_type (str | None): The named type of the atom. Defaults to None.
+            composite_type (list[Any] | None): A list representing the composite type of
+                the atom. Defaults to None.
+            index_type (FieldIndexType | None): The type of the index to create. Defaults to None.
+
+        Returns:
+            str: The ID of the created index.
+        """
 
     @abstractmethod
-    def bulk_insert(self, documents: List[Dict[str, Any]]) -> None:
-        ...  # pragma no cover
+    def bulk_insert(self, documents: list[dict[str, Any]]) -> None:
+        """
+        Insert multiple documents into the database.
+
+        Args:
+            documents (list[dict[str, Any]]): A list of dictionaries, each representing
+                a document to be inserted into the database.
+        """
 
     @abstractmethod
-    def retrieve_all_atoms(self) -> List[Dict[str, Any]]:
-        ...  # pragma no cover
+    def retrieve_all_atoms(self) -> list[dict[str, Any]] | list[tuple[str, Any]]:
+        """
+        Retrieve all atoms from the database.
+
+        Returns:
+            list[dict[str, Any]] | list[tuple[str, Any]]: A list of dictionaries representing
+            the atoms, or a list of tuples containing atom handles and their associated data.
+        """
+
+    @abstractmethod
+    def commit(self, **kwargs) -> None:
+        """Commit the current state of the database.
+
+        This method is intended to be implemented by subclasses to handle the
+        commit operation, which may involve persisting changes to a storage
+        backend or performing other necessary actions to finalize the current
+        state of the database.
+
+        Args:
+            **kwargs: Additional keyword arguments that may be used by the
+                implementation of the commit operation.
+        """
