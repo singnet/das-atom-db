@@ -26,12 +26,7 @@ from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias
 
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    LinkDoesNotExist,
-    NodeDoesNotExist,
-)
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = '*'
@@ -267,7 +262,7 @@ class AtomDB(ABC):
         try:
             self.get_node_handle(node_type, node_name)
             return True
-        except NodeDoesNotExist:
+        except AtomDoesNotExist:
             return False
 
     def link_exists(self, link_type: str, target_handles: list[str]) -> bool:
@@ -284,7 +279,7 @@ class AtomDB(ABC):
         try:
             self.get_link_handle(link_type, target_handles)
             return True
-        except LinkDoesNotExist:
+        except AtomDoesNotExist:
             return False
 
     @abstractmethod

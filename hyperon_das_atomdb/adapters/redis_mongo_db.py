@@ -34,8 +34,6 @@ from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
     ConnectionMongoDBException,
     InvalidOperationException,
-    LinkDoesNotExist,
-    NodeDoesNotExist,
 )
 from hyperon_das_atomdb.index import Index
 from hyperon_das_atomdb.logger import logger
@@ -377,8 +375,8 @@ class RedisMongoDB(AtomDB):
                 f'Failed to retrieve node handle for {node_type}:{node_name}. '
                 f'This node may not exist.'
             )
-            raise NodeDoesNotExist(
-                message="Nonexistent node",
+            raise AtomDoesNotExist(
+                message="Nonexistent atom",
                 details=f"{node_type}:{node_name}",
             )
 
@@ -505,8 +503,8 @@ class RedisMongoDB(AtomDB):
                 f'Failed to retrieve link handle for {link_type}:{target_handles}. '
                 'This link may not exist.'
             )
-            raise LinkDoesNotExist(
-                message="Nonexistent link",
+            raise AtomDoesNotExist(
+                message="Nonexistent atom",
                 details=f"{link_type}:{target_handles}",
             )
 
@@ -545,7 +543,7 @@ class RedisMongoDB(AtomDB):
                 if kwargs.get('cursor') is not None:
                     return 0, [link_handle]
                 return [link_handle]
-            except LinkDoesNotExist:
+            except AtomDoesNotExist:
                 if kwargs.get('cursor') is not None:
                     return 0, []
                 return []

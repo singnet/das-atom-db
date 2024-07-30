@@ -5,7 +5,7 @@ Persistence layer for Distributed AtomSpace
 ## Installation
 
 This package requires:
-[python](https://www.python.org/) >= 3.8.5 to run.
+[python](https://www.python.org/) >= 3.10 to run.
 
 #### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das/). If you want, you can install using the pip command
 

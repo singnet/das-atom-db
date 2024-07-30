@@ -17,14 +17,6 @@ class ConnectionMongoDBException(AtomDbBaseException):
     """Exception raised for errors in the connection to MongoDB."""
 
 
-class NodeDoesNotExist(AtomDbBaseException):
-    """Exception raised when a node does not exist."""
-
-
-class LinkDoesNotExist(AtomDbBaseException):
-    """Exception raised when a link does not exist."""
-
-
 class AtomDoesNotExist(AtomDbBaseException):
     """Exception raised when an atom does not exist."""
 
