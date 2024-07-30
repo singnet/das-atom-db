@@ -13,17 +13,18 @@ from typing import Any
 class ExpressionHasher:
     compound_separator = " "
 
+    # TODO(angelo,andre): remove '_' to make method public?
     @staticmethod
-    def compute_hash(text: str) -> str:
+    def _compute_hash(text: str) -> str:
         return md5(text.encode("utf-8")).digest().hex()
 
     @staticmethod
     def named_type_hash(name: str) -> str:
-        return ExpressionHasher.compute_hash(name)
+        return ExpressionHasher._compute_hash(name)
 
     @staticmethod
     def terminal_hash(named_type: str, terminal_name: str) -> str:
-        return ExpressionHasher.compute_hash(
+        return ExpressionHasher._compute_hash(
             ExpressionHasher.compound_separator.join([named_type, terminal_name])
         )
 
@@ -39,7 +40,7 @@ class ExpressionHasher:
             if len(hash_base) == 1:
                 return hash_base[0]
             else:
-                return ExpressionHasher.compute_hash(
+                return ExpressionHasher._compute_hash(
                     ExpressionHasher.compound_separator.join(hash_base)
                 )
         else:

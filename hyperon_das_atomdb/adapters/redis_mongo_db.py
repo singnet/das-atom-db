@@ -172,10 +172,17 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
         self.mongo_das_config_collection = None
-        self.wildcard_hash = ExpressionHasher.compute_hash(WILDCARD)
+        # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
+        self.wildcard_hash = ExpressionHasher._compute_hash(
+            WILDCARD
+        )  # pylint: disable=protected-access
+        self.typedef_mark_hash = ExpressionHasher._compute_hash(
+            ":"
+        )  # pylint: disable=protected-access
+        self.typedef_base_type_hash = ExpressionHasher._compute_hash(
+            "Type"
+        )  # pylint: disable=protected-access
         self.named_type_hash = {}
-        self.typedef_mark_hash = ExpressionHasher.compute_hash(":")
-        self.typedef_base_type_hash = ExpressionHasher.compute_hash("Type")
         self.hash_length = len(self.typedef_base_type_hash)
         self.typedef_composite_type_hash = ExpressionHasher.composite_hash(
             [
@@ -629,7 +636,7 @@ class RedisMongoDB(AtomDB):
                 dict[str, Any]
                 | tuple[dict[str, Any], list[dict[str, Any]]]
                 | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ]
+            ],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         document = self._retrieve_document(handle)

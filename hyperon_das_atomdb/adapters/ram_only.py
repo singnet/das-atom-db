@@ -472,7 +472,7 @@ class InMemoryDB(AtomDB):
                 dict[str, Any]
                 | tuple[dict[str, Any], list[dict[str, Any]]]
                 | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ]
+            ],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         document = self.db.node.get(handle)
