@@ -366,11 +366,11 @@ class AtomDB(ABC):
             query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each
                 containing a "field" and "value" key, representing the criteria for
                 filtering atoms.
-            cursor (Optional[int]): An optional cursor indicating the starting point
+            cursor (int | None): An optional cursor indicating the starting point
                 within the result set from which to return atoms. This can be used for
                 pagination or to resume a previous query. If not provided, the query
                 starts from the beginning.
-            chunk_size (Optional[int]): An optional size indicating the maximum number
+            chunk_size (int | None): An optional size indicating the maximum number
                 of atom IDs to return in one response. Useful for controlling response
                 size and managing large datasets. If not provided, a default value is
                 used.
@@ -403,9 +403,9 @@ class AtomDB(ABC):
         Args:
             text_value (str): Value to search for, if only this argument is provided it will use
                 a TOKEN_INVERTED_LIST index in the search
-            field (Optional[str]): Field to be used to search, if this argument is provided
+            field (str | None): Field to be used to search, if this argument is provided
                 it will not use TOKEN_INVERTED_LIST in the search
-            text_index_id (Optional[str]): TOKEN_INVERTED_LIST index id to search for
+            text_index_id (str | None): TOKEN_INVERTED_LIST index id to search for
 
 
         Returns:
@@ -434,7 +434,7 @@ class AtomDB(ABC):
 
         Args:
             node_type (str): The node type.
-            names (bool, optional): If True, return node names instead of handles. Default is False.
+            names (bool): If True, return node names instead of handles. Default is False.
 
         Returns:
             list[str]: A list of node handles or names, depending on the value of 'names'.
@@ -644,7 +644,7 @@ class AtomDB(ABC):
 
         Args:
             handle (str): The atom handle.
-            arity (Optional[int]): The arity of the atom. Defaults to 0.
+            arity (int | None): The arity of the atom. Defaults to 0.
 
         Returns:
             dict[str, Any]: A dictionary representation of the atom.
@@ -673,9 +673,9 @@ class AtomDB(ABC):
         (slow), otherwise return the atom_count (fast).
 
         Args:
-            parameters (Optional[Dict[str, Any]]): An optional dictionary containing the
+            parameters (dict[str, Any] | None): An optional dictionary containing the
                 following key:
-                    'precise' (bool, optional)  If set to True, the count provides an accurate count
+                    'precise' (bool)  If set to True, the count provides an accurate count
                     but may be slower. If set to False, the count will be an estimate, which is
                     faster but less precise. Defaults to None.
 
@@ -881,11 +881,10 @@ class AtomDB(ABC):
         Args:
             atom_type (str): The type of the atom for which the index is created.
             fields (list[str]): A list of fields to be indexed.
-            named_type (Optional[str]): The named type of the atom. Defaults to None.
-            composite_type (Optional[list[Any]]): A list representing the composite type of
+            named_type (str | None): The named type of the atom. Defaults to None.
+            composite_type (list[Any] | None): A list representing the composite type of
                 the atom. Defaults to None.
-            index_type (Optional[FieldIndexType]): The type of the index to create.
-                Defaults to None.
+            index_type (FieldIndexType | None): The type of the index to create. Defaults to None.
 
         Returns:
             str: The ID of the created index.
