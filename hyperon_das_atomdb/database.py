@@ -114,6 +114,21 @@ class AtomDB(ABC):
             ],
         ]  # TODO(angelo,andre): simplify this return type
     ):
+        """
+        Transform a document to the target format.
+
+        Args:
+            document (dict[str, Any]): The document to transform.
+            **kwargs: Additional keyword arguments for transformation options.
+
+        Returns:
+            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]] |
+            tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]:
+            The transformed document in the target format. If 'targets_document'
+            is True, returns a tuple with the document and its targets. If
+            'deep_representation' is True, returns a deep representation of the
+            document and its targets.
+        """
         answer = {'handle': document['_id'], 'type': document['named_type']}
 
         for key, value in document.items():
@@ -151,6 +166,23 @@ class AtomDB(ABC):
     #     return self.link_handle(atom_type, targets), composite_type
 
     def _add_node(self, node_params: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        """
+        Add a node to the database with the specified parameters.
+
+        Args:
+            node_params (dict[str, Any]): A dictionary containing node parameters.
+                It should have the following keys:
+                - 'type': The type of the node.
+                - 'name': The name of the node.
+
+        Returns:
+            tuple[str, dict[str, Any]]: A tuple containing the handle of the node
+            and the node dictionary.
+
+        Raises:
+            AddNodeException: If the 'type' or 'name' fields are missing in
+            node_params.
+        """
         reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
 
         valid_params = {
