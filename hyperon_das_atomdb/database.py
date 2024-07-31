@@ -408,7 +408,23 @@ class AtomDB(ABC):
         query: list[OrderedDict[str, str]],
         cursor: int | None = 0,
         chunk_size: int | None = 500,
-    ) -> list[str]:
+    ) -> (  # TODO(angelo,andre): simplify this return type
+        list[str]
+        | tuple[
+            int,
+            list[
+                dict[str, Any]
+                | tuple[
+                    dict[str, Any],
+                    list[
+                        dict[str, Any]
+                        | tuple[dict[str, Any], list[dict[str, Any]]]
+                        | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
+                    ],
+                ]
+            ],
+        ]
+    ):
         """
         Queries the database to return all atoms matching a specific index ID, filtering
         the results based on the provided query dictionary. This method is useful for
@@ -431,9 +447,7 @@ class AtomDB(ABC):
                 used.
 
         Returns:
-            list[str]: A list of atom IDs that match the query criteria, filtered by the
-                specified index. The atoms are returned as a list of their unique
-                identifiers (IDs).
+            ????????? # TODO(angelo,andre): TBD
 
         Note:
             The `cursor` and `chunk_size` parameters are particularly useful for handling
@@ -746,7 +760,9 @@ class AtomDB(ABC):
         """Clear the entire database, removing all data."""
 
     @abstractmethod
-    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any]:
+    def add_node(
+        self, node_params: dict[str, Any]
+    ) -> dict[str, Any] | None:  # TODO(angelo,andre): re-evaluate this return - it does not seem ok
         """
         Adds a node to the database.
 
@@ -761,8 +777,9 @@ class AtomDB(ABC):
                 - 'name': The name of the node.
 
         Returns:
-            dict[str, Any]: The information about the added node,
-            including its unique key and other details.
+            dict[str, Any] | None: The information about the added node,
+            including its unique key and other details. None if for some reason the node was not
+            added.
 
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing
