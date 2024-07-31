@@ -10,6 +10,9 @@ flake8:
 pylint:
 	@pylint ./hyperon_das_atomdb --rcfile=.pylintrc
 
+mypy:
+	@mypy --config-file mypy.ini ./hyperon_das_atomdb
+
 lint: isort black flake8
 
 unit-tests:
