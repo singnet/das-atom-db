@@ -90,9 +90,6 @@ class NodeDocuments:
 
         Args:
             collection (Collection): The MongoDB collection to manage node documents.
-
-        Returns:
-            None
         """
         self.mongo_collection = collection
         self.cached_nodes = {}
