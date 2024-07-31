@@ -17,14 +17,14 @@ from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
     WILDCARD,
     AtomDB,
+    AtomT,
     FieldIndexType,
     FieldNames,
     IncomingLinksT,
-    AtomT,
-    NodeT,
+    LinkParamsT,
     LinkT,
     NodeParamsT,
-    LinkParamsT,
+    NodeT,
 )
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
 from hyperon_das_atomdb.logger import logger
