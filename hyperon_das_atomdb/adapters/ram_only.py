@@ -347,10 +347,7 @@ class InMemoryDB(AtomDB):
         """
         targets = []
         count = 0
-        while True:
-            handle = link.get(f"key_{count}")
-            if handle is None:
-                break
+        while (handle := link.get(f"key_{count}", None)) is not None:
             targets.append(handle)
             count += 1
         return targets
@@ -713,7 +710,7 @@ class InMemoryDB(AtomDB):
             templates={},
         )
 
-    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any]:
+    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any] | None:
         handle, node = self._add_node(node_params)
         self.db.node[handle] = node
         self._update_index(node)
