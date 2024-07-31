@@ -99,12 +99,7 @@ class NodeDocuments:
         self.count = 0
 
     def add(self) -> None:
-        """
-        Increment the count of node documents managed by this instance.
-
-        Returns:
-            None
-        """
+        """Increment the count of node documents managed by this instance."""
         self.count += 1
 
     def get(self, handle: str, default_value: Any = None) -> Any:
