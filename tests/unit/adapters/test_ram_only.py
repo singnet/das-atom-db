@@ -1177,7 +1177,7 @@ class TestInMemoryDB:
         assert db.count_atoms() == {'atom_count': 3, 'node_count': 2, 'link_count': 1}
 
     def test_retrieve_all_atoms(self, database: InMemoryDB):
-        expected = list(database.db.node.items()) + list(database.db.link.items())
+        expected = list(database.db.node.values()) + list(database.db.link.values())
         actual = database.retrieve_all_atoms()
         assert expected == actual
 

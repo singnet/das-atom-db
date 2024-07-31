@@ -30,11 +30,19 @@ from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, At
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = '*'
-UNORDERED_LINK_TYPES = []
+UNORDERED_LINK_TYPES: list[Any] = []
 
-IncomingLinksT: TypeAlias = (  # pylint: disable=invalid-name
-    str | dict[str, Any] | tuple[dict[str, Any], list[Any]]
-)
+AtomT: TypeAlias = dict[str, Any]  # pylint: disable=invalid-name
+
+NodeT: TypeAlias = AtomT  # pylint: disable=invalid-name
+
+NodeParamsT: TypeAlias = NodeT  # pylint: disable=invalid-name
+
+LinkT: TypeAlias = AtomT  # pylint: disable=invalid-name
+
+LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
+
+IncomingLinksT: TypeAlias = str | AtomT | tuple[AtomT, list[Any]]  # pylint: disable=invalid-name
 
 
 class FieldNames(str, Enum):
@@ -102,7 +110,7 @@ class AtomDB(ABC):
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
     def _transform_to_target_format(
-        self, document: dict[str, Any], **kwargs
+        self, document: AtomT, **kwargs
     ) -> (
         dict[str, Any]
         | tuple[
@@ -118,7 +126,7 @@ class AtomDB(ABC):
         Transform a document to the target format.
 
         Args:
-            document (dict[str, Any]): The document to transform.
+            document (AtomT): The document to transform.
             **kwargs: Additional keyword arguments for transformation options.
 
         Returns:
@@ -169,23 +177,21 @@ class AtomDB(ABC):
     #     composite_type.insert(0, atom_type)
     #     return self.link_handle(atom_type, targets), composite_type
 
-    def _add_node(self, node_params: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
-        Add a node to the database with the specified parameters.
+        Build a node with the specified parameters.
 
         Args:
-            node_params (dict[str, Any]): A dictionary containing node parameters.
+            node_params (NodeParamsT): A mapping containing node parameters.
                 It should have the following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
         Returns:
-            tuple[str, dict[str, Any]]: A tuple containing the handle of the node
-            and the node dictionary.
+            tuple[str, NodeT]: A tuple containing the handle of the node and the node dictionary.
 
         Raises:
-            AddNodeException: If the 'type' or 'name' fields are missing in
-            node_params.
+            AddNodeException: If the 'type' or 'name' fields are missing in node_params.
         """
         reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
 
@@ -204,7 +210,7 @@ class AtomDB(ABC):
 
         handle = self.node_handle(node_type, node_name)
 
-        node = {
+        node: NodeT = {
             FieldNames.ID_HASH: handle,
             FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.named_type_hash(node_type),
             FieldNames.NODE_NAME: node_name,
@@ -216,23 +222,23 @@ class AtomDB(ABC):
 
         return handle, node
 
-    def _add_link(
-        self, link_params: dict[str, Any], toplevel: bool = True
-    ) -> tuple[str, dict[str, Any], list[str]]:
+    def _build_link(
+        self, link_params: LinkParamsT, toplevel: bool = True
+    ) -> tuple[str, LinkT, list[str]] | None:
         """
-        Add a link to the database with the specified parameters.
+        Build a link the specified parameters.
 
         Args:
-            link_params (dict[str, Any]): A dictionary containing link parameters.
+            link_params (LinkParamsT): A mapping containing link parameters.
                 It should have the following keys:
                 - 'type': The type of the link.
                 - 'targets': A list of target elements.
-            toplevel (bool): A boolean flag to indicate toplevel links, i.e., links
-                which are not nested inside other links. Defaults to True.
+            toplevel (bool): A boolean flag to indicate toplevel links, i.e., links which are not
+                nested inside other links. Defaults to True.
 
         Returns:
-            tuple[str, dict[str, Any], list[str]]: A tuple containing the handle of
-            the link, the link dictionary, and a list of target hashes.
+            tuple[str, LinkT, list[str]] | None: A tuple containing the handle of the link, the
+            link dictionary, and a list of target hashes. Or None if something went wrong.
 
         Raises:
             AddLinkException: If the 'type' or 'targets' fields are missing in
@@ -274,10 +280,14 @@ class AtomDB(ABC):
                 raise ValueError('The target must be a dictionary')
             if 'targets' not in target:
                 atom = self.add_node(target)
+                if atom is None:
+                    return None
                 atom_hash = atom['composite_type_hash']
                 composite_type.append(atom_hash)
             else:
                 atom = self.add_link(target, toplevel=False)
+                if atom is None:
+                    return None
                 atom_hash = atom['composite_type_hash']
                 composite_type.append(atom['composite_type'])
             composite_type_hash.append(atom_hash)
@@ -285,7 +295,7 @@ class AtomDB(ABC):
 
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
-        link = {
+        link: LinkT = {
             FieldNames.ID_HASH: handle,
             FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
             FieldNames.IS_TOPLEVEL: toplevel,
@@ -375,7 +385,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_node_by_name(self, node_type: str, substring: str) -> str:
+    def get_node_by_name(self, node_type: str, substring: str) -> list[str]:
         """
         Get the name of a node of the specified type containing the given substring.
 
@@ -384,7 +394,7 @@ class AtomDB(ABC):
             substring (str): The substring to search for in node names.
 
         Returns:
-            str: The name of the matching node.
+            list[str]: list of handles of nodes whose names matched the criteria.
         """
 
     @abstractmethod
@@ -684,19 +694,17 @@ class AtomDB(ABC):
 
         Args:
             handle (str): The handle of the atom to retrieve.
-            **kwargs: Additional arguments that may be used for filtering or other
-                purposes.
+            **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]] |
-            tuple[dict[str, Any], list[tuple[dict, list]]]: A dictionary
-            representation of the atom, a tuple containing the atom dictionary and
-            a list of atom dictionaries, or a tuple containing the atom dictionary
-            and a list of tuples with atom dictionaries and lists.
+            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]] | tuple[dict[str, Any],
+            list[tuple[dict, list]]]: A dictionary representation of the atom, a tuple containing
+            the atom dictionary and a list of atom dictionaries, or a tuple containing the atom
+            dictionary and a list of tuples with atom dictionaries and lists.
         """
 
     @abstractmethod
-    def get_atom_type(self, handle: str) -> str:
+    def get_atom_type(self, handle: str) -> str | None:
         """
         Retrieve the atom's type by its handle.
 
@@ -704,9 +712,10 @@ class AtomDB(ABC):
             handle (str): The handle of the atom to retrieve the type for.
 
         Returns:
-            str: The type of the atom.
+            str: The type of the atom. Or None if the atom does not exist.
         """
 
+    @abstractmethod
     def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
         """
         Get an atom as a dictionary representation.
@@ -760,35 +769,29 @@ class AtomDB(ABC):
         """Clear the entire database, removing all data."""
 
     @abstractmethod
-    def add_node(
-        self, node_params: dict[str, Any]
-    ) -> dict[str, Any] | None:  # TODO(angelo,andre): re-evaluate this return - it does not seem ok
+    def add_node(self, node_params: NodeParamsT) -> NodeT | None:
         """
         Adds a node to the database.
 
-        This method allows you to add a node to the database
-        with the specified node parameters. A node must have 'type' and
-        'name' fields in the node_params dictionary.
+        This method allows you to add a node to the database with the specified node parameters.
+        A node must have 'type' and 'name' fields in the node_params dictionary.
 
         Args:
-            node_params (dict[str, Any]): A dictionary containing
-                node parameters. It should have the following keys:
+            node_params (NodeParamsT): A mapping containing node parameters. It should have the
+            following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
         Returns:
-            dict[str, Any] | None: The information about the added node,
-            including its unique key and other details. None if for some reason the node was not
-            added.
+            NodeT | None: The information about the added node, including its unique key and
+            other details. None if for some reason the node was not added.
 
         Raises:
-            AddNodeException: If the 'type' or 'name' fields are missing
-                in node_params.
+            AddNodeException: If the 'type' or 'name' fields are missing in node_params.
 
         Note:
-            This method creates a unique key for the node based on its type
-            and name. If a node with the same key already exists,
-            it just returns the node.
+            This method creates a unique key for the node based on its type and name. If a node
+            with the same key already exists, it just returns the node.
 
         Example:
             To add a node, use this method like this:
@@ -800,39 +803,32 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def add_link(self, link_params: dict[str, Any], toplevel: bool = True) -> dict[str, Any]:
+    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
         """
         Adds a link to the database.
 
-        This method allows to add a link to the database with the specified
-            link parameters.
-        A link must have a 'type' and 'targets' field
-            in the link_params dictionary.
+        This method allows to add a link to the database with the specified link parameters.
+        A link must have a 'type' and 'targets' field in the link_params dictionary.
 
         Args:
-            link_params (dict[str, Any]): A dictionary containing
-                link parameters.
+            link_params (LinkParamsT): A dictionary containing link parameters.
                 It should have the following keys:
                 - 'type': The type of the link.
                 - 'targets': A list of target elements.
-            toplevel: boolean flag to indicate toplevel links
-                i.e. links which are not nested inside other links.
+            toplevel: boolean flag to indicate toplevel links i.e. links which are not nested
+            inside other links.
 
         Returns:
-            dict[str, Any]: The information about the added link,
-                including its unique key and other details.
+            LinkT: The information about the added link, including its unique key and
+            other details. Or None if for some reason the link was not added.
 
         Raises:
-            AddLinkException: If the 'type' or 'targets' fields
-                are missing in link_params.
+            AddLinkException: If the 'type' or 'targets' fields are missing in link_params.
 
         Note:
-            This method supports recursion when a target element
-                itself contains links.
-            It calculates a unique key for the link based on
-                its type and targets.
-            If a link with the same key already exists,
-                it just returns the link.
+            This method supports recursion when a target element itself contains links. It
+            calculates a unique key for the link based on its type and targets. If a link with
+            the same key already exists, it just returns the link.
 
         Example:
             To add a link, use this method like this:
@@ -958,17 +954,17 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def bulk_insert(self, documents: list[dict[str, Any]]) -> None:
+    def bulk_insert(self, documents: list[AtomT]) -> None:
         """
         Insert multiple documents into the database.
 
         Args:
-            documents (list[dict[str, Any]]): A list of dictionaries, each representing
-                a document to be inserted into the database.
+            documents (list[AtomT]): A list of dictionaries, each representing a document to be
+            inserted into the database.
         """
 
     @abstractmethod
-    def retrieve_all_atoms(self) -> list[dict[str, Any]] | list[tuple[str, Any]]:
+    def retrieve_all_atoms(self) -> list[AtomT]:
         """
         Retrieve all atoms from the database.
 

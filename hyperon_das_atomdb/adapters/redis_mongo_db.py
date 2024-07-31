@@ -29,6 +29,11 @@ from hyperon_das_atomdb.database import (
     FieldIndexType,
     FieldNames,
     IncomingLinksT,
+    AtomT,
+    NodeT,
+    LinkT,
+    NodeParamsT,
+    LinkParamsT,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -92,7 +97,7 @@ class NodeDocuments:
             collection (Collection): The MongoDB collection to manage node documents.
         """
         self.mongo_collection = collection
-        self.cached_nodes = {}
+        self.cached_nodes: dict[str, Any] = {}
         self.count = 0
 
     def add(self) -> None:
@@ -178,22 +183,23 @@ class MongoDBIndex(Index):
         index_id = f"{atom_type}_{self.generate_index_id(','.join(fields), conditionals)}" + (
             f"_{index_type.value}" if index_type else ""
         )
-        index_type: MongoIndexType = index_type or (
+        idx_type: MongoIndexType = index_type or (
             MongoIndexType.COMPOUND if len(fields) > 1 else MongoIndexType.FIELD
         )
         index_props = {
-            'index_type': index_type,
+            'index_type': idx_type,
             'conditionals': conditionals,
             'index_name': index_id,
             'fields': fields,
         }
 
-        index_conditionals = {"name": index_id}
+        index_conditionals: dict[str, Any] = {"name": index_id}
 
         if conditionals:
             index_conditionals["partialFilterExpression"] = index_props['conditionals']
 
-        if index_type == MongoIndexType.TEXT:
+        index_list: list[tuple[str, Any]]
+        if idx_type == MongoIndexType.TEXT:
             index_list = [(f, 'text') for f in fields]
         else:
             index_list = [(f, ASCENDING) for f in fields]  # store the index in ascending order
@@ -222,8 +228,7 @@ class RedisMongoDB(AtomDB):
         self.pattern_index_templates: dict[str, dict[str, Any]] | None = None
         self.database_name = 'das'
 
-        # _setup_databases is called here and **kwargs are passed to it with no previous validation
-        self._setup_databases(**kwargs)  # TODO(angelo,andre): validate kwargs?
+        self._setup_databases(**kwargs)
 
         self.mongo_atoms_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOMS)
         self.mongo_types_collection = self.mongo_db.get_collection(MongoCollectionNames.ATOM_TYPES)
@@ -231,7 +236,11 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
-        self.mongo_das_config_collection = None
+        self.mongo_das_config_collection: Collection | None = None
+        if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
+            self.mongo_das_config_collection = self.mongo_db.get_collection(
+                MongoCollectionNames.DAS_CONFIG
+            )
 
         # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
         self.wildcard_hash = ExpressionHasher._compute_hash(
@@ -262,41 +271,51 @@ class RedisMongoDB(AtomDB):
         self._setup_indexes()
         logger().info("Database setup finished")
 
-    # this method defines keyword arguments but also accepts **kwargs (which is not used)
-    # TODO(angelo,andre): validate **kwargs? remove **kwargs?
-    def _setup_databases(
-        self,
-        mongo_hostname: str = 'localhost',
-        mongo_port: int = 27017,
-        mongo_username: str = 'mongo',
-        mongo_password: str = 'mongo',
-        mongo_tls_ca_file: str | None = None,
-        redis_hostname: str = 'localhost',
-        redis_port: int = 6379,
-        redis_username: str | None = None,
-        redis_password: str | None = None,
-        redis_cluster: bool = True,
-        redis_ssl: bool = True,
-        **kwargs,
-    ) -> None:
+    def _setup_databases(self, **kwargs) -> None:
         """
         Set up connections to MongoDB and Redis databases with the provided parameters.
 
         Args:
-            mongo_hostname (str): The hostname for the MongoDB server. Defaults to 'localhost'.
-            mongo_port (int): The port number for the MongoDB server. Defaults to 27017.
-            mongo_username (str): The username for MongoDB authentication. Defaults to 'mongo'.
-            mongo_password (str): The password for MongoDB authentication. Defaults to 'mongo'.
-            mongo_tls_ca_file (str | None): The path to the TLS CA file for MongoDB.
-                Defaults to None.
-            redis_hostname (str): The hostname for the Redis server. Defaults to 'localhost'.
-            redis_port (int): The port number for the Redis server. Defaults to 6379.
-            redis_username (str | None): The username for Redis authentication. Defaults to None.
-            redis_password (str | None): The password for Redis authentication. Defaults to None.
-            redis_cluster (bool): Whether to use Redis in cluster mode. Defaults to True.
-            redis_ssl (bool): Whether to use SSL for Redis connection. Defaults to True.
-            **kwargs: Additional keyword arguments.
+            **kwargs: Additional keyword arguments for database configuration, including:
+                - mongo_hostname (str)   : The hostname for the MongoDB server.
+                                           Defaults to 'localhost'.
+                - mongo_port (int)       : The port number for the MongoDB server.
+                                           Defaults to 27017.
+                - mongo_username (str)   : The username for MongoDB authentication.
+                                           Defaults to 'mongo'.
+                - mongo_password (str)   : The password for MongoDB authentication.
+                                           Defaults to 'mongo'.
+                - mongo_tls_ca_file (str): The path to the TLS CA file for MongoDB.
+                                           Defaults to None.
+                - redis_hostname (str)   : The hostname for the Redis server.
+                                           Defaults to 'localhost'.
+                - redis_port (int)       : The port number for the Redis server.
+                                           Defaults to 6379.
+                - redis_username (str)   : The username for Redis authentication.
+                                           Defaults to None.
+                - redis_password (str)   : The password for Redis authentication.
+                                           Defaults to None.
+                - redis_cluster (bool)   : Whether to use Redis in cluster mode.
+                                           Defaults to True.
+                - redis_ssl (bool)       : Whether to use SSL for Redis connection.
+                                           Defaults to True.
+
+        Raises:
+            ConnectionMongoDBException: If there is an error connecting to the MongoDB server.
+            ConnectionRedisException: If there is an error connecting to the Redis server.
         """
+        mongo_hostname: str = kwargs.get('mongo_hostname', 'localhost')
+        mongo_port: int = kwargs.get('mongo_port', 27017)
+        mongo_username: str = kwargs.get('mongo_username', 'mongo')
+        mongo_password: str = kwargs.get('mongo_password', 'mongo')
+        mongo_tls_ca_file: str | None = kwargs.get('mongo_tls_ca_file', None)
+        redis_hostname: str = kwargs.get('redis_hostname', 'localhost')
+        redis_port: int = kwargs.get('redis_port', 6379)
+        redis_username: str | None = kwargs.get('redis_username', None)
+        redis_password: str | None = kwargs.get('redis_password', None)
+        redis_cluster: bool = kwargs.get('redis_cluster', True)
+        redis_ssl: bool = kwargs.get('redis_ssl', True)
+
         self.mongo_db = self._connection_mongo_db(
             mongo_hostname,
             mongo_port,
@@ -360,8 +379,8 @@ class RedisMongoDB(AtomDB):
     def _connection_redis(
         redis_hostname: str,
         redis_port: int,
-        redis_username: str,
-        redis_password: str,
+        redis_username: str | None,
+        redis_password: str | None,
         redis_cluster: bool = False,
         redis_ssl: bool = False,
     ) -> Redis | RedisCluster:
@@ -371,8 +390,8 @@ class RedisMongoDB(AtomDB):
         Args:
             redis_hostname (str): The hostname for the Redis server.
             redis_port (int): The port number for the Redis server.
-            redis_username (str): The username for Redis authentication.
-            redis_password (str): The password for Redis authentication.
+            redis_username (str | None): The username for Redis authentication.
+            redis_password (str | None): The password for Redis authentication.
             redis_cluster (bool): Whether to use Redis in cluster mode. Defaults to False.
             redis_ssl (bool): Whether to use SSL for Redis connection. Defaults to False.
 
@@ -382,8 +401,9 @@ class RedisMongoDB(AtomDB):
         redis_type = 'Redis cluster' if redis_cluster else 'Standalone Redis'
 
         message = (
-            f"Connecting to {redis_type} at "
-            f"{redis_username}:{redis_password}@{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
+            f"Connecting to {redis_type} at " f"{redis_username}:{redis_password}@"
+            if redis_username and redis_password
+            else "" f"{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
         )
 
         logger().info(message)
@@ -400,9 +420,9 @@ class RedisMongoDB(AtomDB):
             redis_connection["username"] = redis_username
 
         if redis_cluster:
-            return RedisCluster(**redis_connection)
+            return RedisCluster(**redis_connection)  # type: ignore
         else:
-            return Redis(**redis_connection)
+            return Redis(**redis_connection)  # type: ignore
 
     def _setup_indexes(self) -> None:
         """
@@ -429,10 +449,15 @@ class RedisMongoDB(AtomDB):
                             ],
                         }
                         self.default_pattern_index_templates.append(template)
-        if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
-            self.pattern_index_templates = self.mongo_das_config_collection.find_one(
-                {"_id": "pattern_index_templates"}
-            )["templates"]
+        if (
+            MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names()
+            and self.mongo_das_config_collection is not None
+        ):
+            found = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})
+            if found:
+                self.pattern_index_templates = found["templates"]
+            else:
+                self.pattern_index_templates = None
         else:
             self.pattern_index_templates = None
 
@@ -498,13 +523,13 @@ class RedisMongoDB(AtomDB):
         processes each element in the list to build the hash template.
 
         Args:
-            template (str | list[str | list[str] | ...]): The template to be processed into a
-                hash template. It can be a string representing a named type or a nested list
-                of strings representing multiple named types.
+            template (str | list[str | list[str] | list[list[str]]] | ...): The template to be
+                processed into a hash template. It can be a string representing a named type or a
+                nested list of strings representing multiple named types.
 
         Returns:
-            str | list[str | list[str] | ...]: The processed hash template corresponding to the
-                provided template.
+            str | list[str | list[str] | list[list[str]]] | ...: The processed hash template
+                corresponding to the provided template.
         """
         if isinstance(template, str):
             return self._get_atom_type_hash(template)
@@ -867,6 +892,8 @@ class RedisMongoDB(AtomDB):
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
+        if atom is None:
+            return None
         return atom[FieldNames.TYPE_NAME]
 
     def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
@@ -938,8 +965,8 @@ class RedisMongoDB(AtomDB):
 
                 buffer.clear()
 
-    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any] | None:
-        _, node = self._add_node(node_params)
+    def add_node(self, node_params: NodeParamsT) -> NodeT | None:
+        _, node = self._build_node(node_params)
         if sys.getsizeof(node_params['name']) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
             buffer.add(_HashableDocument(node))
@@ -950,8 +977,12 @@ class RedisMongoDB(AtomDB):
             logger().warning("Discarding atom whose name is too large: {node_name}")
             return None
 
-    def add_link(self, link_params: dict[str, Any], toplevel: bool = True) -> dict[str, Any]:
-        _, link, _ = self._add_link(link_params, toplevel)
+    # TODO: sync with database.py and ram_only.py
+    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+        result = self._build_link(link_params, toplevel)
+        if result is None:
+            return None
+        link = result[1]
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
         buffer.add(_HashableDocument(link))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
@@ -1643,14 +1674,14 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Error retrieving atoms by index: {str(e)}")
             raise e
 
-    def retrieve_all_atoms(self) -> list[dict[str, Any]] | list[tuple[str, Any]]:
+    def retrieve_all_atoms(self) -> list[AtomT]:
         try:
             return list(self.mongo_atoms_collection.find())
         except Exception as e:
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
 
-    def bulk_insert(self, documents: list[dict[str, Any]]) -> None:
+    def bulk_insert(self, documents: list[AtomT]) -> None:
         """
         Insert multiple documents into the MongoDB collection and update indexes.
 

@@ -20,6 +20,11 @@ from hyperon_das_atomdb.database import (
     FieldIndexType,
     FieldNames,
     IncomingLinksT,
+    AtomT,
+    NodeT,
+    LinkT,
+    NodeParamsT,
+    LinkParamsT,
 )
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
 from hyperon_das_atomdb.logger import logger
@@ -32,8 +37,8 @@ class Database:
     """Dataclass representing the structure of the in-memory database"""
 
     atom_type: dict[str, Any]
-    node: dict[str, Any]
-    link: dict[str, Any]
+    node: dict[str, AtomT]
+    link: dict[str, AtomT]
     outgoing_set: dict[str, Any]
     incoming_set: dict[str, set[str]]
     patterns: dict[str, set[tuple[str, tuple[str, ...]]]]
@@ -62,9 +67,9 @@ class InMemoryDB(AtomDB):
         Args:
             database_name (str): The name of the database. Defaults to "das".
         """
-        self.database_name = database_name
-        self.named_type_table = {}  # keyed by named type hash
-        self.all_named_types = set()
+        self.database_name: str = database_name
+        self.named_type_table: dict[str, str] = {}  # keyed by named type hash
+        self.all_named_types: set[str] = set()
         self.db: Database = Database(
             atom_type={},
             node={},
@@ -134,7 +139,7 @@ class InMemoryDB(AtomDB):
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
         return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
-    def _add_atom_type(self, _name: str, _type: str | None = "Type") -> None:
+    def _add_atom_type(self, _name: str, _type: str = "Type") -> None:
         """
         Add a type atom to the database.
 
@@ -310,7 +315,8 @@ class InMemoryDB(AtomDB):
             link_handle (str): The handle of the link to delete.
         """
         link_document = self._get_and_delete_link(link_handle)
-        self._update_index(atom=link_document, delete_atom=True)
+        if link_document is not None:
+            self._update_index(atom=link_document, delete_atom=True)
 
     def _filter_non_toplevel(
         self, matches: list[tuple[str, tuple[str, ...]]]
@@ -352,7 +358,7 @@ class InMemoryDB(AtomDB):
             count += 1
         return targets
 
-    def _update_atom_indexes(self, documents: Iterable[dict[str, any]], **kwargs) -> None:
+    def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
         """
         Update the indexes for the provided documents.
 
@@ -363,12 +369,12 @@ class InMemoryDB(AtomDB):
         for document in documents:
             self._update_index(document, **kwargs)
 
-    def _update_index(self, atom: dict[str, Any] | None, **kwargs) -> None:
+    def _update_index(self, atom: dict[str, Any], **kwargs) -> None:
         """
         Update the index for the provided atom.
 
         Args:
-            atom (dict[str, Any] | None): The atom document to update the index for.
+            atom (dict[str, Any]): The atom document to update the index for.
             **kwargs: Additional keyword arguments that may be used for updating the index.
                 - delete_atom (bool): If True, the atom will be deleted from the index.
 
@@ -376,9 +382,6 @@ class InMemoryDB(AtomDB):
             AtomDoesNotExist: If the atom does not exist when attempting to delete it.
         """
         if kwargs.get("delete_atom", False):
-            if atom is None:
-                raise AtomDoesNotExist("Nonexistent atom")
-
             link_handle = atom[FieldNames.ID_HASH]
 
             handles = self.db.incoming_set.pop(link_handle, None)
@@ -588,8 +591,8 @@ class InMemoryDB(AtomDB):
         | list[str]
         | list[str]  # TODO(angelo): simplify this return type
     ):
-        template = self._build_named_type_hash_template(template)
-        template_hash = ExpressionHasher.composite_hash(template)
+        hash_base = self._build_named_type_hash_template(template)
+        template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get("toplevel_only"):
             return self._filter_non_toplevel(templates_matched)
@@ -710,14 +713,17 @@ class InMemoryDB(AtomDB):
             templates={},
         )
 
-    def add_node(self, node_params: dict[str, Any]) -> dict[str, Any] | None:
-        handle, node = self._add_node(node_params)
+    def add_node(self, node_params: NodeParamsT) -> NodeT | None:
+        handle, node = self._build_node(node_params)
         self.db.node[handle] = node
         self._update_index(node)
         return node
 
-    def add_link(self, link_params: dict[str, Any], toplevel: bool = True) -> dict[str, Any]:
-        handle, link, _ = self._add_link(link_params, toplevel)
+    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+        result = self._build_link(link_params, toplevel)
+        if result is None:
+            return None
+        handle, link, _ = result
         self.db.link[handle] = link
         self._update_index(link)
         return link
@@ -756,9 +762,9 @@ class InMemoryDB(AtomDB):
         composite_type: list[Any] | None = None,
         index_type: FieldIndexType | None = None,
     ) -> str:
-        pass
+        raise NotImplementedError()
 
-    def bulk_insert(self, documents: list[dict[str, Any]]) -> None:
+    def bulk_insert(self, documents: list[AtomT]) -> None:
         try:
             for document in documents:
                 handle = document[FieldNames.ID_HASH]
@@ -770,11 +776,9 @@ class InMemoryDB(AtomDB):
         except Exception as e:  # pylint: disable=broad-except
             logger().error(f"Error bulk inserting documents: {str(e)}")
 
-    def retrieve_all_atoms(self) -> list[dict[str, Any]] | list[tuple[str, Any]]:
+    def retrieve_all_atoms(self) -> list[AtomT]:
         try:
-            answer = list(self.db.node.items())
-            answer.extend(list(self.db.link.items()))
-            return answer
+            return list(self.db.node.values()) + list(self.db.link.values())
         except Exception as e:
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
