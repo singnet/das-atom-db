@@ -446,8 +446,9 @@ class InMemoryDB(AtomDB):
             )
         return node[FieldNames.NODE_NAME]
 
-    def get_node_type(self, node_handle: str) -> str:
+    def get_node_type(self, node_handle: str) -> str | None:
         node = self.db.node.get(node_handle)
+        # TODO(angelo): here should we return None if `node` is `None` like redis_mongo_db does?
         if node is None:
             logger().error(
                 f"Failed to retrieve node type for handle: {node_handle}. This node may not exist."
@@ -503,7 +504,7 @@ class InMemoryDB(AtomDB):
             details=f"{link_type}:{target_handles}",
         )
 
-    def get_link_type(self, link_handle: str) -> str:
+    def get_link_type(self, link_handle: str) -> str | None:
         link = self._get_link(link_handle)
         if link is not None:
             return link[FieldNames.TYPE_NAME]
@@ -577,7 +578,7 @@ class InMemoryDB(AtomDB):
 
     def get_incoming_links(
         self, atom_handle: str, **kwargs
-    ) -> tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]:
+    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
             return list(links)
@@ -587,8 +588,7 @@ class InMemoryDB(AtomDB):
         self, template: list[Any], **kwargs
     ) -> (
         list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[str]]
-        | list[str]
+        | tuple[int, list[str] | list[list[str]]]
         | list[str]  # TODO(angelo): simplify this return type
     ):
         hash_base = self._build_named_type_hash_template(template)
@@ -602,8 +602,7 @@ class InMemoryDB(AtomDB):
         self, link_type: str, **kwargs
     ) -> (
         list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[str]]
-        | list[str]
+        | tuple[int, list[str] | list[list[str]]]
         | list[str]  # TODO(angelo): simplify this return type
     ):
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -728,7 +727,9 @@ class InMemoryDB(AtomDB):
         self._update_index(link)
         return link
 
-    def reindex(self, pattern_index_templates: dict[str, dict[str, Any]] | None = None) -> None:
+    def reindex(
+        self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+    ) -> None:
         raise NotImplementedError()
 
     def delete_atom(self, handle: str, **kwargs) -> None:

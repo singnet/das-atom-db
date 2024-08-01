@@ -373,7 +373,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_node_type(self, node_handle: str) -> str:
+    def get_node_type(self, node_handle: str) -> str | None:
         """
         Get the type of the node with the specified handle.
 
@@ -381,7 +381,7 @@ class AtomDB(ABC):
             node_handle (str): The node handle.
 
         Returns:
-            str: The node type.
+            str: The node type. Or None if the node does not exist.
         """
 
     @abstractmethod
@@ -548,7 +548,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_link_type(self, link_handle: str) -> str:
+    def get_link_type(self, link_handle: str) -> str | None:
         """
         Get the type of the link with the specified handle.
 
@@ -556,7 +556,7 @@ class AtomDB(ABC):
             link_handle (str): The link handle.
 
         Returns:
-            str: The link type.
+            str: The link type. Or None if the link does not exist.
         """
 
     @abstractmethod
@@ -614,7 +614,7 @@ class AtomDB(ABC):
     @abstractmethod
     def get_incoming_links(
         self, atom_handle: str, **kwargs
-    ) -> tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]:
+    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -632,8 +632,7 @@ class AtomDB(ABC):
         self, template: list[Any], **kwargs
     ) -> (
         list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[str]]
-        | list[str]
+        | tuple[int, list[str] | list[list[str]]]
         | list[str]  # TODO(angelo): simplify this return type
     ):
         """
@@ -645,8 +644,8 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str] | list[str]] |
-            list[str] | list[str]: A list of tuples containing link handles and their
+            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str | list[str]] |
+            list[str]: A list of tuples containing link handles and their
             targets, a tuple containing an integer and a list of link handles or lists
             of link handles, or a list of matching link handles.
         """
@@ -656,8 +655,7 @@ class AtomDB(ABC):
         self, link_type: str, **kwargs
     ) -> (
         list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[str]]
-        | list[str]
+        | tuple[int, list[str] | list[list[str]]]
         | list[str]  # TODO(angelo): simplify this return type
     ):
         """
@@ -669,8 +667,8 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str] | list[str]] |
-            list[str] | list[str]: A list of tuples containing link handles and their
+            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str | list[str]] |
+            list[str]: A list of tuples containing link handles and their
             targets, a tuple containing an integer and a list of link handles or lists
             of link handles, or a list of matching link handles.
         """
@@ -858,7 +856,9 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def reindex(self, pattern_index_templates: dict[str, dict[str, Any]] | None = None) -> None:
+    def reindex(
+        self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+    ) -> None:
         """
         Reindex inverted pattern index according to passed templates.
 
@@ -870,7 +870,7 @@ class AtomDB(ABC):
                     <atom type>: <pattern template>
                 }
 
-                Pattern template is also a dict:
+                <pattern template> is a list of dicts, each dict specifies a pattern template for:
 
                 {
                     "named_type": True/False,
