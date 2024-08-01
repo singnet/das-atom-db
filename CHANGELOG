@@ -7,3 +7,4 @@
 [#161] refactoring expression_hasher.py (PR #176)
 [#161] refactoring redis_mongo_db.py and fixing small logic stuff (PR #177)
 [#161] fixing small logic stuff (PR #178)
+[#161] adding mypy to the repo (PR #180)
