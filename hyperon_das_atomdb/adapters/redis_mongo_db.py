@@ -833,8 +833,6 @@ class RedisMongoDB(AtomDB):
             # TODO(angelo): like get_atom, _build_named_type_hash_template is causing problems
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
-            # cursor: int
-            # templates_matched: list[str]
             cursor, templates_matched = self._retrieve_template(template_hash, **kwargs)
             toplevel_only = kwargs.get('toplevel_only', False)
             return self._process_matched_results(templates_matched, cursor, toplevel_only)
