@@ -876,7 +876,8 @@ class RedisMongoDB(AtomDB):
                 return document
         else:
             logger().error(
-                f'Failed to retrieve atom for handle: {handle}. This link may not exist. - Details: {kwargs}'
+                f'Failed to retrieve atom for handle: {handle}.'
+                f'This link may not exist. - Details: {kwargs}'
             )
             raise AtomDoesNotExist(
                 message='Nonexistent atom',
