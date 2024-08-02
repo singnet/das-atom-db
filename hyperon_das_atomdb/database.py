@@ -580,6 +580,22 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
+    def get_incoming_links(
+        self, atom_handle: str, **kwargs
+    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+        """
+        Retrieve incoming links for a specified atom handle.
+
+        Args:
+            atom_handle (str): The handle of the atom for which to retrieve incoming links.
+            **kwargs: Additional arguments that may be used for filtering or other purposes.
+
+        Returns:
+            tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]: A tuple containing the count of
+            incoming links and a list of incoming links, or just a list of incoming links.
+        """
+
+    @abstractmethod
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
     ) -> (
@@ -605,22 +621,6 @@ class AtomDB(ABC):
             tuples containing link handles and their targets, or a tuple containing
             an integer and a list of matching link handles or lists of matching
             link handles.
-        """
-
-    @abstractmethod
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
-        """
-        Retrieve incoming links for a specified atom handle.
-
-        Args:
-            atom_handle (str): The handle of the atom for which to retrieve incoming links.
-            **kwargs: Additional arguments that may be used for filtering or other purposes.
-
-        Returns:
-            tuple[int, list[IncomingLinksT]] | list[IncomingLinksT]: A tuple containing the count of
-            incoming links and a list of incoming links, or just a list of incoming links.
         """
 
     @abstractmethod

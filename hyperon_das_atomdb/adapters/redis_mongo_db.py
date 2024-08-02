@@ -225,7 +225,6 @@ class RedisMongoDB(AtomDB):
 
     def __init__(self, **kwargs: Optional[dict[str, Any]]) -> None:
         """Initialize an instance of a custom class with Redis and MongoDB connections."""
-        self.pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
         self.database_name = 'das'
 
         self._setup_databases(**kwargs)
@@ -236,6 +235,7 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
+        self.pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
         self.mongo_das_config_collection: Collection | None = None
         if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
             self.mongo_das_config_collection = self.mongo_db.get_collection(
@@ -451,17 +451,9 @@ class RedisMongoDB(AtomDB):
                             ],
                         }
                         self.default_pattern_index_templates.append(template)
-        if (
-            MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names()
-            and self.mongo_das_config_collection is not None
-        ):
+        if self.mongo_das_config_collection is not None:
             found = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})
-            if found:
-                self.pattern_index_templates = found["templates"]
-            else:
-                self.pattern_index_templates = None
-        else:
-            self.pattern_index_templates = None
+            self.pattern_index_templates = found.get("templates", None) if found else None
 
         # NOTE creating index for name search
         self.create_field_index('node', fields=['name'])
