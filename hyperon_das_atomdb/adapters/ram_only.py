@@ -587,9 +587,9 @@ class InMemoryDB(AtomDB):
     def get_matched_type_template(
         self, template: list[Any], **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[list[str]]
+        | tuple[int, list[list[str]]]
+        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
     ):
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
@@ -601,9 +601,8 @@ class InMemoryDB(AtomDB):
     def get_matched_type(
         self, link_type: str, **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[list[str]]
+        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
     ):
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
@@ -620,7 +619,21 @@ class InMemoryDB(AtomDB):
         query: list[OrderedDict[str, str]],
         cursor: int | None = 0,
         chunk_size: int | None = 500,
-    ) -> list[str]:
+    ) -> (  # TODO(angelo,andre): simplify this return type
+        list[str]
+        | tuple[
+            int,
+            list[dict[str, Any]]
+            | list[
+                tuple[
+                    dict[str, Any],
+                    list[dict[str, Any]]
+                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
+                ]
+            ],
+        ]
+    ):
         raise NotImplementedError()
 
     def get_atoms_by_text_field(
@@ -637,11 +650,9 @@ class InMemoryDB(AtomDB):
         dict[str, Any]
         | tuple[
             dict[str, Any],
-            list[
-                dict[str, Any]
-                | tuple[dict[str, Any], list[dict[str, Any]]]
-                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ],
+            list[dict[str, Any]]
+            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         document = self.db.node.get(handle)

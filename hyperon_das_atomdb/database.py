@@ -115,11 +115,9 @@ class AtomDB(ABC):
         dict[str, Any]
         | tuple[
             dict[str, Any],
-            list[
-                dict[str, Any]
-                | tuple[dict[str, Any], list[dict[str, Any]]]
-                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ],
+            list[dict[str, Any]]
+            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         """
@@ -422,15 +420,13 @@ class AtomDB(ABC):
         list[str]
         | tuple[
             int,
-            list[
-                dict[str, Any]
-                | tuple[
+            list[dict[str, Any]]
+            | list[
+                tuple[
                     dict[str, Any],
-                    list[
-                        dict[str, Any]
-                        | tuple[dict[str, Any], list[dict[str, Any]]]
-                        | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-                    ],
+                    list[dict[str, Any]]
+                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
                 ]
             ],
         ]
@@ -631,9 +627,9 @@ class AtomDB(ABC):
     def get_matched_type_template(
         self, template: list[Any], **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[list[str]]
+        | tuple[int, list[list[str]]]
+        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
     ):
         """
         Retrieve links that match a specified type template.
@@ -654,9 +650,10 @@ class AtomDB(ABC):
     def get_matched_type(
         self, link_type: str, **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[str]
+        | list[list[str]]
+        | list[tuple[str, tuple[str, ...]]]
+        | tuple[int, list[str] | list[list[str]]]  # TODO(angelo): simplify this return type
     ):
         """
         Retrieve links that match a specified link type.
@@ -680,11 +677,9 @@ class AtomDB(ABC):
         dict[str, Any]
         | tuple[
             dict[str, Any],
-            list[
-                dict[str, Any]
-                | tuple[dict[str, Any], list[dict[str, Any]]]
-                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ],
+            list[dict[str, Any]]
+            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         """

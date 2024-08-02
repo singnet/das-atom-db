@@ -514,8 +514,10 @@ class RedisMongoDB(AtomDB):
         return None
 
     def _build_named_type_hash_template(
-        self, template: str | list[str | list[str] | list[list[str]]]
-    ) -> str | list[str | list[str] | list[list[str]]]:  # TODO(angelo,andre): simplify this return
+        self, template: str | list[str] | list[list[str]] | list[list[list[str]]]
+    ) -> (
+        str | list[str] | list[list[str]] | list[list[list[str]]]
+    ):  # TODO(angelo,andre): simplify this return
         """
         Build a named type hash template from the given template.
 
@@ -525,12 +527,12 @@ class RedisMongoDB(AtomDB):
         processes each element in the list to build the hash template.
 
         Args:
-            template (str | list[str | list[str] | list[list[str]]] | ...): The template to be
+            template (str | list[str] | list[list[str]] | ...): The template to be
                 processed into a hash template. It can be a string representing a named type or a
                 nested list of strings representing multiple named types.
 
         Returns:
-            str | list[str | list[str] | list[list[str]]] | ...: The processed hash template
+            str | list[str] | list[list[str]] | ...: The processed hash template
                 corresponding to the provided template.
         """
         if isinstance(template, str):
@@ -646,21 +648,19 @@ class RedisMongoDB(AtomDB):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: Optional[int] = 0,
-        chunk_size: Optional[int] = 500,
+        cursor: int | None = 0,
+        chunk_size: int | None = 500,
     ) -> (  # TODO(angelo,andre): simplify this return type
         list[str]
         | tuple[
             int,
-            list[
-                dict[str, Any]
-                | tuple[
+            list[dict[str, Any]]
+            | list[
+                tuple[
                     dict[str, Any],
-                    list[
-                        dict[str, Any]
-                        | tuple[dict[str, Any], list[dict[str, Any]]]
-                        | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-                    ],
+                    list[dict[str, Any]]
+                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
                 ]
             ],
         ]
@@ -833,9 +833,9 @@ class RedisMongoDB(AtomDB):
     def get_matched_type_template(
         self, template: list[Any], **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[list[str]]
+        | tuple[int, list[list[str]]]
+        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
     ):
         try:
             # TODO(angelo): like get_atom, _build_named_type_hash_template is causing problems
@@ -853,9 +853,9 @@ class RedisMongoDB(AtomDB):
     def get_matched_type(
         self, link_type: str, **kwargs
     ) -> (
-        list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]
-        | list[str]  # TODO(angelo): simplify this return type
+        list[list[str]]
+        | tuple[int, list[list[str]]]
+        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo,andre): simplify this return type
     ):
         named_type_hash = self._get_atom_type_hash(link_type)
         cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
@@ -873,11 +873,9 @@ class RedisMongoDB(AtomDB):
         dict[str, Any]
         | tuple[
             dict[str, Any],
-            list[
-                dict[str, Any]
-                | tuple[dict[str, Any], list[dict[str, Any]]]
-                | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-            ],
+            list[dict[str, Any]]
+            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
         ]  # TODO(angelo,andre): simplify this return type
     ):
         document = self._retrieve_document(handle)
@@ -1142,7 +1140,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_hash_targets_value(
         self, key_prefix: str, handle: str, **kwargs
-    ) -> tuple[int | None, list[str | list[str]]]:
+    ) -> tuple[int | None, list[list[str]]]:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1183,7 +1181,7 @@ class RedisMongoDB(AtomDB):
                 ],
             )
 
-    def _retrieve_template(self, handle: str, **kwargs) -> tuple[int | None, list[str | list[str]]]:
+    def _retrieve_template(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
         """
         Retrieve the template for the given handle from Redis.
 
@@ -1218,7 +1216,7 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(self, handle: str, **kwargs) -> tuple[int | None, list[str | list[str]]]:
+    def _retrieve_pattern(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
         """
         Retrieve the pattern for the given handle from Redis.
 
@@ -1426,9 +1424,8 @@ class RedisMongoDB(AtomDB):
         cursor: int | None = None,
         toplevel_only: bool = False,
     ) -> (
-        tuple[int, list[str] | list[list[str]]]
-        | list[str]
-        | list[list[str]]  # TODO(angelo,andre): simplify this return type
+        list[list[str]]
+        | tuple[int, list[list[str]]]  # TODO(angelo,andre): simplify this return type
     ):
         """
         Process the matched results and filter them based on the toplevel_only flag.
@@ -1444,19 +1441,13 @@ class RedisMongoDB(AtomDB):
                 Defaults to False.
 
         Returns:
-            tuple[int, list[str] | list[str]] | list[str] | list[list[str]]: The processed matched
-                results, either as a tuple with the cursor and results or just the results.
+            list[list[str]] | tuple[int, list[list[str]]]: The processed matched results,
+            either as a tuple with the cursor and results or just the results.
         """
-        answer: list[list[str]]
-        if toplevel_only:
-            answer = self._filter_non_toplevel(matched)
-        else:
-            answer = matched
-
+        answer = self._filter_non_toplevel(matched) if toplevel_only else matched
         if cursor is not None:
             return cursor, answer
-        else:
-            return answer
+        return answer
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:
@@ -1649,20 +1640,21 @@ class RedisMongoDB(AtomDB):
 
     def _get_atoms_by_index(
         self, index_id: str, **kwargs
-    ) -> tuple[  # TODO(angelo,andre): simplify this return type
-        int,
-        list[
-            dict[str, Any]
-            | tuple[
-                dict[str, Any],
-                list[
-                    dict[str, Any]
-                    | tuple[dict[str, Any], list[dict[str, Any]]]
-                    | tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]
-                ],
-            ]
-        ],
-    ]:
+    ) -> (  # TODO(angelo,andre): simplify this return type
+        list[str]
+        | tuple[
+            int,
+            list[dict[str, Any]]
+            | list[
+                tuple[
+                    dict[str, Any],
+                    list[dict[str, Any]]
+                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
+                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
+                ]
+            ],
+        ]
+    ):
         """
         Retrieve atoms from the MongoDB collection using the specified index.
 
