@@ -27,6 +27,7 @@ from enum import Enum
 from typing import Any, TypeAlias
 
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = '*'
@@ -658,6 +659,18 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
+    def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
+        """
+        Retrieve an atom by its handle.
+
+        Args:
+            handle (str): The handle of the atom to retrieve.
+            **kwargs: Additional arguments that may be used for filtering or other purposes.
+
+        Returns:
+            AtomT | None: A dictionary representation of the atom if found, None otherwise.
+        """
+
     def get_atom(self, handle: str, **kwargs) -> AtomT:
         """
         Retrieve an atom by its handle.
@@ -667,11 +680,31 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            AtomT: A dictionary representation of the atom.
+            AtomT: A dictionary representation of the atom, if found.
 
         Raises:
             AtomDoesNotExist: If the atom with the specified handle does not exist.
         """
+        document = self._get_atom(handle, **kwargs)
+        if document:
+            answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
+            for key, value in document.items():
+                if key == '_id':
+                    continue
+                if re.search(AtomDB.key_pattern, key):
+                    answer.setdefault('targets', []).append(value)
+                else:
+                    answer[key] = value
+            return answer
+
+        logger().error(
+            f'Failed to retrieve atom for handle: {handle}.'
+            f'This link may not exist. - Details: {kwargs}'
+        )
+        raise AtomDoesNotExist(
+            message='Nonexistent atom',
+            details=f'handle: {handle}',
+        )
 
     @abstractmethod
     def get_atom_type(self, handle: str) -> str | None:

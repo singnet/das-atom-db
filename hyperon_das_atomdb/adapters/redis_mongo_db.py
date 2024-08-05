@@ -10,7 +10,6 @@ for caching and fast access to frequently used data.
 import base64
 import collections
 import pickle
-import re
 import sys
 from copy import deepcopy
 from enum import Enum
@@ -855,27 +854,8 @@ class RedisMongoDB(AtomDB):
         # TODO(angelo): this is not good and it's needed due to all possible returns from get_atom
         return document[FieldNames.TYPE_NAME] if isinstance(document, dict) else None
 
-    def get_atom(self, handle: str, **kwargs) -> AtomT:
-        document = self._retrieve_document(handle)
-        if document:
-            answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
-            for key, value in document.items():
-                if key == '_id':
-                    continue
-                if re.search(AtomDB.key_pattern, key):
-                    answer.setdefault('targets', []).append(value)
-                else:
-                    answer[key] = value
-            return answer
-
-        logger().error(
-            f'Failed to retrieve atom for handle: {handle}.'
-            f'This link may not exist. - Details: {kwargs}'
-        )
-        raise AtomDoesNotExist(
-            message='Nonexistent atom',
-            details=f'handle: {handle}',
-        )
+    def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
+        return self._retrieve_document(handle)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
