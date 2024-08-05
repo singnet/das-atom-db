@@ -691,25 +691,30 @@ class TestInMemoryDB:
         m = database.get_node_handle('Concept', 'monkey')
         s = database.get_link_handle('Similarity', [h, m])
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=False)
+        cursor, links = database.get_incoming_links(atom_handle=h, handles_only=False)
+        assert cursor is None
         atom = database.get_atom(handle=s)
         assert atom in links
 
-        links = database.get_incoming_links(
+        cursor, links = database.get_incoming_links(
             atom_handle=h, handles_only=False, targets_document=True
         )
-        for link, targets in links:
-            for a, b in zip(link['targets'], targets):
+        assert cursor is None
+        for link in links:
+            for a, b in zip(link['targets'], link['targets_document']):
                 assert a == b['handle']
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=True)
+        cursor, links = database.get_incoming_links(atom_handle=h, handles_only=True)
+        assert cursor is None
         assert links == list(database.db.incoming_set.get(h))
         assert s in links
 
-        links = database.get_incoming_links(atom_handle=m, handles_only=True)
+        cursor, links = database.get_incoming_links(atom_handle=m, handles_only=True)
+        assert cursor is None
         assert links == list(database.db.incoming_set.get(m))
 
-        links = database.get_incoming_links(atom_handle=s, handles_only=True)
+        cursor, links = database.get_incoming_links(atom_handle=s, handles_only=True)
+        assert cursor is None
         assert links == []
 
     def test_get_atom_type(self, database: InMemoryDB):

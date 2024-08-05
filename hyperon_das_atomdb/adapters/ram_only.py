@@ -575,13 +575,11 @@ class InMemoryDB(AtomDB):
 
         return patterns_matched
 
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
-            return list(links)
-        return [self.get_atom(handle, **kwargs) for handle in links]
+            return None, list(links)
+        return None, [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
@@ -618,21 +616,7 @@ class InMemoryDB(AtomDB):
         query: list[OrderedDict[str, str]],
         cursor: int | None = 0,
         chunk_size: int | None = 500,
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+    ) -> tuple[int, list[AtomT]]:
         raise NotImplementedError()
 
     def get_atoms_by_text_field(

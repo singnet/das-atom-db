@@ -613,8 +613,7 @@ class RedisMongoDB(AtomDB):
 
     def get_node_type(self, node_handle: str) -> str | None:
         document = self.get_atom(node_handle)
-        # TODO(angelo): this is not good and it's needed due to all possible returns from get_atom
-        return document[FieldNames.TYPE_NAME] if isinstance(document, dict) else None
+        return document[FieldNames.TYPE_NAME]
 
     def get_node_by_name(self, node_type: str, substring: str) -> list[str]:
         node_type_hash = self._get_atom_type_hash(node_type)
@@ -640,21 +639,7 @@ class RedisMongoDB(AtomDB):
         query: list[OrderedDict[str, str]],
         cursor: int | None = 0,
         chunk_size: int | None = 500,
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+    ) -> tuple[int, list[AtomT]]:
         mongo_filter = collections.OrderedDict([(q['field'], q['value']) for q in query])
         return self._get_atoms_by_index(
             index_id, cursor=cursor, chunk_size=chunk_size, **mongo_filter
@@ -802,23 +787,19 @@ class RedisMongoDB(AtomDB):
         toplevel_only = kwargs.get('toplevel_only', False)
         return self._process_matched_results(patterns_matched, cursor, toplevel_only)
 
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
         if kwargs.get('cursor') is not None:
             if kwargs.get('handles_only', False):
                 return cursor, links
             else:
-                # TODO(angelo): again, get_atom is causing problems here
-                return cursor, [self.get_atom(handle, **kwargs) for handle in links]  # type: ignore
+                return cursor, [self.get_atom(handle, **kwargs) for handle in links]
         else:
             if kwargs.get('handles_only', False):
-                return links
+                return None, links
             else:
-                # TODO(angelo): again, get_atom is causing problems here
-                return [self.get_atom(handle, **kwargs) for handle in links]  # type: ignore
+                return None, [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
@@ -851,8 +832,7 @@ class RedisMongoDB(AtomDB):
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
-        # TODO(angelo): this is not good and it's needed due to all possible returns from get_atom
-        return document[FieldNames.TYPE_NAME] if isinstance(document, dict) else None
+        return document[FieldNames.TYPE_NAME]
 
     def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
         return self._retrieve_document(handle)
@@ -992,9 +972,7 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
-    def _retrieve_incoming_set(
-        self, handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]]:
+    def _retrieve_incoming_set(self, handle: str, **kwargs) -> tuple[int | None, list[str]]:
         """
         Retrieve the incoming set for the given handle from Redis.
 
@@ -1007,7 +985,7 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[IncomingLinksT]]: A tuple containing the cursor position (which
+            tuple[int | None, IncomingLinksT]: A tuple containing the cursor position (which
             can be None if the handle does not exist) and a list of members in the incoming set.
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
@@ -1603,23 +1581,7 @@ class RedisMongoDB(AtomDB):
 
         return index_id
 
-    def _get_atoms_by_index(
-        self, index_id: str, **kwargs
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+    def _get_atoms_by_index(self, index_id: str, **kwargs) -> tuple[int, list[AtomT]]:
         """
         Retrieve atoms from the MongoDB collection using the specified index.
 
@@ -1644,10 +1606,7 @@ class RedisMongoDB(AtomDB):
             cursor, documents = self._retrieve_documents_by_index(
                 self.mongo_atoms_collection, index_id, **kwargs
             )
-            # TODO(angelo): get_atom is causing problems here
-            return cursor, [  # type: ignore
-                self.get_atom(document[FieldNames.ID_HASH]) for document in documents
-            ]
+            return cursor, [self.get_atom(document[FieldNames.ID_HASH]) for document in documents]
         except Exception as e:
             logger().error(f"Error retrieving atoms by index: {str(e)}")
             raise e

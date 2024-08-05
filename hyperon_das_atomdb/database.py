@@ -43,7 +43,7 @@ LinkT: TypeAlias = AtomT  # pylint: disable=invalid-name
 
 LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
 
-IncomingLinksT: TypeAlias = str | AtomT | tuple[AtomT, list[Any]]  # pylint: disable=invalid-name
+IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
 
 
 class FieldNames(str, Enum):
@@ -109,59 +109,6 @@ class AtomDB(ABC):
         """
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
-
-    def _transform_to_target_format(
-        self, document: AtomT, **kwargs
-    ) -> (
-        dict[str, Any]
-        | tuple[
-            dict[str, Any],
-            list[dict[str, Any]]
-            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-        ]  # TODO(angelo,andre): simplify this return type
-    ):
-        """
-        Transform a document to the target format.
-
-        Args:
-            document (AtomT): The document to transform.
-            **kwargs: Additional keyword arguments for transformation options.
-
-        Returns:
-            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]] |
-            tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]:
-            The transformed document in the target format. If 'targets_document'
-            is True, returns a tuple with the document and its targets. If
-            'deep_representation' is True, returns a deep representation of the
-            document and its targets.
-        """
-        answer = {'handle': document['_id'], 'type': document['named_type']}
-
-        for key, value in document.items():
-            if key == '_id':
-                continue
-            if re.search(AtomDB.key_pattern, key):
-                answer.setdefault('targets', []).append(value)
-            else:
-                answer[key] = value
-
-        if kwargs.get('targets_document', False):
-            # TODO(angelo): get_atom is causing problems here
-            targets_document = [self.get_atom(target) for target in answer['targets']]
-            return answer, targets_document  # type: ignore
-        elif kwargs.get('deep_representation', False):
-
-            def _recursive_targets(targets, **_kwargs):
-                return [self.get_atom(target, **_kwargs) for target in targets]
-
-            if 'targets' in answer:
-                deep_targets = _recursive_targets(answer['targets'], **kwargs)
-                answer['targets'] = deep_targets
-
-            return answer
-
-        return answer
 
     def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
@@ -404,21 +351,7 @@ class AtomDB(ABC):
         query: list[OrderedDict[str, str]],
         cursor: int | None = 0,
         chunk_size: int | None = 500,
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+    ) -> tuple[int, list[AtomT]]:
         """
         Queries the database to return all atoms matching a specific index ID, filtering
         the results based on the provided query dictionary. This method is useful for
@@ -567,9 +500,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -578,7 +509,7 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]: A tuple containing the
+            tuple[int | None, IncomingLinksT] | list[IncomingLinksT]: A tuple containing the
             count of incoming links (which can be None if atom does not exist) and a list of
             incoming links, or just a list of incoming links.
         """
@@ -695,6 +626,20 @@ class AtomDB(ABC):
                     answer.setdefault('targets', []).append(value)
                 else:
                     answer[key] = value
+
+            if kwargs.get('targets_document', False):
+                targets_document = [self.get_atom(target) for target in answer['targets']]
+                answer["targets_document"] = targets_document
+
+            if kwargs.get('deep_representation', False):
+
+                def _recursive_targets(targets, **_kwargs):
+                    return [self.get_atom(target, **_kwargs) for target in targets]
+
+                if 'targets' in answer:
+                    deep_targets = _recursive_targets(answer['targets'], **kwargs)
+                    answer['targets'] = deep_targets
+
             return answer
 
         logger().error(
