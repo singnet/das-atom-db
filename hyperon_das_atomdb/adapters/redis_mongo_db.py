@@ -505,39 +505,35 @@ class RedisMongoDB(AtomDB):
             return document
         return None
 
-    def _build_named_type_hash_template(
-        self, template: str | list[str] | list[list[str]] | list[list[list[str]]]
-    ) -> (
-        str | list[str] | list[list[str]] | list[list[list[str]]]
-    ):  # TODO(angelo,andre): simplify this return
+    def _build_named_type_hash_template(self, template: str | list[Any]) -> str | list[Any]:
         """
         Build a named type hash template from the given template.
 
-        This method processes the provided template, which can be a string or a nested list
-        of strings, and converts it into a hash template. If the template is a string, it
-        retrieves the hash for the named type. If the template is a list, it recursively
-        processes each element in the list to build the hash template.
+        This method processes the provided template, which can be a string or a nested list of
+        strings, and converts it into a hash template. If the template is a string, it retrieves
+        the hash for the named type. If the template is a list, it recursively processes each
+        element in the list to build the hash template.
 
         Args:
-            template (str | list[str] | list[list[str]] | ...): The template to be
-                processed into a hash template. It can be a string representing a named type or a
-                nested list of strings representing multiple named types.
+            template (str | list[Any]): The template to be  processed into a hash template. It
+            can be a string representing a named type or a nested list of strings representing
+            multiple named types.
 
         Returns:
-            str | list[str] | list[list[str]] | ...: The processed hash template
-                corresponding to the provided template.
+            str | list[Any]: The processed hash template corresponding to the provided template.
+
+        Raises:
+            AssertionError: If the template is not a string or an iterable of strings.
         """
         if isinstance(template, str):
             return self._get_atom_type_hash(template)
         else:
             assert isinstance(
                 template, collections.abc.Iterable
-            ), "template must be a string or an iterable of strings"
-            answer = []
-            for element in template:
-                v = self._build_named_type_hash_template(element)
-                answer.append(v)
-            return answer
+            ), "template must be a string or an iterable of anything"
+            return [
+                self._build_named_type_hash_template(element) for element in template
+            ]
 
     @staticmethod
     def _get_document_keys(document: dict[str, Any]) -> list[str]:
@@ -774,7 +770,11 @@ class RedisMongoDB(AtomDB):
         | list[tuple[str, tuple[str, ...]]]
         | tuple[int, list[str]]
         | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
+        # TODO(angelo): create ticket to refactor pattern index to avoid storing targets as
+        #   index values on redis
+        # TODO(angelo): create ticket to make ram_only compatible with redis_mongo_db
     ):
+        # begin - TODO(angelo): break into a separate function - non iterable
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
