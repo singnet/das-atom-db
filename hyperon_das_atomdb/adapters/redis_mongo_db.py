@@ -403,9 +403,9 @@ class RedisMongoDB(AtomDB):
         redis_type = 'Redis cluster' if redis_cluster else 'Standalone Redis'
 
         message = (
-            f"Connecting to {redis_type} at " f"{redis_username}:{redis_password}@"
-            if redis_username and redis_password
-            else "" f"{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
+            f"Connecting to {redis_type} at "
+            + (f"{redis_username}:{redis_password}@" if redis_username and redis_password else "")
+            + f"{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
         )
 
         logger().info(message)
