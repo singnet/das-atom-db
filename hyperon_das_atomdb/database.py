@@ -162,20 +162,6 @@ class AtomDB(ABC):
 
         return answer
 
-    # _recursive_link_split is not called anywhere in the code and
-    # self._recursive_link_handle is not defined in the class
-    # TODO(angelo,andre): remove this method or implement self._recursive_link_handle?
-    # def _recursive_link_split(self, params: dict[str, Any]) -> tuple[str, Any]:
-    #     name = params.get('name')
-    #     atom_type = params['type']
-    #     if name:
-    #         return self.node_handle(atom_type, name), atom_type
-    #     targets, composite_type = [
-    #         self._recursive_link_handle(target) for target in params['target']
-    #     ]
-    #     composite_type.insert(0, atom_type)
-    #     return self.link_handle(atom_type, targets), composite_type
-
     def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
         Build a node with the specified parameters.
@@ -672,17 +658,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_atom(
-        self, handle: str, **kwargs
-    ) -> (
-        dict[str, Any]
-        | tuple[
-            dict[str, Any],
-            list[dict[str, Any]]
-            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-        ]  # TODO(angelo,andre): simplify this return type
-    ):
+    def get_atom(self, handle: str, **kwargs) -> AtomT:
         """
         Retrieve an atom by its handle.
 
@@ -691,10 +667,10 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]] | tuple[dict[str, Any],
-            list[tuple[dict, list]]]: A dictionary representation of the atom, a tuple containing
-            the atom dictionary and a list of atom dictionaries, or a tuple containing the atom
-            dictionary and a list of tuples with atom dictionaries and lists.
+            AtomT: A dictionary representation of the atom.
+
+        Raises:
+            AtomDoesNotExist: If the atom with the specified handle does not exist.
         """
 
     @abstractmethod

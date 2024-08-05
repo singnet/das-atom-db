@@ -678,7 +678,7 @@ class TestInMemoryDB:
         assert exc.value.message == 'Nonexistent atom'
         assert exc.value.details == 'handle: test'
 
-    def test_get_atom_as_dist(self, database: InMemoryDB):
+    def test_get_atom_as_dict(self, database: InMemoryDB):
         h = database.get_node_handle('Concept', 'human')
         m = database.get_node_handle('Concept', 'monkey')
         s = database.get_link_handle('Similarity', [h, m])
