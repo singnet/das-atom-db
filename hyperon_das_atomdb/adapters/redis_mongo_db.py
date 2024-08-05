@@ -404,7 +404,11 @@ class RedisMongoDB(AtomDB):
 
         message = (
             f"Connecting to {redis_type} at "
-            + (f"{redis_username}:{redis_password}@" if redis_username and redis_password else "")
+            + (
+                f"{redis_username}:{len(redis_password)*'*'}@"
+                if redis_username and redis_password
+                else ""
+            )
             + f"{redis_hostname}:{redis_port}. ssl: {redis_ssl}"
         )
 
