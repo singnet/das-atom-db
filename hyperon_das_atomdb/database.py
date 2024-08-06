@@ -27,6 +27,7 @@ from enum import Enum
 from typing import Any, TypeAlias
 
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = '*'
@@ -42,7 +43,7 @@ LinkT: TypeAlias = AtomT  # pylint: disable=invalid-name
 
 LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
 
-IncomingLinksT: TypeAlias = str | AtomT | tuple[AtomT, list[Any]]  # pylint: disable=invalid-name
+IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
 
 
 class FieldNames(str, Enum):
@@ -109,34 +110,22 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _transform_to_target_format(
-        self, document: AtomT, **kwargs
-    ) -> (
-        dict[str, Any]
-        | tuple[
-            dict[str, Any],
-            list[dict[str, Any]]
-            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-        ]  # TODO(angelo,andre): simplify this return type
-    ):
+    def _transform_to_target_format(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
 
         Args:
             document (AtomT): The document to transform.
-            **kwargs: Additional keyword arguments for transformation options.
+            **kwargs: Additional keyword arguments that may be used for transformation.
+                - targets_document (bool, optional): If True, include the `targets_document` in the
+                    response. Defaults to False.
+                - deep_representation (bool, optional): If True, include a deep representation of
+                    the targets. Defaults to False.
 
         Returns:
-            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]] |
-            tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]:
-            The transformed document in the target format. If 'targets_document'
-            is True, returns a tuple with the document and its targets. If
-            'deep_representation' is True, returns a deep representation of the
-            document and its targets.
+            AtomT: The transformed document in the target format.
         """
-        answer = {'handle': document['_id'], 'type': document['named_type']}
-
+        answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
         for key, value in document.items():
             if key == '_id':
                 continue
@@ -146,10 +135,10 @@ class AtomDB(ABC):
                 answer[key] = value
 
         if kwargs.get('targets_document', False):
-            # TODO(angelo): get_atom is causing problems here
             targets_document = [self.get_atom(target) for target in answer['targets']]
-            return answer, targets_document  # type: ignore
-        elif kwargs.get('deep_representation', False):
+            answer["targets_document"] = targets_document
+
+        if kwargs.get('deep_representation', False):
 
             def _recursive_targets(targets, **_kwargs):
                 return [self.get_atom(target, **_kwargs) for target in targets]
@@ -158,23 +147,7 @@ class AtomDB(ABC):
                 deep_targets = _recursive_targets(answer['targets'], **kwargs)
                 answer['targets'] = deep_targets
 
-            return answer
-
         return answer
-
-    # _recursive_link_split is not called anywhere in the code and
-    # self._recursive_link_handle is not defined in the class
-    # TODO(angelo,andre): remove this method or implement self._recursive_link_handle?
-    # def _recursive_link_split(self, params: dict[str, Any]) -> tuple[str, Any]:
-    #     name = params.get('name')
-    #     atom_type = params['type']
-    #     if name:
-    #         return self.node_handle(atom_type, name), atom_type
-    #     targets, composite_type = [
-    #         self._recursive_link_handle(target) for target in params['target']
-    #     ]
-    #     composite_type.insert(0, atom_type)
-    #     return self.link_handle(atom_type, targets), composite_type
 
     def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
@@ -415,51 +388,35 @@ class AtomDB(ABC):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: int | None = 0,
-        chunk_size: int | None = 500,
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+        cursor: int = 0,
+        chunk_size: int = 500,
+    ) -> tuple[int, list[AtomT]]:
         """
-        Queries the database to return all atoms matching a specific index ID, filtering
-        the results based on the provided query dictionary. This method is useful for
-        efficiently retrieving atoms that match certain criteria, especially when the
-        database has been indexed using the `create_field_index` function.
+        Queries the database to return all atoms matching a specific index ID, filtering the
+        results based on the provided query dictionary. This method is useful for efficiently
+        retrieving atoms that match certain criteria, especially when the database has been
+        indexed using the `create_field_index` function.
 
         Args:
-            index_id (str): The ID of the index to query against. This index should have
-                been created previously using the `create_field_index` method.
-            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each
-                containing a "field" and "value" key, representing the criteria for
-                filtering atoms.
-            cursor (int | None): An optional cursor indicating the starting point
-                within the result set from which to return atoms. This can be used for
-                pagination or to resume a previous query. If not provided, the query
-                starts from the beginning.
-            chunk_size (int | None): An optional size indicating the maximum number
-                of atom IDs to return in one response. Useful for controlling response
-                size and managing large datasets. If not provided, a default value is
-                used.
+            index_id (str): The ID of the index to query against. This index should have been
+                created previously using the `create_field_index` method.
+            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each containing
+                a "field" and "value" key, representing the criteria for filtering atoms.
+            cursor (int): An optional cursor indicating the starting point within the result set
+                from which to return atoms. This can be used for pagination or to resume a
+                previous query. If not provided, the query starts from the beginning.
+            chunk_size (int): An optional size indicating the maximum number of atom IDs to
+                return in one response. Useful for controlling response size and managing large
+                datasets. If not provided, a default value is used.
 
         Returns:
-            ????????? # TODO(angelo,andre): TBD
+            tuple[int, list[AtomT]]: A tuple containing the cursor position and a list of
+            retrieved atoms.
 
         Note:
-            The `cursor` and `chunk_size` parameters are particularly useful for handling
-            large datasets by allowing the retrieval of results in manageable chunks
-            rather than all at once.
+            The `cursor` and `chunk_size` parameters are particularly useful for handling large
+            datasets by allowing the retrieval of results in manageable chunks rather than all
+            at once.
         """
 
     @abstractmethod
@@ -580,9 +537,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -591,9 +546,8 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]: A tuple containing the
-            count of incoming links (which can be None if atom does not exist) and a list of
-            incoming links, or just a list of incoming links.
+            tuple[int | None, IncomingLinksT]: A tuple containing the  count of incoming links
+            (which can be None if `cursor` is absent in kwargs) and a list of incoming links.
         """
 
     @abstractmethod
@@ -671,30 +625,56 @@ class AtomDB(ABC):
             of link handles, or a list of matching link handles.
         """
 
-    @abstractmethod
-    def get_atom(
-        self, handle: str, **kwargs
-    ) -> (
-        dict[str, Any]
-        | tuple[
-            dict[str, Any],
-            list[dict[str, Any]]
-            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-        ]  # TODO(angelo,andre): simplify this return type
-    ):
+    def get_atom(self, handle: str, **kwargs) -> AtomT:
         """
         Retrieve an atom by its handle.
 
         Args:
             handle (str): The handle of the atom to retrieve.
             **kwargs: Additional arguments that may be used for filtering or other purposes.
+                - no_target_format (bool, optional): If True, return the document without
+                    transforming it to the target format. Defaults to False.
+                - targets_document (bool, optional): If True, include the `targets_document` in the
+                    response. Defaults to False.
+                - deep_representation (bool, optional): If True, include a deep representation of
+                    the targets. Defaults to False.
 
         Returns:
-            dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]] | tuple[dict[str, Any],
-            list[tuple[dict, list]]]: A dictionary representation of the atom, a tuple containing
-            the atom dictionary and a list of atom dictionaries, or a tuple containing the atom
-            dictionary and a list of tuples with atom dictionaries and lists.
+            AtomT: A dictionary representation of the atom, if found.
+
+        Raises:
+            AtomDoesNotExist: If the atom with the specified handle does not exist.
+        """
+        document = self._get_atom(handle)
+        if document:
+            if kwargs.get('no_target_format', False):
+                return document
+            return self._transform_to_target_format(document, **kwargs)
+
+        logger().error(
+            f'Failed to retrieve atom for handle: {handle}. '
+            f'This atom does not exist. - Details: {kwargs}'
+        )
+        raise AtomDoesNotExist(
+            message='Nonexistent atom',
+            details=f'handle: {handle}',
+        )
+
+    @abstractmethod
+    def _get_atom(self, handle: str) -> AtomT | None:
+        """
+        Retrieve an atom by its handle.
+
+        Args:
+            handle (str): The handle of the atom to retrieve.
+
+        Returns:
+            AtomT | None: A dictionary representation of the atom if found, None otherwise.
+
+        Note:
+            This method is intended for internal use and should not be called directly.
+            It must be implemented by subclasses to provide a concrete way to retrieve atoms by
+            their handles.
         """
 
     @abstractmethod

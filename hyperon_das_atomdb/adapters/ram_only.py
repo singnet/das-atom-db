@@ -8,7 +8,6 @@ Classes:
     Database: A dataclass representing the structure of the in-memory database.
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
-
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -576,13 +575,11 @@ class InMemoryDB(AtomDB):
 
         return patterns_matched
 
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, list[IncomingLinksT]] | list[IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
-            return list(links)
-        return [self.get_atom(handle, **kwargs) for handle in links]
+            return None, list(links)
+        return None, [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
@@ -617,23 +614,9 @@ class InMemoryDB(AtomDB):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: int | None = 0,
-        chunk_size: int | None = 500,
-    ) -> (  # TODO(angelo,andre): simplify this return type
-        list[str]
-        | tuple[
-            int,
-            list[dict[str, Any]]
-            | list[
-                tuple[
-                    dict[str, Any],
-                    list[dict[str, Any]]
-                    | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-                    | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-                ]
-            ],
-        ]
-    ):
+        cursor: int = 0,
+        chunk_size: int = 500,
+    ) -> tuple[int, list[AtomT]]:
         raise NotImplementedError()
 
     def get_atoms_by_text_field(
@@ -644,33 +627,8 @@ class InMemoryDB(AtomDB):
     def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
         raise NotImplementedError()
 
-    def get_atom(
-        self, handle: str, **kwargs
-    ) -> (
-        dict[str, Any]
-        | tuple[
-            dict[str, Any],
-            list[dict[str, Any]]
-            | list[tuple[dict[str, Any], list[dict[str, Any]]]]
-            | list[tuple[dict[str, Any], list[tuple[dict[Any, Any], list[Any]]]]],
-        ]  # TODO(angelo,andre): simplify this return type
-    ):
-        document = self.db.node.get(handle)
-        if document is None:
-            document = self._get_link(handle)
-        if document:
-            if not kwargs.get("no_target_format", False):
-                return self._transform_to_target_format(document, **kwargs)
-            return document
-
-        logger().error(
-            f"Failed to retrieve atom for handle: {handle}. "
-            f"This link may not exist. - Details: {kwargs}"
-        )
-        raise AtomDoesNotExist(
-            message="Nonexistent atom",
-            details=f"handle: {handle}",
-        )
+    def _get_atom(self, handle: str) -> AtomT | None:
+        return self.db.node.get(handle) or self._get_link(handle)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self.db.node.get(handle)
