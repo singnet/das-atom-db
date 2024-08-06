@@ -614,8 +614,8 @@ class InMemoryDB(AtomDB):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: int | None = 0,
-        chunk_size: int | None = 500,
+        cursor: int = 0,
+        chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
         raise NotImplementedError()
 
@@ -627,7 +627,7 @@ class InMemoryDB(AtomDB):
     def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
         raise NotImplementedError()
 
-    def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
+    def _get_atom(self, handle: str) -> AtomT | None:
         return self.db.node.get(handle) or self._get_link(handle)
 
     def get_atom_type(self, handle: str) -> str | None:

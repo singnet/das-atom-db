@@ -110,6 +110,45 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
+    def _transform_to_target_format(self, document: AtomT, **kwargs) -> AtomT:
+        """
+        Transform a document to the target format.
+
+        Args:
+            document (AtomT): The document to transform.
+            **kwargs: Additional keyword arguments that may be used for transformation.
+                - targets_document (bool, optional): If True, include the `targets_document` in the
+                    response. Defaults to False.
+                - deep_representation (bool, optional): If True, include a deep representation of
+                    the targets. Defaults to False.
+
+        Returns:
+            AtomT: The transformed document in the target format.
+        """
+        answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
+        for key, value in document.items():
+            if key == '_id':
+                continue
+            if re.search(AtomDB.key_pattern, key):
+                answer.setdefault('targets', []).append(value)
+            else:
+                answer[key] = value
+
+        if kwargs.get('targets_document', False):
+            targets_document = [self.get_atom(target) for target in answer['targets']]
+            answer["targets_document"] = targets_document
+
+        if kwargs.get('deep_representation', False):
+
+            def _recursive_targets(targets, **_kwargs):
+                return [self.get_atom(target, **_kwargs) for target in targets]
+
+            if 'targets' in answer:
+                deep_targets = _recursive_targets(answer['targets'], **kwargs)
+                answer['targets'] = deep_targets
+
+        return answer
+
     def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
         Build a node with the specified parameters.
@@ -349,37 +388,35 @@ class AtomDB(ABC):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: int | None = 0,
-        chunk_size: int | None = 500,
+        cursor: int = 0,
+        chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
         """
-        Queries the database to return all atoms matching a specific index ID, filtering
-        the results based on the provided query dictionary. This method is useful for
-        efficiently retrieving atoms that match certain criteria, especially when the
-        database has been indexed using the `create_field_index` function.
+        Queries the database to return all atoms matching a specific index ID, filtering the
+        results based on the provided query dictionary. This method is useful for efficiently
+        retrieving atoms that match certain criteria, especially when the database has been
+        indexed using the `create_field_index` function.
 
         Args:
-            index_id (str): The ID of the index to query against. This index should have
-                been created previously using the `create_field_index` method.
-            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each
-                containing a "field" and "value" key, representing the criteria for
-                filtering atoms.
-            cursor (int | None): An optional cursor indicating the starting point
-                within the result set from which to return atoms. This can be used for
-                pagination or to resume a previous query. If not provided, the query
-                starts from the beginning.
-            chunk_size (int | None): An optional size indicating the maximum number
-                of atom IDs to return in one response. Useful for controlling response
-                size and managing large datasets. If not provided, a default value is
-                used.
+            index_id (str): The ID of the index to query against. This index should have been
+                created previously using the `create_field_index` method.
+            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each containing
+                a "field" and "value" key, representing the criteria for filtering atoms.
+            cursor (int): An optional cursor indicating the starting point within the result set
+                from which to return atoms. This can be used for pagination or to resume a
+                previous query. If not provided, the query starts from the beginning.
+            chunk_size (int): An optional size indicating the maximum number of atom IDs to
+                return in one response. Useful for controlling response size and managing large
+                datasets. If not provided, a default value is used.
 
         Returns:
-            ????????? # TODO(angelo,andre): TBD
+            tuple[int, list[AtomT]]: A tuple containing the cursor position and a list of
+            retrieved atoms.
 
         Note:
-            The `cursor` and `chunk_size` parameters are particularly useful for handling
-            large datasets by allowing the retrieval of results in manageable chunks
-            rather than all at once.
+            The `cursor` and `chunk_size` parameters are particularly useful for handling large
+            datasets by allowing the retrieval of results in manageable chunks rather than all
+            at once.
         """
 
     @abstractmethod
@@ -509,9 +546,8 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            tuple[int | None, IncomingLinksT] | list[IncomingLinksT]: A tuple containing the
-            count of incoming links (which can be None if atom does not exist) and a list of
-            incoming links, or just a list of incoming links.
+            tuple[int | None, IncomingLinksT]: A tuple containing the  count of incoming links
+            (which can be None if `cursor` is absent in kwargs) and a list of incoming links.
         """
 
     @abstractmethod
@@ -590,16 +626,20 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
+    def _get_atom(self, handle: str) -> AtomT | None:
         """
         Retrieve an atom by its handle.
 
         Args:
             handle (str): The handle of the atom to retrieve.
-            **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
             AtomT | None: A dictionary representation of the atom if found, None otherwise.
+
+        Note:
+            This method is intended for internal use and should not be called directly.
+            It must be implemented by subclasses to provide a concrete way to retrieve atoms by
+            their handles.
         """
 
     def get_atom(self, handle: str, **kwargs) -> AtomT:
@@ -609,6 +649,12 @@ class AtomDB(ABC):
         Args:
             handle (str): The handle of the atom to retrieve.
             **kwargs: Additional arguments that may be used for filtering or other purposes.
+                - no_target_format (bool, optional): If True, return the document without
+                    transforming it to the target format. Defaults to False.
+                - targets_document (bool, optional): If True, include the `targets_document` in the
+                    response. Defaults to False.
+                - deep_representation (bool, optional): If True, include a deep representation of
+                    the targets. Defaults to False.
 
         Returns:
             AtomT: A dictionary representation of the atom, if found.
@@ -616,31 +662,11 @@ class AtomDB(ABC):
         Raises:
             AtomDoesNotExist: If the atom with the specified handle does not exist.
         """
-        document = self._get_atom(handle, **kwargs)
+        document = self._get_atom(handle)
         if document:
-            answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
-            for key, value in document.items():
-                if key == '_id':
-                    continue
-                if re.search(AtomDB.key_pattern, key):
-                    answer.setdefault('targets', []).append(value)
-                else:
-                    answer[key] = value
-
-            if kwargs.get('targets_document', False):
-                targets_document = [self.get_atom(target) for target in answer['targets']]
-                answer["targets_document"] = targets_document
-
-            if kwargs.get('deep_representation', False):
-
-                def _recursive_targets(targets, **_kwargs):
-                    return [self.get_atom(target, **_kwargs) for target in targets]
-
-                if 'targets' in answer:
-                    deep_targets = _recursive_targets(answer['targets'], **kwargs)
-                    answer['targets'] = deep_targets
-
-            return answer
+            if kwargs.get('no_target_format', False):
+                return document
+            return self._transform_to_target_format(document, **kwargs)
 
         logger().error(
             f'Failed to retrieve atom for handle: {handle}.'

@@ -499,10 +499,6 @@ class RedisMongoDB(AtomDB):
             dict[str, Any] | None: The retrieved document if found, otherwise None.
         """
         mongo_filter = {FieldNames.ID_HASH: handle}
-
-        # TODO(angelo,andre): remove this unused line?
-        # document = self.mongo_atoms_collection.find_one(mongo_filter)
-
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
             if self._is_document_link(document):
                 document["targets"] = self._get_document_keys(document)
@@ -637,8 +633,8 @@ class RedisMongoDB(AtomDB):
         self,
         index_id: str,
         query: list[OrderedDict[str, str]],
-        cursor: int | None = 0,
-        chunk_size: int | None = 500,
+        cursor: int = 0,
+        chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
         mongo_filter = collections.OrderedDict([(q['field'], q['value']) for q in query])
         return self._get_atoms_by_index(
@@ -790,16 +786,10 @@ class RedisMongoDB(AtomDB):
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
-        if kwargs.get('cursor') is not None:
-            if kwargs.get('handles_only', False):
-                return cursor, links
-            else:
-                return cursor, [self.get_atom(handle, **kwargs) for handle in links]
+        if kwargs.get('handles_only', False):
+            return cursor, links
         else:
-            if kwargs.get('handles_only', False):
-                return None, links
-            else:
-                return None, [self.get_atom(handle, **kwargs) for handle in links]
+            return cursor, [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
@@ -834,7 +824,7 @@ class RedisMongoDB(AtomDB):
         document = self.get_atom(link_handle)
         return document[FieldNames.TYPE_NAME]
 
-    def _get_atom(self, handle: str, **kwargs) -> AtomT | None:
+    def _get_atom(self, handle: str) -> AtomT | None:
         return self._retrieve_document(handle)
 
     def get_atom_type(self, handle: str) -> str | None:
@@ -982,11 +972,13 @@ class RedisMongoDB(AtomDB):
 
         Args:
             handle (str): The unique identifier for the atom whose incoming set is to be retrieved.
-            **kwargs: Additional keyword arguments for cursor-based pagination.
+            **kwargs: Additional keyword arguments.
+                cursor (int, optional): The cursor for pagination.
+                chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            tuple[int | None, IncomingLinksT]: A tuple containing the cursor position (which
-            can be None if the handle does not exist) and a list of members in the incoming set.
+            tuple[int | None, list[str]]: A tuple containing the cursor position (which can be
+            None if `cursor` is absent in kwargs) and a list of members.
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
@@ -1073,9 +1065,9 @@ class RedisMongoDB(AtomDB):
             str | None: The name associated with the given handle if found, otherwise None.
         """
         key = _build_redis_key(KeyPrefix.NAMED_ENTITIES, handle)
-        name = self.redis.get(key)
+        name: str = self.redis.get(key)  # type: ignore
         if name:
-            return name  # type: ignore
+            return name
         else:
             return None
 
@@ -1596,8 +1588,8 @@ class RedisMongoDB(AtomDB):
                 - chunk_size (int, optional): The number of documents to retrieve per chunk.
 
         Returns:
-            tuple[int, list[dict[str, Any] | tuple[dict[str, Any], list[dict[str, Any]]]]]:
-            A tuple containing the cursor position and a list of retrieved atoms.
+            tuple[int, list[AtomT]]: A tuple containing the cursor position and a list of
+            retrieved atoms.
 
         Raises:
             Exception: If there is an error retrieving atoms by index.
