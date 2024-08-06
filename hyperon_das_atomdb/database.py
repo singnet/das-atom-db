@@ -557,8 +557,7 @@ class AtomDB(ABC):
         list[str]  # when WILDCARD was not used and cursor was not provided
         | tuple[int, list[str]]  # when (WILDCARD was not used AND link_type_hash is None) and cursor was provided
         | list[tuple[str, tuple[str, ...]]]  # only in ram_only mode
-        | list[list[str]]  # from self._process_matched_results
-        | tuple[int, list[list[str]]]  # self._process_matched_results
+        | tuple[int | None, list[list[str]]]
     ):
         """
         Retrieve links that match a specified link type and target handles.

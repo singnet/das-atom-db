@@ -745,17 +745,29 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return True
 
+    # def get_matched_links(
+    #     self, link_type: str, target_handles: list[str], **kwargs
+    # ) -> (
+    #     list[str]
+    #     | list[list[str]]
+    #     | list[tuple[str, tuple[str, ...]]]
+    #     | tuple[int, list[str]]
+    #     | tuple[int, list[list[str]]]
+    #     # TODO(angelo): create ticket to refactor pattern index to avoid storing targets as
+    #     #   index values on redis
+    #     # TODO(angelo): create ticket to make ram_only compatible with redis_mongo_db
+    # ):
+
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
     ) -> (  # TODO(angelo): simplify this return type
         list[str]  # when WILDCARD was not used and cursor was not provided
         | tuple[int, list[str]]  # when (WILDCARD was not used AND link_type_hash is None) and cursor was provided
         | list[tuple[str, tuple[str, ...]]]  # only in ram_only mode
-        | list[list[str]]  # from self._process_matched_results
-        | tuple[int, list[list[str]]]  # self._process_matched_results
+        | tuple[int | None, list[list[str]]]
     ):
         # list[str]  # both dbs, if WILDCARD was not used - move this case to dedicated function
-        # | list[tuple[str, tuple[str, ...]]]  # only in ram_only - all cases
+        # | list[tuple[str, tuple[str, ...]]]  # only in ram_only - when WILDCARD was used
         # | tuple[int | None, list[list[str]]]  # only in redis_mongo
         #                                         return cursor, self._process_matched_results
         if link_type != WILDCARD and WILDCARD not in target_handles:
@@ -785,7 +797,7 @@ class RedisMongoDB(AtomDB):
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        return self._process_matched_results(patterns_matched, cursor, toplevel_only)
+        return cursor, self._process_matched_results(patterns_matched, toplevel_only)
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
@@ -1360,33 +1372,20 @@ class RedisMongoDB(AtomDB):
     def _process_matched_results(
         self,
         matched: list[list[str]],
-        cursor: int | None = None,
         toplevel_only: bool = False,
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo,andre): simplify this return type
-    ):
+    ) -> list[list[str]]:
         """
         Process the matched results and filter them based on the toplevel_only flag.
 
-        This method processes the matched results by filtering out non-toplevel links if the
-        toplevel_only flag is set to True. It returns the filtered results along with the cursor
-        if provided.
-
         Args:
             matched (list[list[str]]): The list of matched results to be processed.
-            cursor (int | None): The cursor position for pagination. Defaults to None.
             toplevel_only (bool): Flag indicating whether to filter out non-toplevel links.
                 Defaults to False.
 
         Returns:
-            list[list[str]] | tuple[int, list[list[str]]]: The processed matched results,
-            either as a tuple with the cursor and results or just the results.
+            list[list[str]]: The processed matched results.
         """
-        answer = self._filter_non_toplevel(matched) if toplevel_only else matched
-        if cursor is not None:
-            return cursor, answer
-        return answer
+        return self._filter_non_toplevel(matched) if toplevel_only else matched
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:
