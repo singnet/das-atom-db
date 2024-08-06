@@ -747,13 +747,17 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (
-        list[str]
-        | list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
+    ) -> (  # TODO(angelo): simplify this return type
+        list[str]  # when WILDCARD was not used and cursor was not provided
+        | tuple[int, list[str]]  # when (WILDCARD was not used AND link_type_hash is None) and cursor was provided
+        | list[tuple[str, tuple[str, ...]]]  # only in ram_only mode
+        | list[list[str]]  # from self._process_matched_results
+        | tuple[int, list[list[str]]]  # self._process_matched_results
     ):
+        # list[str]  # both dbs, if WILDCARD was not used - move this case to dedicated function
+        # | list[tuple[str, tuple[str, ...]]]  # only in ram_only - all cases
+        # | tuple[int | None, list[list[str]]]  # only in redis_mongo
+        #                                         return cursor, self._process_matched_results
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
