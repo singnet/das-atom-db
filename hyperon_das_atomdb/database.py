@@ -625,23 +625,6 @@ class AtomDB(ABC):
             of link handles, or a list of matching link handles.
         """
 
-    @abstractmethod
-    def _get_atom(self, handle: str) -> AtomT | None:
-        """
-        Retrieve an atom by its handle.
-
-        Args:
-            handle (str): The handle of the atom to retrieve.
-
-        Returns:
-            AtomT | None: A dictionary representation of the atom if found, None otherwise.
-
-        Note:
-            This method is intended for internal use and should not be called directly.
-            It must be implemented by subclasses to provide a concrete way to retrieve atoms by
-            their handles.
-        """
-
     def get_atom(self, handle: str, **kwargs) -> AtomT:
         """
         Retrieve an atom by its handle.
@@ -676,6 +659,23 @@ class AtomDB(ABC):
             message='Nonexistent atom',
             details=f'handle: {handle}',
         )
+
+    @abstractmethod
+    def _get_atom(self, handle: str) -> AtomT | None:
+        """
+        Retrieve an atom by its handle.
+
+        Args:
+            handle (str): The handle of the atom to retrieve.
+
+        Returns:
+            AtomT | None: A dictionary representation of the atom if found, None otherwise.
+
+        Note:
+            This method is intended for internal use and should not be called directly.
+            It must be implemented by subclasses to provide a concrete way to retrieve atoms by
+            their handles.
+        """
 
     @abstractmethod
     def get_atom_type(self, handle: str) -> str | None:
