@@ -652,8 +652,8 @@ class AtomDB(ABC):
             return self._transform_to_target_format(document, **kwargs)
 
         logger().error(
-            f'Failed to retrieve atom for handle: {handle}.'
-            f'This link may not exist. - Details: {kwargs}'
+            f'Failed to retrieve atom for handle: {handle}. '
+            f'This atom does not exist. - Details: {kwargs}'
         )
         raise AtomDoesNotExist(
             message='Nonexistent atom',
