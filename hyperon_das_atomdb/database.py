@@ -47,35 +47,6 @@ LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
 IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
 
 
-@dataclasses.dataclass
-class MatchedLink:
-    """
-    A class to represent a matched link.
-
-    Attributes:
-        link_handle (str): The handle of the matched link.
-        target_handles (tuple[str, ...]): A tuple of target handles for the link.
-    """
-
-    link_handle: str
-    target_handles: tuple[str, ...]
-
-
-@dataclasses.dataclass
-class PatternMatchingResult:
-    """
-    A class to represent the result of a pattern matching operation.
-
-    Attributes:
-        cursor (int | None): The cursor position for the next query.
-        matched_links (list[str] | list[tuple[str, tuple[str, ...]]]): A list of matched link
-            handles
-    """
-
-    cursor: int | None = None
-    matched_links: list[str] | list[MatchedLink] = dataclasses.field(default_factory=list)
-
-
 class FieldNames(str, Enum):
     """Enumeration of field names used in the AtomDB."""
 

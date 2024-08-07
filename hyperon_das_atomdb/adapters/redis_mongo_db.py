@@ -1350,13 +1350,10 @@ class RedisMongoDB(AtomDB):
             list[tuple[str, tuple[str, ...]]]: The processed matched results.
         """
         matched_results = self._filter_non_toplevel(matched) if toplevel_only else matched
-        matched_results_as_tuples: list[tuple[str, tuple[str, ...]]] = []
-        for match in matched_results:
-            if not match:
-                continue
-            first = match[0]
-            rest = tuple(match[1:]) if len(match) > 1 else tuple()
-            matched_results_as_tuples.append((first, rest))
+        matched_results_as_tuples: list[tuple[str, tuple[str, ...]]] = [
+            (match[0], tuple(match[1:]) if len(match) > 1 else tuple())
+            for match in matched_results if match
+        ]
         return matched_results_as_tuples
 
     @staticmethod
