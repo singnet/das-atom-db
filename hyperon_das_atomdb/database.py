@@ -33,29 +33,29 @@ from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 WILDCARD = '*'
 UNORDERED_LINK_TYPES: list[Any] = []
 
-AtomT: TypeAlias = dict[str, Any]  # pylint: disable=invalid-name
+# pylint: disable=invalid-name
 
-NodeT: TypeAlias = AtomT  # pylint: disable=invalid-name
+AtomT: TypeAlias = dict[str, Any]
 
-NodeParamsT: TypeAlias = NodeT  # pylint: disable=invalid-name
+NodeT: TypeAlias = AtomT
 
-LinkT: TypeAlias = AtomT  # pylint: disable=invalid-name
+NodeParamsT: TypeAlias = NodeT
 
-LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
+LinkT: TypeAlias = AtomT
 
-IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
+LinkParamsT: TypeAlias = LinkT
 
-MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]  # pylint: disable=invalid-name
+IncomingLinksT: TypeAlias = list[str] | list[AtomT]
 
-HandlesListT: TypeAlias = list[str]  # pylint: disable=invalid-name
+MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]
 
-MatchedLinksResultT: TypeAlias = tuple[
-    int | None, HandlesListT | MatchedTargetsListT
-]  # pylint: disable=invalid-name
+HandlesListT: TypeAlias = list[str]
 
-MatchedTypesResultT: TypeAlias = tuple[
-    int | None, MatchedTargetsListT
-]  # pylint: disable=invalid-name
+MatchedLinksResultT: TypeAlias = tuple[int | None, HandlesListT | MatchedTargetsListT]
+
+MatchedTypesResultT: TypeAlias = tuple[int | None, MatchedTargetsListT]
+
+# pylint: enable=invalid-name
 
 
 class FieldNames(str, Enum):
