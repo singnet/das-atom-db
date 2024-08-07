@@ -436,8 +436,8 @@ class TestInMemoryDB:
                 ],
             }
         )
-        _, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel=True)
-
+        cursor, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel=True)
+        assert cursor is None
         assert len(actual) == 2
 
     def test_get_all_nodes(self, database):
@@ -449,13 +449,14 @@ class TestInMemoryDB:
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: InMemoryDB):
-        # _ is the cursor - ignored for now
-        _, v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
-        _, v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
-        _, v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
-        _, v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
-        _, v5 = database.get_matched_links('Inheritance', ['*', '*'])
-        _, v6 = database.get_matched_links('Similarity', ['*', '*'])
+        cursors = [-1] * 6
+        cursors[0], v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
+        cursors[1], v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
+        cursors[2], v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
+        cursors[3], v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
+        cursors[4], v5 = database.get_matched_links('Inheritance', ['*', '*'])
+        cursors[5], v6 = database.get_matched_links('Similarity', ['*', '*'])
+        assert all(c is None for c in cursors)
         assert len(v1) == 12
         assert len(v2) == 14
         assert len(v3) == 0
@@ -486,22 +487,23 @@ class TestInMemoryDB:
             }
         )
 
-        _, ret = database.get_matched_type_template(
+        cursor, ret = database.get_matched_type_template(
             ['Evaluation', 'Reactome', 'Concept'], toplevel_only=True
         )
-
+        assert cursor is None
         assert len(ret) == 0
 
-        _, ret = database.get_matched_type_template(
+        cursor, ret = database.get_matched_type_template(
             ['Evaluation', 'Reactome', 'Concept'], toplevel_only=False
         )
-
+        assert cursor is None
         assert len(ret) == 1
 
     def test_get_matched_type(self, database: InMemoryDB):
-        # _ is the cursor - ignored for now
-        _, inheritance = database.get_matched_type('Inheritance')
-        _, similarity = database.get_matched_type('Similarity')
+        cursors = [-1] * 2
+        cursors[0], inheritance = database.get_matched_type('Inheritance')
+        cursors[1], similarity = database.get_matched_type('Similarity')
+        assert all(c is None for c in cursors)
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
@@ -527,10 +529,12 @@ class TestInMemoryDB:
                 ],
             }
         )
-        _, ret = database.get_matched_type('EvaluationLink')
+        cursor, ret = database.get_matched_type('EvaluationLink')
+        assert cursor is None
         assert len(ret) == 2
 
-        _, ret = database.get_matched_type('EvaluationLink', toplevel_only=True)
+        cursor, ret = database.get_matched_type('EvaluationLink', toplevel_only=True)
+        assert cursor is None
         assert len(ret) == 1
 
     def test_get_node_name(self, database):
@@ -612,7 +616,8 @@ class TestInMemoryDB:
         assert exc_info.value.args[0] == 'The "type" and "targets" fields must be sent'
 
     def test_add_nested_links(self, database: InMemoryDB):
-        _, answer = database.get_matched_type('Evaluation')
+        cursor, answer = database.get_matched_type('Evaluation')
+        assert cursor is None
         assert len(answer) == 0
 
         database.add_link(
@@ -645,7 +650,8 @@ class TestInMemoryDB:
                 ],
             }
         )
-        _, answer = database.get_matched_type('Evaluation')
+        cursor, answer = database.get_matched_type('Evaluation')
+        assert cursor is None
         assert len(answer) == 2
 
     def test_get_link_type(self, database: InMemoryDB):
@@ -740,10 +746,10 @@ class TestInMemoryDB:
         assert 'Inheritance' == database.get_atom_type(i)
 
     def test_get_all_links(self, database: InMemoryDB):
-        # _ is the cursor - ignored for now
-        _, link_h = database.get_all_links('Similarity')
-        _, link_i = database.get_all_links('Inheritance')
-
+        cursors = [-1] * 2
+        cursors[0], link_h = database.get_all_links('Similarity')
+        cursors[1], link_i = database.get_all_links('Inheritance')
+        assert all(c is None for c in cursors)
         assert len(link_h) == 14
         assert len(link_i) == 12
         assert (None, []) == database.get_all_links('snet')

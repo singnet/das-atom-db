@@ -54,30 +54,32 @@ class TestRedisMongo:
         return db
 
     def _check_basic_patterns(self, db, toplevel_only=False):
-        _, answers = db.get_matched_links(
+        cursors = [-1] * 4
+        cursors[0], answers = db.get_matched_links(
             "Inheritance",
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
         assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
-        _, answers = db.get_matched_links(
+        cursors[1], answers = db.get_matched_links(
             "Inheritance",
             [db.node_handle("Concept", "mammal"), WILDCARD],
             toplevel_only=toplevel_only,
         )
         assert sorted([answer[1][1] for answer in answers]) == sorted([animal])
-        _, answers = db.get_matched_links(
+        cursors[2], answers = db.get_matched_links(
             "Similarity",
             [WILDCARD, db.node_handle("Concept", "human")],
             toplevel_only=toplevel_only,
         )
         assert sorted([answer[1][0] for answer in answers]) == sorted([monkey, chimp, ent])
-        _, answers = db.get_matched_links(
+        cursors[3], answers = db.get_matched_links(
             "Similarity",
             [db.node_handle("Concept", "human"), WILDCARD],
             toplevel_only=toplevel_only,
         )
         assert sorted([answer[1][1] for answer in answers]) == sorted([monkey, chimp, ent])
+        assert all(c is None for c in cursors), f'{cursors=}'
 
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -92,7 +94,8 @@ class TestRedisMongo:
         }
         assert db._retrieve_name(human) == "human"
 
-        _, links = db._retrieve_incoming_set(mammal)
+        cursor, links = db._retrieve_incoming_set(mammal)
+        assert cursor is None
         assert len(links) == 5
         for link in links:
             outgoing = db._retrieve_outgoing_set(link)
@@ -104,7 +107,8 @@ class TestRedisMongo:
                 [mammal, animal],
             ]
 
-        _, templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
+        cursor, templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
+        assert cursor is None
         assert len(templates) == 12
         assert (
             tuple(
@@ -215,7 +219,8 @@ class TestRedisMongo:
             in templates
         )
 
-        _, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
+        cursor, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
+        assert cursor is None
         assert len(patterns) == 4
         assert (
             "75756335011dcedb71a0d9a7bd2da9e8",
@@ -260,9 +265,10 @@ class TestRedisMongo:
         assert db.count_atoms() == {'atom_count': 0}
         db.commit()
         assert db.count_atoms() == {'atom_count': 40}
-        _, answers = db.get_matched_links(
+        cursor, answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
+        assert cursor is None
         assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
@@ -297,9 +303,10 @@ class TestRedisMongo:
         new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
         new_link = db.get_atom(new_link_handle)
         assert db.get_link_targets(new_link_handle) == new_link["targets"]
-        _, answers = db.get_matched_links(
+        cursor, answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
+        assert cursor is None
         assert sorted([answer[1][0] for answer in answers]) == sorted(
             [human, monkey, chimp, rhino, dog]
         )
@@ -1166,7 +1173,8 @@ class TestRedisMongo:
             None,
             [db.link_handle('Similarity', ['node1', 'node2'])],
         )
-        _, similarity = db.get_all_links('Similarity')
+        cursor, similarity = db.get_all_links('Similarity')
+        assert cursor == 0
         assert similarity == [db.link_handle('Similarity', ['node1', 'node2'])]
         assert db.get_all_nodes('Concept') == ['node1', 'node2']
 
@@ -1175,8 +1183,10 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         response = db.retrieve_all_atoms()
-        _, inheritance = db.get_all_links('Inheritance')
-        _, similarity = db.get_all_links('Similarity')
+        cursors = [-1] * 2
+        cursors[0], inheritance = db.get_all_links('Inheritance')
+        cursors[1], similarity = db.get_all_links('Similarity')
+        assert all(c == 0 for c in cursors), f'{cursors=}'
         links = inheritance + similarity
         nodes = db.get_all_nodes('Concept')
         assert len(response) == len(links) + len(nodes)

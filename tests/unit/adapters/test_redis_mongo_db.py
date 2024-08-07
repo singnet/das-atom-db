@@ -268,8 +268,8 @@ class TestRedisMongoDB:
                 ),
             )
         ]
-        _, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
-
+        cursor, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
+        assert cursor is None
         assert expected == actual
         assert len(actual) == 1
 
@@ -282,13 +282,14 @@ class TestRedisMongoDB:
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: RedisMongoDB):
-        # _ is the cursor - ignored in this test
-        _, v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
-        _, v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
-        _, v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
-        _, v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
-        _, v5 = database.get_matched_links('Inheritance', ['*', '*'])
-        _, v6 = database.get_matched_links('Similarity', ['*', '*'])
+        cursors = [-1] * 6
+        cursors[0], v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
+        cursors[1], v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
+        cursors[2], v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
+        cursors[3], v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
+        cursors[4], v5 = database.get_matched_links('Inheritance', ['*', '*'])
+        cursors[5], v6 = database.get_matched_links('Similarity', ['*', '*'])
+        assert all(c is None for c in cursors), f'{cursors=}'
         assert len(v1) == 12
         assert len(v2) == 14
         assert len(v3) == 0
@@ -306,18 +307,20 @@ class TestRedisMongoDB:
             assert exc_info.type is ValueError
 
     def test_get_matched_type(self, database: RedisMongoDB):
-        # _ is the cursor - ignored in this test
-        _, inheritance = database.get_matched_type('Inheritance')
-        _, similarity = database.get_matched_type('Similarity')
+        cursors = [-1] * 2
+        cursors[0], inheritance = database.get_matched_type('Inheritance')
+        cursors[1], similarity = database.get_matched_type('Similarity')
+        assert all(c is None for c in cursors), f'{cursors=}'
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
     def test_get_matched_type_toplevel_only(self, database: RedisMongoDB):
-        _, ret = database.get_matched_type('Evaluation')
+        cursor, ret = database.get_matched_type('Evaluation')
+        assert cursor is None
         assert len(ret) == 2
 
-        _, ret = database.get_matched_type('Evaluation', toplevel_only=True)
-
+        cursor, ret = database.get_matched_type('Evaluation', toplevel_only=True)
+        assert cursor is None
         assert len(ret) == 1
 
     def test_get_node_name(self, database: RedisMongoDB):
@@ -380,7 +383,10 @@ class TestRedisMongoDB:
             'hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_custom_index',
             return_value={'conditionals': {}},
         ):
-            _, actual = database.get_atoms_by_index(result, [{'field': 'name', 'value': 'mammal'}])
+            cursor, actual = database.get_atoms_by_index(
+                result, [{'field': 'name', 'value': 'mammal'}]
+            )
+        assert cursor == 0
         assert expected[0] == actual[0]['handle']
 
     def test_get_node_by_text_field(self, database: RedisMongoDB):
@@ -458,9 +464,11 @@ class TestRedisMongoDB:
         assert {'atom_count': 42} == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes('Concept')
-        _, similarity = database.get_all_links('Similarity')
-        _, inheritance = database.get_all_links('Inheritance')
-        _, evaluation = database.get_all_links('Evaluation')
+        cursors = [-1] * 3
+        cursors[0], similarity = database.get_all_links('Similarity')
+        cursors[1], inheritance = database.get_all_links('Inheritance')
+        cursors[2], evaluation = database.get_all_links('Evaluation')
+        assert all(c == 0 for c in cursors), f'{cursors=}'
         all_links_before = similarity + inheritance + evaluation
         database.add_link(
             {
@@ -473,9 +481,11 @@ class TestRedisMongoDB:
         )
         database.commit()
         all_nodes_after = database.get_all_nodes('Concept')
-        _, similarity = database.get_all_links('Similarity')
-        _, inheritance = database.get_all_links('Inheritance')
-        _, evaluation = database.get_all_links('Evaluation')
+        cursors = [-1] * 3
+        cursors[0], similarity = database.get_all_links('Similarity')
+        cursors[1], inheritance = database.get_all_links('Inheritance')
+        cursors[2], evaluation = database.get_all_links('Evaluation')
+        assert all(c == 0 for c in cursors), f'{cursors=}'
         all_links_after = similarity + inheritance + evaluation
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16

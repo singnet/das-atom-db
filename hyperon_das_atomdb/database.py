@@ -45,6 +45,14 @@ LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
 
 IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
 
+MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]  # pylint: disable=invalid-name
+
+HandlesListT: TypeAlias = list[str]  # pylint: disable=invalid-name
+
+PatternMatchingResultT: TypeAlias = tuple[
+    int | None, HandlesListT | MatchedTargetsListT
+]  # pylint: disable=invalid-name
+
 
 class FieldNames(str, Enum):
     """Enumeration of field names used in the AtomDB."""
@@ -553,7 +561,7 @@ class AtomDB(ABC):
     @abstractmethod
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    ) -> PatternMatchingResultT:
         """
         Retrieve links that match a specified link type and target handles.
 
@@ -564,9 +572,8 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
-            tuple containing a cursor (which can be None if cursor is not applicable) and a list of
-            matching link handles.
+            PatternMatchingResultT: tuple containing a cursor (which can be None if cursor is not
+            applicable) and a list of matching link handles.
         """
 
     @abstractmethod

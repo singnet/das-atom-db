@@ -22,8 +22,10 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedTargetsListT,
     NodeParamsT,
     NodeT,
+    PatternMatchingResultT,
 )
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
 from hyperon_das_atomdb.logger import logger
@@ -317,27 +319,22 @@ class InMemoryDB(AtomDB):
         if link_document is not None:
             self._update_index(atom=link_document, delete_atom=True)
 
-    def _filter_non_toplevel(
-        self, matches: list[tuple[str, tuple[str, ...]]]
-    ) -> list[tuple[str, tuple[str, ...]]]:
+    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
         """
         Filter out non-toplevel matches from the provided list.
 
         Args:
-            matches (list[tuple[str, tuple[str, ...]]]): A list of matches, where each match is a
-                tuple containing a link handle and a tuple of target handles.
+            matches (MatchedTargetsListT): A list of matches, where each match is a tuple
+            containing a link handle and a tuple of target handles.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]]: A list of matches that are toplevel only.
+            MatchedTargetsListT: A list of matches that are toplevel only.
         """
-        matches_toplevel_only: list[tuple[str, tuple[str, ...]]] = []
-        if len(matches) > 0:
-            for match in matches:
-                link_handle = match[0]
-                links = self.db.link
-                if links[link_handle][FieldNames.IS_TOPLEVEL]:
-                    matches_toplevel_only.append(match)
-        return matches_toplevel_only
+        return [
+            (link_handle, matched_targets)
+            for link_handle, matched_targets in matches
+            if (link := self.db.link) and link[link_handle][FieldNames.IS_TOPLEVEL]
+        ]
 
     @staticmethod
     def _build_targets_list(link: dict[str, Any]) -> list[Any]:
@@ -540,7 +537,7 @@ class InMemoryDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    ) -> PatternMatchingResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
             return None, [link_handle]

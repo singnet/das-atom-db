@@ -32,8 +32,10 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedTargetsListT,
     NodeParamsT,
     NodeT,
+    PatternMatchingResultT,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -559,9 +561,7 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(
-        self, matches: list[tuple[str, tuple[str, ...]]]
-    ) -> list[tuple[str, tuple[str, ...]]]:
+    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -570,10 +570,10 @@ class RedisMongoDB(AtomDB):
         are included in the returned list.
 
         Args:
-            matches (list[tuple[str, tuple[str, ...]]]): A list of link handles to be filtered.
+            matches (MatchedTargetsListT): A list of link handles to be filtered.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]]: A list of handles corresponding to toplevel links.
+            MatchedTargetsListT: A list of handles corresponding to toplevel links.
         """
         return [
             (link_handle, matched_targets)
@@ -746,7 +746,7 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    ) -> PatternMatchingResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
@@ -1346,19 +1346,19 @@ class RedisMongoDB(AtomDB):
 
     def _process_matched_results(
         self,
-        matched: list[tuple[str, tuple[str, ...]]],
+        matched: MatchedTargetsListT,
         toplevel_only: bool = False,
-    ) -> list[tuple[str, tuple[str, ...]]]:
+    ) -> MatchedTargetsListT:
         """
         Process the matched results and filter them based on the toplevel_only flag.
 
         Args:
-            matched (list[tuple[str, tuple[str, ...]]]): The list of matched results to be processed.
+            matched (MatchedTargetsListT): The list of matched results to be processed.
             toplevel_only (bool): Flag indicating whether to filter out non-toplevel links.
                 Defaults to False.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]]: The processed matched results.
+            MatchedTargetsListT: The processed matched results.
         """
         return self._filter_non_toplevel(matched) if toplevel_only else matched
 
