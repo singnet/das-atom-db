@@ -559,7 +559,9 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(self, matches: list[list[str]]) -> list[list[str]]:
+    def _filter_non_toplevel(self, matches: list[tuple[str, tuple[str, ...]]]) -> (
+        list[tuple[str, tuple[str, ...]]]
+    ):
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -568,19 +570,16 @@ class RedisMongoDB(AtomDB):
         are included in the returned list.
 
         Args:
-            matches (list[list[str]]): A list of link handles to be filtered.
+            matches (list[tuple[str, tuple[str, ...]]]): A list of link handles to be filtered.
 
         Returns:
-            list[list[str]]: A list of handles corresponding to toplevel links.
+            list[tuple[str, tuple[str, ...]]]: A list of handles corresponding to toplevel links.
         """
-        matches_toplevel_only: list[list[str]] = []
-        if len(matches) > 0:
-            for match in matches:
-                link_handle = match[0]
-                link = self._retrieve_document(link_handle)
-                if link and link[FieldNames.IS_TOPLEVEL]:
-                    matches_toplevel_only.append(match)
-        return matches_toplevel_only
+        return [
+            (link_handle, matched_targets)
+            for link_handle, matched_targets in matches
+            if (link := self._retrieve_document(link_handle)) and link[FieldNames.IS_TOPLEVEL]
+        ]
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
@@ -1053,7 +1052,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_hash_targets_value(
         self, key_prefix: str, handle: str, **kwargs
-    ) -> tuple[int | None, list[list[str]]]:
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1070,9 +1069,9 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if the handle does not exit) and a list of members in the hash targets
-            value.
+            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
+            position (which can be None if `cursor` is absent in kwargs) and a list of members
+            in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
@@ -1083,19 +1082,24 @@ class RedisMongoDB(AtomDB):
             return (
                 cursor,
                 [
-                    [
-                        member[
-                            (offset * self.hash_length) : (  # noqa: E203
-                                (offset + 1) * self.hash_length
-                            )
-                        ]
-                        for offset in range(n)
-                    ]
+                    (
+                        member[0 : self.hash_length],
+                        tuple(
+                            member[
+                                (offset * self.hash_length) : (  # noqa: E203
+                                    (offset + 1) * self.hash_length
+                                )
+                            ]
+                            for offset in range(1, n)
+                        ),
+                    )
                     for member in members
                 ],
             )
 
-    def _retrieve_template(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
+    def _retrieve_template(self, handle: str, **kwargs) -> (
+        tuple[int | None, list[tuple[str, tuple[str, ...]]]]
+    ):
         """
         Retrieve the template for the given handle from Redis.
 
@@ -1110,8 +1114,9 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if handle does not exist) and a list of members in the template.
+            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
+            position (which can be None if `cursor` is absent in kwargs) and a list of members in
+            the template.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, handle, **kwargs)
 
@@ -1130,7 +1135,9 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
+    def _retrieve_pattern(self, handle: str, **kwargs) -> (
+        tuple[int | None, list[tuple[str, tuple[str, ...]]]]
+    ):
         """
         Retrieve the pattern for the given handle from Redis.
 
@@ -1147,6 +1154,10 @@ class RedisMongoDB(AtomDB):
         Returns:
             tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
             can be None if handle does not exist) and a list of members in the pattern.
+
+            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
+            position (which can be None if `cursor` is absent in kwargs) and a list of members in
+            the pattern.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
@@ -1204,8 +1215,8 @@ class RedisMongoDB(AtomDB):
                 chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            tuple[int | None, list]: The cursor (which can be None if key was not found) and a
-            list of members retrieved from Redis.
+            tuple[int | None, list[str]]: The cursor (which can be None if `cursor` is absent in
+            kwargs) and a list of members retrieved from Redis.
         """
         cursor: int | None
         members: list[str]
@@ -1335,26 +1346,21 @@ class RedisMongoDB(AtomDB):
 
     def _process_matched_results(
         self,
-        matched: list[list[str]],
+        matched: list[tuple[str, tuple[str, ...]]],
         toplevel_only: bool = False,
     ) -> list[tuple[str, tuple[str, ...]]]:
         """
         Process the matched results and filter them based on the toplevel_only flag.
 
         Args:
-            matched (list[list[str]]): The list of matched results to be processed.
+            matched (list[tuple[str, tuple[str, ...]]]): The list of matched results to be processed.
             toplevel_only (bool): Flag indicating whether to filter out non-toplevel links.
                 Defaults to False.
 
         Returns:
             list[tuple[str, tuple[str, ...]]]: The processed matched results.
         """
-        matched_results = self._filter_non_toplevel(matched) if toplevel_only else matched
-        matched_results_as_tuples: list[tuple[str, tuple[str, ...]]] = [
-            (match[0], tuple(match[1:]) if len(match) > 1 else tuple())
-            for match in matched_results if match
-        ]
-        return matched_results_as_tuples
+        return self._filter_non_toplevel(matched) if toplevel_only else matched
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:
