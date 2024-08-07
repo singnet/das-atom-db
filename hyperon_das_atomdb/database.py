@@ -45,6 +45,14 @@ LinkParamsT: TypeAlias = LinkT  # pylint: disable=invalid-name
 
 IncomingLinksT: TypeAlias = list[str] | list[AtomT]  # pylint: disable=invalid-name
 
+MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]  # pylint: disable=invalid-name
+
+HandlesListT: TypeAlias = list[str]  # pylint: disable=invalid-name
+
+PatternMatchingResultT: TypeAlias = tuple[
+    int | None, HandlesListT | MatchedTargetsListT
+]  # pylint: disable=invalid-name
+
 
 class FieldNames(str, Enum):
     """Enumeration of field names used in the AtomDB."""
@@ -474,7 +482,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_all_links(self, link_type: str, **kwargs) -> list[str] | tuple[int, list[str]]:
+    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
         """
         Get all links of a specific type.
 
@@ -483,8 +491,8 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            list[str] | tuple[int, list[str]]: A list of link handles or a tuple containing an
-            integer and a list of link handles.
+            tuple[int | None, list[str]]: tuple containing a cursor (which can be None if cursor is
+                not applicable) and a list of link handles.
         """
 
     @abstractmethod
@@ -553,13 +561,7 @@ class AtomDB(ABC):
     @abstractmethod
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (
-        list[str]
-        | list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> PatternMatchingResultT:
         """
         Retrieve links that match a specified link type and target handles.
 
@@ -570,22 +572,14 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            list[str] | list[list[str]] | list[tuple[str, tuple[str, ...]]] |
-            tuple[int, list[str]] | tuple[int, list[list[str]]]: A list of matching
-            link handles, a list of lists of matching link handles, a list of
-            tuples containing link handles and their targets, or a tuple containing
-            an integer and a list of matching link handles or lists of matching
-            link handles.
+            PatternMatchingResultT: tuple containing a cursor (which can be None if cursor is not
+            applicable) and a list of matching link handles.
         """
 
     @abstractmethod
     def get_matched_type_template(
         self, template: list[Any], **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         """
         Retrieve links that match a specified type template.
 
@@ -595,21 +589,14 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str | list[str]] |
-            list[str]: A list of tuples containing link handles and their
-            targets, a tuple containing an integer and a list of link handles or lists
-            of link handles, or a list of matching link handles.
+            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: tuple containing a cursor (which
+            can be None if cursor is not applicable) and a list of matching link handles.
         """
 
     @abstractmethod
     def get_matched_type(
         self, link_type: str, **kwargs
-    ) -> (
-        list[str]
-        | list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str] | list[list[str]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         """
         Retrieve links that match a specified link type.
 
@@ -619,10 +606,8 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]] | tuple[int, list[str | list[str]] |
-            list[str]: A list of tuples containing link handles and their
-            targets, a tuple containing an integer and a list of link handles or lists
-            of link handles, or a list of matching link handles.
+            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: tuple containing a cursor (which
+            can be None if cursor is not applicable) and a list of matching link handles.
         """
 
     def get_atom(self, handle: str, **kwargs) -> AtomT:
