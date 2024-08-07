@@ -54,62 +54,30 @@ class TestRedisMongo:
         return db
 
     def _check_basic_patterns(self, db, toplevel_only=False):
-        # raise AssertionError(
-        #     str(
-        #         db.get_matched_links(
-        #             "Inheritance",
-        #             [WILDCARD, db.node_handle("Concept", "mammal")],
-        #             toplevel_only=toplevel_only,
-        #         )
-        #     )
-        # )
-        cursor, answers = db.get_matched_links(
+        _, answers = db.get_matched_links(
             "Inheritance",
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
-        assert cursor is None
-        assert sorted([answer[1] for answer in answers]) == sorted([human, monkey, chimp, rhino])
-        return
-        # raise AssertionError(
-        #     str(
-        #         db.get_matched_links(
-        #             "Inheritance",
-        #             [db.node_handle("Concept", "mammal"), WILDCARD],
-        #             toplevel_only=toplevel_only,
-        #         )
-        #     )
-        # )
-        assert sorted(
-            [
-                answer[2]
-                for answer in db.get_matched_links(
-                    "Inheritance",
-                    [db.node_handle("Concept", "mammal"), WILDCARD],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([animal])
-        assert sorted(
-            [
-                answer[1]
-                for answer in db.get_matched_links(
-                    "Similarity",
-                    [WILDCARD, db.node_handle("Concept", "human")],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([monkey, chimp, ent])
-        assert sorted(
-            [
-                answer[2]
-                for answer in db.get_matched_links(
-                    "Similarity",
-                    [db.node_handle("Concept", "human"), WILDCARD],
-                    toplevel_only=toplevel_only,
-                )
-            ]
-        ) == sorted([monkey, chimp, ent])
+        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        _, answers = db.get_matched_links(
+            "Inheritance",
+            [db.node_handle("Concept", "mammal"), WILDCARD],
+            toplevel_only=toplevel_only,
+        )
+        assert sorted([answer[1][1] for answer in answers]) == sorted([animal])
+        _, answers = db.get_matched_links(
+            "Similarity",
+            [WILDCARD, db.node_handle("Concept", "human")],
+            toplevel_only=toplevel_only,
+        )
+        assert sorted([answer[1][0] for answer in answers]) == sorted([monkey, chimp, ent])
+        _, answers = db.get_matched_links(
+            "Similarity",
+            [db.node_handle("Concept", "human"), WILDCARD],
+            toplevel_only=toplevel_only,
+        )
+        assert sorted([answer[1][1] for answer in answers]) == sorted([monkey, chimp, ent])
 
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -138,78 +106,77 @@ class TestRedisMongo:
 
         _, templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
         assert len(templates) == 12
-        assert tuple(
-            [
-                "116df61c01859c710d178ba14a483509",
-                tuple(["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
-            ]
-        )
-        assert tuple(
-            [
-                "1c3bf151ea200b2d9e088a1178d060cb",
-                tuple(["bdfe4e7a431f73386f37c6448afe5840", "0a32b476852eeb954979b87f5f6cb7af"]),
-            ]
-        )
-        assert tuple(
-            [
-                "4120e428ab0fa162a04328e5217912ff",
-                tuple(["bb34ce95f161a6b37ff54b3d4c817857", "0a32b476852eeb954979b87f5f6cb7af"]),
-            ]
-        )
-        assert tuple(
-            [
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                tuple(["5b34c54bee150c04f9fa584b899dc030", "bdfe4e7a431f73386f37c6448afe5840"]),
-            ]
-        )
-        assert tuple(
-            [
-                "906fa505ae3bc6336d80a5f9aaa47b3b",
-                tuple(["d03e59654221c1e8fcda404fd5c8d6cb", "08126b066d32ee37743e255a2558cccd"]),
-            ]
-        )
-        assert tuple(
-            [
-                "959924e3aab197af80a84c1ab261fd65",
-                tuple(["08126b066d32ee37743e255a2558cccd", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
-            ]
-        )
-        assert tuple(
-            [
-                "b0f428929706d1d991e4d712ad08f9ab",
-                tuple(["b99ae727c787f1b13b452fd4c9ce1b9a", "0a32b476852eeb954979b87f5f6cb7af"]),
-            ]
-        )
-        assert tuple(
-            [
-                "c93e1e758c53912638438e2a7d7f7b7f",
-                tuple(["af12f10f9ae2002a1607ba0b47ba8407", "bdfe4e7a431f73386f37c6448afe5840"]),
-            ]
-        )
-        assert tuple(
-            [
-                "e4685d56969398253b6f77efd21dc347",
-                tuple(["b94941d8cd1c0ee4ad3dd3dcab52b964", "80aff30094874e75028033a38ce677bb"]),
-            ]
-        )
-        assert tuple(
-            [
-                "ee1c03e6d1f104ccd811cfbba018451a",
-                tuple(["4e8e26e3276af8a5c2ac2cc2dc95c6d2", "80aff30094874e75028033a38ce677bb"]),
-            ]
-        )
-        assert tuple(
-            [
-                "f31dfe97db782e8cec26de18dddf8965",
-                tuple(["1cdffc6b0b89ff41d68bec237481d1e1", "bdfe4e7a431f73386f37c6448afe5840"]),
-            ]
-        )
-        assert tuple(
-            [
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-                tuple(["99d18c702e813b07260baf577c60c455", "bdfe4e7a431f73386f37c6448afe5840"]),
-            ]
-        )
+        assert [
+            "116df61c01859c710d178ba14a483509",
+            "c1db9b517073e51eb7ef6fed608ec204",
+            "b99ae727c787f1b13b452fd4c9ce1b9a",
+        ] in templates
+
+        assert [
+            "1c3bf151ea200b2d9e088a1178d060cb",
+            "bdfe4e7a431f73386f37c6448afe5840",
+            "0a32b476852eeb954979b87f5f6cb7af",
+        ] in templates
+
+        assert [
+            "4120e428ab0fa162a04328e5217912ff",
+            "bb34ce95f161a6b37ff54b3d4c817857",
+            "0a32b476852eeb954979b87f5f6cb7af",
+        ] in templates
+
+        assert [
+            "75756335011dcedb71a0d9a7bd2da9e8",
+            "5b34c54bee150c04f9fa584b899dc030",
+            "bdfe4e7a431f73386f37c6448afe5840",
+        ] in templates
+
+        assert [
+            "906fa505ae3bc6336d80a5f9aaa47b3b",
+            "d03e59654221c1e8fcda404fd5c8d6cb",
+            "08126b066d32ee37743e255a2558cccd",
+        ] in templates
+
+        assert [
+            "959924e3aab197af80a84c1ab261fd65",
+            "08126b066d32ee37743e255a2558cccd",
+            "b99ae727c787f1b13b452fd4c9ce1b9a",
+        ] in templates
+
+        assert [
+            "b0f428929706d1d991e4d712ad08f9ab",
+            "b99ae727c787f1b13b452fd4c9ce1b9a",
+            "0a32b476852eeb954979b87f5f6cb7af",
+        ] in templates
+
+        assert [
+            "c93e1e758c53912638438e2a7d7f7b7f",
+            "af12f10f9ae2002a1607ba0b47ba8407",
+            "bdfe4e7a431f73386f37c6448afe5840",
+        ] in templates
+
+        assert [
+            "e4685d56969398253b6f77efd21dc347",
+            "b94941d8cd1c0ee4ad3dd3dcab52b964",
+            "80aff30094874e75028033a38ce677bb",
+        ] in templates
+
+        assert [
+            "ee1c03e6d1f104ccd811cfbba018451a",
+            "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
+            "80aff30094874e75028033a38ce677bb",
+        ] in templates
+
+        assert [
+            "f31dfe97db782e8cec26de18dddf8965",
+            "1cdffc6b0b89ff41d68bec237481d1e1",
+            "bdfe4e7a431f73386f37c6448afe5840",
+        ] in templates
+
+        assert [
+            "fbf03d17d6a40feff828a3f2c6e86f05",
+            "99d18c702e813b07260baf577c60c455",
+            "bdfe4e7a431f73386f37c6448afe5840",
+        ] in templates
 
         _, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
         assert len(patterns) == 4
@@ -248,12 +215,10 @@ class TestRedisMongo:
         assert db.count_atoms() == {'atom_count': 0}
         db.commit()
         assert db.count_atoms() == {'atom_count': 40}
-        cursor, answers = db.get_matched_links(
-            "Inheritance",
-            [WILDCARD, db.node_handle("Concept", "mammal")],
+        _, answers = db.get_matched_links(
+            "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert cursor is None
-        assert sorted([answer[1] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
         assert "strength" not in link_pre
@@ -287,14 +252,12 @@ class TestRedisMongo:
         new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
         new_link = db.get_atom(new_link_handle)
         assert db.get_link_targets(new_link_handle) == new_link["targets"]
-        assert sorted(
-            [
-                answer[1]
-                for answer in db.get_matched_links(
-                    "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
-                )
-            ]
-        ) == sorted([human, monkey, chimp, rhino, dog])
+        _, answers = db.get_matched_links(
+            "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
+        )
+        assert sorted([answer[1][0] for answer in answers]) == sorted(
+            [human, monkey, chimp, rhino, dog]
+        )
 
     def test_reindex(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -720,166 +683,148 @@ class TestRedisMongo:
         db.commit()
 
         response = db.get_matched_links('Similarity', [human, monkey], cursor=0)
-        assert response == (0, [AtomDB.link_handle('Similarity', [human, monkey])])
+        assert response == (None, [AtomDB.link_handle('Similarity', [human, monkey])])
 
         response = db.get_matched_links('Fake', [human, monkey], cursor=0)
-        assert response == (0, [])
+        assert response == (None, [])
 
-        response = db.get_matched_links('Similarity', [human, '*'], cursor=0)
-        assert (response[0], sorted(response[1])) == (
+        cursor, response = db.get_matched_links('Similarity', [human, '*'], cursor=0)
+        assert (cursor, sorted(response)) == (
             0,
             [
-                [
+                (
                     '16f7e407087bfa0b35b13d13a1aadcae',
-                    'af12f10f9ae2002a1607ba0b47ba8407',
-                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2',
-                ],
-                [
+                    (
+                        'af12f10f9ae2002a1607ba0b47ba8407',
+                        '4e8e26e3276af8a5c2ac2cc2dc95c6d2',
+                    ),
+                ),
+                (
                     'b5459e299a5c5e8662c427f7e01b3bf1',
-                    'af12f10f9ae2002a1607ba0b47ba8407',
-                    '5b34c54bee150c04f9fa584b899dc030',
-                ],
-                [
+                    (
+                        'af12f10f9ae2002a1607ba0b47ba8407',
+                        '5b34c54bee150c04f9fa584b899dc030',
+                    ),
+                ),
+                (
                     'bad7472f41a0e7d601ca294eb4607c3a',
-                    'af12f10f9ae2002a1607ba0b47ba8407',
-                    '1cdffc6b0b89ff41d68bec237481d1e1',
-                ],
+                    (
+                        'af12f10f9ae2002a1607ba0b47ba8407',
+                        '1cdffc6b0b89ff41d68bec237481d1e1',
+                    ),
+                ),
             ],
         )
 
         template = ['Inheritance', 'Concept', 'Concept']
 
-        response = db.get_matched_type_template(template, cursor=0)
-        assert (response[0], sorted(response[1])) == (
+        cursor, response = db.get_matched_type_template(template, cursor=0)
+        assert (cursor, sorted(response)) == (
             0,
             [
-                [
+                (
                     '116df61c01859c710d178ba14a483509',
-                    'c1db9b517073e51eb7ef6fed608ec204',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                ],
-                [
+                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
                     '1c3bf151ea200b2d9e088a1178d060cb',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     '4120e428ab0fa162a04328e5217912ff',
-                    'bb34ce95f161a6b37ff54b3d4c817857',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     '75756335011dcedb71a0d9a7bd2da9e8',
-                    '5b34c54bee150c04f9fa584b899dc030',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     '906fa505ae3bc6336d80a5f9aaa47b3b',
-                    'd03e59654221c1e8fcda404fd5c8d6cb',
-                    '08126b066d32ee37743e255a2558cccd',
-                ],
-                [
+                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
+                ),
+                (
                     '959924e3aab197af80a84c1ab261fd65',
-                    '08126b066d32ee37743e255a2558cccd',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                ],
-                [
+                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
                     'b0f428929706d1d991e4d712ad08f9ab',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     'c93e1e758c53912638438e2a7d7f7b7f',
-                    'af12f10f9ae2002a1607ba0b47ba8407',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     'e4685d56969398253b6f77efd21dc347',
-                    'b94941d8cd1c0ee4ad3dd3dcab52b964',
-                    '80aff30094874e75028033a38ce677bb',
-                ],
-                [
+                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
                     'ee1c03e6d1f104ccd811cfbba018451a',
-                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2',
-                    '80aff30094874e75028033a38ce677bb',
-                ],
-                [
+                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
                     'f31dfe97db782e8cec26de18dddf8965',
-                    '1cdffc6b0b89ff41d68bec237481d1e1',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     'fbf03d17d6a40feff828a3f2c6e86f05',
-                    '99d18c702e813b07260baf577c60c455',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
+                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
             ],
         )
 
-        response = db.get_matched_type('Inheritance', cursor=0)
-        assert (response[0], sorted(response[1])) == (
+        cursor, response = db.get_matched_type('Inheritance', cursor=0)
+        assert (cursor, sorted(response)) == (
             0,
             [
-                [
+                (
                     '116df61c01859c710d178ba14a483509',
-                    'c1db9b517073e51eb7ef6fed608ec204',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                ],
-                [
+                    ('c1db9b517073e51eb7ef6fed608ec204', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
                     '1c3bf151ea200b2d9e088a1178d060cb',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('bdfe4e7a431f73386f37c6448afe5840', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     '4120e428ab0fa162a04328e5217912ff',
-                    'bb34ce95f161a6b37ff54b3d4c817857',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('bb34ce95f161a6b37ff54b3d4c817857', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     '75756335011dcedb71a0d9a7bd2da9e8',
-                    '5b34c54bee150c04f9fa584b899dc030',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('5b34c54bee150c04f9fa584b899dc030', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     '906fa505ae3bc6336d80a5f9aaa47b3b',
-                    'd03e59654221c1e8fcda404fd5c8d6cb',
-                    '08126b066d32ee37743e255a2558cccd',
-                ],
-                [
+                    ('d03e59654221c1e8fcda404fd5c8d6cb', '08126b066d32ee37743e255a2558cccd'),
+                ),
+                (
                     '959924e3aab197af80a84c1ab261fd65',
-                    '08126b066d32ee37743e255a2558cccd',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                ],
-                [
+                    ('08126b066d32ee37743e255a2558cccd', 'b99ae727c787f1b13b452fd4c9ce1b9a'),
+                ),
+                (
                     'b0f428929706d1d991e4d712ad08f9ab',
-                    'b99ae727c787f1b13b452fd4c9ce1b9a',
-                    '0a32b476852eeb954979b87f5f6cb7af',
-                ],
-                [
+                    ('b99ae727c787f1b13b452fd4c9ce1b9a', '0a32b476852eeb954979b87f5f6cb7af'),
+                ),
+                (
                     'c93e1e758c53912638438e2a7d7f7b7f',
-                    'af12f10f9ae2002a1607ba0b47ba8407',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('af12f10f9ae2002a1607ba0b47ba8407', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     'e4685d56969398253b6f77efd21dc347',
-                    'b94941d8cd1c0ee4ad3dd3dcab52b964',
-                    '80aff30094874e75028033a38ce677bb',
-                ],
-                [
+                    ('b94941d8cd1c0ee4ad3dd3dcab52b964', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
                     'ee1c03e6d1f104ccd811cfbba018451a',
-                    '4e8e26e3276af8a5c2ac2cc2dc95c6d2',
-                    '80aff30094874e75028033a38ce677bb',
-                ],
-                [
+                    ('4e8e26e3276af8a5c2ac2cc2dc95c6d2', '80aff30094874e75028033a38ce677bb'),
+                ),
+                (
                     'f31dfe97db782e8cec26de18dddf8965',
-                    '1cdffc6b0b89ff41d68bec237481d1e1',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
-                [
+                    ('1cdffc6b0b89ff41d68bec237481d1e1', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
+                (
                     'fbf03d17d6a40feff828a3f2c6e86f05',
-                    '99d18c702e813b07260baf577c60c455',
-                    'bdfe4e7a431f73386f37c6448afe5840',
-                ],
+                    ('99d18c702e813b07260baf577c60c455', 'bdfe4e7a431f73386f37c6448afe5840'),
+                ),
             ],
         )
 
@@ -1172,9 +1117,10 @@ class TestRedisMongo:
         db.bulk_insert(documents)
 
         assert db.count_atoms() == {'atom_count': 3}
-        assert db.get_matched_links('Similarity', ['node1', 'node2']) == [
-            db.link_handle('Similarity', ['node1', 'node2'])
-        ]
+        assert db.get_matched_links('Similarity', ['node1', 'node2']) == (
+            None,
+            [db.link_handle('Similarity', ['node1', 'node2'])],
+        )
         _, similarity = db.get_all_links('Similarity')
         assert similarity == [db.link_handle('Similarity', ['node1', 'node2'])]
         assert db.get_all_nodes('Concept') == ['node1', 'node2']

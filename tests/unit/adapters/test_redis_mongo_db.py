@@ -207,7 +207,7 @@ class TestRedisMongoDB:
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
         link_handle = database.get_link_handle(link_type, [human, monkey])
-        expected = [link_handle]
+        expected = (None, [link_handle])
         actual = database.get_matched_links(link_type, [human, monkey])
 
         assert expected == actual
@@ -216,13 +216,18 @@ class TestRedisMongoDB:
         link_type = '*'
         human = ExpressionHasher.terminal_hash('Concept', 'human')
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
-        expected = [
+        expected = (
+            None,
             [
-                'b5459e299a5c5e8662c427f7e01b3bf1',
-                'af12f10f9ae2002a1607ba0b47ba8407',
-                '5b34c54bee150c04f9fa584b899dc030',
-            ]
-        ]
+                (
+                    'b5459e299a5c5e8662c427f7e01b3bf1',
+                    (
+                        'af12f10f9ae2002a1607ba0b47ba8407',
+                        '5b34c54bee150c04f9fa584b899dc030',
+                    ),
+                )
+            ],
+        )
         actual = database.get_matched_links(link_type, [human, chimp])
 
         assert expected == actual
@@ -230,31 +235,40 @@ class TestRedisMongoDB:
     def test_get_matched_links_link_diff_wildcard(self, database: RedisMongoDB):
         link_type = 'Similarity'
         chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
-        expected = [
+        expected = (
+            None,
             [
-                '31535ddf214f5b239d3b517823cb8144',
-                '1cdffc6b0b89ff41d68bec237481d1e1',
-                '5b34c54bee150c04f9fa584b899dc030',
+                (
+                    '31535ddf214f5b239d3b517823cb8144',
+                    (
+                        '1cdffc6b0b89ff41d68bec237481d1e1',
+                        '5b34c54bee150c04f9fa584b899dc030',
+                    ),
+                ),
+                (
+                    'b5459e299a5c5e8662c427f7e01b3bf1',
+                    (
+                        'af12f10f9ae2002a1607ba0b47ba8407',
+                        '5b34c54bee150c04f9fa584b899dc030',
+                    ),
+                ),
             ],
-            [
-                'b5459e299a5c5e8662c427f7e01b3bf1',
-                'af12f10f9ae2002a1607ba0b47ba8407',
-                '5b34c54bee150c04f9fa584b899dc030',
-            ],
-        ]
+        )
         actual = database.get_matched_links(link_type, ['*', chimp])
 
         assert expected == actual
 
     def test_get_matched_links_toplevel_only(self, database: RedisMongoDB):
         expected = [
-            [
+            (
                 'd542caa94b57219f1e489e3b03be7126',
-                'a912032ece1826e55fa583dcaacdc4a9',
-                '1e8ba9639663105e6c735ba83174f789',
-            ]
+                (
+                    'a912032ece1826e55fa583dcaacdc4a9',
+                    '1e8ba9639663105e6c735ba83174f789',
+                ),
+            )
         ]
-        actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
+        _, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel_only=True)
 
         assert expected == actual
         assert len(actual) == 1
@@ -268,12 +282,13 @@ class TestRedisMongoDB:
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: RedisMongoDB):
-        v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
-        v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
-        v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
-        v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
-        v5 = database.get_matched_links('Inheritance', ['*', '*'])
-        v6 = database.get_matched_links('Similarity', ['*', '*'])
+        # _ is the cursor - ignored in this test
+        _, v1 = database.get_matched_type_template(['Inheritance', 'Concept', 'Concept'])
+        _, v2 = database.get_matched_type_template(['Similarity', 'Concept', 'Concept'])
+        _, v3 = database.get_matched_type_template(['Inheritance', 'Concept', 'blah'])
+        _, v4 = database.get_matched_type_template(['Similarity', 'blah', 'Concept'])
+        _, v5 = database.get_matched_links('Inheritance', ['*', '*'])
+        _, v6 = database.get_matched_links('Similarity', ['*', '*'])
         assert len(v1) == 12
         assert len(v2) == 14
         assert len(v3) == 0
@@ -291,16 +306,17 @@ class TestRedisMongoDB:
             assert exc_info.type is ValueError
 
     def test_get_matched_type(self, database: RedisMongoDB):
-        inheritance = database.get_matched_type('Inheritance')
-        similarity = database.get_matched_type('Similarity')
+        # _ is the cursor - ignored in this test
+        _, inheritance = database.get_matched_type('Inheritance')
+        _, similarity = database.get_matched_type('Similarity')
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
     def test_get_matched_type_toplevel_only(self, database: RedisMongoDB):
-        ret = database.get_matched_type('Evaluation')
+        _, ret = database.get_matched_type('Evaluation')
         assert len(ret) == 2
 
-        ret = database.get_matched_type('Evaluation', toplevel_only=True)
+        _, ret = database.get_matched_type('Evaluation', toplevel_only=True)
 
         assert len(ret) == 1
 

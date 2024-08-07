@@ -483,12 +483,12 @@ class InMemoryDB(AtomDB):
             if value[FieldNames.COMPOSITE_TYPE_HASH] == node_type_hash
         ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> list[str]:
+    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
         answer = []
         for _, link in self.db.link.items():
             if link[FieldNames.TYPE_NAME] == link_type:
                 answer.append(link[FieldNames.ID_HASH])
-        return answer
+        return None, answer
 
     def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
@@ -540,15 +540,10 @@ class InMemoryDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (  # TODO(angelo): simplify this return type
-        list[str]  # when WILDCARD was not used and cursor was not provided
-        | tuple[int, list[str]]  # when (WILDCARD was not used AND link_type_hash is None) and cursor was provided
-        | list[tuple[str, tuple[str, ...]]]  # only in ram_only mode
-        | tuple[int | None, list[list[str]]]
-    ):
+    ) -> tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
-            return [link_handle]
+            return None, [link_handle]
 
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
@@ -570,9 +565,9 @@ class InMemoryDB(AtomDB):
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(patterns_matched)
+            return None, self._filter_non_toplevel(patterns_matched)
 
-        return patterns_matched
+        return None, patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
@@ -582,29 +577,22 @@ class InMemoryDB(AtomDB):
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(templates_matched)
-        return templates_matched
+            return None, self._filter_non_toplevel(templates_matched)
+        return None, templates_matched
 
     def get_matched_type(
         self, link_type: str, **kwargs
-    ) -> (
-        list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(templates_matched)
-        return templates_matched
+            return None, self._filter_non_toplevel(templates_matched)
+        return None, templates_matched
 
     def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
         raise NotImplementedError()

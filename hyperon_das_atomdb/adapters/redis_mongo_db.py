@@ -690,7 +690,7 @@ class RedisMongoDB(AtomDB):
                 for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> tuple[int, list[str]]:
+    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
 
         if kwargs.get('cursor') is not None:
@@ -745,41 +745,15 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return True
 
-    # def get_matched_links(
-    #     self, link_type: str, target_handles: list[str], **kwargs
-    # ) -> (
-    #     list[str]
-    #     | list[list[str]]
-    #     | list[tuple[str, tuple[str, ...]]]
-    #     | tuple[int, list[str]]
-    #     | tuple[int, list[list[str]]]
-    #     # TODO(angelo): create ticket to refactor pattern index to avoid storing targets as
-    #     #   index values on redis
-    #     # TODO(angelo): create ticket to make ram_only compatible with redis_mongo_db
-    # ):
-
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (  # TODO(angelo): simplify this return type
-        list[str]  # when WILDCARD was not used and cursor was not provided
-        | tuple[int, list[str]]  # when (WILDCARD was not used AND link_type_hash is None) and cursor was provided
-        | list[tuple[str, tuple[str, ...]]]  # only in ram_only mode
-        | tuple[int | None, list[list[str]]]
-    ):
-        # list[str]  # both dbs, if WILDCARD was not used - move this case to dedicated function
-        # | list[tuple[str, tuple[str, ...]]]  # only in ram_only - when WILDCARD was used
-        # | tuple[int | None, list[list[str]]]  # only in redis_mongo
-        #                                         return cursor, self._process_matched_results
+    ) -> tuple[int | None, list[str]] | tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                if kwargs.get('cursor') is not None:
-                    return 0, [link_handle]
-                return [link_handle]
+                return None, [link_handle]
             except AtomDoesNotExist:
-                if kwargs.get('cursor') is not None:
-                    return 0, []
-                return []
+                return None, []
 
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
@@ -787,9 +761,7 @@ class RedisMongoDB(AtomDB):
             link_type_hash = self._get_atom_type_hash(link_type)
 
         if link_type_hash is None:
-            if kwargs.get('cursor') is not None:
-                return 0, []
-            return []
+            return None, []
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
@@ -809,32 +781,24 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_type_template(
         self, template: list[Any], **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         try:
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
             cursor, templates_matched = self._retrieve_template(template_hash, **kwargs)
             toplevel_only = kwargs.get('toplevel_only', False)
-            return self._process_matched_results(templates_matched, cursor, toplevel_only)
+            return cursor, self._process_matched_results(templates_matched, toplevel_only)
         except Exception as exception:
             logger().error(f'Failed to get matched type template - Details: {str(exception)}')
             raise ValueError(str(exception))
 
     def get_matched_type(
         self, link_type: str, **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo,andre): simplify this return type
-    ):
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         named_type_hash = self._get_atom_type_hash(link_type)
         cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        return self._process_matched_results(templates_matched, cursor, toplevel_only)
+        return cursor, self._process_matched_results(templates_matched, toplevel_only)
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
@@ -1373,7 +1337,7 @@ class RedisMongoDB(AtomDB):
         self,
         matched: list[list[str]],
         toplevel_only: bool = False,
-    ) -> list[list[str]]:
+    ) -> list[tuple[str, tuple[str, ...]]]:
         """
         Process the matched results and filter them based on the toplevel_only flag.
 
@@ -1383,9 +1347,17 @@ class RedisMongoDB(AtomDB):
                 Defaults to False.
 
         Returns:
-            list[list[str]]: The processed matched results.
+            list[tuple[str, tuple[str, ...]]]: The processed matched results.
         """
-        return self._filter_non_toplevel(matched) if toplevel_only else matched
+        matched_results = self._filter_non_toplevel(matched) if toplevel_only else matched
+        matched_results_as_tuples: list[tuple[str, tuple[str, ...]]] = []
+        for match in matched_results:
+            if not match:
+                continue
+            first = match[0]
+            rest = tuple(match[1:]) if len(match) > 1 else tuple()
+            matched_results_as_tuples.append((first, rest))
+        return matched_results_as_tuples
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:
