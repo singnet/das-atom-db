@@ -559,9 +559,9 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(self, matches: list[tuple[str, tuple[str, ...]]]) -> (
-        list[tuple[str, tuple[str, ...]]]
-    ):
+    def _filter_non_toplevel(
+        self, matches: list[tuple[str, tuple[str, ...]]]
+    ) -> list[tuple[str, tuple[str, ...]]]:
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -1097,9 +1097,9 @@ class RedisMongoDB(AtomDB):
                 ],
             )
 
-    def _retrieve_template(self, handle: str, **kwargs) -> (
-        tuple[int | None, list[tuple[str, tuple[str, ...]]]]
-    ):
+    def _retrieve_template(
+        self, handle: str, **kwargs
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         """
         Retrieve the template for the given handle from Redis.
 
@@ -1135,9 +1135,9 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(self, handle: str, **kwargs) -> (
-        tuple[int | None, list[tuple[str, tuple[str, ...]]]]
-    ):
+    def _retrieve_pattern(
+        self, handle: str, **kwargs
+    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
         """
         Retrieve the pattern for the given handle from Redis.
 
