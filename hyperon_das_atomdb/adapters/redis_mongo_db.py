@@ -32,10 +32,11 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedLinksResultT,
     MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
-    PatternMatchingResultT,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -746,7 +747,7 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> PatternMatchingResultT:
+    ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
@@ -778,9 +779,7 @@ class RedisMongoDB(AtomDB):
         else:
             return cursor, [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         try:
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
@@ -791,9 +790,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f'Failed to get matched type template - Details: {str(exception)}')
             raise ValueError(str(exception))
 
-    def get_matched_type(
-        self, link_type: str, **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         named_type_hash = self._get_atom_type_hash(link_type)
         cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
@@ -1052,7 +1049,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_hash_targets_value(
         self, key_prefix: str, handle: str, **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    ) -> MatchedTypesResultT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1069,9 +1066,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
-            position (which can be None if `cursor` is absent in kwargs) and a list of members
-            in the hash targets value.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
@@ -1097,9 +1093,7 @@ class RedisMongoDB(AtomDB):
                 ],
             )
 
-    def _retrieve_template(
-        self, handle: str, **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def _retrieve_template(self, handle: str, **kwargs) -> MatchedTypesResultT:
         """
         Retrieve the template for the given handle from Redis.
 
@@ -1114,9 +1108,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
-            position (which can be None if `cursor` is absent in kwargs) and a list of members in
-            the template.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the template.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, handle, **kwargs)
 
@@ -1135,9 +1128,7 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(
-        self, handle: str, **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def _retrieve_pattern(self, handle: str, **kwargs) -> MatchedTypesResultT:
         """
         Retrieve the pattern for the given handle from Redis.
 
@@ -1152,12 +1143,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if handle does not exist) and a list of members in the pattern.
-
-            tuple[int | None, list[tuple[str, tuple[str, ...]]]]: A tuple containing the cursor
-            position (which can be None if `cursor` is absent in kwargs) and a list of members in
-            the pattern.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the pattern.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 

@@ -22,10 +22,11 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedLinksResultT,
     MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
-    PatternMatchingResultT,
 )
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
 from hyperon_das_atomdb.logger import logger
@@ -537,7 +538,7 @@ class InMemoryDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> PatternMatchingResultT:
+    ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
             return None, [link_handle]
@@ -572,9 +573,7 @@ class InMemoryDB(AtomDB):
             return None, list(links)
         return None, [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
@@ -582,9 +581,7 @@ class InMemoryDB(AtomDB):
             return None, self._filter_non_toplevel(templates_matched)
         return None, templates_matched
 
-    def get_matched_type(
-        self, link_type: str, **kwargs
-    ) -> tuple[int | None, list[tuple[str, tuple[str, ...]]]]:
+    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only"):
