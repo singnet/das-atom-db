@@ -106,100 +106,145 @@ class TestRedisMongo:
 
         _, templates = db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")
         assert len(templates) == 12
-        assert [
-            "116df61c01859c710d178ba14a483509",
-            "c1db9b517073e51eb7ef6fed608ec204",
-            "b99ae727c787f1b13b452fd4c9ce1b9a",
-        ] in templates
-
-        assert [
-            "1c3bf151ea200b2d9e088a1178d060cb",
-            "bdfe4e7a431f73386f37c6448afe5840",
-            "0a32b476852eeb954979b87f5f6cb7af",
-        ] in templates
-
-        assert [
-            "4120e428ab0fa162a04328e5217912ff",
-            "bb34ce95f161a6b37ff54b3d4c817857",
-            "0a32b476852eeb954979b87f5f6cb7af",
-        ] in templates
-
-        assert [
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            "5b34c54bee150c04f9fa584b899dc030",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in templates
-
-        assert [
-            "906fa505ae3bc6336d80a5f9aaa47b3b",
-            "d03e59654221c1e8fcda404fd5c8d6cb",
-            "08126b066d32ee37743e255a2558cccd",
-        ] in templates
-
-        assert [
-            "959924e3aab197af80a84c1ab261fd65",
-            "08126b066d32ee37743e255a2558cccd",
-            "b99ae727c787f1b13b452fd4c9ce1b9a",
-        ] in templates
-
-        assert [
-            "b0f428929706d1d991e4d712ad08f9ab",
-            "b99ae727c787f1b13b452fd4c9ce1b9a",
-            "0a32b476852eeb954979b87f5f6cb7af",
-        ] in templates
-
-        assert [
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            "af12f10f9ae2002a1607ba0b47ba8407",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in templates
-
-        assert [
-            "e4685d56969398253b6f77efd21dc347",
-            "b94941d8cd1c0ee4ad3dd3dcab52b964",
-            "80aff30094874e75028033a38ce677bb",
-        ] in templates
-
-        assert [
-            "ee1c03e6d1f104ccd811cfbba018451a",
-            "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-            "80aff30094874e75028033a38ce677bb",
-        ] in templates
-
-        assert [
-            "f31dfe97db782e8cec26de18dddf8965",
-            "1cdffc6b0b89ff41d68bec237481d1e1",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in templates
-
-        assert [
-            "fbf03d17d6a40feff828a3f2c6e86f05",
-            "99d18c702e813b07260baf577c60c455",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in templates
+        assert (
+            tuple(
+                [
+                    "116df61c01859c710d178ba14a483509",
+                    tuple(["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "1c3bf151ea200b2d9e088a1178d060cb",
+                    tuple(["bdfe4e7a431f73386f37c6448afe5840", "0a32b476852eeb954979b87f5f6cb7af"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "4120e428ab0fa162a04328e5217912ff",
+                    tuple(["bb34ce95f161a6b37ff54b3d4c817857", "0a32b476852eeb954979b87f5f6cb7af"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "75756335011dcedb71a0d9a7bd2da9e8",
+                    tuple(["5b34c54bee150c04f9fa584b899dc030", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "906fa505ae3bc6336d80a5f9aaa47b3b",
+                    tuple(["d03e59654221c1e8fcda404fd5c8d6cb", "08126b066d32ee37743e255a2558cccd"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "959924e3aab197af80a84c1ab261fd65",
+                    tuple(["08126b066d32ee37743e255a2558cccd", "b99ae727c787f1b13b452fd4c9ce1b9a"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "b0f428929706d1d991e4d712ad08f9ab",
+                    tuple(["b99ae727c787f1b13b452fd4c9ce1b9a", "0a32b476852eeb954979b87f5f6cb7af"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "c93e1e758c53912638438e2a7d7f7b7f",
+                    tuple(["af12f10f9ae2002a1607ba0b47ba8407", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "e4685d56969398253b6f77efd21dc347",
+                    tuple(["b94941d8cd1c0ee4ad3dd3dcab52b964", "80aff30094874e75028033a38ce677bb"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "ee1c03e6d1f104ccd811cfbba018451a",
+                    tuple(["4e8e26e3276af8a5c2ac2cc2dc95c6d2", "80aff30094874e75028033a38ce677bb"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "f31dfe97db782e8cec26de18dddf8965",
+                    tuple(["1cdffc6b0b89ff41d68bec237481d1e1", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in templates
+        )
+        assert (
+            tuple(
+                [
+                    "fbf03d17d6a40feff828a3f2c6e86f05",
+                    tuple(["99d18c702e813b07260baf577c60c455", "bdfe4e7a431f73386f37c6448afe5840"]),
+                ]
+            )
+            in templates
+        )
 
         _, patterns = db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")
         assert len(patterns) == 4
-        assert [
+        assert (
             "75756335011dcedb71a0d9a7bd2da9e8",
-            "5b34c54bee150c04f9fa584b899dc030",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in patterns
-        assert [
+            (
+                "5b34c54bee150c04f9fa584b899dc030",
+                "bdfe4e7a431f73386f37c6448afe5840",
+            ),
+        ) in patterns
+        assert (
             "fbf03d17d6a40feff828a3f2c6e86f05",
-            "99d18c702e813b07260baf577c60c455",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in patterns
-        assert [
+            (
+                "99d18c702e813b07260baf577c60c455",
+                "bdfe4e7a431f73386f37c6448afe5840",
+            ),
+        ) in patterns
+        assert (
             "f31dfe97db782e8cec26de18dddf8965",
-            "1cdffc6b0b89ff41d68bec237481d1e1",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in patterns
-        assert [
+            (
+                "1cdffc6b0b89ff41d68bec237481d1e1",
+                "bdfe4e7a431f73386f37c6448afe5840",
+            ),
+        ) in patterns
+        assert (
             "c93e1e758c53912638438e2a7d7f7b7f",
-            "af12f10f9ae2002a1607ba0b47ba8407",
-            "bdfe4e7a431f73386f37c6448afe5840",
-        ] in patterns
+            (
+                "af12f10f9ae2002a1607ba0b47ba8407",
+                "bdfe4e7a431f73386f37c6448afe5840",
+            ),
+        ) in patterns
 
     def test_patterns(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -338,14 +383,14 @@ class TestRedisMongo:
             )
             assert sorted(db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
             assert sorted(db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
 
@@ -364,51 +409,51 @@ class TestRedisMongo:
 
             assert sorted(db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
             assert sorted(db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
             assert sorted(db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
             assert sorted(db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1]) == sorted(
                 [
-                    [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
-                    [inheritance_cat_mammal_handle, cat_handle, mammal_handle],
+                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
 
         def _check_asserts_2():
@@ -478,34 +523,34 @@ class TestRedisMongo:
                 [dog_handle, mammal_handle]
             )
             assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle],
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == [
-                [inheritance_dog_mammal_handle, dog_handle, mammal_handle]
+                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == []
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == []
@@ -529,38 +574,38 @@ class TestRedisMongo:
             )
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert db._retrieve_template('e40489cd1e7102e35469c937e05c8bba')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_template('41c082428b28d7e9ea96160f7fd614ad')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('112002ff70ea491aad735f978e9d95f5')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('6e644e70a9fe3145c88b5b6261af5754')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('5dd515aa7a451276feac4f8b9d84ae91')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('7ead6cfa03894c62761162b7603aa885')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('e55007a8477a4e6bf4fec76e4ffd7e10')[1] == []
             assert db._retrieve_pattern('23dc149b3218d166a14730db55249126')[1] == []
             assert db._retrieve_pattern('399751d7319f9061d97cd1d75728b66b')[1] == []
             assert db._retrieve_pattern('d0eaae6eaf750e821b26642cef32becf')[1] == []
             assert db._retrieve_pattern('f29daafee640d91aa7091e44551fc74a')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('a11d7cbf62bc544f75702b5fb6a514ff')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('3ba42d45a50c89600d92fb3f1a46c1b5')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
             assert db._retrieve_pattern('9fb71ffef74a1a98eb0bfce7aa3d54e3')[1] == [
-                [inheritance_cat_mammal_handle, cat_handle, mammal_handle]
+                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
             ]
 
         db = _db

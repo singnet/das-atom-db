@@ -22,7 +22,6 @@ Type Aliases:
 
 import re
 from abc import ABC, abstractmethod
-import dataclasses
 from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias

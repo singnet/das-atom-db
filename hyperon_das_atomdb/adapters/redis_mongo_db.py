@@ -1083,7 +1083,7 @@ class RedisMongoDB(AtomDB):
                 cursor,
                 [
                     (
-                        member[0 : self.hash_length],
+                        member[0 : self.hash_length],  # noqa: E203
                         tuple(
                             member[
                                 (offset * self.hash_length) : (  # noqa: E203
