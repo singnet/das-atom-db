@@ -22,6 +22,9 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedLinksResultT,
+    MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
@@ -317,27 +320,24 @@ class InMemoryDB(AtomDB):
         if link_document is not None:
             self._update_index(atom=link_document, delete_atom=True)
 
-    def _filter_non_toplevel(
-        self, matches: list[tuple[str, tuple[str, ...]]]
-    ) -> list[tuple[str, tuple[str, ...]]]:
+    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
         """
         Filter out non-toplevel matches from the provided list.
 
         Args:
-            matches (list[tuple[str, tuple[str, ...]]]): A list of matches, where each match is a
-                tuple containing a link handle and a tuple of target handles.
+            matches (MatchedTargetsListT): A list of matches, where each match is a tuple
+            containing a link handle and a tuple of target handles.
 
         Returns:
-            list[tuple[str, tuple[str, ...]]]: A list of matches that are toplevel only.
+            MatchedTargetsListT: A list of matches that are toplevel only.
         """
-        matches_toplevel_only: list[tuple[str, tuple[str, ...]]] = []
-        if len(matches) > 0:
-            for match in matches:
-                link_handle = match[0]
-                links = self.db.link
-                if links[link_handle][FieldNames.IS_TOPLEVEL]:
-                    matches_toplevel_only.append(match)
-        return matches_toplevel_only
+        if not self.db.link:
+            return matches
+        return [
+            (link_handle, matched_targets)
+            for link_handle, matched_targets in matches
+            if (link := self.db.link.get(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
+        ]
 
     @staticmethod
     def _build_targets_list(link: dict[str, Any]) -> list[Any]:
@@ -483,12 +483,12 @@ class InMemoryDB(AtomDB):
             if value[FieldNames.COMPOSITE_TYPE_HASH] == node_type_hash
         ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> list[str]:
+    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
         answer = []
         for _, link in self.db.link.items():
             if link[FieldNames.TYPE_NAME] == link_type:
                 answer.append(link[FieldNames.ID_HASH])
-        return answer
+        return None, answer
 
     def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
@@ -540,16 +540,10 @@ class InMemoryDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (
-        list[str]
-        | list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
-            return [link_handle]
+            return None, [link_handle]
 
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
@@ -571,9 +565,9 @@ class InMemoryDB(AtomDB):
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(patterns_matched)
+            return None, self._filter_non_toplevel(patterns_matched)
 
-        return patterns_matched
+        return None, patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
@@ -581,31 +575,20 @@ class InMemoryDB(AtomDB):
             return None, list(links)
         return None, [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(templates_matched)
-        return templates_matched
+            return None, self._filter_non_toplevel(templates_matched)
+        return None, templates_matched
 
-    def get_matched_type(
-        self, link_type: str, **kwargs
-    ) -> (
-        list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only"):
-            return self._filter_non_toplevel(templates_matched)
-        return templates_matched
+            return None, self._filter_non_toplevel(templates_matched)
+        return None, templates_matched
 
     def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
         raise NotImplementedError()

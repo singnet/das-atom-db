@@ -32,6 +32,9 @@ from hyperon_das_atomdb.database import (
     IncomingLinksT,
     LinkParamsT,
     LinkT,
+    MatchedLinksResultT,
+    MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
@@ -559,7 +562,7 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(self, matches: list[list[str]]) -> list[list[str]]:
+    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -568,19 +571,16 @@ class RedisMongoDB(AtomDB):
         are included in the returned list.
 
         Args:
-            matches (list[list[str]]): A list of link handles to be filtered.
+            matches (MatchedTargetsListT): A list of link handles to be filtered.
 
         Returns:
-            list[list[str]]: A list of handles corresponding to toplevel links.
+            MatchedTargetsListT: A list of handles corresponding to toplevel links.
         """
-        matches_toplevel_only: list[list[str]] = []
-        if len(matches) > 0:
-            for match in matches:
-                link_handle = match[0]
-                link = self._retrieve_document(link_handle)
-                if link and link[FieldNames.IS_TOPLEVEL]:
-                    matches_toplevel_only.append(match)
-        return matches_toplevel_only
+        return [
+            (link_handle, matched_targets)
+            for link_handle, matched_targets in matches
+            if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
+        ]
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
@@ -690,7 +690,7 @@ class RedisMongoDB(AtomDB):
                 for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> tuple[int, list[str]]:
+    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
 
         if kwargs.get('cursor') is not None:
@@ -747,33 +747,15 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_links(
         self, link_type: str, target_handles: list[str], **kwargs
-    ) -> (
-        list[str]
-        | list[list[str]]
-        | list[tuple[str, tuple[str, ...]]]
-        | tuple[int, list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo): simplify this return type
-    ):
+    ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                if kwargs.get('cursor') is not None:
-                    return 0, [link_handle]
-                return [link_handle]
+                return None, [link_handle]
             except AtomDoesNotExist:
-                if kwargs.get('cursor') is not None:
-                    return 0, []
-                return []
+                return None, []
 
-        if link_type == WILDCARD:
-            link_type_hash = WILDCARD
-        else:
-            link_type_hash = self._get_atom_type_hash(link_type)
-
-        if link_type_hash is None:
-            if kwargs.get('cursor') is not None:
-                return 0, []
-            return []
+        link_type_hash = WILDCARD if link_type == WILDCARD else self._get_atom_type_hash(link_type)
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
@@ -781,7 +763,7 @@ class RedisMongoDB(AtomDB):
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        return self._process_matched_results(patterns_matched, cursor, toplevel_only)
+        return cursor, self._process_matched_results(patterns_matched, toplevel_only)
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
@@ -791,34 +773,22 @@ class RedisMongoDB(AtomDB):
         else:
             return cursor, [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo): simplify this return type
-    ):
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         try:
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
             cursor, templates_matched = self._retrieve_template(template_hash, **kwargs)
             toplevel_only = kwargs.get('toplevel_only', False)
-            return self._process_matched_results(templates_matched, cursor, toplevel_only)
+            return cursor, self._process_matched_results(templates_matched, toplevel_only)
         except Exception as exception:
             logger().error(f'Failed to get matched type template - Details: {str(exception)}')
             raise ValueError(str(exception))
 
-    def get_matched_type(
-        self, link_type: str, **kwargs
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]
-        | list[tuple[str, tuple[str, ...]]]  # TODO(angelo,andre): simplify this return type
-    ):
+    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         named_type_hash = self._get_atom_type_hash(link_type)
         cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
         toplevel_only = kwargs.get('toplevel_only', False)
-        return self._process_matched_results(templates_matched, cursor, toplevel_only)
+        return cursor, self._process_matched_results(templates_matched, toplevel_only)
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
@@ -1073,7 +1043,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_hash_targets_value(
         self, key_prefix: str, handle: str, **kwargs
-    ) -> tuple[int | None, list[list[str]]]:
+    ) -> MatchedTypesResultT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1090,9 +1060,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if the handle does not exit) and a list of members in the hash targets
-            value.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
         cursor, members = self._get_redis_members(key, **kwargs)
@@ -1103,19 +1072,22 @@ class RedisMongoDB(AtomDB):
             return (
                 cursor,
                 [
-                    [
-                        member[
-                            (offset * self.hash_length) : (  # noqa: E203
-                                (offset + 1) * self.hash_length
-                            )
-                        ]
-                        for offset in range(n)
-                    ]
+                    (
+                        member[0 : self.hash_length],  # noqa: E203
+                        tuple(
+                            member[
+                                (offset * self.hash_length) : (  # noqa: E203
+                                    (offset + 1) * self.hash_length
+                                )
+                            ]
+                            for offset in range(1, n)
+                        ),
+                    )
                     for member in members
                 ],
             )
 
-    def _retrieve_template(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
+    def _retrieve_template(self, handle: str, **kwargs) -> MatchedTypesResultT:
         """
         Retrieve the template for the given handle from Redis.
 
@@ -1130,8 +1102,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if handle does not exist) and a list of members in the template.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the template.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, handle, **kwargs)
 
@@ -1150,7 +1122,7 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_pattern(self, handle: str, **kwargs) -> tuple[int | None, list[list[str]]]:
+    def _retrieve_pattern(self, handle: str, **kwargs) -> MatchedTypesResultT:
         """
         Retrieve the pattern for the given handle from Redis.
 
@@ -1165,8 +1137,8 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for cursor-based pagination.
 
         Returns:
-            tuple[int | None, list[str | list[str]]]: A tuple containing the cursor position (which
-            can be None if handle does not exist) and a list of members in the pattern.
+            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
+            `cursor` is absent in kwargs) and a list of members in the pattern.
         """
         return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
@@ -1224,8 +1196,8 @@ class RedisMongoDB(AtomDB):
                 chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            tuple[int | None, list]: The cursor (which can be None if key was not found) and a
-            list of members retrieved from Redis.
+            tuple[int | None, list[str]]: The cursor (which can be None if `cursor` is absent in
+            kwargs) and a list of members retrieved from Redis.
         """
         cursor: int | None
         members: list[str]
@@ -1355,34 +1327,21 @@ class RedisMongoDB(AtomDB):
 
     def _process_matched_results(
         self,
-        matched: list[list[str]],
-        cursor: int | None = None,
+        matched: MatchedTargetsListT,
         toplevel_only: bool = False,
-    ) -> (
-        list[list[str]]
-        | tuple[int, list[list[str]]]  # TODO(angelo,andre): simplify this return type
-    ):
+    ) -> MatchedTargetsListT:
         """
         Process the matched results and filter them based on the toplevel_only flag.
 
-        This method processes the matched results by filtering out non-toplevel links if the
-        toplevel_only flag is set to True. It returns the filtered results along with the cursor
-        if provided.
-
         Args:
-            matched (list[list[str]]): The list of matched results to be processed.
-            cursor (int | None): The cursor position for pagination. Defaults to None.
+            matched (MatchedTargetsListT): The list of matched results to be processed.
             toplevel_only (bool): Flag indicating whether to filter out non-toplevel links.
                 Defaults to False.
 
         Returns:
-            list[list[str]] | tuple[int, list[list[str]]]: The processed matched results,
-            either as a tuple with the cursor and results or just the results.
+            MatchedTargetsListT: The processed matched results.
         """
-        answer = self._filter_non_toplevel(matched) if toplevel_only else matched
-        if cursor is not None:
-            return cursor, answer
-        return answer
+        return self._filter_non_toplevel(matched) if toplevel_only else matched
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:
