@@ -579,7 +579,7 @@ class RedisMongoDB(AtomDB):
         return [
             (link_handle, matched_targets)
             for link_handle, matched_targets in matches
-            if (link := self._retrieve_document(link_handle)) and link[FieldNames.IS_TOPLEVEL]
+            if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
         ]
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
