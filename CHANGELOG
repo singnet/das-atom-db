@@ -10,3 +10,4 @@
 [#161] adding mypy to the repo (PR #180)
 [#161] fixing some returns and type hints (PR #181)
 [#182] refactoring AtomDB.get_atom (PR #183)
+[#185] refactoring AtomDB.get_matched_links and related code (PR #186)
