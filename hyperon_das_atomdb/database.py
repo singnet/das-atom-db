@@ -576,7 +576,7 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            PatternMatchingResultT: tuple containing a cursor (which can be None if cursor is not
+            MatchedLinksResultT: tuple containing a cursor (which can be None if cursor is not
             applicable) and a list of matching link handles.
         """
 

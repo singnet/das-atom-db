@@ -331,12 +331,12 @@ class InMemoryDB(AtomDB):
         Returns:
             MatchedTargetsListT: A list of matches that are toplevel only.
         """
-        if self.db.link is None:
-            return []
+        if not self.db.link:
+            return matches
         return [
             (link_handle, matched_targets)
             for link_handle, matched_targets in matches
-            if self.db.link.get(link_handle, dict()).get(FieldNames.IS_TOPLEVEL)
+            if (link := self.db.link.get(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
         ]
 
     @staticmethod

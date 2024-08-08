@@ -755,13 +755,7 @@ class RedisMongoDB(AtomDB):
             except AtomDoesNotExist:
                 return None, []
 
-        if link_type == WILDCARD:
-            link_type_hash = WILDCARD
-        else:
-            link_type_hash = self._get_atom_type_hash(link_type)
-
-        if link_type_hash is None:
-            return None, []
+        link_type_hash = WILDCARD if link_type == WILDCARD else self._get_atom_type_hash(link_type)
 
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
