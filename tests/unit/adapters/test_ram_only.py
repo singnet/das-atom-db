@@ -447,29 +447,6 @@ class TestInMemoryDB:
         )
     )
     def test_get_matched_links_nested_lists(self, database: InMemoryDB):
-        chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
-        human = ExpressionHasher.terminal_hash('Concept', 'human')
-        monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
-        database.add_link(
-            {
-                'type': 'Nearness',
-                'targets': [
-                    {'type': 'Concept', 'name': 'chimp'},
-                    {'type': 'Concept', 'name': 'human'},
-                ],
-            }
-        )
-        nearness_chimp_human_handle = database.get_link_handle('Nearness', [chimp, human])
-        database.add_link(
-            {
-                'type': 'Nearness',
-                'targets': [
-                    {'type': 'Concept', 'name': 'chimp'},
-                    {'type': 'Concept', 'name': 'monkey'},
-                ],
-            }
-        )
-        nearness_chimp_monkey_handle = database.get_link_handle('Nearness', [chimp, monkey])
         database.add_link(
             {
                 'type': 'Connectivity',
@@ -491,10 +468,19 @@ class TestInMemoryDB:
                 ],
             }
         )
-        target_handles = [
+        chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
+        human = ExpressionHasher.terminal_hash('Concept', 'human')
+        monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
+        assert database.link_exists('Nearness', [chimp, human])
+        assert database.link_exists('Nearness', [chimp, monkey])
+        nearness_chimp_human_handle = database.get_link_handle('Nearness', [chimp, human])
+        nearness_chimp_monkey_handle = database.get_link_handle('Nearness', [chimp, monkey])
+        assert database.link_exists(
+            'Connectivity',
             [nearness_chimp_human_handle, nearness_chimp_monkey_handle],
-        ]
-        links = database.get_matched_links('Connectivity', target_handles)
+        )
+        target_handles = [[chimp, human], [chimp, monkey]]
+        _, links = database.get_matched_links('Connectivity', target_handles)
         assert len(links) == 1
 
     def test_get_all_nodes(self, database):
