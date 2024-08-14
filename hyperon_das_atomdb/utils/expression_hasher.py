@@ -108,7 +108,11 @@ class ExpressionHasher:
                 return hash_base[0]
             else:
                 return ExpressionHasher._compute_hash(
-                    ExpressionHasher.compound_separator.join(hash_base)
+                    ExpressionHasher.compound_separator.join(
+                        ExpressionHasher.composite_hash(hash_base)
+                        if isinstance(hash_base, list)
+                        else hash_base
+                    )
                 )
         else:
             raise ValueError(
