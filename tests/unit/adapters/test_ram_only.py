@@ -211,6 +211,39 @@ class TestInMemoryDB:
                     {'type': 'Concept', 'name': 'human'},
                 ],
             },
+            {
+                'type': 'Nearness',
+                'targets': [
+                    {'type': 'Concept', 'name': 'chimp'},
+                    {'type': 'Concept', 'name': 'human'},
+                ],
+            },
+            {
+                'type': 'Nearness',
+                'targets': [
+                    {'type': 'Concept', 'name': 'chimp'},
+                    {'type': 'Concept', 'name': 'monkey'},
+                ],
+            },
+            {
+                'type': 'Connectivity',
+                'targets': [
+                    {
+                        'type': 'Nearness',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'chimp'},
+                            {'type': 'Concept', 'name': 'human'},
+                        ],
+                    },
+                    {
+                        'type': 'Nearness',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'chimp'},
+                            {'type': 'Concept', 'name': 'monkey'},
+                        ],
+                    },
+                ],
+            },
         ]
 
     @pytest.fixture()
@@ -439,6 +472,72 @@ class TestInMemoryDB:
         cursor, actual = database.get_matched_links('Evaluation', ['*', '*'], toplevel=True)
         assert cursor is None
         assert len(actual) == 2
+
+    # @pytest.mark.skip(
+    #     reason=(
+    #         "get_matched_links does not support nested lists in the target_handles parameter. "
+    #         "See: https://github.com/singnet/das-atom-db/issues/191"
+    #     )
+    # )
+    def test_get_matched_links_nested_lists(self, database: InMemoryDB):
+        chimp = ExpressionHasher.terminal_hash('Concept', 'chimp')
+        human = ExpressionHasher.terminal_hash('Concept', 'human')
+        monkey = ExpressionHasher.terminal_hash('Concept', 'monkey')
+        nearness_chimp_human = database.add_link(
+            {
+                'type': 'Nearness',
+                'targets': [
+                    {'type': 'Concept', 'name': 'chimp'},
+                    {'type': 'Concept', 'name': 'human'},
+                ],
+            }
+        )
+        nearness_chimp_human_handle = database.get_link_handle('Nearness', [chimp, human])
+        nearness_chimp_monkey = database.add_link(
+            {
+                'type': 'Nearness',
+                'targets': [
+                    {'type': 'Concept', 'name': 'chimp'},
+                    {'type': 'Concept', 'name': 'monkey'},
+                ],
+            }
+        )
+        nearness_chimp_monkey_handle = database.get_link_handle('Nearness', [chimp, monkey])
+        connectivity = database.add_link(
+            {
+                'type': 'Connectivity',
+                'targets': [
+                    {
+                        'type': 'Nearness',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'chimp'},
+                            {'type': 'Concept', 'name': 'human'},
+                        ],
+                    },
+                    {
+                        'type': 'Nearness',
+                        'targets': [
+                            {'type': 'Concept', 'name': 'chimp'},
+                            {'type': 'Concept', 'name': 'monkey'},
+                        ],
+                    },
+                ],
+            }
+        )
+        connectivity_handle = database.get_link_handle(
+            'Connectivity', [nearness_chimp_human_handle, nearness_chimp_monkey_handle]
+        )
+        target_handles = [
+            connectivity_handle,
+            [nearness_chimp_human_handle, nearness_chimp_monkey_handle],
+        ]
+        links = database.get_matched_links('Connectivity', target_handles, toplevel=False)
+        # raise AssertionError(
+        #     f'{connectivity=}\n'
+        #     f'{nearness_chimp_human=}\n'
+        #     f'{nearness_chimp_monkey=}\n'
+        #     f'{links=}\n'
+        # )
 
     def test_get_all_nodes(self, database):
         ret = database.get_all_nodes('Concept')
