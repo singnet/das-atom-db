@@ -211,39 +211,6 @@ class TestInMemoryDB:
                     {'type': 'Concept', 'name': 'human'},
                 ],
             },
-            {
-                'type': 'Nearness',
-                'targets': [
-                    {'type': 'Concept', 'name': 'chimp'},
-                    {'type': 'Concept', 'name': 'human'},
-                ],
-            },
-            {
-                'type': 'Nearness',
-                'targets': [
-                    {'type': 'Concept', 'name': 'chimp'},
-                    {'type': 'Concept', 'name': 'monkey'},
-                ],
-            },
-            {
-                'type': 'Connectivity',
-                'targets': [
-                    {
-                        'type': 'Nearness',
-                        'targets': [
-                            {'type': 'Concept', 'name': 'chimp'},
-                            {'type': 'Concept', 'name': 'human'},
-                        ],
-                    },
-                    {
-                        'type': 'Nearness',
-                        'targets': [
-                            {'type': 'Concept', 'name': 'chimp'},
-                            {'type': 'Concept', 'name': 'monkey'},
-                        ],
-                    },
-                ],
-            },
         ]
 
     @pytest.fixture()
