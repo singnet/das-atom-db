@@ -30,6 +30,16 @@ jobs:
           poetry lock --no-update
           poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
 
+      - name: Check if the lint configuration matches the one in the DAS repository.
+        run: |-
+          master_lint=$(curl -s https://raw.githubusercontent.com/singnet/das/master/python/.pylintrc | shasum -a 256 | cut -d ' ' -f 1)
+          local_lint=$(shasum -a 256 .pylintrc | cut -d ' ' -f 1)
+
+          if [ "$master_lint" != "$local_lint" ]; then
+            echo "The local lint configuration differs from the one in the DAS repository."
+            exit 1
+          fi
+
       - name: Perform Code Linting
         run: make lint
 
