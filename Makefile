@@ -1,11 +1,11 @@
-isort:
-	@isort ./hyperon_das_atomdb ./tests --multi-line=3 --trailing-comma --force-grid-wrap=0 --use-parentheses --line-width=100
+# isort:
+# 	@isort ./hyperon_das_atomdb ./tests --multi-line=3 --trailing-comma --force-grid-wrap=0 --use-parentheses --line-width=100
 
-black:
-	@black ./hyperon_das_atomdb ./tests --line-length 100 -t py37 --skip-string-normalization
+# black:
+# 	@black ./hyperon_das_atomdb ./tests --line-length 100 -t py37 --skip-string-normalization
 
-flake8:
-	@flake8 ./hyperon_das_atomdb ./tests --show-source --extend-ignore E501
+# flake8:
+# 	@flake8 ./hyperon_das_atomdb ./tests --show-source --extend-ignore E501
 
 pylint:
 	@pylint ./hyperon_das_atomdb --rcfile=.pylintrc
@@ -13,7 +13,7 @@ pylint:
 mypy:
 	@unbuffer mypy --color-output --config-file mypy.ini ./hyperon_das_atomdb
 
-lint: isort black flake8
+lint: pylint
 
 unit-tests:
 	@py.test -sx -vv ./tests/unit
