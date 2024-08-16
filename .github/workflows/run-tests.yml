@@ -31,14 +31,20 @@ jobs:
           poetry export --dev -f requirements.txt | pip3 install -r /dev/stdin
 
       - name: Check if the lint configuration matches the one in the DAS repository.
-        run: |-
-          master_lint=$(curl -s https://raw.githubusercontent.com/singnet/das/master/python/.pylintrc | shasum -a 256 | cut -d ' ' -f 1)
-          local_lint=$(shasum -a 256 .pylintrc | cut -d ' ' -f 1)
+        run: |
+          config_files=(".black.cfg" ".flake8.cfg" ".isort.cfg")
 
-          if [ "$master_lint" != "$local_lint" ]; then
-            echo "The local lint configuration differs from the one in the DAS repository."
-            exit 1
-          fi
+          for config_file in "${config_files[@]}"; do
+            master_lint=$(curl -s https://raw.githubusercontent.com/singnet/das/master/.lint/${config_file} | shasum -a 256 | cut -d ' ' -f 1)
+            local_lint=$(shasum -a 256 ${config_file} | cut -d ' ' -f 1)
+
+            if [ "$master_lint" != "$local_lint" ]; then
+              echo "The local lint configuration differs from the one in the DAS repository."
+              exit 1
+            fi
+          done
+
+          echo "All lint configurations match the ones in the DAS repository."
 
       - name: Perform Code Linting
         run: make lint
