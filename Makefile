@@ -1,11 +1,11 @@
 isort:
-	@isort --settings-path .isort.cfg ./hyperon_das ./tests
+	@isort --settings-path .isort.cfg ./hyperon_das_atomdb ./tests
 
 black:
-	@black --config .black.cfg ./hyperon_das ./tests
+	@black --config .black.cfg ./hyperon_das_atomdb ./tests
 
 flake8:
-	@flake8 --config .flake8.cfg ./hyperon_das ./tests --exclude ./hyperon_das/grpc/
+	@flake8 --config .flake8.cfg ./hyperon_das_atomdb ./tests
 
 pylint:
 	@pylint ./hyperon_das_atomdb --rcfile=.pylintrc
