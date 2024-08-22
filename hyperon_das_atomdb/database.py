@@ -122,7 +122,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _transform_to_target_format(self, document: AtomT, **kwargs) -> AtomT:
+    def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
 
@@ -137,15 +137,7 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
-        for key, value in document.items():
-            if key == '_id':
-                continue
-            if re.search(AtomDB.key_pattern, key):
-                answer.setdefault('targets', []).append(value)
-            else:
-                answer[key] = value
-
+        answer: AtomT = document
         if kwargs.get('targets_document', False):
             targets_document = [self.get_atom(target) for target in answer['targets']]
             answer["targets_document"] = targets_document
@@ -196,13 +188,13 @@ class AtomDB(ABC):
 
         node: NodeT = {
             FieldNames.ID_HASH: handle,
+            'handle': handle,
             FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.named_type_hash(node_type),
             FieldNames.NODE_NAME: node_name,
             FieldNames.TYPE_NAME: node_type,
         }
 
         node.update(valid_params)
-        node.pop('type')
 
         return handle, node
 
@@ -230,6 +222,7 @@ class AtomDB(ABC):
         """
         reserved_parameters = [
             'handle',
+            'targets',
             '_id',
             'composite_type_hash',
             'composite_type',
@@ -245,8 +238,8 @@ class AtomDB(ABC):
             if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
         }
 
-        link_type = valid_params.get('type')
-        targets = valid_params.get('targets')
+        targets = link_params.get('targets')
+        link_type = link_params.get('type')
 
         if link_type is None or targets is None:
             raise AddLinkException(
@@ -259,6 +252,7 @@ class AtomDB(ABC):
         composite_type = [link_type_hash]
         composite_type_hash = [link_type_hash]
 
+        target_handles = []
         for target in targets:
             if not isinstance(target, dict):
                 raise ValueError('The target must be a dictionary')
@@ -275,12 +269,15 @@ class AtomDB(ABC):
                 atom_hash = atom['composite_type_hash']
                 composite_type.append(atom['composite_type'])
             composite_type_hash.append(atom_hash)
+            target_handles.append(atom['_id'])
             targets_hash.append(atom['_id'])
 
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
         link: LinkT = {
             FieldNames.ID_HASH: handle,
+            'handle': handle,
+            'targets': target_handles,
             FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
             FieldNames.IS_TOPLEVEL: toplevel,
             FieldNames.COMPOSITE_TYPE: composite_type,
@@ -292,8 +289,6 @@ class AtomDB(ABC):
             link[f'key_{item}'] = targets_hash[item]
 
         link.update(valid_params)
-        link.pop('type')
-        link.pop('targets')
 
         return handle, link, targets_hash
 
@@ -632,18 +627,18 @@ class AtomDB(ABC):
         """
         document = self._get_atom(handle)
         if document:
-            if kwargs.get('no_target_format', False):
-                return document
-            return self._transform_to_target_format(document, **kwargs)
-
-        logger().error(
-            f'Failed to retrieve atom for handle: {handle}. '
-            f'This atom does not exist. - Details: {kwargs}'
-        )
-        raise AtomDoesNotExist(
-            message='Nonexistent atom',
-            details=f'handle: {handle}',
-        )
+            if not kwargs.get('no_target_format', False):
+                document = self._reformat_document(document, **kwargs)
+            return document
+        else:
+            logger().error(
+                f'Failed to retrieve atom for handle: {handle}. '
+                f'This atom does not exist. - Details: {kwargs}'
+            )
+            raise AtomDoesNotExist(
+                message='Nonexistent atom',
+                details=f'handle: {handle}',
+            )
 
     @abstractmethod
     def _get_atom(self, handle: str) -> AtomT | None:

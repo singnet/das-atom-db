@@ -11,6 +11,7 @@ Classes:
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Iterable
+import copy
 
 from hyperon_das_atomdb.database import (
     UNORDERED_LINK_TYPES,
@@ -611,7 +612,11 @@ class InMemoryDB(AtomDB):
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        return self.db.node.get(handle) or self._get_link(handle)
+        document = self.db.node.get(handle) or self._get_link(handle)
+        if document is None:
+            return None
+        else:
+            return copy.deepcopy(document)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self.db.node.get(handle)
