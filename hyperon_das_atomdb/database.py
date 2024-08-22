@@ -248,11 +248,10 @@ class AtomDB(ABC):
             )
 
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        targets_hash = []
+        target_handles = []
         composite_type = [link_type_hash]
         composite_type_hash = [link_type_hash]
 
-        target_handles = []
         for target in targets:
             if not isinstance(target, dict):
                 raise ValueError("The target must be a dictionary")
@@ -270,9 +269,8 @@ class AtomDB(ABC):
                 composite_type.append(atom["composite_type"])
             composite_type_hash.append(atom_hash)
             target_handles.append(atom["_id"])
-            targets_hash.append(atom["_id"])
 
-        handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
+        handle = ExpressionHasher.expression_hash(link_type_hash, target_handles)
 
         link: LinkT = {
             FieldNames.ID_HASH: handle,
@@ -286,11 +284,11 @@ class AtomDB(ABC):
         }
 
         for item in range(len(targets)):
-            link[f"key_{item}"] = targets_hash[item]
+            link[f"key_{item}"] = target_handles[item]
 
         link.update(valid_params)
 
-        return handle, link, targets_hash
+        return handle, link, target_handles
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
         """
