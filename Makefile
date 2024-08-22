@@ -13,7 +13,7 @@ pylint:
 mypy:
 	@unbuffer mypy --color-output --config-file mypy.ini ./hyperon_das_atomdb
 
-lint: flake8 isort black
+lint: isort black flake8
 
 unit-tests:
 	@py.test -sx -vv ./tests/unit
