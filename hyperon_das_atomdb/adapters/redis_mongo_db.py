@@ -1082,7 +1082,7 @@ class RedisMongoDB(AtomDB):
         arity = len(value) // self.hash_length
         return [
             value[
-                (offset * self.hash_length) : ((offset + 1) * self.hash_length)
+                (offset * self.hash_length): ((offset + 1) * self.hash_length)
             ]  # noqa: E203
             for offset in range(arity)
         ]
