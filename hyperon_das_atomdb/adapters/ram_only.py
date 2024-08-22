@@ -489,7 +489,7 @@ class InMemoryDB(AtomDB):
         for _, link in self.db.link.items():
             if link[FieldNames.TYPE_NAME] == link_type:
                 answer.append(link[FieldNames.ID_HASH])
-        return None, answer
+        return kwargs.get('cursor'), answer
 
     def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
@@ -544,7 +544,7 @@ class InMemoryDB(AtomDB):
     ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
-            return None, [link_handle]
+            return kwargs.get('cursor'), [link_handle]
 
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
@@ -566,30 +566,30 @@ class InMemoryDB(AtomDB):
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
         if kwargs.get("toplevel_only"):
-            return None, self._filter_non_toplevel(patterns_matched)
+            return kwargs.get('cursor'), self._filter_non_toplevel(patterns_matched)
 
-        return None, patterns_matched
+        return kwargs.get('cursor'), patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
-            return None, list(links)
-        return None, [self.get_atom(handle, **kwargs) for handle in links]
+            return kwargs.get('cursor'), list(links)
+        return kwargs.get('cursor'), [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get("toplevel_only"):
-            return None, self._filter_non_toplevel(templates_matched)
-        return None, templates_matched
+            return kwargs.get('cursor'), self._filter_non_toplevel(templates_matched)
+        return kwargs.get('cursor'), templates_matched
 
     def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only"):
-            return None, self._filter_non_toplevel(templates_matched)
-        return None, templates_matched
+            return kwargs.get('cursor'), self._filter_non_toplevel(templates_matched)
+        return kwargs.get('cursor'), templates_matched
 
     def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
         raise NotImplementedError()
