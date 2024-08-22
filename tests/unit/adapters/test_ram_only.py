@@ -2,11 +2,7 @@ import pytest
 
 from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    AtomDoesNotExist,
-)
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 
@@ -240,17 +236,13 @@ class TestInMemoryDB:
     def test_get_link_handle(self, database: InMemoryDB):
         human = database.get_node_handle("Concept", "human")
         chimp = database.get_node_handle("Concept", "chimp")
-        actual = database.get_link_handle(
-            link_type="Similarity", target_handles=[human, chimp]
-        )
+        actual = database.get_link_handle(link_type="Similarity", target_handles=[human, chimp])
         expected = "b5459e299a5c5e8662c427f7e01b3bf1"
         assert expected == actual
 
     def test_get_link_handle_not_exist(self, database: InMemoryDB):
         with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_link_handle(
-                link_type="Singularity", target_handles=["Fake-1", "Fake-2"]
-            )
+            database.get_link_handle(link_type="Singularity", target_handles=["Fake-1", "Fake-2"])
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
@@ -265,15 +257,11 @@ class TestInMemoryDB:
     def test_link_exists_true(self, database: InMemoryDB):
         human = database.get_node_handle("Concept", "human")
         monkey = database.get_node_handle("Concept", "monkey")
-        ret = database.link_exists(
-            link_type="Similarity", target_handles=[human, monkey]
-        )
+        ret = database.link_exists(link_type="Similarity", target_handles=[human, monkey])
         assert ret is True
 
     def test_link_exists_false(self, database: InMemoryDB):
-        ret = database.link_exists(
-            link_type="Concept-Fake", target_handles=["Fake1, Fake2"]
-        )
+        ret = database.link_exists(link_type="Concept-Fake", target_handles=["Fake1, Fake2"])
         assert ret is False
 
     def test_get_link_targets(self, database: InMemoryDB):
@@ -412,9 +400,7 @@ class TestInMemoryDB:
                 )
             ],
         )
-        cursor, actual = database.get_matched_links(
-            "Evaluation", ["*", "*"], toplevel_only=True
-        )
+        cursor, actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
 
         assert expected == (cursor, actual)
         assert len(actual) == 1
@@ -450,9 +436,7 @@ class TestInMemoryDB:
                 ],
             }
         )
-        cursor, actual = database.get_matched_links(
-            "Evaluation", ["*", "*"], toplevel=True
-        )
+        cursor, actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel=True)
         assert cursor is None
         assert len(actual) == 2
 
@@ -489,12 +473,8 @@ class TestInMemoryDB:
         monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
         assert database.link_exists("Nearness", [chimp, human])
         assert database.link_exists("Nearness", [chimp, monkey])
-        nearness_chimp_human_handle = database.get_link_handle(
-            "Nearness", [chimp, human]
-        )
-        nearness_chimp_monkey_handle = database.get_link_handle(
-            "Nearness", [chimp, monkey]
-        )
+        nearness_chimp_human_handle = database.get_link_handle("Nearness", [chimp, human])
+        nearness_chimp_monkey_handle = database.get_link_handle("Nearness", [chimp, monkey])
         assert database.link_exists(
             "Connectivity",
             [nearness_chimp_human_handle, nearness_chimp_monkey_handle],
@@ -513,18 +493,10 @@ class TestInMemoryDB:
 
     def test_get_matched_type_template(self, database: InMemoryDB):
         cursors = [-1] * 6
-        cursors[0], v1 = database.get_matched_type_template(
-            ["Inheritance", "Concept", "Concept"]
-        )
-        cursors[1], v2 = database.get_matched_type_template(
-            ["Similarity", "Concept", "Concept"]
-        )
-        cursors[2], v3 = database.get_matched_type_template(
-            ["Inheritance", "Concept", "blah"]
-        )
-        cursors[3], v4 = database.get_matched_type_template(
-            ["Similarity", "blah", "Concept"]
-        )
+        cursors[0], v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
+        cursors[1], v2 = database.get_matched_type_template(["Similarity", "Concept", "Concept"])
+        cursors[2], v3 = database.get_matched_type_template(["Inheritance", "Concept", "blah"])
+        cursors[3], v4 = database.get_matched_type_template(["Similarity", "blah", "Concept"])
         cursors[4], v5 = database.get_matched_links("Inheritance", ["*", "*"])
         cursors[5], v6 = database.get_matched_links("Similarity", ["*", "*"])
         assert all(c is None for c in cursors)
@@ -1013,9 +985,7 @@ class TestInMemoryDB:
             dog_handle: {inheritance_dog_mammal_handle},
             mammal_handle: {inheritance_dog_mammal_handle},
         }
-        assert db.db.outgoing_set == {
-            inheritance_dog_mammal_handle: [dog_handle, mammal_handle]
-        }
+        assert db.db.outgoing_set == {inheritance_dog_mammal_handle: [dog_handle, mammal_handle]}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
@@ -1067,9 +1037,7 @@ class TestInMemoryDB:
             cat_handle: {inheritance_cat_mammal_handle},
             mammal_handle: {inheritance_cat_mammal_handle},
         }
-        assert db.db.outgoing_set == {
-            inheritance_cat_mammal_handle: [cat_handle, mammal_handle]
-        }
+        assert db.db.outgoing_set == {inheritance_cat_mammal_handle: [cat_handle, mammal_handle]}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))

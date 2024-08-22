@@ -114,8 +114,7 @@ class ExpressionHasher:
                 )
         else:
             raise ValueError(
-                "Invalid base to compute composite hash: "
-                f"{type(hash_base)}: {hash_base}"
+                "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
             )
 
 

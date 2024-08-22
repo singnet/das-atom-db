@@ -110,9 +110,7 @@ class InMemoryDB(AtomDB):
         """
         return self.db.link.pop(link_handle, None)
 
-    def _build_named_type_hash_template(
-        self, template: str | list[Any]
-    ) -> str | list[Any]:
+    def _build_named_type_hash_template(self, template: str | list[Any]) -> str | list[Any]:
         """
         Build a named type hash template from the given template.
 
@@ -142,9 +140,7 @@ class InMemoryDB(AtomDB):
         name_hash = ExpressionHasher.named_type_hash(_name)
         type_hash = ExpressionHasher.named_type_hash("Type")
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
-        return ExpressionHasher.expression_hash(
-            typedef_mark_hash, [name_hash, type_hash]
-        )
+        return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
     def _add_atom_type(self, _name: str, _type: str = "Type") -> None:
         """
@@ -162,9 +158,7 @@ class InMemoryDB(AtomDB):
         type_hash = ExpressionHasher.named_type_hash(_type)
         typedef_mark_hash = ExpressionHasher.named_type_hash(":")
 
-        key = ExpressionHasher.expression_hash(
-            typedef_mark_hash, [name_hash, type_hash]
-        )
+        key = ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
 
         atom_type = self.db.atom_type.get(key)
         if atom_type is None:
@@ -282,21 +276,13 @@ class InMemoryDB(AtomDB):
             link_document[FieldNames.COMPOSITE_TYPE_HASH], set()
         )
         if len(template_composite_type) > 0:
-            template_composite_type.remove(
-                (link_document[FieldNames.ID_HASH], tuple(targets_hash))
-            )
+            template_composite_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
-        template_named_type = self.db.templates.get(
-            link_document[FieldNames.TYPE_NAME_HASH], set()
-        )
+        template_named_type = self.db.templates.get(link_document[FieldNames.TYPE_NAME_HASH], set())
         if len(template_named_type) > 0:
-            template_named_type.remove(
-                (link_document[FieldNames.ID_HASH], tuple(targets_hash))
-            )
+            template_named_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
-    def _add_patterns(
-        self, named_type_hash: str, key: str, targets_hash: list[str]
-    ) -> None:
+    def _add_patterns(self, named_type_hash: str, key: str, targets_hash: list[str]) -> None:
         """
         Add patterns to the database.
 
@@ -322,9 +308,7 @@ class InMemoryDB(AtomDB):
             link_document (dict): The document of the link whose patterns are to be deleted.
             targets_hash (list[str]): A list of target hashes associated with the link.
         """
-        pattern_keys = build_pattern_keys(
-            [link_document[FieldNames.TYPE_NAME_HASH], *targets_hash]
-        )
+        pattern_keys = build_pattern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
         for pattern_key in pattern_keys:
             pattern = self.db.patterns.get(pattern_key, set())
             if len(pattern) > 0:
@@ -357,8 +341,7 @@ class InMemoryDB(AtomDB):
         return [
             (link_handle, matched_targets)
             for link_handle, matched_targets in matches
-            if (link := self.db.link.get(link_handle))
-            and link.get(FieldNames.IS_TOPLEVEL)
+            if (link := self.db.link.get(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
         ]
 
     @staticmethod
@@ -379,9 +362,7 @@ class InMemoryDB(AtomDB):
             count += 1
         return targets
 
-    def _update_atom_indexes(
-        self, documents: Iterable[dict[str, Any]], **kwargs
-    ) -> None:
+    def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
         """
         Update the indexes for the provided documents.
 
@@ -531,9 +512,7 @@ class InMemoryDB(AtomDB):
         link = self._get_link(link_handle)
         if link is not None:
             return link[FieldNames.TYPE_NAME]
-        logger().error(
-            f"Failed to retrieve link type for {link_handle}. This link may not exist."
-        )
+        logger().error(f"Failed to retrieve link type for {link_handle}. This link may not exist.")
         raise AtomDoesNotExist(
             message="Nonexistent atom",
             details=f"link_handle: {link_handle}",
@@ -586,9 +565,7 @@ class InMemoryDB(AtomDB):
                 details=f"link_type: {link_type}",
             )
 
-        pattern_hash = ExpressionHasher.composite_hash(
-            [link_type_hash, *target_handles]
-        )
+        pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
@@ -597,19 +574,13 @@ class InMemoryDB(AtomDB):
 
         return kwargs.get("cursor"), patterns_matched
 
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
             return kwargs.get("cursor"), list(links)
-        return kwargs.get("cursor"), [
-            self.get_atom(handle, **kwargs) for handle in links
-        ]
+        return kwargs.get("cursor"), [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> MatchedTypesResultT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
@@ -644,9 +615,7 @@ class InMemoryDB(AtomDB):
     ) -> list[str]:
         raise NotImplementedError()
 
-    def get_node_by_name_starting_with(
-        self, node_type: str, startswith: str
-    ) -> list[str]:
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
@@ -682,9 +651,7 @@ class InMemoryDB(AtomDB):
                 "type": atom[FieldNames.TYPE_NAME],
                 "targets": self._build_targets_list(atom),
             }
-        logger().error(
-            f"Failed to retrieve atom for handle: {handle}. This link may not exist."
-        )
+        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
         raise AtomDoesNotExist(
             message="Nonexistent atom",
             details=f"handle: {handle}",

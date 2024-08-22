@@ -26,11 +26,7 @@ from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias
 
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    AtomDoesNotExist,
-)
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
@@ -176,9 +172,7 @@ class AtomDB(ABC):
         reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
 
         valid_params = {
-            key: value
-            for key, value in node_params.items()
-            if key not in reserved_parameters
+            key: value for key, value in node_params.items() if key not in reserved_parameters
         }
 
         node_type = valid_params.get("type")
@@ -284,9 +278,7 @@ class AtomDB(ABC):
             FieldNames.ID_HASH: handle,
             "handle": handle,
             "targets": target_handles,
-            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(
-                composite_type_hash
-            ),
+            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
             FieldNames.IS_TOPLEVEL: toplevel,
             FieldNames.COMPOSITE_TYPE: composite_type,
             FieldNames.TYPE_NAME: link_type,
@@ -461,9 +453,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_node_by_name_starting_with(
-        self, node_type: str, startswith: str
-    ) -> list[str]:
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
         """
         Query the database by node name starting with 'startswith' value, this query is indexed
         and the performance is improved by searching only the index that starts with the
@@ -554,9 +544,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_incoming_links(
-        self, atom_handle: str, **kwargs
-    ) -> tuple[int | None, IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -588,9 +576,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_matched_type_template(
-        self, template: list[Any], **kwargs
-    ) -> MatchedTypesResultT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         """
         Retrieve links that match a specified type template.
 

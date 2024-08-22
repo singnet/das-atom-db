@@ -98,9 +98,7 @@ class TestRedisMongoDB:
             ]
             db.mongo_bulk_insertion_buffer = {
                 MongoCollectionNames.ATOMS: tuple([db.mongo_atoms_collection, set()]),
-                MongoCollectionNames.ATOM_TYPES: tuple(
-                    [db.mongo_types_collection, set()]
-                ),
+                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
             }
         return db
 
@@ -157,9 +155,7 @@ class TestRedisMongoDB:
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
 
-        resp = database.get_link_handle(
-            link_type="Similarity", target_handles=[human, chimp]
-        )
+        resp = database.get_link_handle(link_type="Similarity", target_handles=[human, chimp])
 
         assert resp is not None
 
@@ -168,9 +164,7 @@ class TestRedisMongoDB:
         travel = ExpressionHasher.terminal_hash("Concept", "travel")
 
         with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_link_handle(
-                link_type="Similarity", target_handles=[brazil, travel]
-            )
+            database.get_link_handle(link_type="Similarity", target_handles=[brazil, travel])
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
@@ -274,9 +268,7 @@ class TestRedisMongoDB:
                 ),
             )
         ]
-        cursor, actual = database.get_matched_links(
-            "Evaluation", ["*", "*"], toplevel_only=True
-        )
+        cursor, actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
         assert cursor is None
         assert expected == actual
         assert len(actual) == 1
@@ -291,18 +283,10 @@ class TestRedisMongoDB:
 
     def test_get_matched_type_template(self, database: RedisMongoDB):
         cursors = [-1] * 6
-        cursors[0], v1 = database.get_matched_type_template(
-            ["Inheritance", "Concept", "Concept"]
-        )
-        cursors[1], v2 = database.get_matched_type_template(
-            ["Similarity", "Concept", "Concept"]
-        )
-        cursors[2], v3 = database.get_matched_type_template(
-            ["Inheritance", "Concept", "blah"]
-        )
-        cursors[3], v4 = database.get_matched_type_template(
-            ["Similarity", "blah", "Concept"]
-        )
+        cursors[0], v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
+        cursors[1], v2 = database.get_matched_type_template(["Similarity", "Concept", "Concept"])
+        cursors[2], v3 = database.get_matched_type_template(["Inheritance", "Concept", "blah"])
+        cursors[3], v4 = database.get_matched_type_template(["Similarity", "blah", "Concept"])
         cursors[4], v5 = database.get_matched_links("Inheritance", ["*", "*"])
         cursors[5], v6 = database.get_matched_links("Similarity", ["*", "*"])
         assert all(c is None for c in cursors), f"{cursors=}"
@@ -319,9 +303,7 @@ class TestRedisMongoDB:
             return_value=mock.MagicMock(side_effect=Exception("Test")),
         ):
             with pytest.raises(ValueError) as exc_info:
-                database.get_matched_type_template(
-                    ["Inheritance", "Concept", "Concept"]
-                )
+                database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
             assert exc_info.type is ValueError
 
     def test_get_matched_type(self, database: RedisMongoDB):

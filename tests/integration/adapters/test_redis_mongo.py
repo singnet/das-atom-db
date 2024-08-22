@@ -20,15 +20,7 @@ from .animals_kb import (
     rhino,
     similarity_docs,
 )
-from .helpers import (
-    Database,
-    PyMongoFindExplain,
-    _db_down,
-    _db_up,
-    cleanup,
-    mongo_port,
-    redis_port,
-)
+from .helpers import Database, PyMongoFindExplain, _db_down, _db_up, cleanup, mongo_port, redis_port
 
 
 class TestRedisMongo:
@@ -68,9 +60,7 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted(
-            [human, monkey, chimp, rhino]
-        )
+        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         cursors[1], answers = db.get_matched_links(
             "Inheritance",
             [db.node_handle("Concept", "mammal"), WILDCARD],
@@ -82,17 +72,13 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "human")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted(
-            [monkey, chimp, ent]
-        )
+        assert sorted([answer[1][0] for answer in answers]) == sorted([monkey, chimp, ent])
         cursors[3], answers = db.get_matched_links(
             "Similarity",
             [db.node_handle("Concept", "human"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][1] for answer in answers]) == sorted(
-            [monkey, chimp, ent]
-        )
+        assert sorted([answer[1][1] for answer in answers]) == sorted([monkey, chimp, ent])
         assert all(c is None for c in cursors), f"{cursors=}"
 
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
@@ -343,9 +329,7 @@ class TestRedisMongo:
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
         assert cursor is None
-        assert sorted([answer[1][0] for answer in answers]) == sorted(
-            [human, monkey, chimp, rhino]
-        )
+        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
         assert "strength" not in link_pre
@@ -451,34 +435,26 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle)[1] == [
-                inheritance_cat_mammal_handle
-            ]
-            assert db._retrieve_incoming_set(dog_handle)[1] == [
-                inheritance_dog_mammal_handle
-            ]
+            assert db._retrieve_incoming_set(cat_handle)[1] == [inheritance_cat_mammal_handle]
+            assert db._retrieve_incoming_set(dog_handle)[1] == [inheritance_dog_mammal_handle]
             assert sorted(db._retrieve_incoming_set(mammal_handle)[1]) == sorted(
                 [inheritance_cat_mammal_handle, inheritance_dog_mammal_handle]
             )
             assert db._retrieve_incoming_set(inheritance_cat_mammal_handle)[1] == []
             assert db._retrieve_incoming_set(inheritance_dog_mammal_handle)[1] == []
-            assert sorted(
-                db._retrieve_outgoing_set(inheritance_cat_mammal_handle)
-            ) == sorted([cat_handle, mammal_handle])
-            assert sorted(
-                db._retrieve_outgoing_set(inheritance_dog_mammal_handle)
-            ) == sorted([dog_handle, mammal_handle])
-            assert sorted(
-                db._retrieve_template("e40489cd1e7102e35469c937e05c8bba")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
+                [cat_handle, mammal_handle]
+            )
+            assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
+                [dog_handle, mammal_handle]
+            )
+            assert sorted(db._retrieve_template("e40489cd1e7102e35469c937e05c8bba")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(
-                db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_template("41c082428b28d7e9ea96160f7fd614ad")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
@@ -501,33 +477,25 @@ class TestRedisMongo:
                     keys.add(key)
             assert set([p for p in db.redis.keys("patterns:*")]) == keys
 
-            assert sorted(
-                db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_pattern("112002ff70ea491aad735f978e9d95f5")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(
-                db._retrieve_pattern("6e644e70a9fe3145c88b5b6261af5754")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_pattern("6e644e70a9fe3145c88b5b6261af5754")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(
-                db._retrieve_pattern("5dd515aa7a451276feac4f8b9d84ae91")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_pattern("5dd515aa7a451276feac4f8b9d84ae91")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
                 ]
             )
-            assert sorted(
-                db._retrieve_pattern("7ead6cfa03894c62761162b7603aa885")[1]
-            ) == sorted(
+            assert sorted(db._retrieve_pattern("7ead6cfa03894c62761162b7603aa885")[1]) == sorted(
                 [
                     (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
                     (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
@@ -618,16 +586,12 @@ class TestRedisMongo:
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) == "mammal"
             assert db._retrieve_incoming_set(cat_handle)[1] == []
-            assert db._retrieve_incoming_set(dog_handle)[1] == [
-                inheritance_dog_mammal_handle
-            ]
-            assert db._retrieve_incoming_set(mammal_handle)[1] == [
-                inheritance_dog_mammal_handle
-            ]
+            assert db._retrieve_incoming_set(dog_handle)[1] == [inheritance_dog_mammal_handle]
+            assert db._retrieve_incoming_set(mammal_handle)[1] == [inheritance_dog_mammal_handle]
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
-            assert sorted(
-                db._retrieve_outgoing_set(inheritance_dog_mammal_handle)
-            ) == sorted([dog_handle, mammal_handle])
+            assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
+                [dog_handle, mammal_handle]
+            )
             assert db._retrieve_template("e40489cd1e7102e35469c937e05c8bba")[1] == [
                 (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
             ]
@@ -672,16 +636,12 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) is None
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle)[1] == [
-                inheritance_cat_mammal_handle
-            ]
+            assert db._retrieve_incoming_set(cat_handle)[1] == [inheritance_cat_mammal_handle]
             assert db._retrieve_incoming_set(dog_handle)[1] == []
-            assert db._retrieve_incoming_set(mammal_handle)[1] == [
-                inheritance_cat_mammal_handle
-            ]
-            assert sorted(
-                db._retrieve_outgoing_set(inheritance_cat_mammal_handle)
-            ) == sorted([cat_handle, mammal_handle])
+            assert db._retrieve_incoming_set(mammal_handle)[1] == [inheritance_cat_mammal_handle]
+            assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
+                [cat_handle, mammal_handle]
+            )
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert db._retrieve_template("e40489cd1e7102e35469c937e05c8bba")[1] == [
                 (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
@@ -805,17 +765,13 @@ class TestRedisMongo:
             cursor = "0"
             all_templates_2 = []
             while cursor != 0:
-                cursor, templates = db._retrieve_template(
-                    type_hash, cursor=cursor, chunk_size=100
-                )
+                cursor, templates = db._retrieve_template(type_hash, cursor=cursor, chunk_size=100)
                 all_templates_2.extend(templates)
 
             assert sorted(all_templates_1) == sorted(all_templates_2)
 
         def _asserts_patterns():
-            pattern_hash = ExpressionHasher.composite_hash(
-                [type_hash, *[snet_handle, "*"]]
-            )
+            pattern_hash = ExpressionHasher.composite_hash([type_hash, *[snet_handle, "*"]])
             _, all_patterns_1 = db._retrieve_pattern(pattern_hash)
 
             cursor = "0"
@@ -1082,9 +1038,7 @@ class TestRedisMongo:
             response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
 
         # Create the index
-        my_index = db.create_field_index(
-            atom_type="link", fields=["tag"], named_type="Similarity"
-        )
+        my_index = db.create_field_index(atom_type="link", fields=["tag"], named_type="Similarity")
 
         collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
         #
@@ -1093,10 +1047,7 @@ class TestRedisMongo:
         # # Using the index
         response = collection.find({"named_type": "Similarity", "tag": "DAS"}).explain()
 
-        assert (
-            my_index
-            == response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
-        )
+        assert my_index == response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
             _, doc = db.get_atoms_by_index(my_index, [{"field": "tag", "value": "DAS"}])
@@ -1108,19 +1059,13 @@ class TestRedisMongo:
             assert explain[0]["executionStats"]["executionStages"]["docsExamined"] == 1
             assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"]
-                == "IXSCAN"
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "keysExamined"
-                ]
-                == 1
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "indexName"
-                ]
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
                 == my_index
             )
 
@@ -1223,19 +1168,13 @@ class TestRedisMongo:
             assert explain[0]["executionStats"]["nReturned"] == 1
             assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"]
-                == "IXSCAN"
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "keysExamined"
-                ]
-                == 1
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "indexName"
-                ]
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
                 == my_index
             )
 
@@ -1263,14 +1202,10 @@ class TestRedisMongo:
         )
         db.commit()
 
-        my_index = db.create_field_index(
-            atom_type="link", fields=["tag"], named_type="Similarity"
-        )
+        my_index = db.create_field_index(atom_type="link", fields=["tag"], named_type="Similarity")
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            _, doc = db.get_atoms_by_index(
-                my_index, [{"field": "tag", "value": "DAS2"}]
-            )
+            _, doc = db.get_atoms_by_index(my_index, [{"field": "tag", "value": "DAS2"}])
             assert doc[0]["handle"] == ExpressionHasher.expression_hash(
                 ExpressionHasher.named_type_hash("Similarity"), [mammal, monkey]
             )
@@ -1279,19 +1214,13 @@ class TestRedisMongo:
             assert explain[0]["executionStats"]["nReturned"] == 1
             assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"]
-                == "IXSCAN"
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "keysExamined"
-                ]
-                == 1
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
             )
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"][
-                    "indexName"
-                ]
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
                 == my_index
             )
 
@@ -1306,8 +1235,7 @@ class TestRedisMongo:
             assert result[0] == db.get_node_handle("Concept", "mammal")
             assert explain[0]["executionStats"]["executionSuccess"]
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"]
-                == "IXSCAN"
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
             )
             assert explain[0]["executionStats"]["totalKeysExamined"] == 14
 
@@ -1328,9 +1256,7 @@ class TestRedisMongo:
             assert len(result) == 1
             assert result[0] == db.get_node_handle("Concept", "mammal")
             assert explain[0]["executionStats"]["executionSuccess"]
-            assert (
-                explain[0]["executionStats"]["executionStages"]["stage"] == "TEXT_MATCH"
-            )
+            assert explain[0]["executionStats"]["executionStages"]["stage"] == "TEXT_MATCH"
             assert explain[0]["executionStats"]["totalKeysExamined"] == 1
 
     def test_get_node_starting_name(self, _cleanup, _db: RedisMongoDB):
@@ -1343,8 +1269,7 @@ class TestRedisMongo:
             assert result[0] == db.get_node_handle("Concept", "mammal")
             assert explain[0]["executionStats"]["executionSuccess"]
             assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"]
-                == "IXSCAN"
+                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
             )
             assert explain[0]["executionStats"]["totalKeysExamined"] == 2
             assert explain[0]["executionStats"]["totalDocsExamined"] == 1
