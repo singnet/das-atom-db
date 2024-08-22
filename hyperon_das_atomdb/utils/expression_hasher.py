@@ -15,7 +15,9 @@ class ExpressionHasher:
     compound_separator = " "
 
     @staticmethod
-    def _compute_hash(text: str) -> str:  # TODO(angelo,andre): remove '_' to make method public?
+    def _compute_hash(
+        text: str,
+    ) -> str:  # TODO(angelo,andre): remove '_' to make method public?
         """
         Compute the MD5 hash of the given text.
 
@@ -112,7 +114,8 @@ class ExpressionHasher:
                 )
         else:
             raise ValueError(
-                "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
+                "Invalid base to compute composite hash: "
+                f"{type(hash_base)}: {hash_base}"
             )
 
 

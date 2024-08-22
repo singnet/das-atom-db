@@ -26,11 +26,15 @@ from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias
 
-from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from hyperon_das_atomdb.exceptions import (
+    AddLinkException,
+    AddNodeException,
+    AtomDoesNotExist,
+)
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-WILDCARD = '*'
+WILDCARD = "*"
 UNORDERED_LINK_TYPES: list[Any] = []
 
 # pylint: disable=invalid-name
@@ -61,22 +65,22 @@ MatchedTypesResultT: TypeAlias = tuple[int | None, MatchedTargetsListT]
 class FieldNames(str, Enum):
     """Enumeration of field names used in the AtomDB."""
 
-    ID_HASH = '_id'
-    COMPOSITE_TYPE = 'composite_type'
-    COMPOSITE_TYPE_HASH = 'composite_type_hash'
-    NODE_NAME = 'name'
-    TYPE_NAME = 'named_type'
-    TYPE_NAME_HASH = 'named_type_hash'
-    KEY_PREFIX = 'key'
-    KEYS = 'keys'
-    IS_TOPLEVEL = 'is_toplevel'
+    ID_HASH = "_id"
+    COMPOSITE_TYPE = "composite_type"
+    COMPOSITE_TYPE_HASH = "composite_type_hash"
+    NODE_NAME = "name"
+    TYPE_NAME = "named_type"
+    TYPE_NAME_HASH = "named_type_hash"
+    KEY_PREFIX = "key"
+    KEYS = "keys"
+    IS_TOPLEVEL = "is_toplevel"
 
 
 class FieldIndexType(str, Enum):
     """Enumeration of index types used in the AtomDB."""
 
-    BINARY_TREE = 'binary_tree'
-    TOKEN_INVERTED_LIST = 'token_inverted_list'
+    BINARY_TREE = "binary_tree"
+    TOKEN_INVERTED_LIST = "token_inverted_list"
 
 
 class AtomDB(ABC):
@@ -137,27 +141,27 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        answer: AtomT = {'handle': document['_id'], 'type': document['named_type']}
+        answer: AtomT = {"handle": document["_id"], "type": document["named_type"]}
         for key, value in document.items():
-            if key == '_id':
+            if key == "_id":
                 continue
             if re.search(AtomDB.key_pattern, key):
-                answer.setdefault('targets', []).append(value)
+                answer.setdefault("targets", []).append(value)
             else:
                 answer[key] = value
 
-        if kwargs.get('targets_document', False):
-            targets_document = [self.get_atom(target) for target in answer['targets']]
+        if kwargs.get("targets_document", False):
+            targets_document = [self.get_atom(target) for target in answer["targets"]]
             answer["targets_document"] = targets_document
 
-        if kwargs.get('deep_representation', False):
+        if kwargs.get("deep_representation", False):
 
             def _recursive_targets(targets, **_kwargs):
                 return [self.get_atom(target, **_kwargs) for target in targets]
 
-            if 'targets' in answer:
-                deep_targets = _recursive_targets(answer['targets'], **kwargs)
-                answer['targets'] = deep_targets
+            if "targets" in answer:
+                deep_targets = _recursive_targets(answer["targets"], **kwargs)
+                answer["targets"] = deep_targets
 
         return answer
 
@@ -177,14 +181,16 @@ class AtomDB(ABC):
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing in node_params.
         """
-        reserved_parameters = ['handle', '_id', 'composite_type_hash', 'named_type']
+        reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
 
         valid_params = {
-            key: value for key, value in node_params.items() if key not in reserved_parameters
+            key: value
+            for key, value in node_params.items()
+            if key not in reserved_parameters
         }
 
-        node_type = valid_params.get('type')
-        node_name = valid_params.get('name')
+        node_type = valid_params.get("type")
+        node_name = valid_params.get("name")
 
         if node_type is None or node_name is None:
             raise AddNodeException(
@@ -202,7 +208,7 @@ class AtomDB(ABC):
         }
 
         node.update(valid_params)
-        node.pop('type')
+        node.pop("type")
 
         return handle, node
 
@@ -229,14 +235,14 @@ class AtomDB(ABC):
             link_params.
         """
         reserved_parameters = [
-            'handle',
-            '_id',
-            'composite_type_hash',
-            'composite_type',
-            'is_toplevel',
-            'named_type',
-            'named_type_hash',
-            'key_n',
+            "handle",
+            "_id",
+            "composite_type_hash",
+            "composite_type",
+            "is_toplevel",
+            "named_type",
+            "named_type_hash",
+            "key_n",
         ]
 
         valid_params = {
@@ -245,8 +251,8 @@ class AtomDB(ABC):
             if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
         }
 
-        link_type = valid_params.get('type')
-        targets = valid_params.get('targets')
+        link_type = valid_params.get("type")
+        targets = valid_params.get("targets")
 
         if link_type is None or targets is None:
             raise AddLinkException(
@@ -261,27 +267,29 @@ class AtomDB(ABC):
 
         for target in targets:
             if not isinstance(target, dict):
-                raise ValueError('The target must be a dictionary')
-            if 'targets' not in target:
+                raise ValueError("The target must be a dictionary")
+            if "targets" not in target:
                 atom = self.add_node(target)
                 if atom is None:
                     return None
-                atom_hash = atom['composite_type_hash']
+                atom_hash = atom["composite_type_hash"]
                 composite_type.append(atom_hash)
             else:
                 atom = self.add_link(target, toplevel=False)
                 if atom is None:
                     return None
-                atom_hash = atom['composite_type_hash']
-                composite_type.append(atom['composite_type'])
+                atom_hash = atom["composite_type_hash"]
+                composite_type.append(atom["composite_type"])
             composite_type_hash.append(atom_hash)
-            targets_hash.append(atom['_id'])
+            targets_hash.append(atom["_id"])
 
         handle = ExpressionHasher.expression_hash(link_type_hash, targets_hash)
 
         link: LinkT = {
             FieldNames.ID_HASH: handle,
-            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
+            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(
+                composite_type_hash
+            ),
             FieldNames.IS_TOPLEVEL: toplevel,
             FieldNames.COMPOSITE_TYPE: composite_type,
             FieldNames.TYPE_NAME: link_type,
@@ -289,11 +297,11 @@ class AtomDB(ABC):
         }
 
         for item in range(len(targets)):
-            link[f'key_{item}'] = targets_hash[item]
+            link[f"key_{item}"] = targets_hash[item]
 
         link.update(valid_params)
-        link.pop('type')
-        link.pop('targets')
+        link.pop("type")
+        link.pop("targets")
 
         return handle, link, targets_hash
 
@@ -458,7 +466,9 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
+    def get_node_by_name_starting_with(
+        self, node_type: str, startswith: str
+    ) -> list[str]:
         """
         Query the database by node name starting with 'startswith' value, this query is indexed
         and the performance is improved by searching only the index that starts with the
@@ -549,7 +559,9 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
+    def get_incoming_links(
+        self, atom_handle: str, **kwargs
+    ) -> tuple[int | None, IncomingLinksT]:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -581,7 +593,9 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
+    def get_matched_type_template(
+        self, template: list[Any], **kwargs
+    ) -> MatchedTypesResultT:
         """
         Retrieve links that match a specified type template.
 
@@ -632,17 +646,17 @@ class AtomDB(ABC):
         """
         document = self._get_atom(handle)
         if document:
-            if kwargs.get('no_target_format', False):
+            if kwargs.get("no_target_format", False):
                 return document
             return self._transform_to_target_format(document, **kwargs)
 
         logger().error(
-            f'Failed to retrieve atom for handle: {handle}. '
-            f'This atom does not exist. - Details: {kwargs}'
+            f"Failed to retrieve atom for handle: {handle}. "
+            f"This atom does not exist. - Details: {kwargs}"
         )
         raise AtomDoesNotExist(
-            message='Nonexistent atom',
-            details=f'handle: {handle}',
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
         )
 
     @abstractmethod

@@ -47,9 +47,9 @@ target-version = ['py38']
 skip-string-normalization = true
 
 
-[tool.flake8]
-show-source = true
-extend-ignore = ["E501"]
+#[tool.flake8]
+#show-source = true
+#extend-ignore = ["E501"]
 
 
 [build-system]
