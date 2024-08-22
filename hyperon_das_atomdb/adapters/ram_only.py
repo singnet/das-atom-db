@@ -8,6 +8,7 @@ Classes:
     Database: A dataclass representing the structure of the in-memory database.
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
+import copy
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -235,7 +236,11 @@ class InMemoryDB(AtomDB):
                 handles.remove(link_handle)
 
     def _add_templates(
-        self, composite_type_hash: str, named_type_hash: str, key: str, targets_hash: list[str]
+        self,
+        composite_type_hash: str,
+        named_type_hash: str,
+        key: str,
+        targets_hash: list[str],
     ) -> None:
         """
         Add templates to the database.
@@ -488,7 +493,7 @@ class InMemoryDB(AtomDB):
         for _, link in self.db.link.items():
             if link[FieldNames.TYPE_NAME] == link_type:
                 answer.append(link[FieldNames.ID_HASH])
-        return kwargs.get('cursor'), answer
+        return kwargs.get("cursor"), answer
 
     def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
         link_handle = self.link_handle(link_type, target_handles)
@@ -543,7 +548,7 @@ class InMemoryDB(AtomDB):
     ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             link_handle = self.get_link_handle(link_type, target_handles)
-            return kwargs.get('cursor'), [link_handle]
+            return kwargs.get("cursor"), [link_handle]
 
         if link_type == WILDCARD:
             link_type_hash = WILDCARD
@@ -565,30 +570,30 @@ class InMemoryDB(AtomDB):
         patterns_matched = list(self.db.patterns.get(pattern_hash, set()))
 
         if kwargs.get("toplevel_only"):
-            return kwargs.get('cursor'), self._filter_non_toplevel(patterns_matched)
+            return kwargs.get("cursor"), self._filter_non_toplevel(patterns_matched)
 
-        return kwargs.get('cursor'), patterns_matched
+        return kwargs.get("cursor"), patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
         links = self.db.incoming_set.get(atom_handle, set())
         if kwargs.get("handles_only", False):
-            return kwargs.get('cursor'), list(links)
-        return kwargs.get('cursor'), [self.get_atom(handle, **kwargs) for handle in links]
+            return kwargs.get("cursor"), list(links)
+        return kwargs.get("cursor"), [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
         if kwargs.get("toplevel_only"):
-            return kwargs.get('cursor'), self._filter_non_toplevel(templates_matched)
-        return kwargs.get('cursor'), templates_matched
+            return kwargs.get("cursor"), self._filter_non_toplevel(templates_matched)
+        return kwargs.get("cursor"), templates_matched
 
     def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only"):
-            return kwargs.get('cursor'), self._filter_non_toplevel(templates_matched)
-        return kwargs.get('cursor'), templates_matched
+            return kwargs.get("cursor"), self._filter_non_toplevel(templates_matched)
+        return kwargs.get("cursor"), templates_matched
 
     def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
         raise NotImplementedError()
@@ -603,7 +608,10 @@ class InMemoryDB(AtomDB):
         raise NotImplementedError()
 
     def get_atoms_by_text_field(
-        self, text_value: str, field: str | None = None, text_index_id: str | None = None
+        self,
+        text_value: str,
+        field: str | None = None,
+        text_index_id: str | None = None,
     ) -> list[str]:
         raise NotImplementedError()
 
@@ -611,7 +619,11 @@ class InMemoryDB(AtomDB):
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        return self.db.node.get(handle) or self._get_link(handle)
+        document = self.db.node.get(handle) or self._get_link(handle)
+        if document is None:
+            return None
+        else:
+            return copy.deepcopy(document)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self.db.node.get(handle)
@@ -649,7 +661,11 @@ class InMemoryDB(AtomDB):
         node_count = len(self.db.node)
         link_count = len(self.db.link)
         atom_count = node_count + link_count
-        return {'atom_count': atom_count, 'node_count': node_count, 'link_count': link_count}
+        return {
+            "atom_count": atom_count,
+            "node_count": node_count,
+            "link_count": link_count,
+        }
 
     def clear_database(self) -> None:
         self.named_type_table = {}

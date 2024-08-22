@@ -1,90 +1,105 @@
 [
     {
         "_id": "af12f10f9ae2002a1607ba0b47ba8407",
+        "handle": "af12f10f9ae2002a1607ba0b47ba8407",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "human",
         "named_type": "Concept"
     },
     {
         "_id": "1cdffc6b0b89ff41d68bec237481d1e1",
+        "handle": "1cdffc6b0b89ff41d68bec237481d1e1",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "monkey",
         "named_type": "Concept"
     },
     {
         "_id": "5b34c54bee150c04f9fa584b899dc030",
+        "handle": "5b34c54bee150c04f9fa584b899dc030",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "chimp",
         "named_type": "Concept"
     },
     {
         "_id": "c1db9b517073e51eb7ef6fed608ec204",
+        "handle": "c1db9b517073e51eb7ef6fed608ec204",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "snake",
         "named_type": "Concept"
     },
     {
         "_id": "bb34ce95f161a6b37ff54b3d4c817857",
+        "handle": "bb34ce95f161a6b37ff54b3d4c817857",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "earthworm",
         "named_type": "Concept"
     },
     {
         "_id": "99d18c702e813b07260baf577c60c455",
+        "handle": "99d18c702e813b07260baf577c60c455",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "rhino",
         "named_type": "Concept"
     },
     {
         "_id": "d03e59654221c1e8fcda404fd5c8d6cb",
+        "handle": "d03e59654221c1e8fcda404fd5c8d6cb",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "triceratops",
         "named_type": "Concept"
     },
     {
         "_id": "b94941d8cd1c0ee4ad3dd3dcab52b964",
+        "handle": "b94941d8cd1c0ee4ad3dd3dcab52b964",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "vine",
         "named_type": "Concept"
     },
     {
         "_id": "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
+        "handle": "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "ent",
         "named_type": "Concept"
     },
     {
         "_id": "bdfe4e7a431f73386f37c6448afe5840",
+        "handle": "bdfe4e7a431f73386f37c6448afe5840",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "mammal",
         "named_type": "Concept"
     },
     {
         "_id": "0a32b476852eeb954979b87f5f6cb7af",
+        "handle": "0a32b476852eeb954979b87f5f6cb7af",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "animal",
         "named_type": "Concept"
     },
     {
         "_id": "b99ae727c787f1b13b452fd4c9ce1b9a",
+        "handle": "b99ae727c787f1b13b452fd4c9ce1b9a",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "reptile",
         "named_type": "Concept"
     },
     {
         "_id": "08126b066d32ee37743e255a2558cccd",
+        "handle": "08126b066d32ee37743e255a2558cccd",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "dinosaur",
         "named_type": "Concept"
     },
     {
         "_id": "80aff30094874e75028033a38ce677bb",
+        "handle": "80aff30094874e75028033a38ce677bb",
         "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
         "name": "plant",
         "named_type": "Concept"
     },
     {
         "_id": "2d7abd27644a9c08a7ca2c8d68338579",
+        "handle": "2d7abd27644a9c08a7ca2c8d68338579",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -99,6 +114,7 @@
     },
     {
         "_id": "fbf03d17d6a40feff828a3f2c6e86f05",
+        "handle": "fbf03d17d6a40feff828a3f2c6e86f05",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -113,6 +129,7 @@
     },
     {
         "_id": "31535ddf214f5b239d3b517823cb8144",
+        "handle": "31535ddf214f5b239d3b517823cb8144",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -127,6 +144,7 @@
     },
     {
         "_id": "2c927fdc6c0f1272ee439ceb76a6d1a4",
+        "handle": "2c927fdc6c0f1272ee439ceb76a6d1a4",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -141,6 +159,7 @@
     },
     {
         "_id": "75756335011dcedb71a0d9a7bd2da9e8",
+        "handle": "75756335011dcedb71a0d9a7bd2da9e8",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -155,6 +174,7 @@
     },
     {
         "_id": "7ee00a03f67b39f620bd3d0f6ed0c3e6",
+        "handle": "7ee00a03f67b39f620bd3d0f6ed0c3e6",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -169,6 +189,7 @@
     },
     {
         "_id": "4120e428ab0fa162a04328e5217912ff",
+        "handle": "4120e428ab0fa162a04328e5217912ff",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -183,6 +204,7 @@
     },
     {
         "_id": "b0f428929706d1d991e4d712ad08f9ab",
+        "handle": "b0f428929706d1d991e4d712ad08f9ab",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -197,6 +219,7 @@
     },
     {
         "_id": "c93e1e758c53912638438e2a7d7f7b7f",
+        "handle": "c93e1e758c53912638438e2a7d7f7b7f",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -211,6 +234,7 @@
     },
     {
         "_id": "e431a2eda773adf06ef3f9268f93deaf",
+        "handle": "e431a2eda773adf06ef3f9268f93deaf",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -225,6 +249,7 @@
     },
     {
         "_id": "e4685d56969398253b6f77efd21dc347",
+        "handle": "e4685d56969398253b6f77efd21dc347",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -239,6 +264,7 @@
     },
     {
         "_id": "ee1c03e6d1f104ccd811cfbba018451a",
+        "handle": "ee1c03e6d1f104ccd811cfbba018451a",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -253,6 +279,7 @@
     },
     {
         "_id": "1c3bf151ea200b2d9e088a1178d060cb",
+        "handle": "1c3bf151ea200b2d9e088a1178d060cb",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -267,6 +294,7 @@
     },
     {
         "_id": "2a8a69c01305563932b957de4b3a9ba6",
+        "handle": "2a8a69c01305563932b957de4b3a9ba6",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -281,6 +309,7 @@
     },
     {
         "_id": "abe6ad743fc81bd1c55ece2e1307a178",
+        "handle": "abe6ad743fc81bd1c55ece2e1307a178",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -295,6 +324,7 @@
     },
     {
         "_id": "116df61c01859c710d178ba14a483509",
+        "handle": "116df61c01859c710d178ba14a483509",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -309,6 +339,7 @@
     },
     {
         "_id": "906fa505ae3bc6336d80a5f9aaa47b3b",
+        "handle": "906fa505ae3bc6336d80a5f9aaa47b3b",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -323,6 +354,7 @@
     },
     {
         "_id": "f31dfe97db782e8cec26de18dddf8965",
+        "handle": "f31dfe97db782e8cec26de18dddf8965",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -337,6 +369,7 @@
     },
     {
         "_id": "16f7e407087bfa0b35b13d13a1aadcae",
+        "handle": "16f7e407087bfa0b35b13d13a1aadcae",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -351,6 +384,7 @@
     },
     {
         "_id": "b5459e299a5c5e8662c427f7e01b3bf1",
+        "handle": "b5459e299a5c5e8662c427f7e01b3bf1",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -365,6 +399,7 @@
     },
     {
         "_id": "9923fc3e46d779c925d26ac4cf2d9e3b",
+        "handle": "9923fc3e46d779c925d26ac4cf2d9e3b",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -379,6 +414,7 @@
     },
     {
         "_id": "bad7472f41a0e7d601ca294eb4607c3a",
+        "handle": "bad7472f41a0e7d601ca294eb4607c3a",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -393,6 +429,7 @@
     },
     {
         "_id": "959924e3aab197af80a84c1ab261fd65",
+        "handle": "959924e3aab197af80a84c1ab261fd65",
         "composite_type_hash": "41c082428b28d7e9ea96160f7fd614ad",
         "is_toplevel": true,
         "composite_type": [
@@ -407,6 +444,7 @@
     },
     {
         "_id": "a45af31b43ee5ea271214338a5a5bd61",
+        "handle": "a45af31b43ee5ea271214338a5a5bd61",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -421,6 +459,7 @@
     },
     {
         "_id": "72d0f9904bda2f89f9b68a1010ac61b5",
+        "handle": "72d0f9904bda2f89f9b68a1010ac61b5",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -435,6 +474,7 @@
     },
     {
         "_id": "aef4d3da2565a640e15a52fd98d24d15",
+        "handle": "aef4d3da2565a640e15a52fd98d24d15",
         "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
         "is_toplevel": true,
         "composite_type": [
@@ -449,6 +489,7 @@
     },
     {
         "_id": "1e8ba9639663105e6c735ba83174f789",
+        "handle": "1e8ba9639663105e6c735ba83174f789",
         "composite_type": [
             "b74a43dbb36287ea86eb5b0c7b86e8e8",
             "79a5be2004199066acb26e7c1c963c29",
@@ -463,6 +504,7 @@
     },
     {
         "_id": "d542caa94b57219f1e489e3b03be7126",
+        "handle": "d542caa94b57219f1e489e3b03be7126",
         "composite_type": [
             "b74a43dbb36287ea86eb5b0c7b86e8e8",
             "3b1b1a93a9b97ec3c8f2636fc6d54d0f",
