@@ -22,7 +22,7 @@ class Index(ABC):
         """
         # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
         return ExpressionHasher._compute_hash(  # pylint: disable=protected-access
-            f'{field}{conditionals}'
+            f"{field}{conditionals}"
         )
 
     @abstractmethod

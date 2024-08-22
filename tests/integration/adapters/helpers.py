@@ -6,7 +6,7 @@ from typing import List
 redis_port = "15926"
 mongo_port = "15927"
 scripts_path = "./tests/integration/scripts"
-devnull = open(os.devnull, 'w')
+devnull = open(os.devnull, "w")
 
 DAS_MONGODB_HOSTNAME = os.environ.get("DAS_MONGODB_HOSTNAME")
 DAS_MONGODB_PORT = os.environ.get("DAS_MONGODB_PORT")
@@ -71,19 +71,27 @@ def _db_up(*database_names: List[Database]):
             )
     else:
         subprocess.call(
-            ["bash", f"{scripts_path}/redis-up.sh", redis_port], stdout=devnull, stderr=devnull
+            ["bash", f"{scripts_path}/redis-up.sh", redis_port],
+            stdout=devnull,
+            stderr=devnull,
         )
         subprocess.call(
-            ["bash", f"{scripts_path}/mongo-up.sh", mongo_port], stdout=devnull, stderr=devnull
+            ["bash", f"{scripts_path}/mongo-up.sh", mongo_port],
+            stdout=devnull,
+            stderr=devnull,
         )
 
 
 def _db_down():
     subprocess.call(
-        ["bash", f"{scripts_path}/redis-down.sh", redis_port], stdout=devnull, stderr=devnull
+        ["bash", f"{scripts_path}/redis-down.sh", redis_port],
+        stdout=devnull,
+        stderr=devnull,
     )
     subprocess.call(
-        ["bash", f"{scripts_path}/mongo-down.sh", mongo_port], stdout=devnull, stderr=devnull
+        ["bash", f"{scripts_path}/mongo-down.sh", mongo_port],
+        stdout=devnull,
+        stderr=devnull,
     )
 
 

@@ -56,7 +56,8 @@ def multiply_binary_matrix_by_string_matrix(
     result_matrix: list[list[str]] = []
     for binary_row in binary_matrix:
         result_row = [
-            string if bit == 1 else WILDCARD for bit, string in zip(binary_row, string_matrix)
+            string if bit == 1 else WILDCARD
+            for bit, string in zip(binary_row, string_matrix)
         ]
         result_matrix.append(result_row)
     return result_matrix[:-1]

@@ -7,4 +7,4 @@ These settings can be used throughout the application to configure various param
 
 from dotenv import dotenv_values
 
-config = dotenv_values('.env')
+config = dotenv_values(".env")

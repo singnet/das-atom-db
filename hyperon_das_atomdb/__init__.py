@@ -11,10 +11,10 @@ from .database import UNORDERED_LINK_TYPES, WILDCARD, AtomDB
 from .exceptions import AtomDoesNotExist
 
 __all__ = [
-    'AtomDB',
-    'WILDCARD',
-    'UNORDERED_LINK_TYPES',
-    'AtomDoesNotExist',
+    "AtomDB",
+    "WILDCARD",
+    "UNORDERED_LINK_TYPES",
+    "AtomDoesNotExist",
 ]
 
-__version__ = '0.8.0'
+__version__ = "0.8.0"
