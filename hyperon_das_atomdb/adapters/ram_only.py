@@ -9,7 +9,7 @@ Classes:
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dc_field
 from typing import Any, Iterable
 
 from hyperon_das_atomdb.database import (
@@ -38,13 +38,13 @@ from hyperon_das_atomdb.utils.patterns import build_pattern_keys
 class Database:
     """Dataclass representing the structure of the in-memory database"""
 
-    atom_type: dict[str, Any] = field(default_factory=dict)
-    node: dict[str, AtomT] = field(default_factory=dict)
-    link: dict[str, AtomT] = field(default_factory=dict)
-    outgoing_set: dict[str, Any] = field(default_factory=dict)
-    incoming_set: dict[str, set[str]] = field(default_factory=dict)
-    patterns: dict[str, set[tuple[str, tuple[str, ...]]]] = field(default_factory=dict)
-    templates: dict[str, set[tuple[str, tuple[str, ...]]]] = field(default_factory=dict)
+    atom_type: dict[str, Any] = dc_field(default_factory=dict)
+    node: dict[str, AtomT] = dc_field(default_factory=dict)
+    link: dict[str, AtomT] = dc_field(default_factory=dict)
+    outgoing_set: dict[str, Any] = dc_field(default_factory=dict)
+    incoming_set: dict[str, set[str]] = dc_field(default_factory=dict)
+    patterns: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
+    templates: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
 
 
 class InMemoryDB(AtomDB):
