@@ -8,7 +8,6 @@ Classes:
     Database: A dataclass representing the structure of the in-memory database.
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
-import copy
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -619,11 +618,7 @@ class InMemoryDB(AtomDB):
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        document = self.db.node.get(handle) or self._get_link(handle)
-        if document is None:
-            return None
-        else:
-            return copy.deepcopy(document)
+        return self.db.node.get(handle) or self._get_link(handle)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self.db.node.get(handle)
