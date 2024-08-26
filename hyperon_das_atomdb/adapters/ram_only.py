@@ -9,7 +9,8 @@ Classes:
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
 from collections import OrderedDict
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any, Iterable
 
 from hyperon_das_atomdb.database import (
