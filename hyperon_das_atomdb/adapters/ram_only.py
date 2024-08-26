@@ -216,10 +216,8 @@ class InMemoryDB(AtomDB):
             atoms_handle (list[str]): A list of atom handles associated with the link.
         """
         for atom_handle in atoms_handle:
-            handles = self.db.incoming_set.get(atom_handle, None)
-            if not handles:
-                continue
-            handles.remove(link_handle)
+            if handles := self.db.incoming_set.get(atom_handle):
+                handles.remove(link_handle)
 
     def _add_templates(
         self,
@@ -280,7 +278,10 @@ class InMemoryDB(AtomDB):
         pattern_keys = build_pattern_keys([named_type_hash, *targets_hash])
 
         for pattern_key in pattern_keys:
-            self.db.patterns.setdefault(pattern_key, set()).add((key, tuple(targets_hash)))
+            self.db.patterns.setdefault(
+                pattern_key,
+                set(),
+            ).add((key, tuple(targets_hash)))
 
     def _delete_patterns(self, link_document: dict, targets_hash: list[str]) -> None:
         """
@@ -292,10 +293,8 @@ class InMemoryDB(AtomDB):
         """
         pattern_keys = build_pattern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
         for pattern_key in pattern_keys:
-            pattern = self.db.patterns.get(pattern_key, None)
-            if not pattern:
-                continue
-            pattern.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
+            if pattern := self.db.patterns.get(pattern_key):
+                pattern.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
 
     def _delete_link_and_update_index(self, link_handle: str) -> None:
         """
@@ -304,8 +303,7 @@ class InMemoryDB(AtomDB):
         Args:
             link_handle (str): The handle of the link to delete.
         """
-        link_document = self._get_and_delete_link(link_handle)
-        if link_document is not None:
+        if link_document := self._get_and_delete_link(link_handle):
             self._update_index(atom=link_document, delete_atom=True)
 
     def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
@@ -572,9 +570,7 @@ class InMemoryDB(AtomDB):
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
-        patterns_matched = (
-            list(pattern) if (pattern := self.db.patterns.get(pattern_hash, None)) else []
-        )
+        patterns_matched = list(pattern) if (pattern := self.db.patterns.get(pattern_hash)) else []
 
         if kwargs.get("toplevel_only"):
             return kwargs.get("cursor"), self._filter_non_toplevel(patterns_matched)
@@ -630,9 +626,7 @@ class InMemoryDB(AtomDB):
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = node if (node := self.db.node.get(handle)) else self._get_link(handle)
-        if atom:
-            return atom.get(FieldNames.TYPE_NAME)
-        return None
+        return atom.get(FieldNames.TYPE_NAME) if atom else None
 
     def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
         atom = self.db.node.get(handle)
@@ -694,7 +688,7 @@ class InMemoryDB(AtomDB):
         node = self.db.node.pop(handle, None)
 
         if node:
-            handles = self.db.incoming_set.pop(handle, None)
+            handles = self.db.incoming_set.pop(handle)
             if handles:
                 for h in handles:
                     self._delete_link_and_update_index(h)
