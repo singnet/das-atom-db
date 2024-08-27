@@ -30,8 +30,35 @@ from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, At
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
+import time
+def timer(func):
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+        print(f'<TIMER>|{func.__name__}|{end-start:.10f}')
+        return result
+    return wrapper
+
+
+# def timer(func):
+#     return func
+
+
 WILDCARD = "*"
 UNORDERED_LINK_TYPES: list[Any] = []
+RESERVED_NODE_PARAMETERS = ["handle", "_id", "composite_type_hash", "named_type"]
+RESERVED_LINK_PARAMETERS = [
+    "handle",
+    "targets",
+    "_id",
+    "composite_type_hash",
+    "composite_type",
+    "is_toplevel",
+    "named_type",
+    "named_type_hash",
+    "key_n",
+]
 
 # pylint: disable=invalid-name
 
@@ -94,6 +121,7 @@ class AtomDB(ABC):
         return "<Atom database abstract class>"  # pragma no cover
 
     @staticmethod
+    @timer
     def node_handle(node_type: str, node_name: str) -> str:
         """
         Generate a unique handle for a node based on its type and name.
@@ -108,6 +136,7 @@ class AtomDB(ABC):
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
     @staticmethod
+    @timer
     def link_handle(link_type: str, target_handles: list[str]) -> str:
         """
         Generate a unique handle for a link based on its type and target handles.
@@ -122,6 +151,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
+    @timer
     def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
@@ -137,22 +167,17 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        answer: AtomT = document
         if kwargs.get("targets_document", False):
-            targets_document = [self.get_atom(target) for target in answer["targets"]]
-            answer["targets_document"] = targets_document
+            document["targets_document"] = [self.get_atom(target) for target in document["targets"]]
 
-        if kwargs.get("deep_representation", False):
+        if kwargs.get("deep_representation", False) and "targets" in document:
+            document["targets"] = [
+                self.get_atom(target, **kwargs) for target in document["targets"]
+            ]
 
-            def _recursive_targets(targets, **_kwargs):
-                return [self.get_atom(target, **_kwargs) for target in targets]
+        return document
 
-            if "targets" in answer:
-                deep_targets = _recursive_targets(answer["targets"], **kwargs)
-                answer["targets"] = deep_targets
-
-        return answer
-
+    @timer
     def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
         """
         Build a node with the specified parameters.
@@ -169,16 +194,13 @@ class AtomDB(ABC):
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing in node_params.
         """
-        reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
-
         valid_params = {
-            key: value for key, value in node_params.items() if key not in reserved_parameters
+            key: value for key, value in node_params.items() if key not in RESERVED_NODE_PARAMETERS
         }
 
-        node_type = valid_params.get("type")
-        node_name = valid_params.get("name")
-
-        if node_type is None or node_name is None:
+        if (node_type := valid_params.get("type")) is None or (
+            node_name := valid_params.get("name")
+        ) is None:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
                 details=f"{valid_params=}",
@@ -198,6 +220,7 @@ class AtomDB(ABC):
 
         return handle, node
 
+    @timer
     def _build_link(
         self, link_params: LinkParamsT, toplevel: bool = True
     ) -> tuple[str, LinkT, list[str]] | None:
@@ -220,28 +243,15 @@ class AtomDB(ABC):
             AddLinkException: If the 'type' or 'targets' fields are missing in
             link_params.
         """
-        reserved_parameters = [
-            "handle",
-            "targets",
-            "_id",
-            "composite_type_hash",
-            "composite_type",
-            "is_toplevel",
-            "named_type",
-            "named_type_hash",
-            "key_n",
-        ]
-
         valid_params = {
             key: value
             for key, value in link_params.items()
-            if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
+            if key not in RESERVED_LINK_PARAMETERS and not re.search(AtomDB.key_pattern, key)
         }
 
-        targets = link_params.get("targets")
-        link_type = link_params.get("type")
-
-        if link_type is None or targets is None:
+        if (link_type := link_params.get("type")) is None or (
+            targets := link_params.get("targets")
+        ) is None:
             raise AddLinkException(
                 message='The "type" and "targets" fields must be sent',
                 details=f"{valid_params=}",
@@ -256,14 +266,12 @@ class AtomDB(ABC):
             if not isinstance(target, dict):
                 raise ValueError("The target must be a dictionary")
             if "targets" not in target:
-                atom = self.add_node(target)
-                if atom is None:
+                if (atom := self.add_node(target)) is None:
                     return None
                 atom_hash = atom["composite_type_hash"]
                 composite_type.append(atom_hash)
             else:
-                atom = self.add_link(target, toplevel=False)
-                if atom is None:
+                if (atom := self.add_link(target, toplevel=False)) is None:
                     return None
                 atom_hash = atom["composite_type_hash"]
                 composite_type.append(atom["composite_type"])
@@ -290,6 +298,7 @@ class AtomDB(ABC):
 
         return handle, link, target_handles
 
+    @timer
     def node_exists(self, node_type: str, node_name: str) -> bool:
         """
         Check if a node with the specified type and name exists in the database.
@@ -307,6 +316,7 @@ class AtomDB(ABC):
         except AtomDoesNotExist:
             return False
 
+    @timer
     def link_exists(self, link_type: str, target_handles: list[str]) -> bool:
         """
         Check if a link with the specified type and targets exists in the database.
@@ -603,6 +613,7 @@ class AtomDB(ABC):
             applicable) and a list of matching link handles.
         """
 
+    @timer
     def get_atom(self, handle: str, **kwargs) -> AtomT:
         """
         Retrieve an atom by its handle.
@@ -623,20 +634,20 @@ class AtomDB(ABC):
         Raises:
             AtomDoesNotExist: If the atom with the specified handle does not exist.
         """
-        document = self._get_atom(handle)
-        if document:
-            if not kwargs.get("no_target_format", False):
-                document = self._reformat_document(document, **kwargs)
-            return document
-        else:
-            logger().error(
-                f"Failed to retrieve atom for handle: {handle}. "
-                f"This atom does not exist. - Details: {kwargs}"
+        if document := self._get_atom(handle):
+            return (
+                document
+                if kwargs.get("no_target_format")
+                else self._reformat_document(document, **kwargs)
             )
-            raise AtomDoesNotExist(
-                message="Nonexistent atom",
-                details=f"handle: {handle}",
-            )
+        logger().error(
+            f"Failed to retrieve atom for handle: {handle}. "
+            f"This atom does not exist. - Details: {kwargs}"
+        )
+        raise AtomDoesNotExist(
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
+        )
 
     @abstractmethod
     def _get_atom(self, handle: str) -> AtomT | None:
