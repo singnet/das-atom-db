@@ -30,15 +30,20 @@ from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, At
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-import time
+import base64, json, pickle, time  # noqa
 
 
 def timer(func):
-    def wrapper(*args, **kwargs):
+    def wrapper(self, *args, **kwargs):
         start = time.perf_counter()
-        result = func(*args, **kwargs)
+        result = func(self, *args, **kwargs)
         end = time.perf_counter()
-        print(f'<TIMER>|{func.__name__}|{end-start:.10f}')
+        # a = base64.b64encode(pickle.dumps(args))
+        # k = base64.b64encode(pickle.dumps(kwargs))
+        # a = json.dumps(args)
+        # k = json.dumps(kwargs)
+        # print(f'<TIMER>|{func.__name__}|{end-start:.10f}|{a=}|{k=}')
+        print(f'<TIMER>|{func.__name__}|{end - start:.10f}')
         return result
     return wrapper
 
@@ -123,7 +128,6 @@ class AtomDB(ABC):
         return "<Atom database abstract class>"  # pragma no cover
 
     @staticmethod
-    @timer
     def node_handle(node_type: str, node_name: str) -> str:
         """
         Generate a unique handle for a node based on its type and name.
@@ -138,7 +142,6 @@ class AtomDB(ABC):
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
     @staticmethod
-    @timer
     def link_handle(link_type: str, target_handles: list[str]) -> str:
         """
         Generate a unique handle for a link based on its type and target handles.
@@ -153,7 +156,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    # @timer
+    @timer
     def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.

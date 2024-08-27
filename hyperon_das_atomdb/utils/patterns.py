@@ -29,12 +29,7 @@ def generate_binary_matrix(numbers: int) -> list[list[int]]:
     """
     if numbers <= 0:
         return [[]]
-    smaller_matrix = generate_binary_matrix(numbers - 1)
-    new_matrix: list[list[int]] = []
-    for matrix in smaller_matrix:
-        new_matrix.append(matrix + [0])
-        new_matrix.append(matrix + [1])
-    return new_matrix
+    return [matrix + [bit] for matrix in generate_binary_matrix(numbers - 1) for bit in (0, 1)]
 
 
 def multiply_binary_matrix_by_string_matrix(
@@ -53,13 +48,10 @@ def multiply_binary_matrix_by_string_matrix(
         list[list[str]]: A matrix represented as a list of lists, where each
         sublist is a row in the resulting matrix.
     """
-    result_matrix: list[list[str]] = []
-    for binary_row in binary_matrix:
-        result_row = [
-            string if bit == 1 else WILDCARD for bit, string in zip(binary_row, string_matrix)
-        ]
-        result_matrix.append(result_row)
-    return result_matrix[:-1]
+    return [
+        [string if bit == 1 else WILDCARD for bit, string in zip(binary_row, string_matrix)]
+        for binary_row in binary_matrix
+    ][:-1]
 
 
 def build_pattern_keys(hash_list: list[str]) -> list[str]:
@@ -72,10 +64,9 @@ def build_pattern_keys(hash_list: list[str]) -> list[str]:
     Returns:
         list[str]: A list of pattern keys generated from the hash list.
     """
-    binary_matrix = generate_binary_matrix(len(hash_list))
-    result_matrix = multiply_binary_matrix_by_string_matrix(binary_matrix, hash_list)
-    keys = [
+    return [
         ExpressionHasher.expression_hash(matrix_item[:1][0], matrix_item[1:])
-        for matrix_item in result_matrix
+        for matrix_item in multiply_binary_matrix_by_string_matrix(
+            generate_binary_matrix(len(hash_list)), hash_list
+        )
     ]
-    return keys

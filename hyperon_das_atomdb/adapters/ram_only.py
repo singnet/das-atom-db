@@ -77,6 +77,8 @@ class InMemoryDB(AtomDB):
         self.named_type_table: dict[str, str] = {}  # keyed by named type hash
         self.all_named_types: set[str] = set()
         self.db: Database = Database()
+        self.type_hash = ExpressionHasher.named_type_hash("Type")
+        self.typedef_mark_hash = ExpressionHasher.named_type_hash(":")
 
     @timer
     def _get_link(self, handle: str) -> dict[str, Any] | None:
@@ -121,9 +123,7 @@ class InMemoryDB(AtomDB):
             return ExpressionHasher.named_type_hash(template)
         return [self._build_named_type_hash_template(element) for element in template]
 
-    @staticmethod
-    @timer
-    def _build_atom_type_key_hash(_name: str) -> str:
+    def _build_atom_type_key_hash(self, _name: str) -> str:
         """
         Build a hash key for the given atom type name.
 
@@ -134,9 +134,9 @@ class InMemoryDB(AtomDB):
             str: The hash key for the atom type.
         """
         name_hash = ExpressionHasher.named_type_hash(_name)
-        type_hash = ExpressionHasher.named_type_hash("Type")
-        typedef_mark_hash = ExpressionHasher.named_type_hash(":")
-        return ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
+        return ExpressionHasher.expression_hash(
+            self.typedef_mark_hash, [name_hash, self.type_hash]
+        )
 
     @timer
     def _add_atom_type(self, atom_type_name: str, atom_type: str = "Type") -> None:
@@ -152,14 +152,13 @@ class InMemoryDB(AtomDB):
 
         self.all_named_types.add(atom_type_name)
         name_hash = ExpressionHasher.named_type_hash(atom_type_name)
-        type_hash = ExpressionHasher.named_type_hash(atom_type)
-        typedef_mark_hash = ExpressionHasher.named_type_hash(":")
-
-        key = ExpressionHasher.expression_hash(typedef_mark_hash, [name_hash, type_hash])
+        type_hash = (
+            self.type_hash if atom_type == "Type" else ExpressionHasher.named_type_hash(atom_type)
+        )
+        key = ExpressionHasher.expression_hash(self.typedef_mark_hash, [name_hash, type_hash])
 
         if (_atom_type := self.db.atom_type.get(key)) is None:
-            base_type_hash = ExpressionHasher.named_type_hash("Type")
-            composite_type = [typedef_mark_hash, type_hash, base_type_hash]
+            composite_type = [self.typedef_mark_hash, type_hash, self.type_hash]
             composite_type_hash = ExpressionHasher.composite_hash(composite_type)
             _atom_type = {
                 FieldNames.ID_HASH: key,
@@ -331,7 +330,6 @@ class InMemoryDB(AtomDB):
         ]
 
     @staticmethod
-    @timer
     def _build_targets_list(link: dict[str, Any]) -> list[Any]:
         """
         Build a list of target handles from the given link document.
