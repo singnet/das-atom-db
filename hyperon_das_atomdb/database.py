@@ -31,6 +31,8 @@ from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 import time
+
+
 def timer(func):
     def wrapper(*args, **kwargs):
         start = time.perf_counter()
@@ -151,7 +153,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    @timer
+    # @timer
     def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
@@ -635,11 +637,9 @@ class AtomDB(ABC):
             AtomDoesNotExist: If the atom with the specified handle does not exist.
         """
         if document := self._get_atom(handle):
-            return (
-                document
-                if kwargs.get("no_target_format")
-                else self._reformat_document(document, **kwargs)
-            )
+            if not kwargs.get("no_target_format"):
+                return self._reformat_document(document, **kwargs)
+            return document
         logger().error(
             f"Failed to retrieve atom for handle: {handle}. "
             f"This atom does not exist. - Details: {kwargs}"
