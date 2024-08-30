@@ -2,8 +2,10 @@
 #define _BASIC_TYPES_HPP
 
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 enum class FieldIndexType {
@@ -11,6 +13,12 @@ enum class FieldIndexType {
     TOKEN_INVERTED_LIST
 };
 
+/**
+ * @brief Represents a basic unit of data in the system.
+ *
+ * The Atom class serves as a fundamental building block within the system,
+ * encapsulating the essential properties and behaviors of a data unit.
+ */
 class Atom {
    public:
     Atom(const std::string& id,
@@ -43,6 +51,36 @@ class Atom {
     std::string named_type;
 };
 
+/**
+ * @brief Represents a specific type of atom in the system.
+ *
+ * The AtomType class inherits from the Atom class and encapsulates additional properties
+ * and behaviors specific to a particular type of atom. This class is used to define
+ * and manage different types of atoms within the system.
+ */
+class AtomType : public Atom {
+   public:
+    AtomType(const std::string& id,
+             const std::string& handle,
+             const std::string& composite_type_hash,
+             const std::string& named_type,
+             const std::string& named_type_hash)
+        : named_type_hash(named_type_hash),
+          Atom(id, handle, composite_type_hash, named_type) {
+        if (named_type_hash.empty()) {
+            throw std::invalid_argument("Named type hash cannot be empty.");
+        }
+    }
+
+    std::string named_type_hash;
+};
+
+/**
+ * @brief Represents a node in the system.
+ *
+ * The Node class inherits from the Atom class and represents a node within the system.
+ * It encapsulates additional properties and behaviors specific to nodes.
+ */
 class Node : public Atom {
    public:
     Node(const std::string& id,
@@ -60,6 +98,13 @@ class Node : public Atom {
     std::string name;
 };
 
+/**
+ * @brief Represents a composite type in the system.
+ *
+ * The CompositeType class encapsulates the properties and behaviors of a composite type,
+ * which is a type composed of multiple elements. This class provides methods to manage
+ * and manipulate these elements.
+ */
 class CompositeType {
    public:
     CompositeType(const std::string& single_hash)
@@ -86,6 +131,13 @@ class CompositeType {
     std::vector<CompositeType> list_of_composite_types = {};
 };
 
+/**
+ * @brief Represents a link in the system.
+ *
+ * The Link class inherits from the Atom class and represents a link within the system.
+ * It encapsulates additional properties and behaviors specific to links, such as connections
+ * between different atoms.
+ */
 class Link : public Atom {
    public:
     Link(const std::string& id,
@@ -122,9 +174,14 @@ class Link : public Atom {
     std::vector<Atom> targets_documents = {};
 };
 
-using IncomingLinks = std::vector<std::string>;
+// Type aliases for readability
+using StringSet = std::set<std::string>;
+using StringList = std::vector<std::string>;
+using StringTuple = std::tuple<std::string, std::vector<std::string>>;
+using StringUnorderedSet = std::unordered_set<std::string>;
+using IncomingLinks = StringList;
 using MatchedTargetsList = std::vector<std::pair<std::string, std::vector<std::string>>>;
-using HandlesList = std::vector<std::string>;
+using HandlesList = StringList;
 using MatchedLinksResult = std::pair<int, HandlesList>;
 using MatchedTypesResult = std::pair<int, MatchedTargetsList>;
 

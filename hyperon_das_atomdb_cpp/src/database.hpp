@@ -6,32 +6,12 @@
 #include <vector>
 
 #include "basic_types.hpp"
-#include "utils/expression_hasher.h"
+#include "exceptions.hpp"
+#include "utils/expression_hasher.hpp"
+#include "utils/flags.hpp"
 
 const std::string WILDCARD = "*";
-const std::vector<std::string> UNORDERED_LINK_TYPES = {};
-
-enum class OnOffParams {
-    NO_TARGET_FORMAT,
-    TARGETS_DOCUMENTS,
-    DEEP_REPRESENTATION,
-};
-
-using Flags = std::unordered_map<OnOffParams, bool>;
-
-class AtomDoesNotExist : public std::exception {
-   public:
-    AtomDoesNotExist(const std::string& message, const std::string details)
-        : message(message), details(details) {}
-
-    const char* what() const noexcept override {
-        return (message + ": " + details).c_str();
-    }
-
-   private:
-    std::string message;
-    std::string details;
-};
+const StringList UNORDERED_LINK_TYPES = {};
 
 class AtomDB {
    public:
@@ -43,9 +23,9 @@ class AtomDB {
      * @param node_name The node name.
      * @return The node handle.
      */
-    static std::string node_handle(
+    static std::string build_node_handle(
         const std::string& node_type, const std::string& node_name) {
-        return terminal_hash(node_type.c_str(), node_name.c_str());
+        return ExpressionHasher::terminal_hash(node_type, node_name);
     }
 
     /**
@@ -54,14 +34,14 @@ class AtomDB {
      * @param target_handles A list of link target identifiers.
      * @return The link handle.
      */
-    static std::string link_handle(
-        const std::string& link_type, const std::vector<std::string>& target_handles) {
-        std::string link_type_hash = named_type_hash(link_type.c_str());
+    static std::string build_link_handle(
+        const std::string& link_type, const StringList& target_handles) {
+        std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.c_str());
         std::vector<const char*> elements;
         for (const auto& target_handle : target_handles) {
             elements.push_back(target_handle.c_str());
         }
-        return expression_hash(link_type_hash.c_str(), elements.data(), elements.size());
+        return ExpressionHasher::expression_hash(link_type_hash, target_handles);
     }
 
     /**
@@ -91,7 +71,7 @@ class AtomDB {
      * @param target_handles A vector of strings representing the handles of the link's targets.
      * @return A boolean value indicating whether the link exists (true) or not (false).
      */
-    bool link_exists(const std::string& link_type, const std::vector<std::string>& target_handles) {
+    bool link_exists(const std::string& link_type, const StringList& target_handles) {
         try {
             get_link_handle(link_type, target_handles);
             return true;
@@ -109,12 +89,10 @@ class AtomDB {
      * @param flags An optional Flags object containing additional retrieval options.
      * @return An Atom object representing the retrieved atom.
      */
-    const Atom& get_atom(const std::string& handle, const Flags& flags = {}) {
+    const Atom& get_atom(const std::string& handle, const Flags& flags = Flags()) {
         Atom document = _get_atom(handle);
-        bool no_target_format = flags.find(OnOffParams::NO_TARGET_FORMAT) != flags.end();
-        no_target_format = no_target_format ? flags.at(OnOffParams::NO_TARGET_FORMAT) : false;
-        if (no_target_format) return document;
-        return reformat_document(document, flags);
+        if (flags.get(FlagsParams::NO_TARGET_FORMAT, false)) return document;
+        return _reformat_document(document, flags);
     }
 
     /**
@@ -146,7 +124,7 @@ class AtomDB {
      * @param substring The substring to search for in node names.
      * @return List of handles of nodes whose names matched the criteria.
      */
-    virtual std::vector<std::string> get_node_by_name(
+    virtual StringList get_node_by_name(
         const std::string& node_type, const std::string& substring) = 0;
 
     /**
@@ -154,7 +132,7 @@ class AtomDB {
      * @param query List of dicts containing 'field' and 'value' keys.
      * @return List of node IDs.
      */
-    virtual std::vector<std::string> get_atoms_by_field(
+    virtual StringList get_atoms_by_field(
         const std::vector<std::unordered_map<std::string, std::string>>& query) = 0;
 
     /**
@@ -178,7 +156,7 @@ class AtomDB {
      * @param text_index_id TOKEN_INVERTED_LIST index id to search for.
      * @return List of node IDs ordered by the closest match.
      */
-    virtual std::vector<std::string> get_atoms_by_text_field(
+    virtual StringList get_atoms_by_text_field(
         const std::string& text_value,
         const std::string& field = "",
         const std::string& text_index_id = "") = 0;
@@ -189,7 +167,7 @@ class AtomDB {
      * @param startswith The starting substring to search for.
      * @return List of node IDs.
      */
-    virtual std::vector<std::string> get_node_by_name_starting_with(
+    virtual StringList get_node_by_name_starting_with(
         const std::string& node_type, const std::string& startswith) = 0;
 
     /**
@@ -198,7 +176,7 @@ class AtomDB {
      * @param names If True, return node names instead of handles. Default is False.
      * @return A list of node handles or names, depending on the value of 'names'.
      */
-    virtual std::vector<std::string> get_all_nodes(
+    virtual StringList get_all_nodes(
         const std::string& node_type, bool names = false) = 0;
 
     /**
@@ -206,7 +184,7 @@ class AtomDB {
      * @param link_type The type of the link.
      * @return A tuple containing a cursor and a list of link handles.
      */
-    virtual std::pair<int, std::vector<std::string>> get_all_links(
+    virtual std::pair<int, StringList> get_all_links(
         const std::string& link_type) = 0;
 
     /**
@@ -216,7 +194,7 @@ class AtomDB {
      * @return The link handle.
      */
     virtual std::string get_link_handle(
-        const std::string& link_type, const std::vector<std::string>& target_handles) = 0;
+        const std::string& link_type, const StringList& target_handles) = 0;
 
     /**
      * @brief Get the type of the link with the specified handle.
@@ -230,7 +208,7 @@ class AtomDB {
      * @param link_handle The link handle.
      * @return A list of target identifiers of the link.
      */
-    virtual std::vector<std::string> get_link_targets(const std::string& link_handle) = 0;
+    virtual StringList get_link_targets(const std::string& link_handle) = 0;
 
     /**
      * @brief Check if a link specified by its handle is ordered.
@@ -253,7 +231,7 @@ class AtomDB {
      * @return A tuple containing a cursor and a list of matching link handles.
      */
     virtual MatchedLinksResult get_matched_links(
-        const std::string& link_type, const std::vector<std::string>& target_handles) = 0;
+        const std::string& link_type, const StringList& target_handles) = 0;
 
     /**
      * @brief Retrieve links that match a specified type template.
@@ -261,7 +239,7 @@ class AtomDB {
      * @return A tuple containing a cursor and a list of matching link handles.
      */
     virtual MatchedTypesResult get_matched_type_template(
-        const std::vector<std::string>& template_) = 0;
+        const StringList& template_) = 0;
 
     /**
      * @brief Retrieve links that match a specified link type.
@@ -269,14 +247,6 @@ class AtomDB {
      * @return A tuple containing a cursor and a list of matching link handles.
      */
     virtual MatchedTypesResult get_matched_type(const std::string& link_type) = 0;
-
-    /**
-     * @brief Retrieve an atom by its handle.
-     * @param handle The handle of the atom to retrieve.
-     * @param flags A dictionary of flags to control the retrieval process.
-     * @return A dictionary representation of the atom, if found.
-     */
-    virtual Atom get_atom(const std::string& handle, const Flags& flags = {}) = 0;
 
     /**
      * @brief Retrieve the atom's type by its handle.
@@ -315,13 +285,18 @@ class AtomDB {
 
     /**
      * @brief Adds a link to the database.
-     * @param link_params A dictionary containing link parameters.
-     * @param toplevel Boolean flag to indicate toplevel links.
-     * @return The information about the added link, including its unique key and other details.
+     *
+     * This function creates a link of the specified type, connecting the given target atoms,
+     * and optionally marks it as a top-level link.
+     *
+     * @param link_type A string representing the type of the link.
+     * @param targets A vector of Atom objects representing the targets of the link.
+     * @param toplevel A boolean indicating whether the link is a top-level link (default is true).
+     * @return A Link object representing the created link.
      */
     virtual Link add_link(
         const std::string& link_type,
-        const std::vector<std::string>& targets,
+        const std::vector<Atom>& targets,
         bool toplevel = true) = 0;
 
     /**
@@ -353,8 +328,8 @@ class AtomDB {
      */
     virtual std::string create_field_index(
         const std::string& atom_type,
-        const std::vector<std::string>& fields, const std::string& named_type = "",
-        const std::vector<std::string>& composite_type = {},
+        const StringList& fields, const std::string& named_type = "",
+        const StringList& composite_type = {},
         FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
 
     /**
@@ -387,14 +362,10 @@ class AtomDB {
      * @param flags A reference to a Flags object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom& reformat_document(Atom& document, const Flags& flags) {
+    const Atom& _reformat_document(Atom& document, const Flags& flags = Flags()) {
         if (Link* link = dynamic_cast<Link*>(&document)) {
-            bool targets_documents = flags.find(OnOffParams::TARGETS_DOCUMENTS) != flags.end();
-            targets_documents =
-                targets_documents ? flags.at(OnOffParams::TARGETS_DOCUMENTS) : false;
-            bool deep_representation = flags.find(OnOffParams::DEEP_REPRESENTATION) != flags.end();
-            deep_representation =
-                deep_representation ? flags.at(OnOffParams::DEEP_REPRESENTATION) : false;
+            bool targets_documents = flags.get(FlagsParams::TARGETS_DOCUMENTS, false);
+            bool deep_representation = flags.get(FlagsParams::DEEP_REPRESENTATION, false);
             if (targets_documents || deep_representation) {
                 std::vector<Atom> targets_documents;
                 for (const auto& target : link->targets) {
@@ -419,9 +390,10 @@ class AtomDB {
      * @param node_name A string representing the name of the node.
      * @return A Node object representing the created node.
      */
-    Node build_node(const std::string& node_type, const std::string& node_name) {
-        std::string handle = AtomDB::node_handle(node_type, node_name);
-        return Node(handle, handle, named_type_hash(node_type.c_str()), node_type, node_name);
+    Node _build_node(const std::string& node_type, const std::string& node_name) {
+        std::string handle = AtomDB::build_node_handle(node_type, node_name);
+        return Node(
+            handle, handle, ExpressionHasher::named_type_hash(node_type), node_type, node_name);
     }
 
     /**
@@ -434,12 +406,12 @@ class AtomDB {
      * @param is_top_level A boolean value indicating whether the link is top-level.
      * @return A Link object representing the created link.
      */
-    Link build_link(
+    Link _build_link(
         const std::string& link_type, const std::vector<Atom>& targets, bool is_top_level = true) {
-        std::string link_type_hash = named_type_hash(link_type.c_str());
-        std::vector<std::string> target_handles = {};
+        std::string link_type_hash = ExpressionHasher::named_type_hash(link_type);
+        StringList target_handles = {};
         std::vector<CompositeType> composite_type = {CompositeType(link_type_hash)};
-        std::vector<std::string> composite_type_hash = {link_type_hash};
+        StringList composite_type_hash = {link_type_hash};
         std::string atom_hash;
         std::string atom_handle;
         for (const Atom& target : targets) {
@@ -458,22 +430,17 @@ class AtomDB {
             target_handles.push_back(atom_handle);
         }
 
-        std::string handle = AtomDB::link_handle(link_type, target_handles);
-
-        std::vector<const char*> elements;
-        for (const auto& hash : composite_type_hash) {
-            elements.push_back(hash.c_str());
-        }
+        std::string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
 
         Link link = Link(
-            handle,                                            // id
-            handle,                                            // handle
-            composite_hash(elements.data(), elements.size()),  // composite_type_hash
-            link_type,                                         // named_type
-            composite_type,                                    // composite_type
-            link_type_hash,                                    // named_type_hash
-            target_handles,                                    // targets
-            is_top_level                                       // is_top_level
+            handle,                                                 // id
+            handle,                                                 // handle
+            ExpressionHasher::composite_hash(composite_type_hash),  // composite_type_hash
+            link_type,                                              // named_type
+            composite_type,                                         // composite_type
+            link_type_hash,                                         // named_type_hash
+            target_handles,                                         // targets
+            is_top_level                                            // is_top_level
         );
 
         uint n = 0;
