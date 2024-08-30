@@ -93,7 +93,7 @@ class InMemoryDB : public AtomDB {
         return ExpressionHasher::named_type_hash(_template);
     }
 
-    const std::string _build_atom_type_key_hash(const std::string& name) {
+    static const std::string _build_atom_type_key_hash(const std::string& name) {
         std::string name_hash = ExpressionHasher::named_type_hash(name);
         std::string type_hash = ExpressionHasher::named_type_hash("Type");
         std::string typedef_mark_hash = ExpressionHasher::named_type_hash(":");
