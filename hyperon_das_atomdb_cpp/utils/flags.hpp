@@ -2,6 +2,7 @@
 #define _FLAGS_HPP
 
 #include <any>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -51,12 +52,13 @@ class Flags : private std::unordered_map<FlagsParams, std::any> {
      * @brief Retrieves the value associated with the specified flag parameter.
      * @tparam T The type of the value to be retrieved.
      * @param key The flag parameter whose value is to be retrieved.
-     * @param default_value The default value to return if the key is not found.
+     * @param default_value <optional> The default value to return if the key is not found.
+     *                      Defaults to std::nullopt.
      * @return The value associated with the specified flag parameter, or the default value if the
      *         key is not found.
      */
     template <typename T>
-    T get(FlagsParams key, T default_value) const {
+    std::optional<T> get(FlagsParams key, std::optional<T> default_value = std::nullopt) const {
         if (this->contains(key)) {
             return std::any_cast<T>(this->at(key));
         }
@@ -78,13 +80,14 @@ class Flags : private std::unordered_map<FlagsParams, std::any> {
      * @brief Removes and returns the value associated with the specified flag parameter.
      * @tparam T The type of the value to be retrieved.
      * @param key The flag parameter whose value is to be removed and returned.
-     * @param default_value The default value to return if the key is not found.
+     * @param default_value <optional> The default value to return if the key is not found.
+     *                      Defaults to std::nullopt.
      * @return The value associated with the specified flag parameter, or the default value if the
      *         key is not found.
      */
     template <typename T>
-    T pop(FlagsParams key, T default_value) {
-        if (this->find(key) != this->end()) {
+    std::optional<T> pop(FlagsParams key, std::optional<T> default_value = std::nullopt) {
+        if (this->contains(key)) {
             T value = std::any_cast<T>(this->at(key));
             this->erase(key);
             return value;

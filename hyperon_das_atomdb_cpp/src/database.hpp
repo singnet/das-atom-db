@@ -91,7 +91,7 @@ class AtomDB {
      */
     const Atom& get_atom(const std::string& handle, const Flags& flags = Flags()) {
         Atom document = _get_atom(handle);
-        if (flags.get(FlagsParams::NO_TARGET_FORMAT, false)) return document;
+        if (flags.get<bool>(FlagsParams::NO_TARGET_FORMAT, false)) return document;
         return _reformat_document(document, flags);
     }
 
@@ -364,8 +364,9 @@ class AtomDB {
      */
     const Atom& _reformat_document(Atom& document, const Flags& flags = Flags()) {
         if (Link* link = dynamic_cast<Link*>(&document)) {
-            bool targets_documents = flags.get(FlagsParams::TARGETS_DOCUMENTS, false);
-            bool deep_representation = flags.get(FlagsParams::DEEP_REPRESENTATION, false);
+            auto cursor = flags.get<int>(FlagsParams::CURSOR);
+            auto targets_documents = flags.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
+            auto deep_representation = flags.get<bool>(FlagsParams::DEEP_REPRESENTATION, false);
             if (targets_documents || deep_representation) {
                 std::vector<Atom> targets_documents;
                 for (const auto& target : link->targets) {
