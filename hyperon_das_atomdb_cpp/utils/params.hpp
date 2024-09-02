@@ -16,6 +16,7 @@
 namespace FlagsParams {
 constexpr const char* CURSOR = "cursor";
 constexpr const char* DEEP_REPRESENTATION = "deep_representation";
+constexpr const char* DELETE_ATOM = "delete_atom";
 constexpr const char* NO_TARGET_FORMAT = "no_target_format";
 constexpr const char* TARGETS_DOCUMENTS = "targets_documents";
 };  // namespace FlagsParams
@@ -111,7 +112,7 @@ class Params : private std::unordered_map<const char*, std::any> {
     template <typename T>
     std::optional<T> pop(const char* key, std::optional<T> default_value = std::nullopt) {
         if (this->contains(key)) {
-            T value = std::any_cast<T>(this->at(key));
+            T value = std::move(std::any_cast<T>(this->at(key)));
             this->erase(key);
             return value;
         }

@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils/params.hpp"
+
 enum class FieldIndexType {
     BINARY_TREE,
     TOKEN_INVERTED_LIST
@@ -24,11 +26,13 @@ class Atom {
     Atom(const std::string& id,
          const std::string& handle,
          const std::string& composite_type_hash,
-         const std::string& named_type)
+         const std::string& named_type,
+         const Params& extra_params = {})
         : id(id),
           handle(handle),
           composite_type_hash(composite_type_hash),
-          named_type(named_type) {
+          named_type(named_type),
+          extra_params(extra_params) {
         if (id.empty()) {
             throw std::invalid_argument("Atom ID cannot be empty.");
         }
@@ -49,6 +53,7 @@ class Atom {
     std::string handle;
     std::string composite_type_hash;
     std::string named_type;
+    Params extra_params = {};
 };
 
 /**
@@ -64,9 +69,10 @@ class AtomType : public Atom {
              const std::string& handle,
              const std::string& composite_type_hash,
              const std::string& named_type,
-             const std::string& named_type_hash)
+             const std::string& named_type_hash,
+             const Params& extra_params = {})
         : named_type_hash(named_type_hash),
-          Atom(id, handle, composite_type_hash, named_type) {
+          Atom(id, handle, composite_type_hash, named_type, extra_params) {
         if (named_type_hash.empty()) {
             throw std::invalid_argument("Named type hash cannot be empty.");
         }
@@ -87,9 +93,10 @@ class Node : public Atom {
          const std::string& handle,
          const std::string& composite_type_hash,
          const std::string& named_type,
-         const std::string& name)
+         const std::string& name,
+         const Params& extra_params = {})
         : name(name),
-          Atom(id, handle, composite_type_hash, named_type) {
+          Atom(id, handle, composite_type_hash, named_type, extra_params) {
         if (name.empty()) {
             throw std::invalid_argument("Node name cannot be empty.");
         }
@@ -148,13 +155,14 @@ class Link : public Atom {
          const std::string& named_type_hash,
          const std::vector<std::string>& targets,
          bool is_top_level = true,
-         const std::map<std::string, std::string>& keys = {})
+         const std::map<std::string, std::string>& keys = {},
+         const Params& extra_params = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_top_level(is_top_level),
           keys(keys),
-          Atom(id, handle, composite_type_hash, named_type) {
+          Atom(id, handle, composite_type_hash, named_type, extra_params) {
         if (composite_type.empty()) {
             throw std::invalid_argument("Composite type cannot be empty.");
         }
@@ -171,7 +179,6 @@ class Link : public Atom {
     std::vector<std::string> targets;
     bool is_top_level = true;
     std::map<std::string, std::string> keys = {};
-    std::vector<Atom> targets_documents = {};
 };
 
 // Type aliases for readability
@@ -179,6 +186,10 @@ using StringSet = std::set<std::string>;
 using StringList = std::vector<std::string>;
 using StringTuple = std::tuple<std::string, std::vector<std::string>>;
 using StringUnorderedSet = std::unordered_set<std::string>;
+using AtomList = std::vector<Atom>;
+using AtomTypeList = std::vector<AtomType>;
+using NodeList = std::vector<Node>;
+using LinkList = std::vector<Link>;
 using IncomingLinks = StringList;
 using MatchedTargetsList = std::vector<std::pair<std::string, std::vector<std::string>>>;
 using HandlesList = StringList;

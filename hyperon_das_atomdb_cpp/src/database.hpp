@@ -1,6 +1,7 @@
 #ifndef _DATABASE_HPP
 #define _DATABASE_HPP
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -89,10 +90,15 @@ class AtomDB {
      * @param params An optional Params object containing additional retrieval options.
      * @return An Atom object representing the retrieved atom.
      */
-    const Atom& get_atom(const std::string& handle, const Params& params = Params()) {
-        Atom document = _get_atom(handle);
-        if (params.get<bool>(FlagsParams::NO_TARGET_FORMAT, false)) return document;
-        return _reformat_document(document, params);
+    Atom get_atom(const std::string& handle, const Params& params = {}) {
+        std::optional<Atom> document = _get_atom(handle);
+        if (!document.has_value()) {
+            throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
+        }
+        if (params.get<bool>(FlagsParams::NO_TARGET_FORMAT).value_or(false)) {
+            return document.value();
+        }
+        return _reformat_document(document.value(), params);
     }
 
     /**
@@ -184,8 +190,8 @@ class AtomDB {
      * @param link_type The type of the link.
      * @return A tuple containing a cursor and a list of link handles.
      */
-    virtual std::pair<int, StringList> get_all_links(
-        const std::string& link_type) = 0;
+    virtual std::pair<std::optional<int>, StringList> get_all_links(
+        const std::string& link_type, const Params& params) = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -222,7 +228,11 @@ class AtomDB {
      * @param atom_handle The handle of the atom for which to retrieve incoming links.
      * @return A tuple containing the count of incoming links and a list of incoming links.
      */
-    virtual std::pair<int, IncomingLinks> get_incoming_links(const std::string& atom_handle) = 0;
+    virtual std::pair<std::optional<int>, StringUnorderedSet> get_incoming_links_handles(
+        const std::string& atom_handle, const Params& params) = 0;
+
+    virtual std::pair<std::optional<int>, AtomList> get_incoming_links_atoms(
+        const std::string& atom_handle, const Params& params) = 0;
 
     /**
      * @brief Retrieve links that match a specified link type and target handles.
@@ -277,27 +287,26 @@ class AtomDB {
 
     /**
      * @brief Adds a node to the database.
-     * @param node_type The node type.
-     * @param node_name The node name.
-     * @return The information about the added node, including its unique key and other details.
+     *
+     * This function creates a node using the specified parameters and adds it to the database.
+     *
+     * @param node_params A Params object containing the parameters for the node.
+     * @return An optional Node object representing the created node. If the node could not be created,
+     *         the optional will contain std::nullopt.
      */
-    virtual Node add_node(const std::string& node_type, const std::string& node_name) = 0;
+    virtual std::optional<Node> add_node(const Params& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
      *
-     * This function creates a link of the specified type, connecting the given target atoms,
-     * and optionally marks it as a top-level link.
+     * This function creates a link using the specified parameters and optionally marks it as a top-level link.
      *
-     * @param link_type A string representing the type of the link.
-     * @param targets A vector of Atom objects representing the targets of the link.
+     * @param link_params A Params object containing the parameters for the link.
      * @param toplevel A boolean indicating whether the link is a top-level link (default is true).
-     * @return A Link object representing the created link.
+     * @return An optional Link object representing the created link. If the link could not be created,
+     *         the optional will contain std::nullopt.
      */
-    virtual Link add_link(
-        const std::string& link_type,
-        const std::vector<Atom>& targets,
-        bool toplevel = true) = 0;
+    virtual std::optional<Link> add_link(const Params& link_params, bool toplevel = true) = 0;
 
     /**
      * @brief Reindex inverted pattern index according to passed templates.
@@ -362,21 +371,21 @@ class AtomDB {
      * @param params A reference to a Params object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom& _reformat_document(Atom& document, const Params& params = Params()) {
+    const Atom& _reformat_document(Atom& document, const Params& params = {}) {
         if (Link* link = dynamic_cast<Link*>(&document)) {
             auto cursor = params.get<int>(FlagsParams::CURSOR);
             auto targets_documents = params.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
             auto deep_representation = params.get<bool>(FlagsParams::DEEP_REPRESENTATION, false);
             if (targets_documents || deep_representation) {
-                std::vector<Atom> targets_documents;
+                auto targets_documents = std::make_shared<std::vector<Atom>>();
                 for (const auto& target : link->targets) {
                     if (deep_representation) {
-                        targets_documents.push_back(get_atom(target, params));
+                        targets_documents->push_back(get_atom(target, params));
                     } else {
-                        targets_documents.push_back(get_atom(target));
+                        targets_documents->push_back(get_atom(target));
                     }
                 }
-                link->targets_documents = targets_documents;
+                link->extra_params.set(FlagsParams::TARGETS_DOCUMENTS, targets_documents);
             }
         }
         return document;
@@ -398,34 +407,44 @@ class AtomDB {
     }
 
     /**
-     * @brief Builds a link with the specified type and targets.
+     * @brief Builds a link with the specified parameters.
      *
-     * This function creates a link object using the provided type and targets.
+     * This function constructs a Link object using the provided parameters.
      *
      * @param link_type A string representing the type of the link.
-     * @param target_handles A list of strings representing the handles of the link targets.
-     * @param is_top_level A boolean value indicating whether the link is top-level.
-     * @return A Link object representing the created link.
+     * @param targets A vector of Atom objects representing the targets of the link.
+     * @param toplevel A boolean indicating whether the link is a top-level link.
+     * @return A Link object representing the constructed link.
      */
-    Link _build_link(
-        const std::string& link_type, const std::vector<Atom>& targets, bool is_top_level = true) {
-        std::string link_type_hash = ExpressionHasher::named_type_hash(link_type);
+    std::optional<Link> _build_link(const Params& link_params, bool is_top_level = true) {
+        auto link_type = link_params.get<std::string>("type");
+        auto targets = link_params.get<std::vector<Params>>("targets");
+        if (!link_type.has_value() || !targets.has_value()) {
+            throw std::invalid_argument("'type' and 'targets' are required.");
+        }
+        std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.value());
         StringList target_handles = {};
         std::vector<CompositeType> composite_type = {CompositeType(link_type_hash)};
         StringList composite_type_hash = {link_type_hash};
         std::string atom_hash;
         std::string atom_handle;
-        for (const Atom& target : targets) {
-            if (const Node* node = dynamic_cast<const Node*>(&target)) {
-                Node atom = this->add_node(node->named_type, node->name);
-                atom_handle = atom.id;
-                atom_hash = atom.composite_type_hash;
+        for (const Params& target : targets.value()) {
+            if (!target.contains("targets")) {
+                auto node = this->add_node(target);
+                if (!node.has_value()) {
+                    return std::nullopt;
+                }
+                atom_handle = node.value().id;
+                atom_hash = node.value().composite_type_hash;
                 composite_type.push_back(atom_hash);
-            } else if (const Link* link = dynamic_cast<const Link*>(&target)) {
-                Link atom = this->add_link(link->named_type, link->targets, false);
-                atom_handle = atom.id;
-                atom_hash = atom.composite_type_hash;
-                composite_type.push_back(CompositeType(atom.composite_type));
+            } else {
+                auto link = this->add_link(target, false);
+                if (!link.has_value()) {
+                    return std::nullopt;
+                }
+                atom_handle = link.value().id;
+                atom_hash = link.value().composite_type_hash;
+                composite_type.push_back(CompositeType(link.value().composite_type));
             }
             composite_type_hash.push_back(atom_hash);
             target_handles.push_back(atom_handle);
@@ -437,7 +456,7 @@ class AtomDB {
             handle,                                                 // id
             handle,                                                 // handle
             ExpressionHasher::composite_hash(composite_type_hash),  // composite_type_hash
-            link_type,                                              // named_type
+            link_type.value(),                                      // named_type
             composite_type,                                         // composite_type
             link_type_hash,                                         // named_type_hash
             target_handles,                                         // targets
@@ -461,7 +480,7 @@ class AtomDB {
      * @param handle A string representing the handle of the atom to be retrieved.
      * @return An Atom object representing the retrieved atom.
      */
-    virtual const Atom& _get_atom(const std::string& handle) = 0;
+    virtual std::optional<Atom> _get_atom(const std::string& handle) = 0;
 };
 
 #endif  // _DATABASE_HPP
