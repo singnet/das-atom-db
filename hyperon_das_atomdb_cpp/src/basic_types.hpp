@@ -25,7 +25,7 @@ class Atom {
          const std::string& handle,
          const std::string& composite_type_hash,
          const std::string& named_type)
-        : _id(id),
+        : id(id),
           handle(handle),
           composite_type_hash(composite_type_hash),
           named_type(named_type) {
@@ -45,7 +45,7 @@ class Atom {
 
     virtual ~Atom() = default;
 
-    std::string _id;
+    std::string id;
     std::string handle;
     std::string composite_type_hash;
     std::string named_type;

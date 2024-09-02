@@ -8,7 +8,7 @@
 #include "basic_types.hpp"
 #include "exceptions.hpp"
 #include "utils/expression_hasher.hpp"
-#include "utils/flags.hpp"
+#include "utils/params.hpp"
 
 const std::string WILDCARD = "*";
 const StringList UNORDERED_LINK_TYPES = {};
@@ -89,7 +89,7 @@ class AtomDB {
      * @param flags An optional Flags object containing additional retrieval options.
      * @return An Atom object representing the retrieved atom.
      */
-    const Atom& get_atom(const std::string& handle, const Flags& flags = Flags()) {
+    const Atom& get_atom(const std::string& handle, const Params& flags = Params()) {
         Atom document = _get_atom(handle);
         if (flags.get<bool>(FlagsParams::NO_TARGET_FORMAT, false)) return document;
         return _reformat_document(document, flags);
@@ -362,7 +362,7 @@ class AtomDB {
      * @param flags A reference to a Flags object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom& _reformat_document(Atom& document, const Flags& flags = Flags()) {
+    const Atom& _reformat_document(Atom& document, const Params& flags = Params()) {
         if (Link* link = dynamic_cast<Link*>(&document)) {
             auto cursor = flags.get<int>(FlagsParams::CURSOR);
             auto targets_documents = flags.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
@@ -418,12 +418,12 @@ class AtomDB {
         for (const Atom& target : targets) {
             if (const Node* node = dynamic_cast<const Node*>(&target)) {
                 Node atom = this->add_node(node->named_type, node->name);
-                atom_handle = atom._id;
+                atom_handle = atom.id;
                 atom_hash = atom.composite_type_hash;
                 composite_type.push_back(atom_hash);
             } else if (const Link* link = dynamic_cast<const Link*>(&target)) {
                 Link atom = this->add_link(link->named_type, link->targets, false);
-                atom_handle = atom._id;
+                atom_handle = atom.id;
                 atom_hash = atom.composite_type_hash;
                 composite_type.push_back(CompositeType(atom.composite_type));
             }

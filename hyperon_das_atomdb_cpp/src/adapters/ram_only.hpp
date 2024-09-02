@@ -184,7 +184,7 @@ class InMemoryDB : public AtomDB {
     void _delete_templates(const Link& link_document, const StringList& targets_hash) {
         std::string composite_type_hash = link_document.composite_type_hash;
         std::string named_type_hash = link_document.named_type_hash;
-        std::string key = link_document._id;
+        std::string key = link_document.id;
 
         auto template_composite_type_hash = this->db.templates.find(composite_type_hash);
         if (template_composite_type_hash != this->db.templates.end()) {
@@ -209,7 +209,7 @@ class InMemoryDB : public AtomDB {
 
     void _delete_patterns(const Link& link_document, const StringList& targets_hash) {
         std::string named_type_hash = link_document.named_type_hash;
-        std::string key = link_document._id;
+        std::string key = link_document.id;
 
         StringList pattern_keys = build_pattern_keys({named_type_hash, targets_hash});
 
