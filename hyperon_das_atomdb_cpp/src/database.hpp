@@ -81,18 +81,18 @@ class AtomDB {
     }
 
     /**
-     * @brief Retrieves an atom from the database using its handle and optional flags.
+     * @brief Retrieves an atom from the database using its handle and optional params.
      *
-     * This function takes a handle and optional flags, and retrieves the corresponding atom from the database.
+     * This function takes a handle and optional params, and retrieves the corresponding atom from the database.
      *
      * @param handle A string representing the handle of the atom to be retrieved.
-     * @param flags An optional Flags object containing additional retrieval options.
+     * @param params An optional Params object containing additional retrieval options.
      * @return An Atom object representing the retrieved atom.
      */
-    const Atom& get_atom(const std::string& handle, const Params& flags = Params()) {
+    const Atom& get_atom(const std::string& handle, const Params& params = Params()) {
         Atom document = _get_atom(handle);
-        if (flags.get<bool>(FlagsParams::NO_TARGET_FORMAT, false)) return document;
-        return _reformat_document(document, flags);
+        if (params.get<bool>(FlagsParams::NO_TARGET_FORMAT, false)) return document;
+        return _reformat_document(document, params);
     }
 
     /**
@@ -353,25 +353,25 @@ class AtomDB {
     AtomDB() = default;
 
     /**
-     * @brief Reformats a document based on the provided flags.
+     * @brief Reformats a document based on the provided params.
      *
-     * This function takes a document and a set of flags, and reformats the document
-     * according to the specified flags.
+     * This function takes a document and a set of params, and reformats the document
+     * according to the specified params.
      *
      * @param document A reference to the Atom object representing the document to be reformatted.
-     * @param flags A reference to a Flags object containing the reformatting options.
+     * @param params A reference to a Params object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom& _reformat_document(Atom& document, const Params& flags = Params()) {
+    const Atom& _reformat_document(Atom& document, const Params& params = Params()) {
         if (Link* link = dynamic_cast<Link*>(&document)) {
-            auto cursor = flags.get<int>(FlagsParams::CURSOR);
-            auto targets_documents = flags.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
-            auto deep_representation = flags.get<bool>(FlagsParams::DEEP_REPRESENTATION, false);
+            auto cursor = params.get<int>(FlagsParams::CURSOR);
+            auto targets_documents = params.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
+            auto deep_representation = params.get<bool>(FlagsParams::DEEP_REPRESENTATION, false);
             if (targets_documents || deep_representation) {
                 std::vector<Atom> targets_documents;
                 for (const auto& target : link->targets) {
                     if (deep_representation) {
-                        targets_documents.push_back(get_atom(target, flags));
+                        targets_documents.push_back(get_atom(target, params));
                     } else {
                         targets_documents.push_back(get_atom(target));
                     }
