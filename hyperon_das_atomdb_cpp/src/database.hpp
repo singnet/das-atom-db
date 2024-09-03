@@ -464,7 +464,8 @@ class AtomDB {
             handle,               // handle
             composite_type_hash,  // composite_type_hash
             node_type.value(),    // named_type
-            node_name.value()     // name
+            node_name.value(),    // name
+            node_params           // extra_params
         );
         return node;
     }
@@ -485,7 +486,7 @@ class AtomDB {
         std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.value());
         StringList target_handles = {};
         std::vector<CompositeType> composite_type_list = {CompositeType(link_type_hash)};
-        StringList composite_type_hash = {link_type_hash};
+        StringList composite_type_elements = {link_type_hash};
         std::string atom_hash;
         std::string atom_handle;
         for (const Params& target : targets.value()) {
@@ -506,21 +507,23 @@ class AtomDB {
                 atom_hash = link.value().composite_type_hash;
                 composite_type_list.push_back(CompositeType(link.value().composite_type));
             }
-            composite_type_hash.push_back(atom_hash);
+            composite_type_elements.push_back(atom_hash);
             target_handles.push_back(atom_handle);
         }
 
         std::string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
+        std::string composite_type_hash = ExpressionHasher::composite_hash(composite_type_elements);
 
         Link link = Link(
-            handle,                                                 // id
-            handle,                                                 // handle
-            ExpressionHasher::composite_hash(composite_type_hash),  // composite_type_hash
-            link_type.value(),                                      // named_type
-            composite_type_list,                                    // composite_type
-            link_type_hash,                                         // named_type_hash
-            target_handles,                                         // targets
-            is_top_level                                            // is_top_level
+            handle,               // id
+            handle,               // handle
+            composite_type_hash,  // composite_type_hash
+            link_type.value(),    // named_type
+            composite_type_list,  // composite_type
+            link_type_hash,       // named_type_hash
+            target_handles,       // targets
+            is_top_level,         // is_top_level
+            link_params           // extra_params
         );
 
         uint n = 0;
