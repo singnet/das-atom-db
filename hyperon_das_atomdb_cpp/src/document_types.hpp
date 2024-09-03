@@ -2,18 +2,10 @@
 #define _BASIC_TYPES_HPP
 
 #include <map>
-#include <set>
 #include <stdexcept>
 #include <string>
-#include <unordered_set>
-#include <vector>
 
 #include "utils/params.hpp"
-
-enum class FieldIndexType {
-    BINARY_TREE,
-    TOKEN_INVERTED_LIST
-};
 
 /**
  * @brief Represents a basic unit of data in the system.
@@ -181,19 +173,9 @@ class Link : public Atom {
     std::map<std::string, std::string> keys = {};
 };
 
-// Type aliases for readability
-using StringSet = std::set<std::string>;
-using StringList = std::vector<std::string>;
-using StringTuple = std::tuple<std::string, std::vector<std::string>>;
-using StringUnorderedSet = std::unordered_set<std::string>;
 using AtomList = std::vector<Atom>;
 using AtomTypeList = std::vector<AtomType>;
 using NodeList = std::vector<Node>;
 using LinkList = std::vector<Link>;
-using IncomingLinks = StringList;
-using MatchedTargetsList = std::vector<std::pair<std::string, std::vector<std::string>>>;
-using HandlesList = StringList;
-using MatchedLinksResult = std::pair<int, HandlesList>;
-using MatchedTypesResult = std::pair<int, MatchedTargetsList>;
 
 #endif  // _BASIC_TYPES_HPP

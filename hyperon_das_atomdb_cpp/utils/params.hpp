@@ -1,10 +1,7 @@
 #ifndef _PARAMS_HPP
 #define _PARAMS_HPP
 
-#include <any>
-#include <optional>
-#include <string>
-#include <unordered_map>
+#include "type_aliases.hpp"
 
 using ParamKey = const char*;
 using ParamValue = std::any;
@@ -23,6 +20,7 @@ constexpr ParamKey DEEP_REPRESENTATION = "deep_representation";
 constexpr ParamKey DELETE_ATOM = "delete_atom";
 constexpr ParamKey NO_TARGET_FORMAT = "no_target_format";
 constexpr ParamKey TARGETS_DOCUMENTS = "targets_documents";
+constexpr ParamKey TOPLEVEL_ONLY = "toplevel_only";
 };  // namespace FlagsParams
 
 /**
@@ -77,20 +75,18 @@ class Params : private ParamsMap {
     };
 
     /**
-     * @brief Retrieves the value associated with the specified parameter.
+     * @brief Retrieves the value associated with the specified parameter key.
      * @tparam T The type of the value to be retrieved.
-     * @param key The parameter whose value is to be retrieved.
-     * @param default_value <optional> The default value to return if the key is not found.
-     *                      Defaults to std::nullopt.
-     * @return The value associated with the specified parameter, or the default value if the
-     *         key is not found.
+     * @param key The parameter key whose value is to be retrieved.
+     * @return An optional containing the value associated with the specified parameter key,
+     *         or an empty optional if the key is not found.
      */
     template <typename T>
-    std::optional<T> get(ParamKey key, std::optional<T> default_value = std::nullopt) const {
+    opt<T> get(ParamKey key) const {
         if (this->contains(key)) {
             return std::any_cast<T>(this->at(key));
         }
-        return default_value;
+        return std::nullopt;
     };
 
     /**
@@ -105,22 +101,20 @@ class Params : private ParamsMap {
     };
 
     /**
-     * @brief Removes and returns the value associated with the specified parameter.
+     * @brief Removes and returns the value associated with the specified parameter key.
      * @tparam T The type of the value to be retrieved.
-     * @param key The parameter whose value is to be removed and returned.
-     * @param default_value <optional> The default value to return if the key is not found.
-     *                      Defaults to std::nullopt.
-     * @return The value associated with the specified parameter, or the default value if the
-     *         key is not found.
+     * @param key The parameter key whose value is to be removed and returned.
+     * @return An optional containing the value associated with the specified parameter key,
+     *         or an empty optional if the key is not found.
      */
     template <typename T>
-    std::optional<T> pop(ParamKey key, std::optional<T> default_value = std::nullopt) {
+    opt<T> pop(ParamKey key) {
         if (this->contains(key)) {
             T value = std::move(std::any_cast<T>(this->at(key)));
             this->erase(key);
             return value;
         }
-        return default_value;
+        return std::nullopt;
     };
 };
 

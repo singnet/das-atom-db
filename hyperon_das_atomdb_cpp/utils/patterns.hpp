@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../basic_types.hpp"
-#include "../database.hpp"
+#include "constants.hpp"
 #include "expression_hasher.hpp"
 
 using IntMatrix = std::vector<std::vector<int>>;

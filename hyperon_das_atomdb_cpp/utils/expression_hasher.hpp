@@ -3,10 +3,9 @@
 
 #include <openssl/md5.h>
 
-#include <cstring>
 #include <iostream>
-#include <string>
-#include <vector>
+
+#include "type_aliases.hpp"
 
 #define MAX_HASHABLE_STRING_SIZE 1024
 #define MAX_LITERAL_OR_SYMBOL_SIZE 256
@@ -70,32 +69,47 @@ class ExpressionHasher {
      * @return A string representing the hash of the composite expression.
      */
     static std::string composite_hash(const StringList& elements) {
-        unsigned int total_size = 0;
-        std::vector<unsigned int> element_size(elements.size());
-
-        for (size_t i = 0; i < elements.size(); i++) {
-            unsigned int size = elements[i].length();
-            if (size > MAX_LITERAL_OR_SYMBOL_SIZE) {
-                std::cerr << "Invalid (too large) composite elements" << std::endl;
-                exit(1);
-            }
-            element_size[i] = size;
-            total_size += size;
-        }
-        if (total_size >= MAX_HASHABLE_STRING_SIZE) {
-            std::cerr << "Invalid (too large) composite elements" << std::endl;
-            exit(1);
+        if (elements.size() == 1) {
+            return elements[0];
         }
 
         std::string hashable_string;
-        for (size_t i = 0; i < elements.size(); i++) {
-            hashable_string += elements[i];
-            if (i != elements.size() - 1) {
-                hashable_string += JOINING_CHAR;
-            }
+        for (const auto& element : elements) {
+            hashable_string += element + JOINING_CHAR;
         }
+        hashable_string.pop_back();
 
         return compute_hash(hashable_string);
+    }
+
+    /**
+     * @brief Generates a composite hash from a list of elements.
+     *
+     * This function takes a vector of elements, each of which can be of any type,
+     * and generates a composite hash representing the combined hash of all elements.
+     *
+     * @param elements A vector of elements of type std::any, representing the components to be hashed.
+     * @return A string representing the composite hash generated from the elements.
+     */
+    static std::string composite_hash(const std::vector<std::any>& elements) {
+        StringList hashable_elements;
+        for (const auto& element : elements) {
+            hashable_elements.push_back(std::any_cast<std::string>(element));
+        }
+        return composite_hash(hashable_elements);
+    }
+
+    /**
+     * @brief Generates a composite hash from a base hash.
+     *
+     * This function takes a base hash string and generates a composite hash
+     * by applying additional hashing logic.
+     *
+     * @param hash_base A string representing the base hash.
+     * @return A string representing the composite hash generated from the base hash.
+     */
+    static std::string composite_hash(const std::string& hash_base) {
+        return hash_base;
     }
 
     /**
@@ -107,8 +121,7 @@ class ExpressionHasher {
      */
     static std::string expression_hash(
         const std::string& type_hash, const StringList& elements) {
-        StringList composite;
-        composite.push_back(type_hash);
+        StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
         return composite_hash(composite);
     }

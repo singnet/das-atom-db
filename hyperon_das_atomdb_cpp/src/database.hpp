@@ -1,18 +1,12 @@
 #ifndef _DATABASE_HPP
 #define _DATABASE_HPP
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-#include "basic_types.hpp"
+#include "constants.hpp"
+#include "document_types.hpp"
 #include "exceptions.hpp"
+#include "type_aliases.hpp"
 #include "utils/expression_hasher.hpp"
 #include "utils/params.hpp"
-
-const std::string WILDCARD = "*";
-const StringList UNORDERED_LINK_TYPES = {};
 
 class AtomDB {
    public:
@@ -54,9 +48,9 @@ class AtomDB {
      * @param node_name A string representing the name of the node.
      * @return A boolean value indicating whether the node exists (true) or not (false).
      */
-    bool node_exists(const std::string& node_type, const std::string& node_name) {
+    bool node_exists(const std::string& node_type, const std::string& node_name) const {
         try {
-            get_node_handle(node_type, node_name);
+            this->get_node_handle(node_type, node_name);
             return true;
         } catch (const AtomDoesNotExist& e) {
             return false;
@@ -72,9 +66,9 @@ class AtomDB {
      * @param target_handles A vector of strings representing the handles of the link's targets.
      * @return A boolean value indicating whether the link exists (true) or not (false).
      */
-    bool link_exists(const std::string& link_type, const StringList& target_handles) {
+    bool link_exists(const std::string& link_type, const StringList& target_handles) const {
         try {
-            get_link_handle(link_type, target_handles);
+            this->get_link_handle(link_type, target_handles);
             return true;
         } catch (const AtomDoesNotExist& e) {
             return false;
@@ -90,8 +84,8 @@ class AtomDB {
      * @param params An optional Params object containing additional retrieval options.
      * @return An Atom object representing the retrieved atom.
      */
-    Atom get_atom(const std::string& handle, const Params& params = {}) {
-        std::optional<Atom> document = _get_atom(handle);
+    const Atom get_atom(const std::string& handle, const Params& params = {}) const {
+        opt<Atom> document = _get_atom(handle);
         if (!document.has_value()) {
             throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
         }
@@ -108,21 +102,21 @@ class AtomDB {
      * @return The node handle.
      */
     virtual std::string get_node_handle(
-        const std::string& node_type, const std::string& node_name) = 0;
+        const std::string& node_type, const std::string& node_name) const = 0;
 
     /**
      * @brief Get the name of the node with the specified handle.
      * @param node_handle The node handle.
      * @return The node name.
      */
-    virtual std::string get_node_name(const std::string& node_handle) = 0;
+    virtual std::string get_node_name(const std::string& node_handle) const = 0;
 
     /**
      * @brief Get the type of the node with the specified handle.
      * @param node_handle The node handle.
      * @return The node type.
      */
-    virtual std::string get_node_type(const std::string& node_handle) = 0;
+    virtual std::string get_node_type(const std::string& node_handle) const = 0;
 
     /**
      * @brief Get the name of a node of the specified type containing the given substring.
@@ -131,7 +125,7 @@ class AtomDB {
      * @return List of handles of nodes whose names matched the criteria.
      */
     virtual StringList get_node_by_name(
-        const std::string& node_type, const std::string& substring) = 0;
+        const std::string& node_type, const std::string& substring) const = 0;
 
     /**
      * @brief Query the database by field and value.
@@ -139,7 +133,7 @@ class AtomDB {
      * @return List of node IDs.
      */
     virtual StringList get_atoms_by_field(
-        const std::vector<std::unordered_map<std::string, std::string>>& query) = 0;
+        const std::vector<std::unordered_map<std::string, std::string>>& query) const = 0;
 
     /**
      * @brief Queries the database to return all atoms matching a specific index ID.
@@ -149,11 +143,11 @@ class AtomDB {
      * @param chunk_size An optional size indicating the maximum number of atom IDs to retrieve.
      * @return A tuple containing the cursor position and a list of retrieved atoms.
      */
-    virtual std::pair<int, std::vector<Atom>> get_atoms_by_index(
+    virtual std::pair<OptionalCursor, AtomList> get_atoms_by_index(
         const std::string& index_id,
         const std::vector<std::unordered_map<std::string, std::string>>& query,
         int cursor = 0,
-        int chunk_size = 500) = 0;
+        int chunk_size = 500) const = 0;
 
     /**
      * @brief Query the database by a text field.
@@ -165,7 +159,7 @@ class AtomDB {
     virtual StringList get_atoms_by_text_field(
         const std::string& text_value,
         const std::string& field = "",
-        const std::string& text_index_id = "") = 0;
+        const std::string& text_index_id = "") const = 0;
 
     /**
      * @brief Query the database by node name starting with 'startswith' value.
@@ -174,7 +168,7 @@ class AtomDB {
      * @return List of node IDs.
      */
     virtual StringList get_node_by_name_starting_with(
-        const std::string& node_type, const std::string& startswith) = 0;
+        const std::string& node_type, const std::string& startswith) const = 0;
 
     /**
      * @brief Get all nodes of a specific type.
@@ -183,15 +177,15 @@ class AtomDB {
      * @return A list of node handles or names, depending on the value of 'names'.
      */
     virtual StringList get_all_nodes(
-        const std::string& node_type, bool names = false) = 0;
+        const std::string& node_type, bool names = false) const = 0;
 
     /**
      * @brief Get all links of a specific type.
      * @param link_type The type of the link.
      * @return A tuple containing a cursor and a list of link handles.
      */
-    virtual std::pair<std::optional<int>, StringList> get_all_links(
-        const std::string& link_type, const Params& params) = 0;
+    virtual std::pair<OptionalCursor, StringList> get_all_links(
+        const std::string& link_type, const Params& params) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -200,39 +194,39 @@ class AtomDB {
      * @return The link handle.
      */
     virtual std::string get_link_handle(
-        const std::string& link_type, const StringList& target_handles) = 0;
+        const std::string& link_type, const StringList& target_handles) const = 0;
 
     /**
      * @brief Get the type of the link with the specified handle.
      * @param link_handle The link handle.
      * @return The link type.
      */
-    virtual std::string get_link_type(const std::string& link_handle) = 0;
+    virtual std::string get_link_type(const std::string& link_handle) const = 0;
 
     /**
      * @brief Get the target handles of a link specified by its handle.
      * @param link_handle The link handle.
      * @return A list of target identifiers of the link.
      */
-    virtual StringList get_link_targets(const std::string& link_handle) = 0;
+    virtual StringList get_link_targets(const std::string& link_handle) const = 0;
 
     /**
      * @brief Check if a link specified by its handle is ordered.
      * @param link_handle The link handle.
      * @return True if the link is ordered, False otherwise.
      */
-    virtual bool is_ordered(const std::string& link_handle) = 0;
+    virtual bool is_ordered(const std::string& link_handle) const = 0;
 
     /**
      * @brief Retrieve incoming links for a specified atom handle.
      * @param atom_handle The handle of the atom for which to retrieve incoming links.
      * @return A tuple containing the count of incoming links and a list of incoming links.
      */
-    virtual std::pair<std::optional<int>, StringUnorderedSet> get_incoming_links_handles(
-        const std::string& atom_handle, const Params& params) = 0;
+    virtual std::pair<OptionalCursor, StringUnorderedSet> get_incoming_links_handles(
+        const std::string& atom_handle, const Params& params) const = 0;
 
-    virtual std::pair<std::optional<int>, AtomList> get_incoming_links_atoms(
-        const std::string& atom_handle, const Params& params) = 0;
+    virtual std::pair<OptionalCursor, AtomList> get_incoming_links_atoms(
+        const std::string& atom_handle, const Params& params) const = 0;
 
     /**
      * @brief Retrieve links that match a specified link type and target handles.
@@ -240,30 +234,32 @@ class AtomDB {
      * @param target_handles A list of target handles to match.
      * @return A tuple containing a cursor and a list of matching link handles.
      */
-    virtual MatchedLinksResult get_matched_links(
-        const std::string& link_type, const StringList& target_handles) = 0;
+    virtual MatchedElements get_matched_links(const std::string& link_type,
+                                              const StringList& target_handles,
+                                              const Params& params) const = 0;
 
     /**
      * @brief Retrieve links that match a specified type template.
-     * @param template_ A list representing the type template to match.
+     * @param _template A list representing the type template to match.
      * @return A tuple containing a cursor and a list of matching link handles.
      */
-    virtual MatchedTypesResult get_matched_type_template(
-        const StringList& template_) = 0;
+    virtual MatchedElements get_matched_type_template(
+        const std::vector<std::any>& _template, const Params& params) const = 0;
 
     /**
      * @brief Retrieve links that match a specified link type.
      * @param link_type The type of the link to match.
      * @return A tuple containing a cursor and a list of matching link handles.
      */
-    virtual MatchedTypesResult get_matched_type(const std::string& link_type) = 0;
+    virtual MatchedElements get_matched_type(
+        const std::string& link_type, const Params& params) const = 0;
 
     /**
      * @brief Retrieve the atom's type by its handle.
      * @param handle The handle of the atom to retrieve the type for.
      * @return The type of the atom.
      */
-    virtual std::string get_atom_type(const std::string& handle) = 0;
+    virtual opt<std::string> get_atom_type(const std::string& handle) const = 0;
 
     /**
      * @brief Get an atom as a dictionary representation.
@@ -271,14 +267,14 @@ class AtomDB {
      * @param arity The arity of the atom. Defaults to 0.
      * @return A dictionary representation of the atom.
      */
-    virtual std::unordered_map<std::string, std::string> get_atom_as_dict(
-        const std::string& handle, int arity = 0) = 0;
+    virtual std::unordered_map<std::string, std::any> get_atom_as_dict(
+        const std::string& handle, int arity = 0) const = 0;
 
     /**
      * @brief Count the total number of atoms in the database.
      * @return A dictionary containing the count of node atoms, link atoms, and total atoms.
      */
-    virtual std::unordered_map<std::string, int> count_atoms() = 0;
+    virtual std::unordered_map<std::string, int> count_atoms() const = 0;
 
     /**
      * @brief Clear the entire database, removing all data.
@@ -294,7 +290,7 @@ class AtomDB {
      * @return An optional Node object representing the created node. If the node could not be created,
      *         the optional will contain std::nullopt.
      */
-    virtual std::optional<Node> add_node(const Params& node_params) = 0;
+    virtual opt<Node> add_node(const Params& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
@@ -306,7 +302,7 @@ class AtomDB {
      * @return An optional Link object representing the created link. If the link could not be created,
      *         the optional will contain std::nullopt.
      */
-    virtual std::optional<Link> add_link(const Params& link_params, bool toplevel = true) = 0;
+    virtual opt<Link> add_link(const Params& link_params, bool toplevel = true) = 0;
 
     /**
      * @brief Reindex inverted pattern index according to passed templates.
@@ -351,7 +347,7 @@ class AtomDB {
      * @brief Retrieve all atoms from the database.
      * @return A list of dictionaries representing the atoms.
      */
-    virtual std::vector<Atom> retrieve_all_atoms() = 0;
+    virtual std::vector<Atom> retrieve_all_atoms() const = 0;
 
     /**
      * @brief Commit the current state of the database.
@@ -371,13 +367,14 @@ class AtomDB {
      * @param params A reference to a Params object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom& _reformat_document(Atom& document, const Params& params = {}) {
+    const Atom& _reformat_document(Atom& document, const Params& params = {}) const {
         if (Link* link = dynamic_cast<Link*>(&document)) {
             auto cursor = params.get<int>(FlagsParams::CURSOR);
-            auto targets_documents = params.get<bool>(FlagsParams::TARGETS_DOCUMENTS, false);
-            auto deep_representation = params.get<bool>(FlagsParams::DEEP_REPRESENTATION, false);
+            auto targets_documents = params.get<bool>(FlagsParams::TARGETS_DOCUMENTS).value_or(false);
+            auto deep_representation = params.get<bool>(FlagsParams::DEEP_REPRESENTATION).value_or(false);
             if (targets_documents || deep_representation) {
                 auto targets_documents = std::make_shared<std::vector<Atom>>();
+                targets_documents->reserve(link->targets.size());
                 for (const auto& target : link->targets) {
                     if (deep_representation) {
                         targets_documents->push_back(get_atom(target, params));
@@ -400,10 +397,23 @@ class AtomDB {
      * @param node_name A string representing the name of the node.
      * @return A Node object representing the created node.
      */
-    Node _build_node(const std::string& node_type, const std::string& node_name) {
-        std::string handle = AtomDB::build_node_handle(node_type, node_name);
-        return Node(
-            handle, handle, ExpressionHasher::named_type_hash(node_type), node_type, node_name);
+    opt<Node> _build_node(const Params& node_params) {
+        auto node_type = node_params.get<std::string>("type");
+        auto node_name = node_params.get<std::string>("name");
+        if (!node_type.has_value() || !node_name.has_value()) {
+            // TODO: log error ???
+            throw std::invalid_argument("'type' and 'name' are required.");
+        }
+        std::string handle = this->build_node_handle(node_type.value(), node_name.value());
+        std::string composite_type_hash = ExpressionHasher::named_type_hash(node_type.value());
+        Node node = Node(
+            handle,               // id
+            handle,               // handle
+            composite_type_hash,  // composite_type_hash
+            node_type.value(),    // named_type
+            node_name.value()     // name
+        );
+        return node;
     }
 
     /**
@@ -416,10 +426,11 @@ class AtomDB {
      * @param toplevel A boolean indicating whether the link is a top-level link.
      * @return A Link object representing the constructed link.
      */
-    std::optional<Link> _build_link(const Params& link_params, bool is_top_level = true) {
+    opt<Link> _build_link(const Params& link_params, bool is_top_level = true) {
         auto link_type = link_params.get<std::string>("type");
         auto targets = link_params.get<std::vector<Params>>("targets");
         if (!link_type.has_value() || !targets.has_value()) {
+            // TODO: log error ???
             throw std::invalid_argument("'type' and 'targets' are required.");
         }
         std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.value());
@@ -480,7 +491,7 @@ class AtomDB {
      * @param handle A string representing the handle of the atom to be retrieved.
      * @return An Atom object representing the retrieved atom.
      */
-    virtual std::optional<Atom> _get_atom(const std::string& handle) = 0;
+    virtual opt<const Atom&> _get_atom(const std::string& handle) const = 0;
 };
 
 #endif  // _DATABASE_HPP
