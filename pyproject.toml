@@ -18,6 +18,7 @@ pymongo = "^4.5.0"
 python-dotenv = "^1.0.0"
 mongomock = "^4.1.2"
 setuptools = "^70.2.0"
+fakeredis = "^2.24.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.1.0"

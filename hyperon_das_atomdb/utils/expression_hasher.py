@@ -112,6 +112,7 @@ class ExpressionHasher:
                 return ExpressionHasher._compute_hash(
                     ExpressionHasher.compound_separator.join(hash_base)
                 )
+        # TODO unreachable
         else:
             raise ValueError(
                 "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
