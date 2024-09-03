@@ -1,5 +1,5 @@
-#ifndef _BASIC_TYPES_HPP
-#define _BASIC_TYPES_HPP
+#ifndef _DOCUMENT_TYPES_HPP
+#define _DOCUMENT_TYPES_HPP
 
 #include <map>
 #include <stdexcept>
@@ -178,4 +178,4 @@ using AtomTypeList = std::vector<AtomType>;
 using NodeList = std::vector<Node>;
 using LinkList = std::vector<Link>;
 
-#endif  // _BASIC_TYPES_HPP
+#endif  // _DOCUMENT_TYPES_HPP

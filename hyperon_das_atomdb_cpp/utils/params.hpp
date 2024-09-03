@@ -24,27 +24,6 @@ constexpr ParamKey TOPLEVEL_ONLY = "toplevel_only";
 };  // namespace FlagsParams
 
 /**
- * @brief Namespace containing atom parameters.
- *
- * The AtomParams namespace defines various parameters that can be used to specify
- * properties and behaviors of atoms within the application. Each parameter represents
- * a specific attribute or setting related to atoms.
- */
-namespace AtomParams {
-constexpr ParamKey COMPOSITE_TYPE = "composite_type";
-constexpr ParamKey COMPOSITE_TYPE_HASH = "composite_type_hash";
-constexpr ParamKey HANDLE = "handle";
-constexpr ParamKey ID = "id";
-constexpr ParamKey IS_TOP_LEVEL = "is_top_level";
-constexpr ParamKey KEYS = "keys";
-constexpr ParamKey NAME = "name";
-constexpr ParamKey NAMED_TYPE = "named_type";
-constexpr ParamKey NAMED_TYPE_HASH = "named_type_hash";
-constexpr ParamKey TARGETS = "targets";
-constexpr ParamKey TARGETS_DOCUMENTS = "targets_documents";
-};  // namespace AtomParams
-
-/**
  * @brief A class representing a collection of params.
  *
  * This class is a specialized unordered map that stores parameters and their associated values.

@@ -1,5 +1,5 @@
-#ifndef _RAM_ONLY
-#define _RAM_ONLY
+#ifndef _RAM_ONLY_HPP
+#define _RAM_ONLY_HPP
 
 #include <algorithm>
 
@@ -21,7 +21,6 @@ class Database {
     using Template = std::tuple<std::string, StringList>;
     using TemplatesSet = std::unordered_set<Template>;
 
-    // Member variables
     std::unordered_map<std::string, AtomType> atom_type = {};
     std::unordered_map<std::string, Node> node = {};
     std::unordered_map<std::string, Link> link = {};
@@ -30,7 +29,6 @@ class Database {
     std::unordered_map<std::string, PatternsSet> patterns = {};
     std::unordered_map<std::string, TemplatesSet> templates = {};
 
-    // Constructor
     Database() {
         atom_type = {};
         node = {};
@@ -39,6 +37,16 @@ class Database {
         incoming_set = {};
         patterns = {};
         templates = {};
+    };
+
+    ~Database() {
+        atom_type.clear();
+        node.clear();
+        link.clear();
+        outgoing_set.clear();
+        incoming_set.clear();
+        patterns.clear();
+        templates.clear();
     };
 };
 
@@ -245,7 +253,7 @@ class InMemoryDB : public AtomDB {
         }
     }
 
-    const Pattern_or_Template_List& _filter_non_toplevel(
+    const Pattern_or_Template_List _filter_non_toplevel(
         const Pattern_or_Template_List& matches) const {
         if (this->db.link.empty()) {
             return matches;
@@ -263,7 +271,7 @@ class InMemoryDB : public AtomDB {
         return filtered_matched_targets;
     }
 
-    static const std::vector<std::string>& _build_targets_list(const Link& link) {
+    static const std::vector<std::string> _build_targets_list(const Link& link) {
         std::vector<std::string> targets;
         for (const auto& [_, value] : link.keys) {
             targets.push_back(value);
@@ -272,7 +280,7 @@ class InMemoryDB : public AtomDB {
     }
 
     // TODO: not used in the code
-    // void _update_atom_indexes(const std::vector<Atom>& documents, const Params& params) {
+    // void _update_atom_indexes(const std::vector<Atom>& documents, const Params& params = {}) {
     //     for (const auto& document : documents) {
     //         this->_update_index(document, params);
     //     }
@@ -329,7 +337,10 @@ class InMemoryDB : public AtomDB {
         this->all_named_types = {};
         this->named_type_table = {};
     };
-    ~InMemoryDB() {};
+    ~InMemoryDB() {
+        this->all_named_types.clear();
+        this->named_type_table.clear();
+    };
 
     std::string get_node_handle(
         const std::string& node_type, const std::string& node_name) const override {
@@ -414,7 +425,7 @@ class InMemoryDB : public AtomDB {
     }
 
     std::pair<OptionalCursor, StringList> get_all_links(
-        const std::string& link_type, const Params& params) const override {
+        const std::string& link_type, const Params& params = {}) const override {
         StringList link_handles;
         for (const auto& [_, link] : this->db.link) {
             if (link.named_type == link_type) {
@@ -462,14 +473,14 @@ class InMemoryDB : public AtomDB {
     }
 
     std::pair<OptionalCursor, StringUnorderedSet> get_incoming_links_handles(
-        const std::string& atom_handle, const Params& params) const override {
+        const std::string& atom_handle, const Params& params = {}) const override {
         auto it = this->db.incoming_set.find(atom_handle);
         auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
         return {params.get<int>(FlagsParams::CURSOR), links};
     }
 
     std::pair<OptionalCursor, AtomList> get_incoming_links_atoms(
-        const std::string& atom_handle, const Params& params) const override {
+        const std::string& atom_handle, const Params& params = {}) const override {
         const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
         AtomList atoms;
         for (const auto& link_handle : links) {
@@ -478,9 +489,10 @@ class InMemoryDB : public AtomDB {
         return {cursor, atoms};
     }
 
-    MatchedElements get_matched_links(const std::string& link_type,
-                                      const StringList& target_handles,
-                                      const Params& params) const override {
+    std::pair<OptionalCursor, Pattern_or_Template_List>
+    get_matched_links(const std::string& link_type,
+                      const StringList& target_handles,
+                      const Params& params = {}) const override {
         if (link_type != WILDCARD && std::find(target_handles.begin(),
                                                target_handles.end(),
                                                WILDCARD) == target_handles.end()) {
@@ -521,8 +533,8 @@ class InMemoryDB : public AtomDB {
         return {params.get<int>(FlagsParams::CURSOR), patterns_matched};
     }
 
-    MatchedElements get_matched_type_template(
-        const std::vector<std::any>& _template, const Params& params) const override {
+    std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type_template(
+        const std::vector<std::any>& _template, const Params& params = {}) const override {
         auto hash_base = this->_build_named_type_hash_template(_template);
         auto template_hash = ExpressionHasher::composite_hash(hash_base);
         auto it = this->db.templates.find(template_hash);
@@ -539,8 +551,8 @@ class InMemoryDB : public AtomDB {
         return {params.get<int>(FlagsParams::CURSOR), {}};
     }
 
-    MatchedElements get_matched_type(
-        const std::string& link_type, const Params& params) const override {
+    std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type(
+        const std::string& link_type, const Params& params = {}) const override {
         auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
         auto it = this->db.templates.find(link_type_hash);
         if (it != this->db.templates.end()) {
@@ -622,7 +634,9 @@ class InMemoryDB : public AtomDB {
         const std::unordered_map<
             std::string,
             std::vector<
-                std::unordered_map<std::string, void*>>>& pattern_index_templates) override {
+                std::unordered_map<
+                    std::string,
+                    std::any>>>& pattern_index_templates) override {
         throw std::runtime_error("Not implemented");
     }
 
@@ -648,7 +662,8 @@ class InMemoryDB : public AtomDB {
 
     std::string create_field_index(
         const std::string& atom_type,
-        const StringList& fields, const std::string& named_type = "",
+        const StringList& fields,
+        const std::string& named_type = "",
         const StringList& composite_type = {},
         FieldIndexType index_type = FieldIndexType::BINARY_TREE) override {
         throw std::runtime_error("Not implemented");
@@ -691,4 +706,4 @@ class InMemoryDB : public AtomDB {
     }
 };
 
-#endif  // _RAM_ONLY
+#endif  // _RAM_ONLY_HPP

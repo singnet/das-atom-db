@@ -1,5 +1,5 @@
-#ifndef _EXPRESSIONHASHER_H
-#define _EXPRESSIONHASHER_H
+#ifndef _EXPRESSION_HASHER_HPP
+#define _EXPRESSION_HASHER_HPP
 
 #include <openssl/md5.h>
 
@@ -127,4 +127,4 @@ class ExpressionHasher {
     }
 };
 
-#endif  // _EXPRESSIONHASHER_H
+#endif  // _EXPRESSION_HASHER_HPP

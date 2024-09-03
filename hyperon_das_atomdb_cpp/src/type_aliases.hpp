@@ -23,6 +23,5 @@ using StringUnorderedSet = std::unordered_set<std::string>;
 
 using Pattern_or_Template = std::tuple<std::string, opt<StringList>>;
 using Pattern_or_Template_List = std::vector<Pattern_or_Template>;
-using MatchedElements = std::pair<OptionalCursor, Pattern_or_Template_List>;
 
 #endif  // _TYPE_ALIASES_HPP
