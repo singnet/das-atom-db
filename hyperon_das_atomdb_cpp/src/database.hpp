@@ -82,7 +82,7 @@ class AtomDB {
         if (!document.has_value()) {
             throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
         }
-        if (params.get<bool>(FlagsParams::NO_TARGET_FORMAT).value_or(false)) {
+        if (params.get<bool>(ParamsKeys::NO_TARGET_FORMAT).value_or(false)) {
             return document.value();
         }
         return _reformat_document(document.value(), params);
@@ -425,8 +425,8 @@ class AtomDB {
      */
     const Atom _reformat_document(const Atom& document, const Params& params = {}) const {
         if (const Link* link = dynamic_cast<const Link*>(&document)) {
-            auto targets_documents = params.get<bool>(FlagsParams::TARGETS_DOCUMENTS).value_or(false);
-            auto deep_representation = params.get<bool>(FlagsParams::DEEP_REPRESENTATION).value_or(false);
+            auto targets_documents = params.get<bool>(ParamsKeys::TARGETS_DOCUMENTS).value_or(false);
+            auto deep_representation = params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
             if (targets_documents || deep_representation) {
                 auto targets_documents = std::make_shared<std::vector<Atom>>();
                 targets_documents->reserve(link->targets.size());
@@ -438,7 +438,7 @@ class AtomDB {
                     }
                 }
                 Link link_copy = *link;
-                link_copy.extra_params.set(FlagsParams::TARGETS_DOCUMENTS, targets_documents);
+                link_copy.extra_params.set(ParamsKeys::TARGETS_DOCUMENTS, targets_documents);
                 return link_copy;
             }
         }

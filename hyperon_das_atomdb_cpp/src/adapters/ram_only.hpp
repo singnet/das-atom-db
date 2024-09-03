@@ -249,7 +249,7 @@ class InMemoryDB : public AtomDB {
         auto link_document = this->_get_and_delete_link(link_handle);
         if (link_document.has_value()) {
             this->_update_index(
-                link_document.value(), Params({{FlagsParams::DELETE_ATOM, true}}));
+                link_document.value(), Params({{ParamsKeys::DELETE_ATOM, true}}));
         }
     }
 
@@ -324,7 +324,7 @@ class InMemoryDB : public AtomDB {
     }
 
     void _update_index(const Atom& atom, const Params& params = {}) {
-        if (params.get<bool>(FlagsParams::DELETE_ATOM).value_or(false)) {
+        if (params.get<bool>(ParamsKeys::DELETE_ATOM).value_or(false)) {
             this->_delete_atom_index(atom);
         } else {
             this->_add_atom_index(atom);
@@ -432,7 +432,7 @@ class InMemoryDB : public AtomDB {
                 link_handles.push_back(link.id);
             }
         }
-        return {params.get<int>(FlagsParams::CURSOR), link_handles};
+        return {params.get<int>(ParamsKeys::CURSOR), link_handles};
     }
 
     std::string get_link_handle(
@@ -476,7 +476,7 @@ class InMemoryDB : public AtomDB {
         const std::string& atom_handle, const Params& params = {}) const override {
         auto it = this->db.incoming_set.find(atom_handle);
         auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
-        return {params.get<int>(FlagsParams::CURSOR), links};
+        return {params.get<int>(ParamsKeys::CURSOR), links};
     }
 
     std::pair<OptionalCursor, AtomList> get_incoming_links_atoms(
@@ -497,7 +497,7 @@ class InMemoryDB : public AtomDB {
                                                target_handles.end(),
                                                WILDCARD) == target_handles.end()) {
             return {
-                params.get<int>(FlagsParams::CURSOR),
+                params.get<int>(ParamsKeys::CURSOR),
                 {std::make_tuple(this->get_link_handle(link_type, target_handles), std::nullopt)}};
         }
 
@@ -524,13 +524,13 @@ class InMemoryDB : public AtomDB {
             }
         }
 
-        if (params.get<bool>(FlagsParams::TOPLEVEL_ONLY).value_or(false)) {
+        if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
             return {
-                params.get<int>(FlagsParams::CURSOR),
+                params.get<int>(ParamsKeys::CURSOR),
                 this->_filter_non_toplevel(patterns_matched)};
         }
 
-        return {params.get<int>(FlagsParams::CURSOR), patterns_matched};
+        return {params.get<int>(ParamsKeys::CURSOR), patterns_matched};
     }
 
     std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type_template(
@@ -542,13 +542,13 @@ class InMemoryDB : public AtomDB {
             Pattern_or_Template_List templates_matched;
             templates_matched.reserve(it->second.size());
             templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
-            if (params.get<bool>(FlagsParams::TOPLEVEL_ONLY).value_or(false)) {
-                return {params.get<int>(FlagsParams::CURSOR),
+            if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
+                return {params.get<int>(ParamsKeys::CURSOR),
                         this->_filter_non_toplevel(templates_matched)};
             }
-            return {params.get<int>(FlagsParams::CURSOR), templates_matched};
+            return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
         }
-        return {params.get<int>(FlagsParams::CURSOR), {}};
+        return {params.get<int>(ParamsKeys::CURSOR), {}};
     }
 
     std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type(
@@ -559,13 +559,13 @@ class InMemoryDB : public AtomDB {
             Pattern_or_Template_List templates_matched;
             templates_matched.reserve(it->second.size());
             templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
-            if (params.get<bool>(FlagsParams::TOPLEVEL_ONLY).value_or(false)) {
-                return {params.get<int>(FlagsParams::CURSOR),
+            if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
+                return {params.get<int>(ParamsKeys::CURSOR),
                         this->_filter_non_toplevel(templates_matched)};
             }
-            return {params.get<int>(FlagsParams::CURSOR), templates_matched};
+            return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
         }
-        return {params.get<int>(FlagsParams::CURSOR), {}};
+        return {params.get<int>(ParamsKeys::CURSOR), {}};
     }
 
     opt<std::string> get_atom_type(const std::string& handle) const override {

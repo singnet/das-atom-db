@@ -8,20 +8,20 @@ using ParamValue = std::any;
 using ParamsMap = std::unordered_map<ParamKey, ParamValue>;
 
 /**
- * @brief Namespace containing flag parameters.
+ * @brief Namespace containing parameters keys.
  *
- * The FlagsParams namespace defines various parameters that can be used as params
+ * The ParamsKeys namespace defines various parameters that can be used as params
  * within the application. Each parameter represents a specific flag that can be
  * utilized to control different aspects of the application's behavior.
  */
-namespace FlagsParams {
+namespace ParamsKeys {
 constexpr ParamKey CURSOR = "cursor";
 constexpr ParamKey DEEP_REPRESENTATION = "deep_representation";
 constexpr ParamKey DELETE_ATOM = "delete_atom";
 constexpr ParamKey NO_TARGET_FORMAT = "no_target_format";
 constexpr ParamKey TARGETS_DOCUMENTS = "targets_documents";
 constexpr ParamKey TOPLEVEL_ONLY = "toplevel_only";
-};  // namespace FlagsParams
+};  // namespace ParamsKeys
 
 /**
  * @brief A class representing a collection of params.
