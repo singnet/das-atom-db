@@ -147,12 +147,13 @@ class Link : public Atom {
          const std::string& named_type_hash,
          const std::vector<std::string>& targets,
          bool is_top_level = true,
+         std::map<std::string, std::string> keys = {},
          const Params& extra_params = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_top_level(is_top_level),
-          keys({}),
+          keys(keys),
           Atom(id, handle, composite_type_hash, named_type, extra_params) {
         if (composite_type.empty()) {
             throw std::invalid_argument("Composite type cannot be empty.");

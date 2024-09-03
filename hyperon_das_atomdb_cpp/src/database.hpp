@@ -523,6 +523,7 @@ class AtomDB {
             link_type_hash,       // named_type_hash
             target_handles,       // targets
             is_top_level,         // is_top_level
+            {},                   // keys
             link_params           // extra_params
         );
 
