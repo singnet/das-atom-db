@@ -68,7 +68,7 @@ StringList InMemoryDB::get_atoms_by_field(
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, AtomList> InMemoryDB::get_atoms_by_index(
+std::pair<OptCursor, AtomList> InMemoryDB::get_atoms_by_index(
     const std::string& index_id,
     const std::vector<std::unordered_map<std::string, std::string>>& query,
     int cursor = 0,
@@ -111,7 +111,7 @@ StringList InMemoryDB::get_all_nodes(const std::string& node_type, bool names = 
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, StringList> InMemoryDB::get_all_links(
+std::pair<OptCursor, StringList> InMemoryDB::get_all_links(
     const std::string& link_type, const Params& params = {}) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
@@ -164,7 +164,7 @@ bool InMemoryDB::is_ordered(const std::string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
+std::pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
     const std::string& atom_handle, const Params& params = {}) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
@@ -172,7 +172,7 @@ std::pair<OptionalCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_han
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, AtomList> InMemoryDB::get_incoming_links_atoms(
+std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(
     const std::string& atom_handle, const Params& params = {}) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
     AtomList atoms;
@@ -183,7 +183,7 @@ std::pair<OptionalCursor, AtomList> InMemoryDB::get_incoming_links_atoms(
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(
+std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(
     const std::string& link_type,
     const StringList& target_handles,
     const Params& params = {}) const {
@@ -218,8 +218,8 @@ std::pair<OptionalCursor, Pattern_or_Template_List> InMemoryDB::get_matched_link
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const std::vector<std::any>& _template, const Params& params = {}) const {
+std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
+    const ListOfAny& _template, const Params& params = {}) const {
     auto template_hash = ExpressionHasher::composite_hash(_template);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
@@ -236,7 +236,7 @@ std::pair<OptionalCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptionalCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(
+std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(
     const std::string& link_type, const Params& params = {}) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
@@ -436,14 +436,12 @@ opt<const Link> InMemoryDB::_get_and_delete_link(const std::string& link_handle)
 }
 
 //------------------------------------------------------------------------------
-const std::vector<std::any> InMemoryDB::_build_named_type_hash_template(
-    const std::vector<std::any>& _template) const {
-    std::vector<std::any> hash_template;
+const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _template) const {
+    ListOfAny hash_template;
     for (const auto& element : _template) {
         if (const std::string* str = std::any_cast<std::string>(&element)) {
             hash_template.push_back(_build_atom_type_key_hash(*str));
-        } else if (
-            const std::vector<std::any>* vec = std::any_cast<std::vector<std::any>>(&element)) {
+        } else if (const ListOfAny* vec = std::any_cast<ListOfAny>(&element)) {
             hash_template.push_back(_build_named_type_hash_template(*vec));
         } else {
             // TODO: log error

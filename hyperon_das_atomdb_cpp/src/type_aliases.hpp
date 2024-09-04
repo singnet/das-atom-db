@@ -18,10 +18,11 @@ namespace atomdb {
 template <typename T>
 using opt = std::optional<T>;
 
-using OptionalCursor = opt<int>;
+using OptCursor = opt<int>;
 using StringSet = std::set<std::string>;
 using StringList = std::vector<std::string>;
 using StringUnorderedSet = std::unordered_set<std::string>;
+using ListOfAny = std::vector<std::any>;
 
 using Pattern_or_Template = std::tuple<std::string, opt<StringList>>;
 using Pattern_or_Template_List = std::vector<Pattern_or_Template>;

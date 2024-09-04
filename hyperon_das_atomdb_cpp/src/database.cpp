@@ -92,7 +92,7 @@ opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level = tru
     }
     std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.value());
     StringList target_handles = {};
-    std::vector<CompositeType> composite_type_list = {CompositeType(link_type_hash)};
+    ListOfAny composite_type_list = {link_type_hash};
     StringList composite_type_elements = {link_type_hash};
     std::string atom_hash;
     std::string atom_handle;
@@ -112,7 +112,7 @@ opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level = tru
             }
             atom_handle = link.value().id;
             atom_hash = link.value().composite_type_hash;
-            composite_type_list.push_back(CompositeType(link.value().composite_type));
+            composite_type_list.push_back(link.value().composite_type);
         }
         composite_type_elements.push_back(atom_hash);
         target_handles.push_back(atom_handle);

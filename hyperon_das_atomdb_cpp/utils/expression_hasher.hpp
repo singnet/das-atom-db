@@ -94,7 +94,7 @@ class ExpressionHasher {
      * @param elements A vector of elements of type std::any, representing the components to be hashed.
      * @return A string representing the composite hash generated from the elements.
      */
-    static std::string composite_hash(const std::vector<std::any>& elements) {
+    static std::string composite_hash(const ListOfAny& elements) {
         StringList hashable_elements;
         for (const auto& element : elements) {
             hashable_elements.push_back(std::any_cast<std::string>(element));

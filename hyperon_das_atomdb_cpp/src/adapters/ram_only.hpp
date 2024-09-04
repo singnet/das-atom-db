@@ -87,7 +87,7 @@ class InMemoryDB : public AtomDB {
     StringList get_atoms_by_field(
         const std::vector<std::unordered_map<std::string, std::string>>& query) const override;
 
-    std::pair<OptionalCursor, AtomList> get_atoms_by_index(
+    std::pair<OptCursor, AtomList> get_atoms_by_index(
         const std::string& index_id,
         const std::vector<std::unordered_map<std::string, std::string>>& query,
         int cursor = 0,
@@ -103,7 +103,7 @@ class InMemoryDB : public AtomDB {
 
     StringList get_all_nodes(const std::string& node_type, bool names = false) const override;
 
-    std::pair<OptionalCursor, StringList> get_all_links(
+    std::pair<OptCursor, StringList> get_all_links(
         const std::string& link_type, const Params& params = {}) const override;
 
     std::string get_link_handle(
@@ -115,21 +115,21 @@ class InMemoryDB : public AtomDB {
 
     bool is_ordered(const std::string& link_handle) const override;
 
-    std::pair<OptionalCursor, StringUnorderedSet> get_incoming_links_handles(
+    std::pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
         const std::string& atom_handle, const Params& params = {}) const override;
 
-    std::pair<OptionalCursor, AtomList> get_incoming_links_atoms(
+    std::pair<OptCursor, AtomList> get_incoming_links_atoms(
         const std::string& atom_handle, const Params& params = {}) const override;
 
-    std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_links(
+    std::pair<OptCursor, Pattern_or_Template_List> get_matched_links(
         const std::string& link_type,
         const StringList& target_handles,
         const Params& params = {}) const override;
 
-    std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type_template(
-        const std::vector<std::any>& _template, const Params& params = {}) const override;
+    std::pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
+        const ListOfAny& _template, const Params& params = {}) const override;
 
-    std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type(
+    std::pair<OptCursor, Pattern_or_Template_List> get_matched_type(
         const std::string& link_type, const Params& params = {}) const override;
 
     opt<std::string> get_atom_type(const std::string& handle) const override;
@@ -181,8 +181,37 @@ class InMemoryDB : public AtomDB {
 
     opt<const Link> _get_and_delete_link(const std::string& link_handle);
 
-    const std::vector<std::any> _build_named_type_hash_template(
-        const std::vector<std::any>& _template) const;
+    /**
+     * @brief Builds a named type hash template from the given template.
+     * @param _template A vector of elements of type std::any representing the template.
+     * @return A vector of elements of type std::any representing the named type hash template.
+     *
+     * Both `_template` and the returned vector are expected to contain elements of type
+     * `std::string` or `std::vector<std::string>`, allowing multiple levels of nesting.
+     * Example:
+     *
+     * @code
+     * ```
+     * {
+     *     "986a251e2a3e4c19a856a279dab2495f",
+     *     "3399d0d460c849c892f223b97d79635a",
+     *     {
+     *         "81ab7b04e75642a2a8acfdbb7033dc23",
+     *         "4aac2093cb6040e7acf09af2f58e2e22"
+     *     },
+     *     "fc16eec8ae914f818a3342534632de33",
+     *     {
+     *         "5c7e4ba338ef47abb41a1f497c35ea57",
+     *         {
+     *             "9cf28d0712fc4759adcde1ec4801b53a",
+     *             "b1b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3"
+     *         }
+     *     }
+     * }
+     * ```
+     * @endcode
+     */
+    const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
 
     const std::string _build_named_type_hash_template(const std::string& _template);
 

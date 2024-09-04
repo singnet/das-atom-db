@@ -120,7 +120,7 @@ class AtomDB {
      *         used for pagination or further retrieval operations, and the list contains the
      *         retrieved atoms.
      */
-    virtual std::pair<OptionalCursor, AtomList> get_atoms_by_index(
+    virtual std::pair<OptCursor, AtomList> get_atoms_by_index(
         const std::string& index_id,
         const std::vector<std::unordered_map<std::string, std::string>>& query,
         int cursor = 0,
@@ -162,7 +162,7 @@ class AtomDB {
      * @param params An optional Params object containing additional retrieval options.
      * @return A pair containing an optional cursor and a list of strings representing the links.
      */
-    virtual std::pair<OptionalCursor, StringList> get_all_links(
+    virtual std::pair<OptCursor, StringList> get_all_links(
         const std::string& link_type, const Params& params = {}) const = 0;
 
     /**
@@ -202,7 +202,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a set of strings representing the incoming
      *         link handles.
      */
-    virtual std::pair<OptionalCursor, StringUnorderedSet> get_incoming_links_handles(
+    virtual std::pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
         const std::string& atom_handle, const Params& params = {}) const = 0;
 
     /**
@@ -212,7 +212,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of Atom objects representing the
      *         incoming links.
      */
-    virtual std::pair<OptionalCursor, AtomList> get_incoming_links_atoms(
+    virtual std::pair<OptCursor, AtomList> get_incoming_links_atoms(
         const std::string& atom_handle, const Params& params = {}) const = 0;
 
     /**
@@ -223,7 +223,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched links.
      */
-    virtual std::pair<OptionalCursor, Pattern_or_Template_List>
+    virtual std::pair<OptCursor, Pattern_or_Template_List>
     get_matched_links(const std::string& link_type,
                       const StringList& target_handles,
                       const Params& params = {}) const = 0;
@@ -235,8 +235,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched type templates.
      */
-    virtual std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type_template(
-        const std::vector<std::any>& _template, const Params& params = {}) const = 0;
+    virtual std::pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
+        const ListOfAny& _template, const Params& params = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.
@@ -245,7 +245,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched types.
      */
-    virtual std::pair<OptionalCursor, Pattern_or_Template_List> get_matched_type(
+    virtual std::pair<OptCursor, Pattern_or_Template_List> get_matched_type(
         const std::string& link_type, const Params& params = {}) const = 0;
 
     /**
@@ -312,8 +312,11 @@ class AtomDB {
      * it could be used to create any of the following entries in the inverted pattern index:
      *
      * - *(handle1, handle2)
+     *
      * - Similarity(*, handle2)
+     *
      * - Similarity(handle1, *)
+     *
      * - Similarity(*, *)
      *
      * If we create all possibilities of index entries for all links, the pattern index size
@@ -322,30 +325,27 @@ class AtomDB {
      * pattern template:
      *
      * @code
-     * {
-     *     "named_type": false,
-     *     "selected_positions": {0, 1}
-     * }
+     * `{ "named_type": false, "selected_positions": {0, 1} }`
      * @endcode
      *
      * to Similarity(handle1, handle2), we'll create only the following entries:
      *
      * - Similarity(*, handle2)
+     *
      * - Similarity(handle1, *)
+     *
      * - Similarity(*, *)
      *
      * If we apply this pattern template instead:
      *
      * @code
-     * {
-     *     "named_type": true,
-     *     "selected_positions": {1}
-     * }
+     * `{ "named_type": true, "selected_positions": {1} }`
      * @endcode
      *
      * We'll have:
      *
      * - *(handle1, handle2)
+     *
      * - Similarity(handle1, *)
      */
     virtual void reindex(

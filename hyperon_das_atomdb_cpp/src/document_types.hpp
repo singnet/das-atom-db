@@ -100,39 +100,6 @@ class Node : public Atom {
 };
 
 /**
- * @brief Represents a composite type in the system.
- *
- * The CompositeType class encapsulates the properties and behaviors of a composite type,
- * which is a type composed of multiple elements. This class provides methods to manage
- * and manipulate these elements.
- */
-class CompositeType {
-   public:
-    CompositeType(const std::string& single_hash)
-        : single_hash(single_hash) {
-        if (single_hash.empty()) {
-            throw std::invalid_argument("Single hash cannot be empty.");
-        }
-        if (!list_of_composite_types.empty()) {
-            throw std::invalid_argument("List of composite types must be empty.");
-        }
-    }
-
-    CompositeType(const std::vector<CompositeType>& list_of_composite_types)
-        : list_of_composite_types(list_of_composite_types) {
-        if (list_of_composite_types.empty()) {
-            throw std::invalid_argument("List of composite types cannot be empty.");
-        }
-        if (!single_hash.empty()) {
-            throw std::invalid_argument("Single hash must be empty.");
-        }
-    }
-
-    std::string single_hash = "";
-    std::vector<CompositeType> list_of_composite_types = {};
-};
-
-/**
  * @brief Represents a link in the system.
  *
  * The Link class inherits from the Atom class and represents a link within the system.
@@ -145,7 +112,7 @@ class Link : public Atom {
          const std::string& handle,
          const std::string& composite_type_hash,
          const std::string& named_type,
-         std::vector<CompositeType>& composite_type,
+         const ListOfAny& composite_type,
          const std::string& named_type_hash,
          const std::vector<std::string>& targets,
          bool is_top_level = true,
@@ -168,7 +135,12 @@ class Link : public Atom {
         }
     }
 
-    std::vector<CompositeType> composite_type;
+    /**
+     * `composite_type` is designed to hold a list of elements, where each element can either be a
+     * `std::string` or another list of the same type, allowing multiple levels of nesting.
+     */
+    ListOfAny composite_type;
+
     std::string named_type_hash;
     std::vector<std::string> targets;
     bool is_top_level = true;
