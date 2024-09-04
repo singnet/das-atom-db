@@ -89,8 +89,7 @@ class Node : public Atom {
          const std::string& named_type,
          const std::string& name,
          const Params& extra_params = {})
-        : name(name),
-          Atom(id, handle, composite_type_hash, named_type, extra_params) {
+        : name(name), Atom(id, handle, composite_type_hash, named_type, extra_params) {
         if (name.empty()) {
             throw std::invalid_argument("Node name cannot be empty.");
         }

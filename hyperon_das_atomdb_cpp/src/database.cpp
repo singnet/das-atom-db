@@ -42,7 +42,8 @@ Atom AtomDB::get_atom(const std::string& handle, const Params& params) const {
 const Atom AtomDB::_reformat_document(const Atom& document, const Params& params) const {
     if (const Link* link = dynamic_cast<const Link*>(&document)) {
         auto targets_documents = params.get<bool>(ParamsKeys::TARGETS_DOCUMENTS).value_or(false);
-        auto deep_representation = params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
+        auto deep_representation =
+            params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
         if (targets_documents || deep_representation) {
             auto targets_documents = std::make_shared<std::vector<Atom>>();
             targets_documents->reserve(link->targets.size());
@@ -71,13 +72,12 @@ opt<Node> AtomDB::_build_node(const Params& node_params) {
     }
     std::string handle = this->build_node_handle(node_type.value(), node_name.value());
     std::string composite_type_hash = ExpressionHasher::named_type_hash(node_type.value());
-    Node node = Node(
-        handle,               // id
-        handle,               // handle
-        composite_type_hash,  // composite_type_hash
-        node_type.value(),    // named_type
-        node_name.value(),    // name
-        node_params           // extra_params
+    Node node = Node(handle,               // id
+                     handle,               // handle
+                     composite_type_hash,  // composite_type_hash
+                     node_type.value(),    // named_type
+                     node_name.value(),    // name
+                     node_params           // extra_params
     );
     return node;
 }
@@ -121,17 +121,16 @@ opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level = tru
     std::string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
     std::string composite_type_hash = ExpressionHasher::composite_hash(composite_type_elements);
 
-    Link link = Link(
-        handle,               // id
-        handle,               // handle
-        composite_type_hash,  // composite_type_hash
-        link_type.value(),    // named_type
-        composite_type_list,  // composite_type
-        link_type_hash,       // named_type_hash
-        target_handles,       // targets
-        is_top_level,         // is_top_level
-        {},                   // keys
-        link_params           // extra_params
+    Link link = Link(handle,               // id
+                     handle,               // handle
+                     composite_type_hash,  // composite_type_hash
+                     link_type.value(),    // named_type
+                     composite_type_list,  // composite_type
+                     link_type_hash,       // named_type_hash
+                     target_handles,       // targets
+                     is_top_level,         // is_top_level
+                     {},                   // keys
+                     link_params           // extra_params
     );
 
     uint n = 0;

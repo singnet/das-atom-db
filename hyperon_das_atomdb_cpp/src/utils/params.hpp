@@ -51,9 +51,7 @@ class Params : private ParamsMap {
      * @param key The parameter to check for existence.
      * @return A boolean value indicating whether the parameter exists (true) or not (false).
      */
-    bool contains(ParamKey key) const {
-        return this->find(key) != this->end();
-    };
+    bool contains(ParamKey key) const { return this->find(key) != this->end(); };
 
     /**
      * @brief Retrieves the value associated with the specified parameter key.
@@ -99,6 +97,6 @@ class Params : private ParamsMap {
     };
 };
 
-}
+}  // namespace atomdb
 
 #endif  // _PARAMS_HPP

@@ -25,3 +25,12 @@ integration-tests:
 	@py.test -sx -vv ./tests/integration
 
 pre-commit: lint unit-tests-coverage unit-tests integration-tests
+
+format-cpp:
+	@find ./hyperon_das_atomdb_cpp \
+	    -iname "*.hpp" -o \
+		-iname "*.cpp" -o \
+		-iname "*.h" -o \
+		-iname "*.c" -o \
+		-iname "*.cc" \
+		| xargs clang-format -verbose -style=file -i

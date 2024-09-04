@@ -11,9 +11,7 @@ class AtomDoesNotExist : public std::exception {
     AtomDoesNotExist(const std::string& message, const std::string details)
         : message(message), details(details) {}
 
-    const char* what() const noexcept override {
-        return (message + ": " + details).c_str();
-    }
+    const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
    private:
     std::string message;
@@ -25,9 +23,7 @@ class InvalidOperationException : public std::exception {
     InvalidOperationException(const std::string& message, const std::string details)
         : message(message), details(details) {}
 
-    const char* what() const noexcept override {
-        return (message + ": " + details).c_str();
-    }
+    const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
    private:
     std::string message;

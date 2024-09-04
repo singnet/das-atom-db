@@ -51,8 +51,8 @@ IntMatrix generate_binary_matrix(int numbers) {
  * @return A matrix represented as a vector of vectors of strings, where each
  *         subvector is a row in the resulting matrix.
  */
-StringMatrix multiply_binary_matrix_by_string_matrix(
-    const IntMatrix& binary_matrix, const StringList& string_matrix) {
+StringMatrix multiply_binary_matrix_by_string_matrix(const IntMatrix& binary_matrix,
+                                                     const StringList& string_matrix) {
     StringMatrix result_matrix;
 
     for (const auto& binary_row : binary_matrix) {

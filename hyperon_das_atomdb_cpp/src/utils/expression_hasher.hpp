@@ -45,9 +45,7 @@ class ExpressionHasher {
      * @param name The name of the type.
      * @return A string representing the hash of the named type.
      */
-    static std::string named_type_hash(const std::string& name) {
-        return compute_hash(name);
-    }
+    static std::string named_type_hash(const std::string& name) { return compute_hash(name); }
 
     /**
      * @brief Generates a hash for a terminal expression.
@@ -91,7 +89,8 @@ class ExpressionHasher {
      * This function takes a vector of elements, each of which can be of any type,
      * and generates a composite hash representing the combined hash of all elements.
      *
-     * @param elements A vector of elements of type std::any, representing the components to be hashed.
+     * @param elements A vector of elements of type std::any, representing the components to be
+     * hashed.
      * @return A string representing the composite hash generated from the elements.
      */
     static std::string composite_hash(const ListOfAny& elements) {
@@ -111,9 +110,7 @@ class ExpressionHasher {
      * @param hash_base A string representing the base hash.
      * @return A string representing the composite hash generated from the base hash.
      */
-    static std::string composite_hash(const std::string& hash_base) {
-        return hash_base;
-    }
+    static std::string composite_hash(const std::string& hash_base) { return hash_base; }
 
     /**
      * @brief Generates a hash for an expression.
@@ -122,8 +119,7 @@ class ExpressionHasher {
      * @param elements A vector of strings representing the elements of the expression.
      * @return A string representing the hash of the expression.
      */
-    static std::string expression_hash(
-        const std::string& type_hash, const StringList& elements) {
+    static std::string expression_hash(const std::string& type_hash, const StringList& elements) {
         StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
         return composite_hash(composite);
