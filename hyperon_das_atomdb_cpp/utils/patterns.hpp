@@ -6,6 +6,8 @@
 #include "constants.hpp"
 #include "expression_hasher.hpp"
 
+namespace atomdb {
+
 using IntMatrix = std::vector<std::vector<int>>;
 using StringMatrix = std::vector<std::vector<std::string>>;
 
@@ -91,3 +93,5 @@ StringList build_pattern_keys(const StringList& hash_list) {
 
     return keys;
 }
+
+}  // namespace atomdb

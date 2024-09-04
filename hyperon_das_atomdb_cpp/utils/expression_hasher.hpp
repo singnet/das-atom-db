@@ -4,12 +4,15 @@
 #include <openssl/md5.h>
 
 #include <iostream>
+#include <string>
 
 #include "type_aliases.hpp"
 
 #define MAX_HASHABLE_STRING_SIZE 1024
 #define MAX_LITERAL_OR_SYMBOL_SIZE 256
 #define JOINING_CHAR ((char) ' ')
+
+namespace atomdb {
 
 class ExpressionHasher {
    public:
@@ -126,5 +129,7 @@ class ExpressionHasher {
         return composite_hash(composite);
     }
 };
+
+}  // namespace atomdb
 
 #endif  // _EXPRESSION_HASHER_HPP

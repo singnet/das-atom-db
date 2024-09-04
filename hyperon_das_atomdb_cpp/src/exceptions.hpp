@@ -4,6 +4,8 @@
 #include <exception>
 #include <string>
 
+namespace atomdb {
+
 class AtomDoesNotExist : public std::exception {
    public:
     AtomDoesNotExist(const std::string& message, const std::string details)
@@ -31,5 +33,7 @@ class InvalidOperationException : public std::exception {
     std::string message;
     std::string details;
 };
+
+}  // namespace atomdb
 
 #endif  // _EXCEPTIONS_HPP

@@ -7,6 +7,8 @@
 
 #include "utils/params.hpp"
 
+namespace atomdb {
+
 /**
  * @brief Represents a basic unit of data in the system.
  *
@@ -177,5 +179,7 @@ using AtomList = std::vector<Atom>;
 using AtomTypeList = std::vector<AtomType>;
 using NodeList = std::vector<Node>;
 using LinkList = std::vector<Link>;
+
+}  // namespace atomdb
 
 #endif  // _DOCUMENT_TYPES_HPP

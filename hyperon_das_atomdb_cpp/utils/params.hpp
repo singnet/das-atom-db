@@ -3,6 +3,8 @@
 
 #include "type_aliases.hpp"
 
+namespace atomdb {
+
 using ParamKey = const char*;
 using ParamValue = std::any;
 using ParamsMap = std::unordered_map<ParamKey, ParamValue>;
@@ -96,5 +98,7 @@ class Params : private ParamsMap {
         return std::nullopt;
     };
 };
+
+}
 
 #endif  // _PARAMS_HPP
