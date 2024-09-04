@@ -117,8 +117,8 @@ class InMemoryDB : public AtomDB {
     std::pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
         const std::string& atom_handle, const Params& params = {}) const override;
 
-    std::pair<OptCursor, AtomList> get_incoming_links_atoms(
-        const std::string& atom_handle, const Params& params = {}) const override;
+    std::pair<OptCursor, AtomList> get_incoming_links_atoms(const std::string& atom_handle,
+                                                            const Params& params = {}) const override;
 
     std::pair<OptCursor, Pattern_or_Template_List> get_matched_links(
         const std::string& link_type,
@@ -144,18 +144,17 @@ class InMemoryDB : public AtomDB {
 
     opt<Link> add_link(const Params& link_params, bool toplevel = true) override;
 
-    void reindex(const std::unordered_map<std::string,
-                                          std::vector<std::unordered_map<std::string, std::any>>>&
-                     pattern_index_templates) override;
+    void reindex(
+        const std::unordered_map<std::string, std::vector<std::unordered_map<std::string, std::any>>>&
+            pattern_index_templates) override;
 
     void delete_atom(const std::string& handle) override;
 
-    std::string create_field_index(
-        const std::string& atom_type,
-        const StringList& fields,
-        const std::string& named_type = "",
-        const StringList& composite_type = {},
-        FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
+    std::string create_field_index(const std::string& atom_type,
+                                   const StringList& fields,
+                                   const std::string& named_type = "",
+                                   const StringList& composite_type = {},
+                                   FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
     void bulk_insert(const std::vector<Atom>& documents) override;
 
@@ -239,8 +238,7 @@ class InMemoryDB : public AtomDB {
 
     void _delete_link_and_update_index(const std::string& link_handle);
 
-    const Pattern_or_Template_List _filter_non_toplevel(
-        const Pattern_or_Template_List& matches) const;
+    const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
 
     static const std::vector<std::string> _build_targets_list(const Link& link);
 

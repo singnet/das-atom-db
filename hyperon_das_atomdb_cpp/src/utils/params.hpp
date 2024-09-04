@@ -5,7 +5,7 @@
 
 namespace atomdb {
 
-using ParamKey = const char*;
+using ParamKey = std::string;
 using ParamValue = std::any;
 using ParamsMap = std::unordered_map<ParamKey, ParamValue>;
 
@@ -17,12 +17,12 @@ using ParamsMap = std::unordered_map<ParamKey, ParamValue>;
  * utilized to control different aspects of the application's behavior.
  */
 namespace ParamsKeys {
-constexpr ParamKey CURSOR = "cursor";
-constexpr ParamKey DEEP_REPRESENTATION = "deep_representation";
-constexpr ParamKey DELETE_ATOM = "delete_atom";
-constexpr ParamKey NO_TARGET_FORMAT = "no_target_format";
-constexpr ParamKey TARGETS_DOCUMENTS = "targets_documents";
-constexpr ParamKey TOPLEVEL_ONLY = "toplevel_only";
+static const ParamKey CURSOR = "cursor";
+static const ParamKey DEEP_REPRESENTATION = "deep_representation";
+static const ParamKey DELETE_ATOM = "delete_atom";
+static const ParamKey NO_TARGET_FORMAT = "no_target_format";
+static const ParamKey TARGETS_DOCUMENTS = "targets_documents";
+static const ParamKey TOPLEVEL_ONLY = "toplevel_only";
 };  // namespace ParamsKeys
 
 /**
@@ -51,7 +51,7 @@ class Params : private ParamsMap {
      * @param key The parameter to check for existence.
      * @return A boolean value indicating whether the parameter exists (true) or not (false).
      */
-    bool contains(ParamKey key) const { return this->find(key) != this->end(); };
+    bool contains(const ParamKey& key) const { return this->find(key) != this->end(); };
 
     /**
      * @brief Retrieves the value associated with the specified parameter key.
@@ -61,7 +61,7 @@ class Params : private ParamsMap {
      *         or an empty optional if the key is not found.
      */
     template <typename T>
-    opt<T> get(ParamKey key) const {
+    opt<const T&> get(const ParamKey& key) const {
         if (this->contains(key)) {
             return std::any_cast<T>(this->at(key));
         }
@@ -75,7 +75,7 @@ class Params : private ParamsMap {
      * @param value The value to be associated with the specified parameter.
      */
     template <typename T>
-    void set(ParamKey key, T value) {
+    void set(const ParamKey& key, T value) {
         this->insert_or_assign(key, value);
     };
 
@@ -87,7 +87,7 @@ class Params : private ParamsMap {
      *         or an empty optional if the key is not found.
      */
     template <typename T>
-    opt<T> pop(ParamKey key) {
+    opt<T> pop(const ParamKey& key) {
         if (this->contains(key)) {
             T value = std::move(std::any_cast<T>(this->at(key)));
             this->erase(key);

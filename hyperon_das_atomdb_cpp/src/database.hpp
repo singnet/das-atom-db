@@ -20,8 +20,7 @@ class AtomDB {
      * @param node_name The node name.
      * @return The node handle.
      */
-    static std::string build_node_handle(const std::string& node_type,
-                                         const std::string& node_name) {
+    static std::string build_node_handle(const std::string& node_type, const std::string& node_name) {
         return ExpressionHasher::terminal_hash(node_type, node_name);
     }
 
@@ -210,8 +209,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of Atom objects representing the
      *         incoming links.
      */
-    virtual std::pair<OptCursor, AtomList> get_incoming_links_atoms(
-        const std::string& atom_handle, const Params& params = {}) const = 0;
+    virtual std::pair<OptCursor, AtomList> get_incoming_links_atoms(const std::string& atom_handle,
+                                                                    const Params& params = {}) const = 0;
 
     /**
      * @brief Retrieves matched links of the specified type and target handles.
@@ -347,8 +346,7 @@ class AtomDB {
      * - Similarity(handle1, *)
      */
     virtual void reindex(
-        const std::unordered_map<std::string,
-                                 std::vector<std::unordered_map<std::string, std::any>>>&
+        const std::unordered_map<std::string, std::vector<std::unordered_map<std::string, std::any>>>&
             pattern_index_templates) = 0;
 
     /**
@@ -366,12 +364,11 @@ class AtomDB {
      * @param index_type The type of the index to create.
      * @return The ID of the created index.
      */
-    virtual std::string create_field_index(
-        const std::string& atom_type,
-        const StringList& fields,
-        const std::string& named_type = "",
-        const StringList& composite_type = {},
-        FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
+    virtual std::string create_field_index(const std::string& atom_type,
+                                           const StringList& fields,
+                                           const std::string& named_type = "",
+                                           const StringList& composite_type = {},
+                                           FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
 
     /**
      * @brief Insert multiple documents into the database.

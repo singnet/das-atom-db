@@ -171,8 +171,8 @@ std::pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(
-    const std::string& atom_handle, const Params& params = {}) const {
+std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(const std::string& atom_handle,
+                                                                    const Params& params = {}) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
     AtomList atoms;
     for (const auto& link_handle : links) {
@@ -183,9 +183,7 @@ std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(
-    const std::string& link_type,
-    const StringList& target_handles,
-    const Params& params = {}) const {
+    const std::string& link_type, const StringList& target_handles, const Params& params = {}) const {
     if (link_type != WILDCARD &&
         std::find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         return {params.get<int>(ParamsKeys::CURSOR),
@@ -224,8 +222,7 @@ std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_temp
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
-            return {params.get<int>(ParamsKeys::CURSOR),
-                    this->_filter_non_toplevel(templates_matched)};
+            return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
         }
         return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
     }
@@ -242,8 +239,7 @@ std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
-            return {params.get<int>(ParamsKeys::CURSOR),
-                    this->_filter_non_toplevel(templates_matched)};
+            return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
         }
         return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
     }
@@ -342,12 +338,11 @@ void InMemoryDB::delete_atom(const std::string& handle) {
 }
 
 //------------------------------------------------------------------------------
-std::string InMemoryDB::create_field_index(
-    const std::string& atom_type,
-    const StringList& fields,
-    const std::string& named_type = "",
-    const StringList& composite_type = {},
-    FieldIndexType index_type = FieldIndexType::BINARY_TREE) {
+std::string InMemoryDB::create_field_index(const std::string& atom_type,
+                                           const StringList& fields,
+                                           const std::string& named_type = "",
+                                           const StringList& composite_type = {},
+                                           FieldIndexType index_type = FieldIndexType::BINARY_TREE) {
     throw std::runtime_error("Not implemented");
 }
 
@@ -508,8 +503,7 @@ void InMemoryDB::_add_incoming_set(const std::string& key, const StringList& tar
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_incoming_set(const std::string& link_handle,
-                                      const StringList& atoms_handle) {
+void InMemoryDB::_delete_incoming_set(const std::string& link_handle, const StringList& atoms_handle) {
     for (const auto& atom_handle : atoms_handle) {
         if (this->db.incoming_set.find(atom_handle) != this->db.incoming_set.end()) {
             this->db.incoming_set[atom_handle].erase(link_handle);
@@ -653,8 +647,7 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
         auto targets_hash = this->_build_targets_list(*link);
         this->_add_outgoing_set(handle, targets_hash);
         this->_add_incoming_set(handle, targets_hash);
-        this->_add_templates(
-            link->composite_type_hash, link->named_type_hash, handle, targets_hash);
+        this->_add_templates(link->composite_type_hash, link->named_type_hash, handle, targets_hash);
         this->_add_patterns(link->named_type_hash, handle, targets_hash);
     }
 }
