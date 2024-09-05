@@ -61,7 +61,7 @@ class Params : private ParamsMap {
      *         or an empty optional if the key is not found.
      */
     template <typename T>
-    opt<T> get(const ParamKey& key) const {
+    opt<const T> get(const ParamKey& key) const {
         if (this->contains(key)) {
             return std::any_cast<T>(this->at(key));
         }
