@@ -89,7 +89,6 @@ class MongoIndexType(str, Enum):
     TEXT = "text"
 
 
-
 class _HashableDocument:
     """Class for making documents hashable."""
 

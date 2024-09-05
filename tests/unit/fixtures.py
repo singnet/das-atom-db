@@ -1,9 +1,11 @@
-import fakeredis
-import pytest
-import mongomock
 from unittest import mock
-from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB, MongoCollectionNames
+
+import mongomock
+import pytest
+
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
+from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, RedisMongoDB
+
 
 class MockRedis:
     def __init__(self, cache=dict()):
@@ -16,8 +18,8 @@ class MockRedis:
 
     def set(self, key, value, *args, **kwargs):
         if self.cache:
-           self.cache[key] = value
-           return "OK"
+            self.cache[key] = value
+            return "OK"
         return None  # return nil in case of some issue
 
     def hget(self, hash, key):
@@ -28,8 +30,8 @@ class MockRedis:
 
     def hset(self, hash, key, value, *args, **kwargs):
         if self.cache:
-           self.cache[hash][key] = value
-           return 1
+            self.cache[hash][key] = value
+            return 1
         return None  # return nil in case of some issue
 
     def exists(self, key):
@@ -69,7 +71,6 @@ class MockRedis:
         return deleted_count
 
     def getdel(self, key):
-
         # Simulate the getdel method of Redis
         value = self.cache.get(key)
         if key in self.cache:
@@ -77,7 +78,6 @@ class MockRedis:
         return value
 
     def srem(self, key, *members):
-
         # Simulate the srem method of Redis
         if key not in self.cache:
             return 0
@@ -107,12 +107,12 @@ class MockRedis:
 @pytest.fixture
 def redis_mongo_db():
     # import fakeredis
-    mongo_db  = mongomock.MongoClient().db
+    mongo_db = mongomock.MongoClient().db
     # redis_db = fakeredis.FakeRedis()
     redis_db = MockRedis()
     with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-            return_value=mongo_db,
+        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+        return_value=mongo_db,
     ), mock.patch(
         "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
         # return_value=fakeredis.FakeRedis(),
@@ -133,6 +133,7 @@ def redis_mongo_db():
         }
 
     yield db
+
 
 @pytest.fixture
 def in_memory_db():

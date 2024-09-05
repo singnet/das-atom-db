@@ -220,11 +220,11 @@ class InMemoryDB(AtomDB):
                 handles.remove(link_handle)
 
     def _add_templates(
-            self,
-            composite_type_hash: str,
-            named_type_hash: str,
-            key: str,
-            targets_hash: list[str],
+        self,
+        composite_type_hash: str,
+        named_type_hash: str,
+        key: str,
+        targets_hash: list[str],
     ) -> None:
         """
         Add templates to the database.
@@ -473,7 +473,7 @@ class InMemoryDB(AtomDB):
             key
             for key, value in self.db.node.items()
             if substring in value[FieldNames.NODE_NAME]
-               and node_type_hash == value[FieldNames.COMPOSITE_TYPE_HASH]
+            and node_type_hash == value[FieldNames.COMPOSITE_TYPE_HASH]
         ]
 
     def get_all_nodes(self, node_type: str, names: bool = False) -> list[str]:
@@ -549,7 +549,7 @@ class InMemoryDB(AtomDB):
         )
 
     def get_matched_links(
-            self, link_type: str, target_handles: list[str], **kwargs
+        self, link_type: str, target_handles: list[str], **kwargs
     ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             return kwargs.get("cursor"), [self.get_link_handle(link_type, target_handles)]
@@ -598,27 +598,31 @@ class InMemoryDB(AtomDB):
             return kwargs.get("cursor"), self._filter_non_toplevel(templates_matched)
         return kwargs.get("cursor"), templates_matched
 
-    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:  # pragma: no cover
+    def get_atoms_by_field(
+        self, query: list[OrderedDict[str, str]]
+    ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
     def get_atoms_by_index(
-            self,
-            index_id: str,
-            query: list[OrderedDict[str, str]],
-            cursor: int = 0,
-            chunk_size: int = 500,
+        self,
+        index_id: str,
+        query: list[OrderedDict[str, str]],
+        cursor: int = 0,
+        chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:  # pragma: no cover
         raise NotImplementedError()
 
     def get_atoms_by_text_field(
-            self,
-            text_value: str,
-            field: str | None = None,
-            text_index_id: str | None = None,
+        self,
+        text_value: str,
+        field: str | None = None,
+        text_index_id: str | None = None,
     ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:  # pragma: no cover
+    def get_node_by_name_starting_with(
+        self, node_type: str, startswith: str
+    ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
@@ -673,7 +677,7 @@ class InMemoryDB(AtomDB):
     def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
         result = self._build_link(link_params, toplevel)
         # NOTE unreachable
-        if result is None: # pragma: no cover
+        if result is None:  # pragma: no cover
             return None
         handle, link, _ = result
         self.db.link[handle] = link
@@ -681,8 +685,8 @@ class InMemoryDB(AtomDB):
         return link
 
     def reindex(
-            self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
-    ) -> None: # pragma: no cover
+        self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+    ) -> None:  # pragma: no cover
         raise NotImplementedError()
 
     def delete_atom(self, handle: str, **kwargs) -> None:
@@ -705,13 +709,13 @@ class InMemoryDB(AtomDB):
                 raise ex
 
     def create_field_index(
-            self,
-            atom_type: str,
-            fields: list[str],
-            named_type: str | None = None,
-            composite_type: list[Any] | None = None,
-            index_type: FieldIndexType | None = None,
-    ) -> str: # pragma: no cover
+        self,
+        atom_type: str,
+        fields: list[str],
+        named_type: str | None = None,
+        composite_type: list[Any] | None = None,
+        index_type: FieldIndexType | None = None,
+    ) -> str:  # pragma: no cover
         raise NotImplementedError()
 
     def bulk_insert(self, documents: list[AtomT]) -> None:
@@ -733,5 +737,5 @@ class InMemoryDB(AtomDB):
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
 
-    def commit(self, **kwargs) -> None: # pragma: no cover
+    def commit(self, **kwargs) -> None:  # pragma: no cover
         raise NotImplementedError()
