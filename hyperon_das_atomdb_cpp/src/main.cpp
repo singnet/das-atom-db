@@ -16,7 +16,7 @@ int main(int argc, char const* argv[]) {
     auto node = db.add_node(node_params);
     cout << "Node handle: " << node.handle << endl;
     cout << "Node name: " << node.name << endl;
-    cout << "Node age: " << node.custom_attributes.get<int>("age").value_or(0) << endl;
+    cout << "Node age: " << node.custom_attributes.get<int>("age").value_or(-1) << endl;
 
     auto link_params =
         LinkParams("Friendship",
