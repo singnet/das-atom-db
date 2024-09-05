@@ -69,7 +69,6 @@ class MockRedis:
         return deleted_count
 
     def getdel(self, key):
-        print("Cccc")
 
         # Simulate the getdel method of Redis
         value = self.cache.get(key)
@@ -78,7 +77,6 @@ class MockRedis:
         return value
 
     def srem(self, key, *members):
-        print("Bbbb")
 
         # Simulate the srem method of Redis
         if key not in self.cache:
@@ -90,7 +88,6 @@ class MockRedis:
 
     def sscan(self, name, cursor=0, match=None, count=None):
         # Simulate the sscan method of Redis
-        print("Aaaa")
         key = name
         if key not in self.cache:
             return (0, [])

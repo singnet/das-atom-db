@@ -1,8 +1,5 @@
-from multiprocessing.managers import Value
-
 import pytest
 from tests.unit.fixtures import redis_mongo_db
-from tests.unit.test_database import _check_handle
 from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB, _HashableDocument, MongoDBIndex
 from unittest import mock
 
