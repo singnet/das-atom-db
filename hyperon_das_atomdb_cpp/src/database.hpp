@@ -1,6 +1,8 @@
 #ifndef _DATABASE_HPP
 #define _DATABASE_HPP
 
+#include <variant>
+
 #include "constants.hpp"
 #include "document_types.hpp"
 #include "exceptions.hpp"
@@ -9,6 +11,78 @@
 #include "utils/params.hpp"
 
 namespace atomdb {
+
+/**
+ * @brief Represents the parameters for an atom in the database.
+ *
+ * The AtomParams class encapsulates the parameters associated with an atom in the database.
+ * It provides a flexible structure for storing various attributes and properties of an atom,
+ * which can be used for creating, updating, and querying atoms within the database.
+ *
+ * This class is designed to be used in conjunction with other database classes and functions
+ * to manage the lifecycle of atoms, including their creation, retrieval, and modification.
+ *
+ * The AtomParams class supports a variety of data types for its parameters, allowing for
+ * complex and nested data structures. It is intended to provide a comprehensive and
+ * extensible way to handle atom parameters in a database context.
+ */
+class AtomParams {
+   public:
+    AtomParams() = default;
+    AtomParams(const std::string& type,
+               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+        : type(type) {
+        for (const auto& [key, value] : custom_attributes) {
+            this->custom_attributes.set(key, value);
+        }
+    }
+    AtomParams(const std::string& type,
+               const std::string& name,
+               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+        : AtomParams(type, custom_attributes) {
+        this->name = name;
+    }
+
+    std::string type;
+    std::string name;
+    Params custom_attributes = {};
+};
+
+class NodeParams : public AtomParams {
+   public:
+    NodeParams() = default;
+    NodeParams(const std::string& type,
+               const std::string& name,
+               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+        : AtomParams(type, name, custom_attributes) {
+        if (type.empty() || name.empty()) {
+            throw std::invalid_argument("Node type and name cannot be empty.");
+        }
+    }
+};
+
+class LinkParams : public AtomParams {
+   public:
+    LinkParams() = default;
+    LinkParams(const std::string& type,
+               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+        : AtomParams(type, custom_attributes) {
+        if (type.empty()) {
+            throw std::invalid_argument("Link type cannot be empty.");
+        }
+    }
+
+    void add_target(const NodeParams& node) { targets.push_back(node); }
+
+    void add_target(const LinkParams& link) {
+        if (link.targets.empty()) {
+            throw std::invalid_argument("Link targets cannot be empty.");
+        }
+        targets.push_back(link);
+    }
+
+    std::vector<std::variant<NodeParams, LinkParams>> targets = {};
+};
 
 class AtomDB {
    public:
@@ -274,19 +348,19 @@ class AtomDB {
 
     /**
      * @brief Adds a node to the database.
-     * @param node_params A Params object containing the parameters for the node.
+     * @param node_params A NodeParams object containing the parameters for the node.
      * @return Node object representing the created node.
      */
-    virtual Node add_node(const Params& node_params) = 0;
+    virtual Node add_node(const NodeParams& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
-     * @param link_params A Params object containing the parameters for the link.
+     * @param link_params A LinkParams object containing the parameters for the link.
      * @param toplevel A boolean indicating whether the link is a top-level link (default is true).
      * @return An optional Link object representing the created link. If the link could not be
      * created, the optional will contain std::nullopt.
      */
-    virtual opt<Link> add_link(const Params& link_params, bool toplevel = true) = 0;
+    virtual opt<Link> add_link(const LinkParams& link_params, bool toplevel = true) = 0;
 
     /**
      * @brief Reindexes the inverted pattern index according to the passed templates.
@@ -401,18 +475,18 @@ class AtomDB {
 
     /**
      * @brief Builds a node with the specified parameters.
-     * @param node_params A Params object containing the parameters for the node.
+     * @param node_params A NodeParams object containing the parameters for the node.
      * @return Node object representing the created node.
      */
-    Node _build_node(const Params& node_params);
+    Node _build_node(const NodeParams& node_params);
 
     /**
      * @brief Builds a link with the specified parameters.
-     * @param link_params A Params object containing the parameters for the link.
+     * @param link_params A LinkParams object containing the parameters for the link.
      * @param is_top_level A boolean indicating whether the link is a top-level link.
      * @return An optional Link object representing the constructed link.
      */
-    opt<Link> _build_link(const Params& link_params, bool is_top_level = true);
+    opt<Link> _build_link(const LinkParams& link_params, bool is_top_level = true);
 
     /**
      * @brief Retrieves an atom from the database using its handle.

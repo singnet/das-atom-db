@@ -277,7 +277,7 @@ void InMemoryDB::clear_database() {
 }
 
 //------------------------------------------------------------------------------
-Node InMemoryDB::add_node(const Params& node_params) {
+Node InMemoryDB::add_node(const NodeParams& node_params) {
     auto node = this->_build_node(node_params);
     this->db.node[node.handle] = node;
     this->_update_index(node);
@@ -285,7 +285,7 @@ Node InMemoryDB::add_node(const Params& node_params) {
 }
 
 //------------------------------------------------------------------------------
-opt<Link> InMemoryDB::add_link(const Params& link_params, bool toplevel) {
+opt<Link> InMemoryDB::add_link(const LinkParams& link_params, bool toplevel) {
     auto link = this->_build_link(link_params, toplevel);
     if (!link.has_value()) {
         return std::nullopt;

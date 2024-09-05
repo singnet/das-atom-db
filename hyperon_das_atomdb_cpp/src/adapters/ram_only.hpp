@@ -146,9 +146,9 @@ class InMemoryDB : public AtomDB {
 
     void clear_database() override;
 
-    Node add_node(const Params& node_params) override;
+    Node add_node(const NodeParams& node_params) override;
 
-    opt<Link> add_link(const Params& link_params, bool toplevel = true) override;
+    opt<Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
 
     void reindex(
         const std::unordered_map<std::string, std::vector<std::unordered_map<std::string, std::any>>>&

@@ -62,22 +62,26 @@ class Params : private ParamsMap {
      */
     template <typename T>
     opt<const T> get(const ParamKey& key) const {
-        if (this->contains(key)) {
-            return std::any_cast<T>(this->at(key));
+        auto it = this->find(key);
+        if (it != this->end()) {
+            try {
+                return std::any_cast<T>(it->second);
+            } catch (const std::bad_any_cast& e) {
+                if constexpr (std::is_same_v<T, std::string>) {
+                    return std::string(std::any_cast<const char*>(it->second));
+                }
+                throw e;
+            }
         }
         return std::nullopt;
     };
 
     /**
      * @brief Sets the value for the specified parameter.
-     * @tparam T The type of the value to be set.
      * @param key The parameter whose value is to be set.
      * @param value The value to be associated with the specified parameter.
      */
-    template <typename T>
-    void set(const ParamKey& key, T value) {
-        this->insert_or_assign(key, value);
-    };
+    void set(const ParamKey& key, std::any value) { this->insert_or_assign(key, value); };
 
     /**
      * @brief Removes and returns the value associated with the specified parameter key.
@@ -88,8 +92,9 @@ class Params : private ParamsMap {
      */
     template <typename T>
     opt<T> pop(const ParamKey& key) {
-        if (this->contains(key)) {
-            T value = std::move(std::any_cast<T>(this->at(key)));
+        auto temp_value = this->get<T>(key);
+        if (temp_value.has_value()) {
+            T value = std::move(temp_value.value());
             this->erase(key);
             return value;
         }

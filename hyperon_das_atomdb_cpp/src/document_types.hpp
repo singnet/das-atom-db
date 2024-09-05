@@ -22,12 +22,12 @@ class Atom {
          const std::string& handle,
          const std::string& composite_type_hash,
          const std::string& named_type,
-         const Params& extra_params = {})
+         const Params& custom_attributes = {})
         : id(id),
           handle(handle),
           composite_type_hash(composite_type_hash),
           named_type(named_type),
-          extra_params(extra_params) {
+          custom_attributes(custom_attributes) {
         if (id.empty()) {
             throw std::invalid_argument("Atom ID cannot be empty.");
         }
@@ -48,7 +48,7 @@ class Atom {
     std::string handle;
     std::string composite_type_hash;
     std::string named_type;
-    Params extra_params = {};
+    Params custom_attributes = {};
 };
 
 /**
@@ -66,9 +66,9 @@ class AtomType : public Atom {
              const std::string& composite_type_hash,
              const std::string& named_type,
              const std::string& named_type_hash,
-             const Params& extra_params = {})
+             const Params& custom_attributes = {})
         : named_type_hash(named_type_hash),
-          Atom(id, handle, composite_type_hash, named_type, extra_params) {
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (named_type_hash.empty()) {
             throw std::invalid_argument("Named type hash cannot be empty.");
         }
@@ -91,8 +91,8 @@ class Node : public Atom {
          const std::string& composite_type_hash,
          const std::string& named_type,
          const std::string& name,
-         const Params& extra_params = {})
-        : name(name), Atom(id, handle, composite_type_hash, named_type, extra_params) {
+         const Params& custom_attributes = {})
+        : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (name.empty()) {
             throw std::invalid_argument("Node name cannot be empty.");
         }
@@ -120,13 +120,13 @@ class Link : public Atom {
          const std::vector<std::string>& targets,
          bool is_top_level = true,
          std::map<std::string, std::string> keys = {},
-         const Params& extra_params = {})
+         const Params& custom_attributes = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_top_level(is_top_level),
           keys(keys),
-          Atom(id, handle, composite_type_hash, named_type, extra_params) {
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (composite_type.empty()) {
             throw std::invalid_argument("Composite type cannot be empty.");
         }

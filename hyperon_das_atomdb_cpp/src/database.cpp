@@ -54,7 +54,7 @@ const Atom AtomDB::_reformat_document(const Atom& document, const Params& params
                 }
             }
             Link link_copy = *link;
-            link_copy.extra_params.set(ParamsKeys::TARGETS_DOCUMENTS, targets_documents);
+            link_copy.custom_attributes.set(ParamsKeys::TARGETS_DOCUMENTS, targets_documents);
             return link_copy;
         }
     }
@@ -62,49 +62,47 @@ const Atom AtomDB::_reformat_document(const Atom& document, const Params& params
 }
 
 //------------------------------------------------------------------------------
-Node AtomDB::_build_node(const Params& node_params) {
-    auto node_params_copy = Params(node_params);
-    auto node_type = node_params_copy.pop<std::string>("type");
-    auto node_name = node_params_copy.pop<std::string>("name");
-    if (!node_type.has_value() || !node_name.has_value()) {
+Node AtomDB::_build_node(const NodeParams& node_params) {
+    const auto& node_type = node_params.type;
+    const auto& node_name = node_params.name;
+    if (node_type.empty() || node_name.empty()) {
         // TODO: log error ???
         throw std::invalid_argument("'type' and 'name' are required.");
     }
-    std::string handle = this->build_node_handle(node_type.value(), node_name.value());
-    std::string composite_type_hash = ExpressionHasher::named_type_hash(node_type.value());
-    Node node = Node(handle,               // id
-                     handle,               // handle
-                     composite_type_hash,  // composite_type_hash
-                     node_type.value(),    // named_type
-                     node_name.value(),    // name
-                     node_params_copy      // extra_params
+    std::string handle = this->build_node_handle(node_type, node_name);
+    std::string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
+    Node node = Node(handle,                        // id
+                     handle,                        // handle
+                     composite_type_hash,           // composite_type_hash
+                     node_type,                     // named_type
+                     node_name,                     // name
+                     node_params.custom_attributes  // custom_attributes
     );
     return node;
 }
 
 //------------------------------------------------------------------------------
-opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level) {
-    auto link_params_copy = Params(link_params);
-    auto link_type = link_params_copy.pop<std::string>("type");
-    auto targets = link_params_copy.pop<std::vector<Params>>("targets");
-    if (!link_type.has_value() || !targets.has_value()) {
+opt<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) {
+    const auto& link_type = link_params.type;
+    const auto& targets = link_params.targets;
+    if (link_type.empty() || targets.empty()) {
         // TODO: log error ???
         throw std::invalid_argument("'type' and 'targets' are required.");
     }
-    std::string link_type_hash = ExpressionHasher::named_type_hash(link_type.value());
+    std::string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};
     ListOfAny composite_type_list = {link_type_hash};
     StringList composite_type_elements = {link_type_hash};
     std::string atom_hash;
     std::string atom_handle;
-    for (const Params& target : targets.value()) {
-        if (!target.contains("targets")) {
-            auto node = this->add_node(target);
+    for (const auto& target : targets) {
+        if (auto node_params = std::get_if<NodeParams>(&target)) {
+            auto node = this->add_node(*node_params);
             atom_handle = node.id;
             atom_hash = node.composite_type_hash;
             composite_type_list.push_back(atom_hash);
-        } else {
-            auto link = this->add_link(target, false);
+        } else if (auto link_params = std::get_if<LinkParams>(&target)) {
+            auto link = this->add_link(*link_params, false);
             if (!link.has_value()) {
                 return std::nullopt;
             }
@@ -119,16 +117,16 @@ opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level) {
     std::string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
     std::string composite_type_hash = ExpressionHasher::composite_hash(composite_type_elements);
 
-    Link link = Link(handle,               // id
-                     handle,               // handle
-                     composite_type_hash,  // composite_type_hash
-                     link_type.value(),    // named_type
-                     composite_type_list,  // composite_type
-                     link_type_hash,       // named_type_hash
-                     target_handles,       // targets
-                     is_top_level,         // is_top_level
-                     {},                   // keys
-                     link_params_copy      // extra_params
+    Link link = Link(handle,                        // id
+                     handle,                        // handle
+                     composite_type_hash,           // composite_type_hash
+                     link_type,                     // named_type
+                     composite_type_list,           // composite_type
+                     link_type_hash,                // named_type_hash
+                     target_handles,                // targets
+                     is_top_level,                  // is_top_level
+                     {},                            // keys
+                     link_params.custom_attributes  // custom_attributes
     );
 
     uint n = 0;
