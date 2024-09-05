@@ -1,9 +1,6 @@
 from unittest import mock
-
 import pytest
-
 from hyperon_das_atomdb.database import AtomDB
-
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
