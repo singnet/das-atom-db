@@ -11,15 +11,6 @@ using namespace atomdb;
 // PUBLIC METHODS //////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-InMemoryDB::InMemoryDB() : db(Database()), all_named_types({}), named_type_table({}){};
-
-//------------------------------------------------------------------------------
-InMemoryDB::~InMemoryDB() {
-    this->all_named_types.clear();
-    this->named_type_table.clear();
-};
-
-//------------------------------------------------------------------------------
 std::string InMemoryDB::get_node_handle(const std::string& node_type,
                                         const std::string& node_name) const {
     auto node_handle = AtomDB::build_node_handle(node_type, node_name);
@@ -71,15 +62,15 @@ StringList InMemoryDB::get_atoms_by_field(
 std::pair<OptCursor, AtomList> InMemoryDB::get_atoms_by_index(
     const std::string& index_id,
     const std::vector<std::unordered_map<std::string, std::string>>& query,
-    int cursor = 0,
-    int chunk_size = 500) const {
+    int curso,
+    int chunk_size) const {
     throw std::runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
 StringList InMemoryDB::get_atoms_by_text_field(const std::string& text_value,
-                                               const std::string& field = "",
-                                               const std::string& text_index_id = "") const {
+                                               const std::string& field,
+                                               const std::string& text_index_id) const {
     throw std::runtime_error("Not implemented");
 }
 
@@ -90,7 +81,7 @@ StringList InMemoryDB::get_node_by_name_starting_with(const std::string& node_ty
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_all_nodes(const std::string& node_type, bool names = false) const {
+StringList InMemoryDB::get_all_nodes(const std::string& node_type, bool names) const {
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
     if (names) {
@@ -111,7 +102,7 @@ StringList InMemoryDB::get_all_nodes(const std::string& node_type, bool names = 
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, StringList> InMemoryDB::get_all_links(const std::string& link_type,
-                                                           const Params& params = {}) const {
+                                                           const Params& params) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link.named_type == link_type) {
@@ -164,7 +155,7 @@ bool InMemoryDB::is_ordered(const std::string& link_handle) const {
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
-    const std::string& atom_handle, const Params& params = {}) const {
+    const std::string& atom_handle, const Params& params) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
     return {params.get<int>(ParamsKeys::CURSOR), links};
@@ -172,7 +163,7 @@ std::pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(const std::string& atom_handle,
-                                                                    const Params& params = {}) const {
+                                                                    const Params& params) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
     AtomList atoms;
     for (const auto& link_handle : links) {
@@ -183,7 +174,7 @@ std::pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(const std::s
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(
-    const std::string& link_type, const StringList& target_handles, const Params& params = {}) const {
+    const std::string& link_type, const StringList& target_handles, const Params& params) const {
     if (link_type != WILDCARD &&
         std::find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         return {params.get<int>(ParamsKeys::CURSOR),
@@ -214,7 +205,7 @@ std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(
 
 //------------------------------------------------------------------------------
 std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const ListOfAny& _template, const Params& params = {}) const {
+    const ListOfAny& _template, const Params& params) const {
     auto template_hash = ExpressionHasher::composite_hash(_template);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
@@ -230,8 +221,8 @@ std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_temp
 }
 
 //------------------------------------------------------------------------------
-std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(
-    const std::string& link_type, const Params& params = {}) const {
+std::pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(const std::string& link_type,
+                                                                            const Params& params) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
@@ -257,17 +248,15 @@ opt<std::string> InMemoryDB::get_atom_type(const std::string& handle) const {
 
 //------------------------------------------------------------------------------
 std::unordered_map<std::string, std::any> InMemoryDB::get_atom_as_dict(const std::string& handle,
-                                                                       int arity = 0) const {
+                                                                       int arity) const {
     auto node = this->_get_node(handle);
     if (node.has_value()) {
-        return {{"handle", node->value().handle},
-                {"type", node->value().named_type},
-                {"name", node->value().name}};
+        return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
     }
     auto link = this->_get_link(handle);
     if (link.has_value()) {
-        return {{"handle", link->value().handle},
-                {"type", link->value().named_type},
+        return {{"handle", link->handle},
+                {"type", link->named_type},
                 {"targets", this->_build_targets_list(link.value())}};
     }
 }
@@ -288,18 +277,15 @@ void InMemoryDB::clear_database() {
 }
 
 //------------------------------------------------------------------------------
-opt<Node> InMemoryDB::add_node(const Params& node_params) {
+Node InMemoryDB::add_node(const Params& node_params) {
     auto node = this->_build_node(node_params);
-    if (!node.has_value()) {
-        return std::nullopt;
-    }
-    this->db.node[node.value().handle] = node.value();
-    this->_update_index(node.value());
+    this->db.node[node.handle] = node;
+    this->_update_index(node);
     return node;
 }
 
 //------------------------------------------------------------------------------
-opt<Link> InMemoryDB::add_link(const Params& link_params, bool toplevel = true) {
+opt<Link> InMemoryDB::add_link(const Params& link_params, bool toplevel) {
     auto link = this->_build_link(link_params, toplevel);
     if (!link.has_value()) {
         return std::nullopt;
@@ -340,9 +326,9 @@ void InMemoryDB::delete_atom(const std::string& handle) {
 //------------------------------------------------------------------------------
 std::string InMemoryDB::create_field_index(const std::string& atom_type,
                                            const StringList& fields,
-                                           const std::string& named_type = "",
-                                           const StringList& composite_type = {},
-                                           FieldIndexType index_type = FieldIndexType::BINARY_TREE) {
+                                           const std::string& named_type,
+                                           const StringList& composite_type,
+                                           FieldIndexType index_type) {
     throw std::runtime_error("Not implemented");
 }
 
@@ -386,12 +372,16 @@ void InMemoryDB::commit() { throw std::runtime_error("Not implemented"); }
 // PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-opt<const Atom&> InMemoryDB::_get_atom(const std::string& handle) const {
-    return this->_get_node(handle).value_or(this->_get_link(handle));
+opt<const Atom> InMemoryDB::_get_atom(const std::string& handle) const {
+    auto node = this->_get_node(handle);
+    if (node.has_value()) {
+        return node;
+    }
+    return this->_get_link(handle);
 }
 
 //------------------------------------------------------------------------------
-opt<const Node&> InMemoryDB::_get_node(const std::string& handle) const {
+opt<const Node> InMemoryDB::_get_node(const std::string& handle) const {
     auto it = this->db.node.find(handle);
     if (it != this->db.node.end()) {
         return it->second;
@@ -400,7 +390,7 @@ opt<const Node&> InMemoryDB::_get_node(const std::string& handle) const {
 }
 
 //------------------------------------------------------------------------------
-opt<const Link&> InMemoryDB::_get_link(const std::string& handle) const {
+opt<const Link> InMemoryDB::_get_link(const std::string& handle) const {
     auto it = this->db.link.find(handle);
     if (it != this->db.link.end()) {
         return it->second;
@@ -447,8 +437,7 @@ const std::string InMemoryDB::_build_atom_type_key_hash(const std::string& name)
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_atom_type(const std::string& atom_type_name,
-                                const std::string& atom_type = "Type") {
+void InMemoryDB::_add_atom_type(const std::string& atom_type_name, const std::string& atom_type) {
     if (this->all_named_types.find(atom_type_name) != this->all_named_types.end()) {
         return;
     }
@@ -498,15 +487,21 @@ const opt<StringList> InMemoryDB::_get_and_delete_outgoing_set(const std::string
 //------------------------------------------------------------------------------
 void InMemoryDB::_add_incoming_set(const std::string& key, const StringList& targets_hash) {
     for (const auto& target_hash : targets_hash) {
-        this->db.incoming_set[target_hash].insert(key);
+        auto it = this->db.incoming_set.find(target_hash);
+        if (it == this->db.incoming_set.end()) {
+            this->db.incoming_set[target_hash] = StringUnorderedSet({key});
+        } else {
+            it->second.insert(key);
+        }
     }
 }
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_incoming_set(const std::string& link_handle, const StringList& atoms_handle) {
     for (const auto& atom_handle : atoms_handle) {
-        if (this->db.incoming_set.find(atom_handle) != this->db.incoming_set.end()) {
-            this->db.incoming_set[atom_handle].erase(link_handle);
+        auto it = this->db.incoming_set.find(atom_handle);
+        if (it != this->db.incoming_set.end()) {
+            it->second.erase(link_handle);
         }
     }
 }
@@ -516,17 +511,17 @@ void InMemoryDB::_add_templates(const std::string& composite_type_hash,
                                 const std::string& named_type_hash,
                                 const std::string& key,
                                 const StringList& targets_hash) {
-    auto template_composite_type_hash = this->db.templates.find(composite_type_hash);
-    if (template_composite_type_hash != this->db.templates.end()) {
-        template_composite_type_hash->second.insert(std::make_tuple(key, targets_hash));
+    auto it = this->db.templates.find(composite_type_hash);
+    if (it != this->db.templates.end()) {
+        it->second.insert(std::make_tuple(key, targets_hash));
     } else {
         this->db.templates[composite_type_hash] =
             Database::TemplatesSet({std::make_tuple(key, targets_hash)});
     }
 
-    auto template_named_type_hash = this->db.templates.find(named_type_hash);
-    if (template_named_type_hash != this->db.templates.end()) {
-        template_named_type_hash->second.insert(std::make_tuple(key, targets_hash));
+    it = this->db.templates.find(named_type_hash);
+    if (it != this->db.templates.end()) {
+        it->second.insert(std::make_tuple(key, targets_hash));
     } else {
         this->db.templates[named_type_hash] =
             Database::PatternsSet({std::make_tuple(key, targets_hash)});
@@ -539,14 +534,14 @@ void InMemoryDB::_delete_templates(const Link& link_document, const StringList& 
     std::string named_type_hash = link_document.named_type_hash;
     std::string key = link_document.id;
 
-    auto template_composite_type_hash = this->db.templates.find(composite_type_hash);
-    if (template_composite_type_hash != this->db.templates.end()) {
-        template_composite_type_hash->second.erase(std::make_tuple(key, targets_hash));
+    auto it = this->db.templates.find(composite_type_hash);
+    if (it != this->db.templates.end()) {
+        it->second.erase(std::make_tuple(key, targets_hash));
     }
 
-    auto template_named_type_hash = this->db.templates.find(named_type_hash);
-    if (template_named_type_hash != this->db.templates.end()) {
-        template_named_type_hash->second.erase(std::make_tuple(key, targets_hash));
+    it = this->db.templates.find(named_type_hash);
+    if (it != this->db.templates.end()) {
+        it->second.erase(std::make_tuple(key, targets_hash));
     }
 }
 
@@ -558,7 +553,12 @@ void InMemoryDB::_add_patterns(const std::string& named_type_hash,
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
     for (const auto& pattern_key : pattern_keys) {
-        this->db.patterns[pattern_key].insert(std::make_tuple(key, targets_hash));
+        auto it = this->db.patterns.find(pattern_key);
+        if (it == this->db.patterns.end()) {
+            this->db.patterns[pattern_key] = Database::PatternsSet({std::make_tuple(key, targets_hash)});
+        } else {
+            it->second.insert(std::make_tuple(key, targets_hash));
+        }
     }
 }
 
@@ -566,15 +566,13 @@ void InMemoryDB::_add_patterns(const std::string& named_type_hash,
 void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
     std::string named_type_hash = link_document.named_type_hash;
     std::string key = link_document.id;
-
     auto hash_list = StringList({named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
-
     for (const auto& pattern_key : pattern_keys) {
-        auto pattern = this->db.patterns.find(pattern_key);
-        if (pattern != this->db.patterns.end()) {
-            pattern->second.erase(std::make_tuple(key, targets_hash));
+        auto it = this->db.patterns.find(pattern_key);
+        if (it != this->db.patterns.end()) {
+            it->second.erase(std::make_tuple(key, targets_hash));
         }
     }
 }

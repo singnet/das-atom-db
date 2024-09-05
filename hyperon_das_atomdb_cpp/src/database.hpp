@@ -275,10 +275,9 @@ class AtomDB {
     /**
      * @brief Adds a node to the database.
      * @param node_params A Params object containing the parameters for the node.
-     * @return An optional Node object representing the created node. If the node could not be
-     * created, the optional will contain std::nullopt.
+     * @return Node object representing the created node.
      */
-    virtual opt<Node> add_node(const Params& node_params) = 0;
+    virtual Node add_node(const Params& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
@@ -403,9 +402,9 @@ class AtomDB {
     /**
      * @brief Builds a node with the specified parameters.
      * @param node_params A Params object containing the parameters for the node.
-     * @return An optional Node object representing the created node.
+     * @return Node object representing the created node.
      */
-    opt<Node> _build_node(const Params& node_params);
+    Node _build_node(const Params& node_params);
 
     /**
      * @brief Builds a link with the specified parameters.
@@ -420,7 +419,7 @@ class AtomDB {
      * @param handle A string representing the handle of the atom to be retrieved.
      * @return An optional reference to the Atom object representing the retrieved atom.
      */
-    virtual opt<const Atom&> _get_atom(const std::string& handle) const = 0;
+    virtual opt<const Atom> _get_atom(const std::string& handle) const = 0;
 };
 }  // namespace atomdb
 

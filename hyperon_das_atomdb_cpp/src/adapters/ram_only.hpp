@@ -12,10 +12,20 @@ namespace atomdb {
  */
 class Database {
    public:
+    struct TupleHash {
+        auto operator()(const std::tuple<std::string, StringList>& t) const -> size_t {
+            size_t list_hash = 0;
+            for (const auto& str : std::get<1>(t)) {
+                list_hash ^= std::hash<std::string>{}(str);
+            }
+            return std::hash<std::string>{}(std::get<0>(t)) ^ list_hash;
+        }
+    };
+
     using Pattern = std::tuple<std::string, StringList>;
-    using PatternsSet = std::unordered_set<Pattern>;
+    using PatternsSet = std::unordered_set<Pattern, TupleHash>;
     using Template = std::tuple<std::string, StringList>;
-    using TemplatesSet = std::unordered_set<Template>;
+    using TemplatesSet = std::unordered_set<Template, TupleHash>;
 
     std::unordered_map<std::string, AtomType> atom_type;
     std::unordered_map<std::string, Node> node;
@@ -64,11 +74,7 @@ class Database {
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB() {
-        this->db = Database();
-        this->all_named_types = {};
-        this->named_type_table = {};
-    };
+    InMemoryDB(){};
     ~InMemoryDB() {
         this->all_named_types.clear();
         this->named_type_table.clear();
@@ -140,7 +146,7 @@ class InMemoryDB : public AtomDB {
 
     void clear_database() override;
 
-    opt<Node> add_node(const Params& node_params) override;
+    Node add_node(const Params& node_params) override;
 
     opt<Link> add_link(const Params& link_params, bool toplevel = true) override;
 
@@ -167,11 +173,11 @@ class InMemoryDB : public AtomDB {
     std::set<std::string> all_named_types;
     std::unordered_map<std::string, std::string> named_type_table;
 
-    opt<const Atom&> _get_atom(const std::string& handle) const override;
+    opt<const Atom> _get_atom(const std::string& handle) const override;
 
-    opt<const Node&> _get_node(const std::string& handle) const;
+    opt<const Node> _get_node(const std::string& handle) const;
 
-    opt<const Link&> _get_link(const std::string& handle) const;
+    opt<const Link> _get_link(const std::string& handle) const;
 
     opt<const Link> _get_and_delete_link(const std::string& link_handle);
 

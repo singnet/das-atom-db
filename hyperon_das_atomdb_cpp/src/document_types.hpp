@@ -17,6 +17,7 @@ namespace atomdb {
  */
 class Atom {
    public:
+    Atom() = default;
     Atom(const std::string& id,
          const std::string& handle,
          const std::string& composite_type_hash,
@@ -59,6 +60,7 @@ class Atom {
  */
 class AtomType : public Atom {
    public:
+    AtomType() = default;
     AtomType(const std::string& id,
              const std::string& handle,
              const std::string& composite_type_hash,
@@ -83,6 +85,7 @@ class AtomType : public Atom {
  */
 class Node : public Atom {
    public:
+    Node() = default;
     Node(const std::string& id,
          const std::string& handle,
          const std::string& composite_type_hash,
@@ -107,6 +110,7 @@ class Node : public Atom {
  */
 class Link : public Atom {
    public:
+    Link() = default;
     Link(const std::string& id,
          const std::string& handle,
          const std::string& composite_type_hash,

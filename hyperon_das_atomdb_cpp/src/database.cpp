@@ -62,7 +62,7 @@ const Atom AtomDB::_reformat_document(const Atom& document, const Params& params
 }
 
 //------------------------------------------------------------------------------
-opt<Node> AtomDB::_build_node(const Params& node_params) {
+Node AtomDB::_build_node(const Params& node_params) {
     auto node_params_copy = Params(node_params);
     auto node_type = node_params_copy.pop<std::string>("type");
     auto node_name = node_params_copy.pop<std::string>("name");
@@ -83,7 +83,7 @@ opt<Node> AtomDB::_build_node(const Params& node_params) {
 }
 
 //------------------------------------------------------------------------------
-opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level = true) {
+opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level) {
     auto link_params_copy = Params(link_params);
     auto link_type = link_params_copy.pop<std::string>("type");
     auto targets = link_params_copy.pop<std::vector<Params>>("targets");
@@ -100,11 +100,8 @@ opt<Link> AtomDB::_build_link(const Params& link_params, bool is_top_level = tru
     for (const Params& target : targets.value()) {
         if (!target.contains("targets")) {
             auto node = this->add_node(target);
-            if (!node.has_value()) {
-                return std::nullopt;
-            }
-            atom_handle = node.value().id;
-            atom_hash = node.value().composite_type_hash;
+            atom_handle = node.id;
+            atom_hash = node.composite_type_hash;
             composite_type_list.push_back(atom_hash);
         } else {
             auto link = this->add_link(target, false);
