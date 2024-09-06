@@ -8,7 +8,7 @@ format:
 		| xargs clang-format -verbose -style=file -i
 
 build: clean
-	@mkdir -p build && cd build && cmake .. && make
+	@mkdir -p build && cd build && cmake -G Ninja .. && ninja
 
 clean:
 	@rm -rf build/*
