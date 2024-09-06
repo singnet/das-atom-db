@@ -18,6 +18,25 @@ int main(int argc, char const* argv[]) {
     cout << "Node name: " << node.name << endl;
     cout << "Node age: " << node.custom_attributes.get<int>("age").value_or(-1) << endl;
 
+    /*
+    Equivalent in python:
+    link_params = {
+        "type": "Friendship",
+        "since": "2021-01-01",
+        "location": "New York",
+        "targets": [
+            { "type": "Person", "name": "Jane Doe" },            # a Person node
+            { "type": "Person", "name": "Samuel L. Jackson" },   # another Person node
+            {
+                "type": "Fellowship",                            # a link as a target of Friendship
+                "targets": [
+                    { "type": "Person", "name": "Jane Doe" },    # a Person node as a target of Fellowship
+                    { "type": "Person", "name": "Michael Douglas" }  # another Person node as a target of Fellowship
+                ]
+            }
+        ]
+    }
+    */
     auto link_params =
         LinkParams("Friendship",
                    /*custom_attributes*/ {{"since", "2021-01-01"}, {"location", "New York"}});
