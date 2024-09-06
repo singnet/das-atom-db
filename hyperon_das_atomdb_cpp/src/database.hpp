@@ -32,19 +32,15 @@ class AtomParams {
     AtomParams(const std::string& type,
                const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
         : type(type) {
+        if (type.empty()) {
+            throw std::invalid_argument("'type' cannot be empty.");
+        }
         for (const auto& [key, value] : custom_attributes) {
             this->custom_attributes.set(key, value);
         }
     }
-    AtomParams(const std::string& type,
-               const std::string& name,
-               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
-        : AtomParams(type, custom_attributes) {
-        this->name = name;
-    }
 
     std::string type;
-    std::string name;
     Params custom_attributes = {};
 };
 
@@ -54,11 +50,13 @@ class NodeParams : public AtomParams {
     NodeParams(const std::string& type,
                const std::string& name,
                const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
-        : AtomParams(type, name, custom_attributes) {
-        if (type.empty() || name.empty()) {
-            throw std::invalid_argument("Node type and name cannot be empty.");
+        : name(name), AtomParams(type, custom_attributes) {
+        if (name.empty()) {
+            throw std::invalid_argument("'name' cannot be empty.");
         }
     }
+
+    std::string name;
 };
 
 class LinkParams : public AtomParams {
