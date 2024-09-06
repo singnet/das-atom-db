@@ -46,11 +46,31 @@ int main(int argc, char const* argv[]) {
         ]
     }
     */
+
+    auto link_params = LinkParams(
+        "Friendship",  // type
+        {  // targets
+            NodeParams("Person", "Jane Doe"),  // type and name
+            NodeParams("Person", "Samuel L. Jackson"),
+            LinkParams(
+                "Fellowship",  // type
+                {  // targets
+                    NodeParams("Person", "Jane Doe"),
+                    NodeParams("Person", "Michael Douglas")
+                }
+            )
+        },
+        {{"since", "2021-01-01"}, {"location", "New York"}}  // custom attributes
+    );
     
-    // Initialize link
-    auto link_params =
-        LinkParams("Friendship",
-                   /*custom_attributes*/ {{"since", "2021-01-01"}, {"location", "New York"}});
+    /* Another way to do the same as above
+     * targets and custom attributes can be added after initialization
+    
+    auto link_params = LinkParams( // Initialize the link
+        "Friendship",  // type
+        {{"since", "2021-01-01"}}  // custom attributes
+    );
+    link_params.custom_attributes.set("location", "New York");  // Add a custom attribute
     
     // Adding 2 Person Nodes as targets
     link_params.add_target(NodeParams("Person", "Jane Doe"));
@@ -61,6 +81,7 @@ int main(int argc, char const* argv[]) {
     link_as_target.add_target(NodeParams("Person", "Jane Doe")); // target of Fellowship
     link_as_target.add_target(NodeParams("Person", "Michael Douglas")); // target of Fellowship
     link_params.add_target(link_as_target);
+    */
     
     // Adding the link to the database
     auto opt_link = db.add_link(link_params);

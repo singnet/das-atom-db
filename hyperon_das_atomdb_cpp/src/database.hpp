@@ -12,25 +12,12 @@
 
 namespace atomdb {
 
-/**
- * @brief Represents the parameters for an atom in the database.
- *
- * The AtomParams class encapsulates the parameters associated with an atom in the database.
- * It provides a flexible structure for storing various attributes and properties of an atom,
- * which can be used for creating, updating, and querying atoms within the database.
- *
- * This class is designed to be used in conjunction with other database classes and functions
- * to manage the lifecycle of atoms, including their creation, retrieval, and modification.
- *
- * The AtomParams class supports a variety of data types for its parameters, allowing for
- * complex and nested data structures. It is intended to provide a comprehensive and
- * extensible way to handle atom parameters in a database context.
- */
 class AtomParams {
    public:
+    using CustomAttributesInitializer = std::vector<std::pair<std::string, std::any>>;
+
     AtomParams() = default;
-    AtomParams(const std::string& type,
-               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+    AtomParams(const std::string& type, const CustomAttributesInitializer& custom_attributes = {})
         : type(type) {
         if (type.empty()) {
             throw std::invalid_argument("'type' cannot be empty.");
@@ -49,7 +36,7 @@ class NodeParams : public AtomParams {
     NodeParams() = default;
     NodeParams(const std::string& type,
                const std::string& name,
-               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
+               const CustomAttributesInitializer& custom_attributes = {})
         : name(name), AtomParams(type, custom_attributes) {
         if (name.empty()) {
             throw std::invalid_argument("'name' cannot be empty.");
@@ -61,12 +48,24 @@ class NodeParams : public AtomParams {
 
 class LinkParams : public AtomParams {
    public:
+    using Targets = std::vector<std::variant<NodeParams, LinkParams>>;
+
     LinkParams() = default;
+    LinkParams(const std::string& type, const CustomAttributesInitializer& custom_attributes = {})
+        : AtomParams(type, custom_attributes) {}
     LinkParams(const std::string& type,
-               const std::vector<std::pair<std::string, std::any>>& custom_attributes = {})
-        : AtomParams(type, custom_attributes) {
-        if (type.empty()) {
-            throw std::invalid_argument("Link type cannot be empty.");
+               const Targets& targets,
+               const CustomAttributesInitializer& custom_attributes = {})
+        : LinkParams(type, custom_attributes) {
+        if (targets.empty()) {
+            throw std::invalid_argument("'targets' cannot be empty.");
+        }
+        for (const auto& target : targets) {
+            if (std::holds_alternative<NodeParams>(target)) {
+                add_target(std::get<NodeParams>(target));
+            } else {
+                add_target(std::get<LinkParams>(target));
+            }
         }
     }
 
@@ -79,7 +78,7 @@ class LinkParams : public AtomParams {
         targets.push_back(link);
     }
 
-    std::vector<std::variant<NodeParams, LinkParams>> targets = {};
+    Targets targets = {};
 };
 
 class AtomDB {
