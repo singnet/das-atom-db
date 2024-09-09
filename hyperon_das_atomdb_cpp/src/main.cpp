@@ -47,7 +47,7 @@ int main(int argc, char const* argv[]) {
 
     auto link_params = LinkParams(
         "Friendship",  // type
-        {  // targets
+        {  // targets - a list of NodeParams and LinkParams
             NodeParams("Person", "John Doe"),  // type and name
             NodeParams("Person", "Samuel L. Jackson"),
             LinkParams(
