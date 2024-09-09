@@ -9,18 +9,24 @@ using namespace atomdb;
 
 int main(int argc, char const* argv[]) {
     InMemoryDB db;
+
+    // Adding a Node
     auto node_params = NodeParams(
-        /*type*/ "Person",
-        /*name*/ "John Doe",
-        /*custom_attributes*/ {{"gender", "male"}});
-    node_params.custom_attributes.set("age", 42);  // custom attribute can be set after initialization
+        "Person", // type
+        "John Doe", // name
+        {{"gender", "male"}} // custom attributes
+    );
+    node_params.custom_attributes.set("age", 42); // custom attribute can be set after initialization
+
     auto node = db.add_node(node_params);
+    
     cout << "Node handle: " << node.handle << endl;
     cout << "Node name: " << node.name << endl;
     cout << "Node age: " << node.custom_attributes.get<int>("age").value_or(-1) << endl;
 
+    // Adding a Link
     /*
-    Equivalent in python:
+    Equivalent in Python for the C++ code below:
     link_params = {
         "type": "Friendship",
         "since": "2021-01-01",
@@ -46,19 +52,23 @@ int main(int argc, char const* argv[]) {
     */
 
     auto link_params = LinkParams(
-        "Friendship",  // type
-        {  // targets - a list of NodeParams and LinkParams
+        "Friendship", // type
+        {   // targets - a list of NodeParams and LinkParams
             NodeParams("Person", "John Doe"),  // type and name
             NodeParams("Person", "Samuel L. Jackson"),
             LinkParams(
-                "Fellowship",  // type
-                {  // targets
+                "Fellowship", // type
+                {   // targets
                     NodeParams("Person", "Jane Doe"),
                     NodeParams("Person", "Michael Douglas")
                 }
             )
         },
-        {{"since", "2021-01-01"}, {"location", "New York"}}  // custom attributes
+        {   // custom attributes - a list of key-value pairs,
+            // where the key is a string and the value can be any type
+            {"since", "2021-01-01"},
+            {"location", "New York"}
+        }
     );
     
     /* Another way to do the same as above
