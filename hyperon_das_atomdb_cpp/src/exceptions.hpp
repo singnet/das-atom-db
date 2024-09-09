@@ -4,30 +4,31 @@
 #include <exception>
 #include <string>
 
+using namespace std;
+
 namespace atomdb {
 
-class AtomDoesNotExist : public std::exception {
+class AtomDoesNotExist : public exception {
    public:
-    AtomDoesNotExist(const std::string& message, const std::string details)
-        : message(message), details(details) {}
+    AtomDoesNotExist(const string& message, const string details) : message(message), details(details) {}
 
     const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
    private:
-    std::string message;
-    std::string details;
+    string message;
+    string details;
 };
 
-class InvalidOperationException : public std::exception {
+class InvalidOperationException : public exception {
    public:
-    InvalidOperationException(const std::string& message, const std::string details)
+    InvalidOperationException(const string& message, const string details)
         : message(message), details(details) {}
 
     const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
    private:
-    std::string message;
-    std::string details;
+    string message;
+    string details;
 };
 
 }  // namespace atomdb

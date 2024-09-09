@@ -7,6 +7,8 @@
 
 #include "utils/params.hpp"
 
+using namespace std;
+
 namespace atomdb {
 
 /**
@@ -18,10 +20,10 @@ namespace atomdb {
 class Atom {
    public:
     Atom() = default;
-    Atom(const std::string& id,
-         const std::string& handle,
-         const std::string& composite_type_hash,
-         const std::string& named_type,
+    Atom(const string& id,
+         const string& handle,
+         const string& composite_type_hash,
+         const string& named_type,
          const Params& custom_attributes = {})
         : id(id),
           handle(handle),
@@ -29,25 +31,25 @@ class Atom {
           named_type(named_type),
           custom_attributes(custom_attributes) {
         if (id.empty()) {
-            throw std::invalid_argument("Atom ID cannot be empty.");
+            throw invalid_argument("Atom ID cannot be empty.");
         }
         if (handle.empty()) {
-            throw std::invalid_argument("Atom handle cannot be empty.");
+            throw invalid_argument("Atom handle cannot be empty.");
         }
         if (composite_type_hash.empty()) {
-            throw std::invalid_argument("Composite type hash cannot be empty.");
+            throw invalid_argument("Composite type hash cannot be empty.");
         }
         if (named_type.empty()) {
-            throw std::invalid_argument("Named type cannot be empty.");
+            throw invalid_argument("Named type cannot be empty.");
         }
     }
 
     virtual ~Atom() = default;
 
-    std::string id;
-    std::string handle;
-    std::string composite_type_hash;
-    std::string named_type;
+    string id;
+    string handle;
+    string composite_type_hash;
+    string named_type;
     Params custom_attributes = {};
 };
 
@@ -61,20 +63,20 @@ class Atom {
 class AtomType : public Atom {
    public:
     AtomType() = default;
-    AtomType(const std::string& id,
-             const std::string& handle,
-             const std::string& composite_type_hash,
-             const std::string& named_type,
-             const std::string& named_type_hash,
+    AtomType(const string& id,
+             const string& handle,
+             const string& composite_type_hash,
+             const string& named_type,
+             const string& named_type_hash,
              const Params& custom_attributes = {})
         : named_type_hash(named_type_hash),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (named_type_hash.empty()) {
-            throw std::invalid_argument("Named type hash cannot be empty.");
+            throw invalid_argument("Named type hash cannot be empty.");
         }
     }
 
-    std::string named_type_hash;
+    string named_type_hash;
 };
 
 /**
@@ -86,19 +88,19 @@ class AtomType : public Atom {
 class Node : public Atom {
    public:
     Node() = default;
-    Node(const std::string& id,
-         const std::string& handle,
-         const std::string& composite_type_hash,
-         const std::string& named_type,
-         const std::string& name,
+    Node(const string& id,
+         const string& handle,
+         const string& composite_type_hash,
+         const string& named_type,
+         const string& name,
          const Params& custom_attributes = {})
         : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (name.empty()) {
-            throw std::invalid_argument("Node name cannot be empty.");
+            throw invalid_argument("Node name cannot be empty.");
         }
     }
 
-    std::string name;
+    string name;
 };
 
 /**
@@ -111,15 +113,15 @@ class Node : public Atom {
 class Link : public Atom {
    public:
     Link() = default;
-    Link(const std::string& id,
-         const std::string& handle,
-         const std::string& composite_type_hash,
-         const std::string& named_type,
+    Link(const string& id,
+         const string& handle,
+         const string& composite_type_hash,
+         const string& named_type,
          const ListOfAny& composite_type,
-         const std::string& named_type_hash,
-         const std::vector<std::string>& targets,
+         const string& named_type_hash,
+         const vector<string>& targets,
          bool is_top_level = true,
-         std::map<std::string, std::string> keys = {},
+         map<string, string> keys = {},
          const Params& custom_attributes = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
@@ -128,32 +130,32 @@ class Link : public Atom {
           keys(keys),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (composite_type.empty()) {
-            throw std::invalid_argument("Composite type cannot be empty.");
+            throw invalid_argument("Composite type cannot be empty.");
         }
         if (named_type_hash.empty()) {
-            throw std::invalid_argument("Named type hash cannot be empty.");
+            throw invalid_argument("Named type hash cannot be empty.");
         }
         if (targets.empty()) {
-            throw std::invalid_argument("Link targets cannot be empty.");
+            throw invalid_argument("Link targets cannot be empty.");
         }
     }
 
     /**
      * `composite_type` is designed to hold a list of elements, where each element can either be a
-     * `std::string` or another list of the same type, allowing multiple levels of nesting.
+     * `string` or another list of the same type, allowing multiple levels of nesting.
      */
     ListOfAny composite_type;
 
-    std::string named_type_hash;
-    std::vector<std::string> targets;
+    string named_type_hash;
+    vector<string> targets;
     bool is_top_level = true;
-    std::map<std::string, std::string> keys = {};
+    map<string, string> keys = {};
 };
 
-using AtomList = std::vector<Atom>;
-using AtomTypeList = std::vector<AtomType>;
-using NodeList = std::vector<Node>;
-using LinkList = std::vector<Link>;
+using AtomList = vector<Atom>;
+using AtomTypeList = vector<AtomType>;
+using NodeList = vector<Node>;
+using LinkList = vector<Link>;
 
 }  // namespace atomdb
 

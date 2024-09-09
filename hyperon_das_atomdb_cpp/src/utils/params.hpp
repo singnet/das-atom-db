@@ -3,11 +3,13 @@
 
 #include "type_aliases.hpp"
 
+using namespace std;
+
 namespace atomdb {
 
-using ParamKey = std::string;
-using ParamValue = std::any;
-using ParamsMap = std::unordered_map<ParamKey, ParamValue>;
+using ParamKey = string;
+using ParamValue = any;
+using ParamsMap = unordered_map<ParamKey, ParamValue>;
 
 /**
  * @brief Namespace containing parameters keys.
@@ -65,15 +67,15 @@ class Params : private ParamsMap {
         auto it = this->find(key);
         if (it != this->end()) {
             try {
-                return std::any_cast<T>(it->second);
-            } catch (const std::bad_any_cast& e) {
-                if constexpr (std::is_same_v<T, std::string>) {
-                    return std::string(std::any_cast<const char*>(it->second));
+                return any_cast<T>(it->second);
+            } catch (const bad_any_cast& e) {
+                if constexpr (is_same_v<T, string>) {
+                    return string(any_cast<const char*>(it->second));
                 }
                 throw e;
             }
         }
-        return std::nullopt;
+        return nullopt;
     };
 
     /**
@@ -81,7 +83,7 @@ class Params : private ParamsMap {
      * @param key The parameter whose value is to be set.
      * @param value The value to be associated with the specified parameter.
      */
-    void set(const ParamKey& key, std::any value) { this->insert_or_assign(key, value); };
+    void set(const ParamKey& key, any value) { this->insert_or_assign(key, value); };
 
     /**
      * @brief Removes and returns the value associated with the specified parameter key.
@@ -94,11 +96,11 @@ class Params : private ParamsMap {
     opt<T> pop(const ParamKey& key) {
         auto temp_value = this->get<T>(key);
         if (temp_value.has_value()) {
-            T value = std::move(temp_value.value());
+            T value = move(temp_value.value());
             this->erase(key);
             return value;
         }
-        return std::nullopt;
+        return nullopt;
     };
 };
 

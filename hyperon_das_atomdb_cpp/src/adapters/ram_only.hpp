@@ -5,6 +5,8 @@
 #include "document_types.hpp"
 #include "type_aliases.hpp"
 
+using namespace std;
+
 namespace atomdb {
 
 /**
@@ -13,27 +15,27 @@ namespace atomdb {
 class Database {
    public:
     struct TupleHash {
-        auto operator()(const std::tuple<std::string, StringList>& t) const -> size_t {
+        auto operator()(const tuple<string, StringList>& t) const -> size_t {
             size_t list_hash = 0;
-            for (const auto& str : std::get<1>(t)) {
-                list_hash ^= std::hash<std::string>{}(str);
+            for (const auto& str : get<1>(t)) {
+                list_hash ^= hash<string>{}(str);
             }
-            return std::hash<std::string>{}(std::get<0>(t)) ^ list_hash;
+            return hash<string>{}(get<0>(t)) ^ list_hash;
         }
     };
 
-    using Pattern = std::tuple<std::string, StringList>;
-    using PatternsSet = std::unordered_set<Pattern, TupleHash>;
-    using Template = std::tuple<std::string, StringList>;
-    using TemplatesSet = std::unordered_set<Template, TupleHash>;
+    using Pattern = tuple<string, StringList>;
+    using PatternsSet = unordered_set<Pattern, TupleHash>;
+    using Template = tuple<string, StringList>;
+    using TemplatesSet = unordered_set<Template, TupleHash>;
 
-    std::unordered_map<std::string, AtomType> atom_type;
-    std::unordered_map<std::string, Node> node;
-    std::unordered_map<std::string, Link> link;
-    std::unordered_map<std::string, StringList> outgoing_set;
-    std::unordered_map<std::string, StringUnorderedSet> incoming_set;
-    std::unordered_map<std::string, PatternsSet> patterns;
-    std::unordered_map<std::string, TemplatesSet> templates;
+    unordered_map<string, AtomType> atom_type;
+    unordered_map<string, Node> node;
+    unordered_map<string, Link> link;
+    unordered_map<string, StringList> outgoing_set;
+    unordered_map<string, StringUnorderedSet> incoming_set;
+    unordered_map<string, PatternsSet> patterns;
+    unordered_map<string, TemplatesSet> templates;
 
     Database()
         : atom_type({}),
@@ -80,69 +82,63 @@ class InMemoryDB : public AtomDB {
         this->named_type_table.clear();
     };
 
-    std::string get_node_handle(const std::string& node_type,
-                                const std::string& node_name) const override;
+    string get_node_handle(const string& node_type, const string& node_name) const override;
 
-    std::string get_node_name(const std::string& node_handle) const override;
+    string get_node_name(const string& node_handle) const override;
 
-    std::string get_node_type(const std::string& node_handle) const override;
+    string get_node_type(const string& node_handle) const override;
 
-    StringList get_node_by_name(const std::string& node_type,
-                                const std::string& substring) const override;
+    StringList get_node_by_name(const string& node_type, const string& substring) const override;
 
-    StringList get_atoms_by_field(
-        const std::vector<std::unordered_map<std::string, std::string>>& query) const override;
+    StringList get_atoms_by_field(const vector<unordered_map<string, string>>& query) const override;
 
-    std::pair<OptCursor, AtomList> get_atoms_by_index(
-        const std::string& index_id,
-        const std::vector<std::unordered_map<std::string, std::string>>& query,
-        int cursor = 0,
-        int chunk_size = 500) const override;
+    pair<OptCursor, AtomList> get_atoms_by_index(const string& index_id,
+                                                 const vector<unordered_map<string, string>>& query,
+                                                 int cursor = 0,
+                                                 int chunk_size = 500) const override;
 
-    StringList get_atoms_by_text_field(const std::string& text_value,
-                                       const std::string& field = "",
-                                       const std::string& text_index_id = "") const override;
+    StringList get_atoms_by_text_field(const string& text_value,
+                                       const string& field = "",
+                                       const string& text_index_id = "") const override;
 
-    StringList get_node_by_name_starting_with(const std::string& node_type,
-                                              const std::string& startswith) const override;
+    StringList get_node_by_name_starting_with(const string& node_type,
+                                              const string& startswith) const override;
 
-    StringList get_all_nodes(const std::string& node_type, bool names = false) const override;
+    StringList get_all_nodes(const string& node_type, bool names = false) const override;
 
-    std::pair<OptCursor, StringList> get_all_links(const std::string& link_type,
-                                                   const Params& params = {}) const override;
+    pair<OptCursor, StringList> get_all_links(const string& link_type,
+                                              const Params& params = {}) const override;
 
-    std::string get_link_handle(const std::string& link_type,
-                                const StringList& target_handles) const override;
+    string get_link_handle(const string& link_type, const StringList& target_handles) const override;
 
-    std::string get_link_type(const std::string& link_handle) const override;
+    string get_link_type(const string& link_handle) const override;
 
-    StringList get_link_targets(const std::string& link_handle) const override;
+    StringList get_link_targets(const string& link_handle) const override;
 
-    bool is_ordered(const std::string& link_handle) const override;
+    bool is_ordered(const string& link_handle) const override;
 
-    std::pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
-        const std::string& atom_handle, const Params& params = {}) const override;
+    pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
+        const string& atom_handle, const Params& params = {}) const override;
 
-    std::pair<OptCursor, AtomList> get_incoming_links_atoms(const std::string& atom_handle,
-                                                            const Params& params = {}) const override;
+    pair<OptCursor, AtomList> get_incoming_links_atoms(const string& atom_handle,
+                                                       const Params& params = {}) const override;
 
-    std::pair<OptCursor, Pattern_or_Template_List> get_matched_links(
-        const std::string& link_type,
+    pair<OptCursor, Pattern_or_Template_List> get_matched_links(
+        const string& link_type,
         const StringList& target_handles,
         const Params& params = {}) const override;
 
-    std::pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
+    pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template, const Params& params = {}) const override;
 
-    std::pair<OptCursor, Pattern_or_Template_List> get_matched_type(
-        const std::string& link_type, const Params& params = {}) const override;
+    pair<OptCursor, Pattern_or_Template_List> get_matched_type(const string& link_type,
+                                                               const Params& params = {}) const override;
 
-    opt<std::string> get_atom_type(const std::string& handle) const override;
+    opt<string> get_atom_type(const string& handle) const override;
 
-    std::unordered_map<std::string, std::any> get_atom_as_dict(const std::string& handle,
-                                                               int arity = 0) const override;
+    unordered_map<string, any> get_atom_as_dict(const string& handle, int arity = 0) const override;
 
-    std::unordered_map<std::string, int> count_atoms() const override;
+    unordered_map<string, int> count_atoms() const override;
 
     void clear_database() override;
 
@@ -150,44 +146,43 @@ class InMemoryDB : public AtomDB {
 
     opt<Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
 
-    void reindex(
-        const std::unordered_map<std::string, std::vector<std::unordered_map<std::string, std::any>>>&
-            pattern_index_templates) override;
+    void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
+                     pattern_index_templates) override;
 
-    void delete_atom(const std::string& handle) override;
+    void delete_atom(const string& handle) override;
 
-    std::string create_field_index(const std::string& atom_type,
-                                   const StringList& fields,
-                                   const std::string& named_type = "",
-                                   const StringList& composite_type = {},
-                                   FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
+    string create_field_index(const string& atom_type,
+                              const StringList& fields,
+                              const string& named_type = "",
+                              const StringList& composite_type = {},
+                              FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
-    void bulk_insert(const std::vector<Atom>& documents) override;
+    void bulk_insert(const vector<Atom>& documents) override;
 
-    std::vector<Atom> retrieve_all_atoms() const override;
+    vector<Atom> retrieve_all_atoms() const override;
 
     void commit() override;
 
    protected:
     Database db;
-    std::set<std::string> all_named_types;
-    std::unordered_map<std::string, std::string> named_type_table;
+    set<string> all_named_types;
+    unordered_map<string, string> named_type_table;
 
-    opt<const Atom> _get_atom(const std::string& handle) const override;
+    opt<const Atom> _get_atom(const string& handle) const override;
 
-    opt<const Node> _get_node(const std::string& handle) const;
+    opt<const Node> _get_node(const string& handle) const;
 
-    opt<const Link> _get_link(const std::string& handle) const;
+    opt<const Link> _get_link(const string& handle) const;
 
-    opt<const Link> _get_and_delete_link(const std::string& link_handle);
+    opt<const Link> _get_and_delete_link(const string& link_handle);
 
     /**
      * @brief Builds a named type hash template from the given template.
-     * @param _template A vector of elements of type std::any representing the template.
-     * @return A vector of elements of type std::any representing the named type hash template.
+     * @param _template A vector of elements of type any representing the template.
+     * @return A vector of elements of type any representing the named type hash template.
      *
      * Both `_template` and the returned vector are expected to contain elements of type
-     * `std::string` or `std::vector<std::string>`, allowing multiple levels of nesting.
+     * `string` or `vector<string>`, allowing multiple levels of nesting.
      * Example:
      *
      * @code
@@ -213,40 +208,38 @@ class InMemoryDB : public AtomDB {
      */
     const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
 
-    const std::string _build_named_type_hash_template(const std::string& _template);
+    const string _build_named_type_hash_template(const string& _template);
 
-    static const std::string _build_atom_type_key_hash(const std::string& name);
+    static const string _build_atom_type_key_hash(const string& name);
 
-    void _add_atom_type(const std::string& atom_type_name, const std::string& atom_type = "Type");
+    void _add_atom_type(const string& atom_type_name, const string& atom_type = "Type");
 
-    void _delete_atom_type(const std::string& name);
+    void _delete_atom_type(const string& name);
 
-    void _add_outgoing_set(const std::string& key, const StringList& targets_hash);
+    void _add_outgoing_set(const string& key, const StringList& targets_hash);
 
-    const opt<StringList> _get_and_delete_outgoing_set(const std::string& handle);
+    const opt<StringList> _get_and_delete_outgoing_set(const string& handle);
 
-    void _add_incoming_set(const std::string& key, const StringList& targets_hash);
+    void _add_incoming_set(const string& key, const StringList& targets_hash);
 
-    void _delete_incoming_set(const std::string& link_handle, const StringList& atoms_handle);
+    void _delete_incoming_set(const string& link_handle, const StringList& atoms_handle);
 
-    void _add_templates(const std::string& composite_type_hash,
-                        const std::string& named_type_hash,
-                        const std::string& key,
+    void _add_templates(const string& composite_type_hash,
+                        const string& named_type_hash,
+                        const string& key,
                         const StringList& targets_hash);
 
     void _delete_templates(const Link& link_document, const StringList& targets_hash);
 
-    void _add_patterns(const std::string& named_type_hash,
-                       const std::string& key,
-                       const StringList& targets_hash);
+    void _add_patterns(const string& named_type_hash, const string& key, const StringList& targets_hash);
 
     void _delete_patterns(const Link& link_document, const StringList& targets_hash);
 
-    void _delete_link_and_update_index(const std::string& link_handle);
+    void _delete_link_and_update_index(const string& link_handle);
 
     const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
 
-    static const std::vector<std::string> _build_targets_list(const Link& link);
+    static const vector<string> _build_targets_list(const Link& link);
 
     void _delete_atom_index(const Atom& atom);
 
@@ -255,7 +248,7 @@ class InMemoryDB : public AtomDB {
     void _update_index(const Atom& atom, const Params& params = {});
 
     // TODO: not used anywhere in the code - remove?
-    // void _update_atom_indexes(const std::vector<Atom>& documents, const Params& params = {}) {
+    // void _update_atom_indexes(const vector<Atom>& documents, const Params& params = {}) {
     //     for (const auto& document : documents) {
     //         this->_update_index(document, params);
     //     }

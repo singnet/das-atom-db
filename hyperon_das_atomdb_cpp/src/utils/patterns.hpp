@@ -6,10 +6,12 @@
 #include "constants.hpp"
 #include "expression_hasher.hpp"
 
+using namespace std;
+
 namespace atomdb {
 
-using IntMatrix = std::vector<std::vector<int>>;
-using StringMatrix = std::vector<std::vector<std::string>>;
+using IntMatrix = vector<vector<int>>;
+using StringMatrix = vector<vector<string>>;
 
 /**
  * @brief Generates a binary matrix of the given size.
@@ -28,11 +30,11 @@ IntMatrix generate_binary_matrix(int numbers) {
     IntMatrix smaller_matrix = generate_binary_matrix(numbers - 1);
     IntMatrix new_matrix;
     for (const auto& matrix : smaller_matrix) {
-        std::vector<int> row_with_zero = matrix;
+        vector<int> row_with_zero = matrix;
         row_with_zero.push_back(0);
         new_matrix.push_back(row_with_zero);
 
-        std::vector<int> row_with_one = matrix;
+        vector<int> row_with_one = matrix;
         row_with_one.push_back(1);
         new_matrix.push_back(row_with_one);
     }
@@ -86,7 +88,7 @@ StringList build_pattern_keys(const StringList& hash_list) {
 
     StringList keys;
     for (const auto& matrix_item : result_matrix) {
-        std::string type_hash = matrix_item[0];
+        string type_hash = matrix_item[0];
         StringList elements(matrix_item.begin() + 1, matrix_item.end());
         keys.push_back(ExpressionHasher::expression_hash(type_hash, elements));
     }

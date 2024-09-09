@@ -11,21 +11,23 @@
 #include <unordered_set>
 #include <vector>
 
+using namespace std;
+
 namespace atomdb {
 
 // Type aliases for readability
 
 template <typename T>
-using opt = std::optional<T>;
+using opt = optional<T>;
 
 using OptCursor = opt<int>;
-using StringSet = std::set<std::string>;
-using StringList = std::vector<std::string>;
-using StringUnorderedSet = std::unordered_set<std::string>;
-using ListOfAny = std::vector<std::any>;
+using StringSet = set<string>;
+using StringList = vector<string>;
+using StringUnorderedSet = unordered_set<string>;
+using ListOfAny = vector<any>;
 
-using Pattern_or_Template = std::tuple<std::string, opt<StringList>>;
-using Pattern_or_Template_List = std::vector<Pattern_or_Template>;
+using Pattern_or_Template = tuple<string, opt<StringList>>;
+using Pattern_or_Template_List = vector<Pattern_or_Template>;
 
 }  // namespace atomdb
 

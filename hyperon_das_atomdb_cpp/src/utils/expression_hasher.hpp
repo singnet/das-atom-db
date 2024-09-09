@@ -12,6 +12,8 @@
 #define MAX_LITERAL_OR_SYMBOL_SIZE 256
 #define JOINING_CHAR ((char) ' ')
 
+using namespace std;
+
 namespace atomdb {
 
 class ExpressionHasher {
@@ -22,7 +24,7 @@ class ExpressionHasher {
      * @param input The input string to be hashed.
      * @return A string representing the MD5 hash of the input.
      */
-    static std::string compute_hash(const std::string& input) {
+    static string compute_hash(const string& input) {
         MD5_CTX ctx;
         unsigned char MD5_BUFFER[MD5_DIGEST_LENGTH];
         char HASH[2 * MD5_DIGEST_LENGTH + 1];
@@ -36,7 +38,7 @@ class ExpressionHasher {
         }
         HASH[2 * MD5_DIGEST_LENGTH] = '\0';
 
-        return std::string(HASH);
+        return string(HASH);
     }
 
     /**
@@ -45,7 +47,7 @@ class ExpressionHasher {
      * @param name The name of the type.
      * @return A string representing the hash of the named type.
      */
-    static std::string named_type_hash(const std::string& name) { return compute_hash(name); }
+    static string named_type_hash(const string& name) { return compute_hash(name); }
 
     /**
      * @brief Generates a hash for a terminal expression.
@@ -54,12 +56,12 @@ class ExpressionHasher {
      * @param name The name of the terminal expression.
      * @return A string representing the hash of the terminal expression.
      */
-    static std::string terminal_hash(const std::string& type, const std::string& name) {
+    static string terminal_hash(const string& type, const string& name) {
         if (type.length() + name.length() >= MAX_HASHABLE_STRING_SIZE) {
-            std::cerr << "Invalid (too large) terminal name" << std::endl;
+            cerr << "Invalid (too large) terminal name" << endl;
             exit(1);
         }
-        std::string hashable_string = type + JOINING_CHAR + name;
+        string hashable_string = type + JOINING_CHAR + name;
         return compute_hash(hashable_string);
     }
 
@@ -69,12 +71,12 @@ class ExpressionHasher {
      * @param elements A vector of strings representing the elements of the composite expression.
      * @return A string representing the hash of the composite expression.
      */
-    static std::string composite_hash(const StringList& elements) {
+    static string composite_hash(const StringList& elements) {
         if (elements.size() == 1) {
             return elements[0];
         }
 
-        std::string hashable_string;
+        string hashable_string;
         for (const auto& element : elements) {
             hashable_string += element + JOINING_CHAR;
         }
@@ -89,14 +91,14 @@ class ExpressionHasher {
      * This function takes a vector of elements, each of which can be of any type,
      * and generates a composite hash representing the combined hash of all elements.
      *
-     * @param elements A vector of elements of type std::any, representing the components to be
+     * @param elements A vector of elements of type any, representing the components to be
      * hashed.
      * @return A string representing the composite hash generated from the elements.
      */
-    static std::string composite_hash(const ListOfAny& elements) {
+    static string composite_hash(const ListOfAny& elements) {
         StringList hashable_elements;
         for (const auto& element : elements) {
-            hashable_elements.push_back(std::any_cast<std::string>(element));
+            hashable_elements.push_back(any_cast<string>(element));
         }
         return composite_hash(hashable_elements);
     }
@@ -110,7 +112,7 @@ class ExpressionHasher {
      * @param hash_base A string representing the base hash.
      * @return A string representing the composite hash generated from the base hash.
      */
-    static std::string composite_hash(const std::string& hash_base) { return hash_base; }
+    static string composite_hash(const string& hash_base) { return hash_base; }
 
     /**
      * @brief Generates a hash for an expression.
@@ -119,7 +121,7 @@ class ExpressionHasher {
      * @param elements A vector of strings representing the elements of the expression.
      * @return A string representing the hash of the expression.
      */
-    static std::string expression_hash(const std::string& type_hash, const StringList& elements) {
+    static string expression_hash(const string& type_hash, const StringList& elements) {
         StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
         return composite_hash(composite);
