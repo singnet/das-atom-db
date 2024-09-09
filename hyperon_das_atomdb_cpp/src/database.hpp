@@ -27,6 +27,8 @@ class AtomParams {
         }
     }
 
+    virtual ~AtomParams() = default;
+
     std::string type;
     Params custom_attributes = {};
 };
@@ -42,7 +44,7 @@ class NodeParams : public AtomParams {
             throw std::invalid_argument("'name' cannot be empty.");
         }
     }
-
+ 
     std::string name;
 };
 
