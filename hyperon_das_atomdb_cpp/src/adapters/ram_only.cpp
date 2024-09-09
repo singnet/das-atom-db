@@ -329,9 +329,9 @@ void InMemoryDB::bulk_insert(const vector<unique_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
             auto handle = document->id;
-            if (const Node* node = dynamic_cast<const Node*>(document.get())) {
+            if (auto node = dynamic_cast<const Node*>(document.get())) {
                 this->db.node[handle] = make_shared<Node>(*node);
-            } else if (const Link* link = dynamic_cast<const Link*>(document.get())) {
+            } else if (auto link = dynamic_cast<const Link*>(document.get())) {
                 this->db.link[handle] = make_shared<Link>(*link);
             }
             this->_update_index(document.get());

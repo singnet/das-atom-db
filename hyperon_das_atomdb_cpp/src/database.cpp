@@ -42,21 +42,20 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Params
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
                                                         const Params& params) const {
-    if (const Link* link = dynamic_cast<const Link*>(document.get())) {
+    if (auto link = dynamic_cast<const Link*>(document.get())) {
         auto targets_documents = params.get<bool>(ParamsKeys::TARGETS_DOCUMENTS).value_or(false);
         auto deep_representation = params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
         if (targets_documents || deep_representation) {
-            auto targets_documents = make_shared<vector<shared_ptr<const Atom>>>();
-            targets_documents->reserve(link->targets.size());
+            shared_ptr<Link> link_copy = make_shared<Link>(*link);
+            link_copy->targets_documents.clear();
+            link_copy->targets_documents.reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 if (deep_representation) {
-                    targets_documents->push_back(get_atom(target, params));
+                    link_copy->targets_documents.push_back(this->get_atom(target, params));
                 } else {
-                    targets_documents->push_back(get_atom(target));
+                    link_copy->targets_documents.push_back(this->get_atom(target));
                 }
             }
-            shared_ptr<Link> link_copy = make_shared<Link>(*link);
-            link_copy->custom_attributes.set(ParamsKeys::TARGETS_DOCUMENTS, targets_documents);
             return move(link_copy);
         }
     }
