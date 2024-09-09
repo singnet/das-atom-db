@@ -29,9 +29,9 @@ class Database {
     using Template = tuple<string, StringList>;
     using TemplatesSet = unordered_set<Template, TupleHash>;
 
-    unordered_map<string, AtomType> atom_type;
-    unordered_map<string, Node> node;
-    unordered_map<string, Link> link;
+    unordered_map<string, shared_ptr<AtomType>> atom_type;
+    unordered_map<string, shared_ptr<Node>> node;
+    unordered_map<string, shared_ptr<Link>> link;
     unordered_map<string, StringList> outgoing_set;
     unordered_map<string, StringUnorderedSet> incoming_set;
     unordered_map<string, PatternsSet> patterns;
@@ -120,8 +120,8 @@ class InMemoryDB : public AtomDB {
     pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
         const string& atom_handle, const Params& params = {}) const override;
 
-    pair<OptCursor, AtomList> get_incoming_links_atoms(const string& atom_handle,
-                                                       const Params& params = {}) const override;
+    pair<OptCursor, vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
+        const string& atom_handle, const Params& params = {}) const override;
 
     pair<OptCursor, Pattern_or_Template_List> get_matched_links(
         const string& link_type,
@@ -142,9 +142,9 @@ class InMemoryDB : public AtomDB {
 
     void clear_database() override;
 
-    Node add_node(const NodeParams& node_params) override;
+    const shared_ptr<const Node> add_node(const NodeParams& node_params) override;
 
-    opt<Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
+    const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
 
     void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
                      pattern_index_templates) override;
@@ -157,9 +157,9 @@ class InMemoryDB : public AtomDB {
                               const StringList& composite_type = {},
                               FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
-    void bulk_insert(const vector<Atom>& documents) override;
+    void bulk_insert(const vector<unique_ptr<const Atom>>& documents) override;
 
-    vector<Atom> retrieve_all_atoms() const override;
+    const vector<shared_ptr<const Atom>> retrieve_all_atoms() const override;
 
     void commit() override;
 
@@ -168,13 +168,13 @@ class InMemoryDB : public AtomDB {
     set<string> all_named_types;
     unordered_map<string, string> named_type_table;
 
-    opt<const Atom> _get_atom(const string& handle) const override;
+    const shared_ptr<const Atom> _get_atom(const string& handle) const override;
 
-    opt<const Node> _get_node(const string& handle) const;
+    const shared_ptr<const Node> _get_node(const string& handle) const;
 
-    opt<const Link> _get_link(const string& handle) const;
+    const shared_ptr<const Link> _get_link(const string& handle) const;
 
-    opt<const Link> _get_and_delete_link(const string& link_handle);
+    const shared_ptr<const Link> _get_and_delete_link(const string& link_handle);
 
     /**
      * @brief Builds a named type hash template from the given template.
@@ -239,13 +239,13 @@ class InMemoryDB : public AtomDB {
 
     const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
 
-    static const vector<string> _build_targets_list(const Link& link);
+    static const vector<string> _build_targets_list(const Link* link);
 
-    void _delete_atom_index(const Atom& atom);
+    void _delete_atom_index(const Atom* atom);
 
-    void _add_atom_index(const Atom& atom);
+    void _add_atom_index(const Atom* atom);
 
-    void _update_index(const Atom& atom, const Params& params = {});
+    void _update_index(const Atom* atom, const Params& params = {});
 
     // TODO: not used anywhere in the code - remove?
     // void _update_atom_indexes(const vector<Atom>& documents, const Params& params = {}) {

@@ -20,9 +20,9 @@ int main(int argc, char const* argv[]) {
 
     auto node = db.add_node(node_params);
     
-    cout << "Node handle: " << node.handle << endl;
-    cout << "Node name: " << node.name << endl;
-    cout << "Node age: " << node.custom_attributes.get<int>("age").value_or(-1) << endl;
+    cout << "Node handle: " << node->handle << endl;
+    cout << "Node name: " << node->name << endl;
+    cout << "Node age: " << node->custom_attributes.get<int>("age").value_or(-1) << endl;
 
     // Adding a Link
     /*
@@ -54,7 +54,7 @@ int main(int argc, char const* argv[]) {
     auto link_params = LinkParams(
         "Friendship", // type
         {   // targets - a list of NodeParams and LinkParams
-            NodeParams("Person", "John Doe"),  // type and name
+            NodeParams("Person", "John Doe", {{"location", "BH"}}),  // type and name
             NodeParams("Person", "Samuel L. Jackson"),
             LinkParams(
                 "Fellowship", // type
@@ -92,24 +92,81 @@ int main(int argc, char const* argv[]) {
     */
     
     // Adding the link to the database
-    auto opt_link = db.add_link(link_params);
+    auto link = db.add_link(link_params);
     
     // Printing the link details
-    if (opt_link.has_value()) {
-        auto link = opt_link.value();
-        cout << "Link handle: " << link.handle << endl;
-        cout << "Link type: " << link.named_type << endl;
-        cout << "Link targets: [";
-        string targets;
-        for (const auto& target : link.targets) {
-            targets += target + ", ";
+    cout << "Link handle: " << link->handle << endl;
+    cout << "Link type: " << link->named_type << endl;
+    cout << "Link targets: [";
+    string targets;
+    for (const auto& target : link->targets) {
+        targets += target + ", ";
+    }
+    if (!targets.empty()) {  // Remove trailing comma and space
+        targets.pop_back();
+        targets.pop_back();
+    }
+    cout << targets << "]" << endl;
+    cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
+
+    cout << "----------------------------------------" << endl;
+
+    auto atom = db.get_atom(
+        link->handle,
+        Params(
+            {
+                {ParamsKeys::NO_TARGET_FORMAT, false},
+                {ParamsKeys::TARGETS_DOCUMENTS, true},
+                {ParamsKeys::DEEP_REPRESENTATION, true}
+            }
+        )
+    );
+    if (atom) {
+        if (auto link = dynamic_cast<const Link*>(atom.get())) {
+            cout << "Link handle: " << link->handle << endl;
+            cout << "Link type: " << link->named_type << endl;
+            cout << "Link targets: [";
+            string targets;
+            for (const auto& target : link->targets) {
+                targets += target + ", ";
+            }
+            if (!targets.empty()) {  // Remove trailing comma and space
+                targets.pop_back();
+                targets.pop_back();
+            }
+            cout << targets << "]" << endl;
+            cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
+            auto targets_documents = link->custom_attributes.get<shared_ptr<vector<shared_ptr<const Atom>>>>(
+                    ParamsKeys::TARGETS_DOCUMENTS);
+            if (targets_documents.has_value()) {
+                cout << "Link targets documents: [" << endl;
+                for (const auto& target : *(targets_documents.value())) {
+                    if (auto node = dynamic_cast<const Node*>(target.get())) {
+                        cout << "    Node handle: " << node->handle << endl;
+                        cout << "    Node type: " << node->named_type << endl;
+                        cout << "    Node name: " << node->name << endl;
+                    } else if (auto link = dynamic_cast<const Link*>(target.get())) {
+                        cout << "    Link handle: " << link->handle << endl;
+                        cout << "    Link type: " << link->named_type << endl;
+                        cout << "    Link targets: [";
+                        string targets;
+                        for (const auto& target : link->targets) {
+                            targets += target + ", ";
+                        }
+                        if (!targets.empty()) {  // Remove trailing comma and space
+                            targets.pop_back();
+                            targets.pop_back();
+                        }
+                        cout << targets << "]" << endl;
+                    }
+                }
+                cout << "]" << endl;
+            }
+        } else if (auto node = dynamic_cast<const Node*>(atom.get())) {
+            cout << "Node handle: " << node->handle << endl;
+            cout << "Node type: " << node->named_type << endl;
+            cout << "Node name: " << node->name << endl;
         }
-        if (!targets.empty()) {  // Remove trailing comma and space
-            targets.pop_back();
-            targets.pop_back();
-        }
-        cout << targets << "]" << endl;
-        cout << "Link location: " << link.custom_attributes.get<string>("location").value_or("") << endl;
     }
 
     return 0;

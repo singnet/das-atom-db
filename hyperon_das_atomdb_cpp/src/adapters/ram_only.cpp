@@ -24,7 +24,7 @@ string InMemoryDB::get_node_handle(const string& node_type, const string& node_n
 string InMemoryDB::get_node_name(const string& node_handle) const {
     auto it = this->db.node.find(node_handle);
     if (it != this->db.node.end()) {
-        return it->second.name;
+        return it->second->name;
     }
     throw AtomDoesNotExist("Nonexistent atom", "node_handle: " + node_handle);
 }
@@ -33,7 +33,7 @@ string InMemoryDB::get_node_name(const string& node_handle) const {
 string InMemoryDB::get_node_type(const string& node_handle) const {
     auto it = this->db.node.find(node_handle);
     if (it != this->db.node.end()) {
-        return it->second.named_type;
+        return it->second->named_type;
     }
     throw AtomDoesNotExist("Nonexistent atom", "node_handle: " + node_handle);
 }
@@ -43,7 +43,7 @@ StringList InMemoryDB::get_node_by_name(const string& node_type, const string& s
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
     for (const auto& [key, node] : this->db.node) {
-        if (node.name.find(substring) != string::npos && node_type_hash == node.composite_type_hash) {
+        if (node->name.find(substring) != string::npos && node_type_hash == node->composite_type_hash) {
             node_handles.push_back(key);
         }
     }
@@ -83,13 +83,13 @@ StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) const 
     StringList node_handles;
     if (names) {
         for (const auto& [_, node] : this->db.node) {
-            if (node.composite_type_hash == node_type_hash) {
-                node_handles.push_back(node.name);
+            if (node->composite_type_hash == node_type_hash) {
+                node_handles.push_back(node->name);
             }
         }
     } else {
         for (const auto& [handle, node] : this->db.node) {
-            if (node.composite_type_hash == node_type_hash) {
+            if (node->composite_type_hash == node_type_hash) {
                 node_handles.push_back(handle);
             }
         }
@@ -102,8 +102,8 @@ pair<OptCursor, StringList> InMemoryDB::get_all_links(const string& link_type,
                                                       const Params& params) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
-        if (link.named_type == link_type) {
-            link_handles.push_back(link.id);
+        if (link->named_type == link_type) {
+            link_handles.push_back(link->id);
         }
     }
     return {params.get<int>(ParamsKeys::CURSOR), link_handles};
@@ -126,8 +126,8 @@ string InMemoryDB::get_link_handle(const string& link_type, const StringList& ta
 //------------------------------------------------------------------------------
 string InMemoryDB::get_link_type(const string& link_handle) const {
     auto link = this->_get_link(link_handle);
-    if (link.has_value()) {
-        return link.value().named_type;
+    if (link) {
+        return link->named_type;
     }
     throw AtomDoesNotExist("Nonexistent atom", "link_handle: " + link_handle);
 }
@@ -143,7 +143,7 @@ StringList InMemoryDB::get_link_targets(const string& link_handle) const {
 
 //------------------------------------------------------------------------------
 bool InMemoryDB::is_ordered(const string& link_handle) const {
-    if (this->_get_link(link_handle).has_value()) {
+    if (this->_get_link(link_handle)) {
         return true;
     }
     throw AtomDoesNotExist("Nonexistent atom", "link_handle: " + link_handle);
@@ -158,10 +158,10 @@ pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(const
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, AtomList> InMemoryDB::get_incoming_links_atoms(const string& atom_handle,
-                                                               const Params& params) const {
+pair<OptCursor, vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
+    const string& atom_handle, const Params& params) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
-    AtomList atoms;
+    vector<shared_ptr<const Atom>> atoms;
     for (const auto& link_handle : links) {
         atoms.push_back(this->get_atom(link_handle, params));
     }
@@ -237,8 +237,8 @@ pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(const str
 //------------------------------------------------------------------------------
 opt<string> InMemoryDB::get_atom_type(const string& handle) const {
     auto atom = this->_get_atom(handle);
-    if (atom.has_value()) {
-        return atom.value().named_type;
+    if (atom) {
+        return atom->named_type;
     }
     return nullopt;
 }
@@ -246,14 +246,14 @@ opt<string> InMemoryDB::get_atom_type(const string& handle) const {
 //------------------------------------------------------------------------------
 unordered_map<string, any> InMemoryDB::get_atom_as_dict(const string& handle, int arity) const {
     auto node = this->_get_node(handle);
-    if (node.has_value()) {
+    if (node) {
         return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
     }
     auto link = this->_get_link(handle);
-    if (link.has_value()) {
+    if (link) {
         return {{"handle", link->handle},
                 {"type", link->named_type},
-                {"targets", this->_build_targets_list(link.value())}};
+                {"targets", this->_build_targets_list(link.get())}};
     }
 }
 
@@ -273,21 +273,18 @@ void InMemoryDB::clear_database() {
 }
 
 //------------------------------------------------------------------------------
-Node InMemoryDB::add_node(const NodeParams& node_params) {
+const shared_ptr<const Node> InMemoryDB::add_node(const NodeParams& node_params) {
     auto node = this->_build_node(node_params);
-    this->db.node[node.handle] = node;
-    this->_update_index(node);
+    this->db.node[node->handle] = node;
+    this->_update_index(node.get());
     return node;
 }
 
 //------------------------------------------------------------------------------
-opt<Link> InMemoryDB::add_link(const LinkParams& link_params, bool toplevel) {
+const shared_ptr<const Link> InMemoryDB::add_link(const LinkParams& link_params, bool toplevel) {
     auto link = this->_build_link(link_params, toplevel);
-    if (!link.has_value()) {
-        return nullopt;
-    }
-    this->db.link[link.value().handle] = link.value();
-    this->_update_index(link.value());
+    this->db.link[link->handle] = link;
+    this->_update_index(link.get());
     return link;
 }
 
@@ -328,16 +325,16 @@ string InMemoryDB::create_field_index(const string& atom_type,
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::bulk_insert(const vector<Atom>& documents) {
+void InMemoryDB::bulk_insert(const vector<unique_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
-            auto handle = document.id;
-            if (const Node* node = dynamic_cast<const Node*>(&document)) {
-                this->db.node[handle] = *node;
-            } else if (const Link* link = dynamic_cast<const Link*>(&document)) {
-                this->db.link[handle] = *link;
+            auto handle = document->id;
+            if (const Node* node = dynamic_cast<const Node*>(document.get())) {
+                this->db.node[handle] = make_shared<Node>(*node);
+            } else if (const Link* link = dynamic_cast<const Link*>(document.get())) {
+                this->db.link[handle] = make_shared<Link>(*link);
             }
-            this->_update_index(document);
+            this->_update_index(document.get());
         }
     } catch (const exception& e) {
         // TODO: log error
@@ -345,9 +342,9 @@ void InMemoryDB::bulk_insert(const vector<Atom>& documents) {
 }
 
 //------------------------------------------------------------------------------
-vector<Atom> InMemoryDB::retrieve_all_atoms() const {
+const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
     try {
-        vector<Atom> atoms;
+        vector<shared_ptr<const Atom>> atoms;
         for (const auto& [_, node] : this->db.node) {
             atoms.push_back(node);
         }
@@ -367,41 +364,41 @@ void InMemoryDB::commit() { throw runtime_error("Not implemented"); }
 // PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-opt<const Atom> InMemoryDB::_get_atom(const string& handle) const {
+const shared_ptr<const Atom> InMemoryDB::_get_atom(const string& handle) const {
     auto node = this->_get_node(handle);
-    if (node.has_value()) {
+    if (node) {
         return node;
     }
     return this->_get_link(handle);
 }
 
 //------------------------------------------------------------------------------
-opt<const Node> InMemoryDB::_get_node(const string& handle) const {
+const shared_ptr<const Node> InMemoryDB::_get_node(const string& handle) const {
     auto it = this->db.node.find(handle);
     if (it != this->db.node.end()) {
         return it->second;
     }
-    return nullopt;
+    return nullptr;
 }
 
 //------------------------------------------------------------------------------
-opt<const Link> InMemoryDB::_get_link(const string& handle) const {
+const shared_ptr<const Link> InMemoryDB::_get_link(const string& handle) const {
     auto it = this->db.link.find(handle);
     if (it != this->db.link.end()) {
         return it->second;
     }
-    return nullopt;
+    return nullptr;
 }
 
 //------------------------------------------------------------------------------
-opt<const Link> InMemoryDB::_get_and_delete_link(const string& link_handle) {
+const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link_handle) {
     auto it = this->db.link.find(link_handle);
     if (it != this->db.link.end()) {
-        auto link_document = move(it->second);
+        auto link_document = make_shared<Link>(*it->second);
         this->db.link.erase(it);
         return link_document;
     }
-    return nullopt;
+    return nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -450,7 +447,7 @@ void InMemoryDB::_add_atom_type(const string& atom_type_name, const string& atom
     string base_type_hash = ExpressionHasher::named_type_hash("Type");
     StringList composite_type = {TYPEDEF_MARK_HASH, type_hash, base_type_hash};
     string composite_type_hash = ExpressionHasher::composite_hash(composite_type);
-    AtomType new_atom_type = AtomType(key, key, composite_type_hash, atom_type_name, name_hash);
+    auto new_atom_type = make_shared<AtomType>(key, key, composite_type_hash, atom_type_name, name_hash);
     this->db.atom_type[key] = new_atom_type;
     this->named_type_table[name_hash] = atom_type_name;
 }
@@ -573,8 +570,8 @@ void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& t
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_link_and_update_index(const string& link_handle) {
     auto link_document = this->_get_and_delete_link(link_handle);
-    if (link_document.has_value()) {
-        this->_update_index(link_document.value(), Params({{ParamsKeys::DELETE_ATOM, true}}));
+    if (link_document) {
+        this->_update_index(link_document.get(), Params({{ParamsKeys::DELETE_ATOM, true}}));
     }
 }
 
@@ -588,7 +585,7 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
     for (const auto& [link_handle, targets] : matches) {
         auto it = this->db.link.find(link_handle);
         if (it != this->db.link.end()) {
-            if (it->second.is_top_level) {
+            if (it->second->is_top_level) {
                 filtered_matched_targets.push_back({link_handle, targets});
             }
         }
@@ -597,17 +594,17 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
 }
 
 //------------------------------------------------------------------------------
-const vector<string> InMemoryDB::_build_targets_list(const Link& link) {
+const vector<string> InMemoryDB::_build_targets_list(const Link* link) {
     vector<string> targets;
-    for (const auto& [_, value] : link.keys) {
+    for (const auto& [_, value] : link->keys) {
         targets.push_back(value);
     }
     return targets;
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_atom_index(const Atom& atom) {
-    auto atom_handle = atom.id;
+void InMemoryDB::_delete_atom_index(const Atom* atom) {
+    auto atom_handle = atom->id;
     auto it = this->db.incoming_set.find(atom_handle);
     if (it != this->db.incoming_set.end()) {
         auto handles = move(it->second);
@@ -622,20 +619,20 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
         this->_delete_incoming_set(atom_handle, outgoing_atoms.value());
     }
 
-    if (const Link* link = dynamic_cast<const Link*>(&atom)) {
-        auto targets_hash = this->_build_targets_list(*link);
+    if (auto link = dynamic_cast<const Link*>(atom)) {
+        auto targets_hash = this->_build_targets_list(link);
         this->_delete_templates(*link, targets_hash);
         this->_delete_patterns(*link, targets_hash);
     }
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_atom_index(const Atom& atom) {
-    auto atom_type_name = atom.named_type;
+void InMemoryDB::_add_atom_index(const Atom* atom) {
+    auto atom_type_name = atom->named_type;
     this->_add_atom_type(atom_type_name);
-    if (const Link* link = dynamic_cast<const Link*>(&atom)) {
+    if (auto link = dynamic_cast<const Link*>(atom)) {
         auto handle = link->id;
-        auto targets_hash = this->_build_targets_list(*link);
+        auto targets_hash = this->_build_targets_list(link);
         this->_add_outgoing_set(handle, targets_hash);
         this->_add_incoming_set(handle, targets_hash);
         this->_add_templates(link->composite_type_hash, link->named_type_hash, handle, targets_hash);
@@ -644,7 +641,7 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_update_index(const Atom& atom, const Params& params) {
+void InMemoryDB::_update_index(const Atom* atom, const Params& params) {
     if (params.get<bool>(ParamsKeys::DELETE_ATOM).value_or(false)) {
         this->_delete_atom_index(atom);
     } else {

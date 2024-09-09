@@ -132,7 +132,7 @@ class AtomDB {
      * representation of the targets. Defaults to False.
      * @return An Atom object representing the retrieved atom.
      */
-    Atom get_atom(const string& handle, const Params& params = {}) const;
+    const shared_ptr<const Atom> get_atom(const string& handle, const Params& params = {}) const;
 
     // PURE VIRTUAL PUBLIC METHODS /////////////////////////////////////////////////////////////////
 
@@ -273,8 +273,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of Atom objects representing the
      *         incoming links.
      */
-    virtual pair<OptCursor, AtomList> get_incoming_links_atoms(const string& atom_handle,
-                                                               const Params& params = {}) const = 0;
+    virtual pair<OptCursor, vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
+        const string& atom_handle, const Params& params = {}) const = 0;
 
     /**
      * @brief Retrieves matched links of the specified type and target handles.
@@ -338,7 +338,7 @@ class AtomDB {
      * @param node_params A NodeParams object containing the parameters for the node.
      * @return Node object representing the created node.
      */
-    virtual Node add_node(const NodeParams& node_params) = 0;
+    virtual const shared_ptr<const Node> add_node(const NodeParams& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
@@ -347,7 +347,8 @@ class AtomDB {
      * @return An optional Link object representing the created link. If the link could not be
      * created, the optional will contain nullopt.
      */
-    virtual opt<Link> add_link(const LinkParams& link_params, bool toplevel = true) = 0;
+    virtual const shared_ptr<const Link> add_link(const LinkParams& link_params,
+                                                  bool toplevel = true) = 0;
 
     /**
      * @brief Reindexes the inverted pattern index according to the passed templates.
@@ -433,13 +434,13 @@ class AtomDB {
      * @brief Insert multiple documents into the database.
      * @param documents A list of atoms, each representing a document to be inserted into the db.
      */
-    virtual void bulk_insert(const vector<Atom>& documents) = 0;
+    virtual void bulk_insert(const vector<unique_ptr<const Atom>>& documents) = 0;
 
     /**
      * @brief Retrieve all atoms from the database.
      * @return A list of dictionaries representing the atoms.
      */
-    virtual vector<Atom> retrieve_all_atoms() const = 0;
+    virtual const vector<shared_ptr<const Atom>> retrieve_all_atoms() const = 0;
 
     /**
      * @brief Commit the current state of the database.
@@ -457,14 +458,15 @@ class AtomDB {
      * @param params A reference to a Params object containing the reformatting options.
      * @return A reference to the reformatted Atom object.
      */
-    const Atom _reformat_document(const Atom& document, const Params& params = {}) const;
+    const shared_ptr<const Atom> _reformat_document(const shared_ptr<const Atom>& document,
+                                                    const Params& params = {}) const;
 
     /**
      * @brief Builds a node with the specified parameters.
      * @param node_params A NodeParams object containing the parameters for the node.
      * @return Node object representing the created node.
      */
-    Node _build_node(const NodeParams& node_params);
+    shared_ptr<Node> _build_node(const NodeParams& node_params);
 
     /**
      * @brief Builds a link with the specified parameters.
@@ -472,14 +474,14 @@ class AtomDB {
      * @param is_top_level A boolean indicating whether the link is a top-level link.
      * @return An optional Link object representing the constructed link.
      */
-    opt<Link> _build_link(const LinkParams& link_params, bool is_top_level = true);
+    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_top_level = true);
 
     /**
      * @brief Retrieves an atom from the database using its handle.
      * @param handle A string representing the handle of the atom to be retrieved.
-     * @return An optional reference to the Atom object representing the retrieved atom.
+     * @return A const shared pointer to the Atom object representing the retrieved atom.
      */
-    virtual opt<const Atom> _get_atom(const string& handle) const = 0;
+    virtual const shared_ptr<const Atom> _get_atom(const string& handle) const = 0;
 };
 }  // namespace atomdb
 
