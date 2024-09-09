@@ -97,13 +97,13 @@ opt<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) 
     string atom_hash;
     string atom_handle;
     for (const auto& target : targets) {
-        if (auto node_params = get_if<NodeParams>(&target)) {
-            auto node = this->add_node(*node_params);
+        if (LinkParams::is_node(target)) {
+            auto node = this->add_node(LinkParams::as_node(target));
             atom_handle = node.id;
             atom_hash = node.composite_type_hash;
             composite_type_list.push_back(atom_hash);
-        } else if (auto link_params = get_if<LinkParams>(&target)) {
-            auto link = this->add_link(*link_params, false);
+        } else if (LinkParams::is_link(target)) {
+            auto link = this->add_link(LinkParams::as_link(target), false);
             if (!link.has_value()) {
                 return nullopt;
             }

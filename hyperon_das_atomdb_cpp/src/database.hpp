@@ -65,12 +65,16 @@ class LinkParams : public AtomParams {
         if (targets.empty()) {
             throw invalid_argument("'targets' cannot be empty.");
         }
-        for (const auto& target : targets) {
-            add_target(target);
-        }
+        this->targets.reserve(targets.size());
+        this->targets.insert(this->targets.end(), targets.begin(), targets.end());
     }
 
     void add_target(const Target& atom) { targets.push_back(atom); }
+
+    static bool is_node(const Target& target) { return holds_alternative<NodeParams>(target); }
+    static bool is_link(const Target& target) { return holds_alternative<LinkParams>(target); }
+    static const NodeParams& as_node(const Target& target) { return get<NodeParams>(target); }
+    static const LinkParams& as_link(const Target& target) { return get<LinkParams>(target); }
 
     Targets targets = {};
 };
