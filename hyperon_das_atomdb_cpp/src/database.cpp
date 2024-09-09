@@ -96,12 +96,12 @@ opt<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) 
     std::string atom_hash;
     std::string atom_handle;
     for (const auto& target : targets) {
-        if (auto node_params = std::get_if<NodeParams>(&target)) {
+        if (const auto* node_params = dynamic_cast<const NodeParams*>(&target)) {
             auto node = this->add_node(*node_params);
             atom_handle = node.id;
             atom_hash = node.composite_type_hash;
             composite_type_list.push_back(atom_hash);
-        } else if (auto link_params = std::get_if<LinkParams>(&target)) {
+        } else if (const auto* link_params = dynamic_cast<const LinkParams*>(&target)) {
             auto link = this->add_link(*link_params, false);
             if (!link.has_value()) {
                 return std::nullopt;

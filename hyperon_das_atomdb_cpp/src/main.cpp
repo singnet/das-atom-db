@@ -1,6 +1,4 @@
 #include <iostream>
-#include <unordered_map>
-#include <vector>
 
 #include "adapters/ram_only.hpp"
 #include "database.hpp"
@@ -50,7 +48,7 @@ int main(int argc, char const* argv[]) {
     auto link_params = LinkParams(
         "Friendship",  // type
         {  // targets
-            NodeParams("Person", "Jane Doe"),  // type and name
+            NodeParams("Person", "John Doe"),  // type and name
             NodeParams("Person", "Samuel L. Jackson"),
             LinkParams(
                 "Fellowship",  // type

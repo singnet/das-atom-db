@@ -1,8 +1,6 @@
 #ifndef _DATABASE_HPP
 #define _DATABASE_HPP
 
-#include <variant>
-
 #include "constants.hpp"
 #include "document_types.hpp"
 #include "exceptions.hpp"
@@ -44,13 +42,13 @@ class NodeParams : public AtomParams {
             throw std::invalid_argument("'name' cannot be empty.");
         }
     }
- 
+
     std::string name;
 };
 
 class LinkParams : public AtomParams {
    public:
-    using Targets = std::vector<std::variant<NodeParams, LinkParams>>;
+    using Targets = std::vector<AtomParams>;
 
     LinkParams() = default;
     LinkParams(const std::string& type, const CustomAttributesInitializer& custom_attributes = {})
@@ -63,22 +61,11 @@ class LinkParams : public AtomParams {
             throw std::invalid_argument("'targets' cannot be empty.");
         }
         for (const auto& target : targets) {
-            if (std::holds_alternative<NodeParams>(target)) {
-                add_target(std::get<NodeParams>(target));
-            } else {
-                add_target(std::get<LinkParams>(target));
-            }
+            add_target(target);
         }
     }
 
-    void add_target(const NodeParams& node) { targets.push_back(node); }
-
-    void add_target(const LinkParams& link) {
-        if (link.targets.empty()) {
-            throw std::invalid_argument("Link targets cannot be empty.");
-        }
-        targets.push_back(link);
-    }
+    void add_target(const AtomParams& atom) { targets.push_back(atom); }
 
     Targets targets = {};
 };
