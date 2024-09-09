@@ -109,6 +109,8 @@ opt<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) 
             atom_handle = link.value().id;
             atom_hash = link.value().composite_type_hash;
             composite_type_list.push_back(link.value().composite_type);
+        } else {
+            throw std::invalid_argument("Invalid target type. Must be NodeParams or LinkParams.");
         }
         composite_type_elements.push_back(atom_hash);
         target_handles.push_back(atom_handle);
