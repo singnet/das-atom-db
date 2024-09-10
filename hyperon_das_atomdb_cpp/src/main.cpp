@@ -115,14 +115,51 @@ int main(int argc, char const* argv[]) {
         link->handle,
         Params(
             {
+                {ParamsKeys::NO_TARGET_FORMAT, true},
+                {ParamsKeys::TARGETS_DOCUMENTS, false},
+                {ParamsKeys::DEEP_REPRESENTATION, false}
+            }
+        )
+    );
+
+    cout << "Atom pointer id: " << atom.get() << endl;
+    cout << atom.use_count() << endl;
+
+    {
+        auto atom = db.get_atom(
+            link->handle,
+            Params(
+                {
+                    {ParamsKeys::NO_TARGET_FORMAT, true},
+                    {ParamsKeys::TARGETS_DOCUMENTS, false},
+                    {ParamsKeys::DEEP_REPRESENTATION, false}
+                }
+            )
+        );
+
+        // prints the atoms pointer id
+        cout << "Atom pointer id: " << atom.get() << endl;
+        cout << atom.use_count() << endl;
+    }
+
+    cout << atom.use_count() << endl;
+    
+    atom = db.get_atom(
+        link->handle,
+        Params(
+            {
                 {ParamsKeys::NO_TARGET_FORMAT, false},
                 {ParamsKeys::TARGETS_DOCUMENTS, true},
                 {ParamsKeys::DEEP_REPRESENTATION, true}
             }
         )
     );
+
+    cout << "Atom pointer id: " << atom.get() << endl;
+    cout << atom.use_count() << endl;
+
     if (atom) {
-        if (auto link = dynamic_cast<const Link*>(atom.get())) {
+        if (const auto& link = dynamic_pointer_cast<const Link>(atom)) {
             cout << "Link handle: " << link->handle << endl;
             cout << "Link type: " << link->named_type << endl;
             cout << "Link targets: [";
@@ -141,11 +178,11 @@ int main(int argc, char const* argv[]) {
             if (targets_documents.has_value()) {
                 cout << "Link targets documents: [" << endl;
                 for (const auto& target : *(targets_documents.value())) {
-                    if (auto node = dynamic_cast<const Node*>(target.get())) {
+                    if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         cout << "    Node handle: " << node->handle << endl;
                         cout << "    Node type: " << node->named_type << endl;
                         cout << "    Node name: " << node->name << endl;
-                    } else if (auto link = dynamic_cast<const Link*>(target.get())) {
+                    } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
                         cout << "    Link handle: " << link->handle << endl;
                         cout << "    Link type: " << link->named_type << endl;
                         cout << "    Link targets: [";
@@ -162,7 +199,7 @@ int main(int argc, char const* argv[]) {
                 }
                 cout << "]" << endl;
             }
-        } else if (auto node = dynamic_cast<const Node*>(atom.get())) {
+        } else if (const auto& node = dynamic_pointer_cast<const Node>(atom)) {
             cout << "Node handle: " << node->handle << endl;
             cout << "Node type: " << node->named_type << endl;
             cout << "Node name: " << node->name << endl;
