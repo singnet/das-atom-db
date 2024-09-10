@@ -207,5 +207,9 @@ int main(int argc, char const* argv[]) {
         }
     }
 
+    cout << db.node_exists("Person", "John Doe") << endl;
+    db.delete_atom(node->handle);
+    cout << db.node_exists("Person", "John Doe") << endl;
+
     return 0;
 }

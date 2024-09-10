@@ -21,7 +21,6 @@ using ParamsMap = unordered_map<ParamKey, ParamValue>;
 namespace ParamsKeys {
 static const ParamKey CURSOR = "cursor";
 static const ParamKey DEEP_REPRESENTATION = "deep_representation";
-static const ParamKey DELETE_ATOM = "delete_atom";
 static const ParamKey NO_TARGET_FORMAT = "no_target_format";
 static const ParamKey TARGETS_DOCUMENTS = "targets_documents";
 static const ParamKey TOPLEVEL_ONLY = "toplevel_only";

@@ -301,7 +301,9 @@ void InMemoryDB::delete_atom(const string& handle) {
         this->db.node.erase(it);
         auto it = this->db.incoming_set.find(handle);
         if (it != this->db.incoming_set.end()) {
-            for (const auto& h : it->second) {
+            auto handles = move(it->second);
+            this->db.incoming_set.erase(it);
+            for (const auto& h : handles) {
                 this->_delete_link_and_update_index(h);
             }
         }
@@ -571,7 +573,7 @@ void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& t
 void InMemoryDB::_delete_link_and_update_index(const string& link_handle) {
     auto link_document = this->_get_and_delete_link(link_handle);
     if (link_document) {
-        this->_update_index(*link_document, Params({{ParamsKeys::DELETE_ATOM, true}}));
+        this->_update_index(*link_document, true);
     }
 }
 
@@ -641,8 +643,8 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_update_index(const Atom& atom, const Params& params) {
-    if (params.get<bool>(ParamsKeys::DELETE_ATOM).value_or(false)) {
+void InMemoryDB::_update_index(const Atom& atom, bool delete_atom) {
+    if (delete_atom) {
         this->_delete_atom_index(atom);
     } else {
         this->_add_atom_index(atom);

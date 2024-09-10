@@ -245,7 +245,7 @@ class InMemoryDB : public AtomDB {
 
     void _add_atom_index(const Atom& atom);
 
-    void _update_index(const Atom& atom, const Params& params = {});
+    void _update_index(const Atom& atom, bool delete_atom = false);
 
     // TODO: not used anywhere in the code - remove?
     // void _update_atom_indexes(const vector<Atom>& documents, const Params& params = {}) {
