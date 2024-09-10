@@ -89,60 +89,6 @@ class MongoIndexType(str, Enum):
     TEXT = "text"
 
 
-class NodeDocuments:
-    """Class for managing node documents in MongoDB."""
-
-    def __init__(self, collection: Collection) -> None:
-        """
-        Initialize the NodeDocuments class with a MongoDB collection.
-
-        Args:
-            collection (Collection): The MongoDB collection to manage node documents.
-        """
-        self.mongo_collection = collection
-        self.cached_nodes: dict[str, Any] = {}
-        self.count = 0
-
-    def add(self) -> None:
-        """Increment the count of node documents managed by this instance."""
-        self.count += 1
-
-    def get(self, handle: str, default_value: Any = None) -> Any:
-        """
-        Retrieve a node document from the MongoDB collection using the given handle.
-
-        Args:
-            handle (str): The unique identifier for the node document.
-            default_value (Any): The value to return if the node document is not found.
-                Defaults to None.
-
-        Returns:
-            The node document if found, otherwise the default value.
-        """
-        mongo_filter = {FieldNames.ID_HASH: handle}
-        node = self.mongo_collection.find_one(mongo_filter)
-        return node if node else default_value
-
-    def size(self) -> int:
-        """
-        Return the count of node documents managed by this instance.
-
-        Returns:
-            int: The count of node documents.
-        """
-        return self.count
-
-    def values(self) -> Iterable[dict[str, Any]]:
-        """
-        Yield all node documents from the MongoDB collection.
-
-        Returns:
-            generator: A generator yielding each document in the MongoDB collection.
-        """
-        for document in self.mongo_collection.find():
-            yield document
-
-
 class _HashableDocument:
     """Class for making documents hashable."""
 
@@ -763,6 +709,7 @@ class RedisMongoDB(AtomDB):
 
         link_type_hash = WILDCARD if link_type == WILDCARD else self._get_atom_type_hash(link_type)
 
+        # NOTE unreachable
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
 
@@ -861,6 +808,7 @@ class RedisMongoDB(AtomDB):
                         {id_tag: document[id_tag]}, document, upsert=True
                     )
                     self._update_atom_indexes([document])
+
             except Exception as e:
                 logger().error(f"Failed to commit buffer - Details: {str(e)}")
                 raise e
