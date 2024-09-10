@@ -80,6 +80,7 @@ class TestDatabase:
         with pytest.raises(TypeError):
             db.link_handle("Similarity", None)
         # NOTE Unreachable
+        # TODO: unreachable code must be deleted or fixed to become reachable
         # with pytest.raises(ValueError):
         #     db.link_handle("Similarity", set())
 
@@ -292,12 +293,14 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_name_exceptions(self, database, request):
         if database == "redis_mongo_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR in_memory returns a AtomDoesNotExist exception, redis_mongo returns ValueError. "
                 "See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
         # in memory returns a AtomDoesNotExist exception, redis_mongo returns ValueError
+        # TODO: should this be fixed/synced? I mean, make both raise the same exception?
         with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_name("error")
 
@@ -332,6 +335,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_field(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -350,6 +354,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_index(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -366,6 +371,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_index_exceptions(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -376,6 +382,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_regex(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -394,6 +401,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_text(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -414,6 +422,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_by_name_starting_with(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -442,7 +451,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,links_len,cursor_value",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {"link_type": "Ac"}, 3, 0),
             ("redis_mongo_db", {"link_type": "Ac", "names": True, "chunk_size": 1}, 3, 0),
             ("redis_mongo_db", {"link_type": "Ac", "names": True, "cursor": 0}, 3, 0),
@@ -518,6 +527,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_is_ordered_no_handle(self, database, request):
         if database == "redis_mongo_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR redis_mongo_db is raising ValueError exception, should be AtomDoesNotExist. "
                 "See https://github.com/singnet/das-atom-db/issues/210"
@@ -528,7 +538,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,links_len,cursor_value",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}, 3, None),
             ("redis_mongo_db", {"handles_only": True}, 3, None),
             ("redis_mongo_db", {"no_target_format": True}, 3, None),
@@ -558,7 +568,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,links_len,cursor_value",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}, 1, None),
             ("redis_mongo_db", {"toplevel_only": True}, 1, None),
             # ("redis_mongo_db", {"link_type": "NoTopLevel" , "toplevel_only": True}, 0, None), # doesn"t work
@@ -604,7 +614,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,links_len,cursor_value",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {"link_type": "Z", "target_handles": []}, 0, None),
             # ("redis_mongo_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0, None),
             # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"]}, 0, None),
@@ -620,7 +630,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,links_len,cursor_value,is_top_level",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}, 1, None, True),
             ("redis_mongo_db", {}, 1, None, False),
             ("redis_mongo_db", {"toplevel_only": True}, 0, None, False),
@@ -652,6 +662,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_matched_type(self, database, request):
         if database == "redis_mongo_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR redis_mongo_db is returning more values. "
                 "See https://github.com/singnet/das-atom-db/issues/210"
@@ -671,7 +682,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params,top_level,n_links,n_nodes",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}, True, 1, 1),
             ("redis_mongo_db", {"no_target_format": True}, False, 1, 1),
             # ("redis_mongo_db", {"targets_document": True}, False, 1, 1),# breaks when is a node
@@ -760,6 +771,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_as_dict_none(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR in_memory raises exception, they should return the same result/exception. "
                 "See https://github.com/singnet/das-atom-db/issues/210"
@@ -773,6 +785,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_as_dict_exceptions(self, database, request):
         if database == "redis_mongo_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR redis_mongo_db doesn't raises exception, they should return the same result/exception. "
                 "See https://github.com/singnet/das-atom-db/issues/210"
@@ -785,7 +798,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,params",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}),
             ("redis_mongo_db", {"precise": True}),
             ("redis_mongo_db", {"precise": False}),
@@ -853,7 +866,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize(
         "database,node",
-        [
+        [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}),
             # NOTE it"s not breaking, should break?
             # ("redis_mongo_db", {"name": "A", "type": "A", "handle": ""}),
@@ -895,6 +908,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_reindex(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -906,6 +920,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_delete_atom(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Atom not in incoming_set. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -930,6 +945,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_delete_atom_exceptions(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Atom not in incoming_set. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1014,6 +1030,7 @@ class TestDatabase:
     )
     def test_create_field_index(self, database, params, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1044,6 +1061,7 @@ class TestDatabase:
     )
     def test_create_field_index_value_error(self, database, params, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1051,13 +1069,14 @@ class TestDatabase:
         with pytest.raises(ValueError):
             db.create_field_index(**params)
 
-    #
+    # TODO: fix this or delete
     # @pytest.mark.parametrize("database,params", [
     #     ("redis_mongo_db", {"atom_type": "A", "fields": ["side"], "index_type": "wrong_type"}),
     #     ("in_memory_db", {})
     # ])
     # def test_create_field_index_mongo_error(self, database, params, request):
     #     if database == "in_memory_db":
+    #         # TODO: fix this
     #         pytest.skip("ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210")
     #
     #     db: AtomDB = request.getfixturevalue(database)
@@ -1067,6 +1086,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_bulk_insert(self, database, request):
         if database == "redis_mongo_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR redis_mongo_db is not updating targets. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1093,6 +1113,7 @@ class TestDatabase:
         link_a = db._build_link({"targets": [], "type": "A"})
         with pytest.raises(Exception):
             db.bulk_insert([node_a, link_a])
+            # TODO: fix this
             pytest.skip(
                 "ERROR should raise an exception. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1111,6 +1132,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_commit(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
             )
@@ -1126,6 +1148,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_commit_buffer(self, database, request):
         if database == "in_memory_db":
+            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
             )
