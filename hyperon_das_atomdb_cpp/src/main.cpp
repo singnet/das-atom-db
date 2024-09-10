@@ -124,6 +124,7 @@ int main(int argc, char const* argv[]) {
 
     cout << "Atom pointer id: " << atom.get() << endl;
     cout << atom.use_count() << endl;
+    cout << "Atom size: " << sizeof(atom) << endl;
 
     {
         auto atom = db.get_atom(
@@ -140,6 +141,7 @@ int main(int argc, char const* argv[]) {
         // prints the atoms pointer id
         cout << "Atom pointer id: " << atom.get() << endl;
         cout << atom.use_count() << endl;
+        cout << "Atom size: " << sizeof(atom) << endl;
     }
 
     cout << atom.use_count() << endl;
@@ -157,6 +159,7 @@ int main(int argc, char const* argv[]) {
 
     cout << "Atom pointer id: " << atom.get() << endl;
     cout << atom.use_count() << endl;
+    cout << "Atom size: " << sizeof(atom) << endl;
 
     if (atom) {
         if (const auto& link = dynamic_pointer_cast<const Link>(atom)) {
@@ -173,11 +176,9 @@ int main(int argc, char const* argv[]) {
             }
             cout << targets << "]" << endl;
             cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
-            auto targets_documents = link->custom_attributes.get<shared_ptr<vector<shared_ptr<const Atom>>>>(
-                    ParamsKeys::TARGETS_DOCUMENTS);
-            if (targets_documents.has_value()) {
+            if (link->targets_documents.has_value()) {
                 cout << "Link targets documents: [" << endl;
-                for (const auto& target : *(targets_documents.value())) {
+                for (const auto& target : link->targets_documents.value()) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         cout << "    Node handle: " << node->handle << endl;
                         cout << "    Node type: " << node->named_type << endl;

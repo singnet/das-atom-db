@@ -47,13 +47,13 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
         auto deep_representation = params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
         if (targets_documents || deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
-            link_copy->targets_documents.clear();
-            link_copy->targets_documents.reserve(link->targets.size());
+            link_copy->targets_documents = vector<shared_ptr<const Atom>>();
+            link_copy->targets_documents.value().reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 if (deep_representation) {
-                    link_copy->targets_documents.push_back(this->get_atom(target, params));
+                    link_copy->targets_documents.value().push_back(this->get_atom(target, params));
                 } else {
-                    link_copy->targets_documents.push_back(this->get_atom(target));
+                    link_copy->targets_documents.value().push_back(this->get_atom(target));
                 }
             }
             return move(link_copy);

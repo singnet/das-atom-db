@@ -128,7 +128,7 @@ class Link : public Atom {
           targets(targets),
           is_top_level(is_top_level),
           keys(keys),
-          targets_documents({}),
+          targets_documents(nullopt),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (composite_type.empty()) {
             throw invalid_argument("Composite type cannot be empty.");
@@ -151,7 +151,7 @@ class Link : public Atom {
     vector<string> targets;
     bool is_top_level = true;
     map<string, string> keys = {};
-    vector<shared_ptr<const Atom>> targets_documents = {};
+    opt<vector<shared_ptr<const Atom>>> targets_documents = nullopt;
 };
 
 using AtomList = vector<Atom>;
