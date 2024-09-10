@@ -239,13 +239,13 @@ class InMemoryDB : public AtomDB {
 
     const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
 
-    static const vector<string> _build_targets_list(const Link* link);
+    static const vector<string> _build_targets_list(const Link& link);
 
-    void _delete_atom_index(const Atom* atom);
+    void _delete_atom_index(const Atom& atom);
 
-    void _add_atom_index(const Atom* atom);
+    void _add_atom_index(const Atom& atom);
 
-    void _update_index(const Atom* atom, const Params& params = {});
+    void _update_index(const Atom& atom, const Params& params = {});
 
     // TODO: not used anywhere in the code - remove?
     // void _update_atom_indexes(const vector<Atom>& documents, const Params& params = {}) {

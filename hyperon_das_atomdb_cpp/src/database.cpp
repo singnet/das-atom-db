@@ -42,7 +42,7 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Params
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
                                                         const Params& params) const {
-    if (auto link = dynamic_cast<const Link*>(document.get())) {
+    if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
         auto targets_documents = params.get<bool>(ParamsKeys::TARGETS_DOCUMENTS).value_or(false);
         auto deep_representation = params.get<bool>(ParamsKeys::DEEP_REPRESENTATION).value_or(false);
         if (targets_documents || deep_representation) {
