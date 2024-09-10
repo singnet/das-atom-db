@@ -748,7 +748,7 @@ class RedisMongoDB(AtomDB):
         return document[FieldNames.TYPE_NAME]
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        return self._retrieve_document(handle)
+        return self.get_atom_as_dict(handle)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
@@ -756,17 +756,18 @@ class RedisMongoDB(AtomDB):
             return None
         return atom[FieldNames.TYPE_NAME]
 
-    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
-        answer = {}
+    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> AtomT:
         document = self._retrieve_document(handle)
         if document:
-            answer["handle"] = document[FieldNames.ID_HASH]
-            answer["type"] = document[FieldNames.TYPE_NAME]
+            document["handle"] = document[FieldNames.ID_HASH]
+            document["type"] = document[FieldNames.TYPE_NAME]
             if "targets" in document:
-                answer["targets"] = document["targets"]
+                document["targets"] = document["targets"]
             else:
-                answer["name"] = document["name"]
-        return answer
+                document["name"] = document["name"]
+            return document
+        else:
+            return None
 
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()

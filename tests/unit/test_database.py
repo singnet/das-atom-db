@@ -779,8 +779,8 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         atom_node = db.get_atom_as_dict("handle")
         atom_link = db.get_atom_as_dict("handle")
-        assert atom_node == {}
-        assert atom_link == {}
+        assert atom_node is None
+        assert atom_link is None
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_as_dict_exceptions(self, database, request):
