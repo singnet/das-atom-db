@@ -277,7 +277,7 @@ const shared_ptr<const Node> InMemoryDB::add_node(const NodeParams& node_params)
     auto node = this->_build_node(node_params);
     this->db.node[node->handle] = node;
     this->_update_index(*node);
-    return node;
+    return move(node);
 }
 
 //------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ const shared_ptr<const Link> InMemoryDB::add_link(const LinkParams& link_params,
     auto link = this->_build_link(link_params, toplevel);
     this->db.link[link->handle] = link;
     this->_update_index(*link);
-    return link;
+    return move(link);
 }
 
 //------------------------------------------------------------------------------
@@ -367,7 +367,7 @@ void InMemoryDB::commit() { throw runtime_error("Not implemented"); }
 const shared_ptr<const Atom> InMemoryDB::_get_atom(const string& handle) const {
     auto node = this->_get_node(handle);
     if (node) {
-        return node;
+        return move(node);
     }
     return this->_get_link(handle);
 }
@@ -396,7 +396,7 @@ const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link
     if (it != this->db.link.end()) {
         auto link_document = make_shared<Link>(*it->second);
         this->db.link.erase(it);
-        return link_document;
+        return move(link_document);
     }
     return nullptr;
 }
@@ -448,7 +448,7 @@ void InMemoryDB::_add_atom_type(const string& atom_type_name, const string& atom
     StringList composite_type = {TYPEDEF_MARK_HASH, type_hash, base_type_hash};
     string composite_type_hash = ExpressionHasher::composite_hash(composite_type);
     auto new_atom_type = make_shared<AtomType>(key, key, composite_type_hash, atom_type_name, name_hash);
-    this->db.atom_type[key] = new_atom_type;
+    this->db.atom_type[key] = move(new_atom_type);
     this->named_type_table[name_hash] = atom_type_name;
 }
 

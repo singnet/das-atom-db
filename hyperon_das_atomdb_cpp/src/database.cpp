@@ -32,7 +32,7 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Params
         throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
     }
     if (params.get<bool>(ParamsKeys::NO_TARGET_FORMAT).value_or(false)) {
-        return document;
+        return move(document);
     }
     return _reformat_document(document, params);
 }
@@ -134,5 +134,5 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
         n++;
     }
 
-    return link;
+    return move(link);
 }
