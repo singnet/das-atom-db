@@ -7,7 +7,10 @@ format:
 		-iname "*.cc" \
 		| xargs clang-format -verbose -style=file -i
 
-build: clean
+build-make: clean
+	@mkdir -p build && cd build && cmake .. && make
+
+build-ninja: clean
 	@mkdir -p build && cd build && cmake -G Ninja .. && ninja
 
 clean:

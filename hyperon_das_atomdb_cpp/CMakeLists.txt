@@ -4,7 +4,8 @@ project(AtomDB)
 # Set C++ standard and optimization flags
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -w -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -w")
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Find OpenSSL package
 find_package(OpenSSL REQUIRED)
