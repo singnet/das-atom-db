@@ -557,8 +557,8 @@ class InMemoryDB(AtomDB):
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
         )
-
-        if link_type in UNORDERED_LINK_TYPES:
+        # NOTE unreachable
+        if link_type in UNORDERED_LINK_TYPES:  # pragma: no cover
             logger().error(
                 "Failed to get matched links: Queries with unordered links are not implemented. "
                 f"link_type: {link_type}"
@@ -598,7 +598,9 @@ class InMemoryDB(AtomDB):
             return kwargs.get("cursor"), self._filter_non_toplevel(templates_matched)
         return kwargs.get("cursor"), templates_matched
 
-    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
+    def get_atoms_by_field(
+        self, query: list[OrderedDict[str, str]]
+    ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
     def get_atoms_by_index(
@@ -607,7 +609,7 @@ class InMemoryDB(AtomDB):
         query: list[OrderedDict[str, str]],
         cursor: int = 0,
         chunk_size: int = 500,
-    ) -> tuple[int, list[AtomT]]:
+    ) -> tuple[int, list[AtomT]]:  # pragma: no cover
         raise NotImplementedError()
 
     def get_atoms_by_text_field(
@@ -615,10 +617,12 @@ class InMemoryDB(AtomDB):
         text_value: str,
         field: str | None = None,
         text_index_id: str | None = None,
-    ) -> list[str]:
+    ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
+    def get_node_by_name_starting_with(
+        self, node_type: str, startswith: str
+    ) -> list[str]:  # pragma: no cover
         raise NotImplementedError()
 
     def _get_atom(self, handle: str) -> AtomT | None:
@@ -672,7 +676,8 @@ class InMemoryDB(AtomDB):
 
     def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
         result = self._build_link(link_params, toplevel)
-        if result is None:
+        # NOTE unreachable
+        if result is None:  # pragma: no cover
             return None
         handle, link, _ = result
         self.db.link[handle] = link
@@ -681,7 +686,7 @@ class InMemoryDB(AtomDB):
 
     def reindex(
         self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         raise NotImplementedError()
 
     def delete_atom(self, handle: str, **kwargs) -> None:
@@ -710,7 +715,7 @@ class InMemoryDB(AtomDB):
         named_type: str | None = None,
         composite_type: list[Any] | None = None,
         index_type: FieldIndexType | None = None,
-    ) -> str:
+    ) -> str:  # pragma: no cover
         raise NotImplementedError()
 
     def bulk_insert(self, documents: list[AtomT]) -> None:
@@ -732,5 +737,5 @@ class InMemoryDB(AtomDB):
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
 
-    def commit(self, **kwargs) -> None:
+    def commit(self, **kwargs) -> None:  # pragma: no cover
         raise NotImplementedError()
