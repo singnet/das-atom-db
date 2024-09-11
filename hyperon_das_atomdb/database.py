@@ -35,6 +35,8 @@ UNORDERED_LINK_TYPES: list[Any] = []
 
 # pylint: disable=invalid-name
 
+HandleT: TypeAlias = str
+
 AtomT: TypeAlias = dict[str, Any]
 
 NodeT: TypeAlias = AtomT
@@ -49,7 +51,7 @@ IncomingLinksT: TypeAlias = list[str] | list[AtomT]
 
 MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]
 
-HandlesListT: TypeAlias = list[str]
+HandlesListT: TypeAlias = list[HandleT]
 
 MatchedLinksResultT: TypeAlias = tuple[int | None, HandlesListT | MatchedTargetsListT]
 
