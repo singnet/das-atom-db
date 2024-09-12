@@ -47,15 +47,15 @@ LinkT: TypeAlias = AtomT
 
 LinkParamsT: TypeAlias = LinkT
 
-IncomingLinksT: TypeAlias = list[str] | list[AtomT]
+HandleListT: TypeAlias = list[HandleT]
+
+IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
 
 MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]
 
-HandlesListT: TypeAlias = list[HandleT]
+MatchedLinksResultT: TypeAlias = HandleListT | MatchedTargetsListT
 
-MatchedLinksResultT: TypeAlias = tuple[int | None, HandlesListT | MatchedTargetsListT]
-
-MatchedTypesResultT: TypeAlias = tuple[int | None, MatchedTargetsListT]
+MatchedTypesResultT: TypeAlias = MatchedTargetsListT
 
 # pylint: enable=invalid-name
 
@@ -540,7 +540,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
         """
         Retrieve incoming links for a specified atom handle.
 
@@ -549,8 +549,7 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            tuple[int | None, IncomingLinksT]: A tuple containing the  count of incoming links
-            (which can be None if `cursor` is absent in kwargs) and a list of incoming links.
+            IncomingLinksT: List of incoming links.
         """
 
     @abstractmethod
@@ -567,12 +566,11 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            MatchedLinksResultT: tuple containing a cursor (which can be None if cursor is not
-            applicable) and a list of matching link handles.
+            MatchedLinksResultT: List of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
         """
         Retrieve links that match a specified type template.
 
@@ -582,12 +580,11 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            MatchedTypesResultT: tuple containing a cursor (which can be None if cursor is not
-            applicable) and a list of matching link handles.
+            HandleListT: List of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
         """
         Retrieve links that match a specified link type.
 
@@ -597,8 +594,7 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            MatchedTypesResultT: tuple containing a cursor (which can be None if cursor is not
-            applicable) and a list of matching link handles.
+            HandleListT: List of matching link handles.
         """
 
     def get_atom(self, handle: str, **kwargs) -> AtomT:

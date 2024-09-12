@@ -29,12 +29,13 @@ from hyperon_das_atomdb.database import (
     AtomT,
     FieldIndexType,
     FieldNames,
+    HandleListT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
     MatchedLinksResultT,
-    MatchedTargetsListT,
     MatchedTypesResultT,
+    MatchedTargetsListT,
     NodeParamsT,
     NodeT,
 )
@@ -417,28 +418,6 @@ class RedisMongoDB(AtomDB):
         # NOTE creating index for name search
         self.create_field_index("node", fields=["name"])
 
-    def _get_atom_type_hash(self, atom_type: str) -> str:
-        """
-        Retrieve the hash for the given atom type.
-
-        This method checks if the hash for the specified atom type is already cached.
-        If not, it computes the hash using the ExpressionHasher and caches it for
-        future use.
-
-        Args:
-            atom_type (str): The type of the atom for which the hash is to be retrieved.
-
-        Returns:
-            str: The hash corresponding to the given atom type.
-        """
-        # TODO: implement a proper mongo collection to atom types so instead
-        #      of this lazy hashmap, we should load the hashmap during prefetch
-        named_type_hash: str | None = self.named_type_hash.get(atom_type, None)
-        if named_type_hash is None:
-            named_type_hash = ExpressionHasher.named_type_hash(atom_type)
-            self.named_type_hash[atom_type] = named_type_hash
-        return named_type_hash
-
     def _retrieve_document(self, handle: str) -> dict[str, Any] | None:
         """
         Retrieve a document from the MongoDB collection using the given handle.
@@ -481,7 +460,7 @@ class RedisMongoDB(AtomDB):
             AssertionError: If the template is not a string or an iterable of strings.
         """
         if isinstance(template, str):
-            return self._get_atom_type_hash(template)
+            return ExpressionHasher.named_type_hash(template)
         else:
             assert isinstance(
                 template, collections.abc.Iterable
@@ -564,7 +543,7 @@ class RedisMongoDB(AtomDB):
         return document[FieldNames.TYPE_NAME]
 
     def get_node_by_name(self, node_type: str, substring: str) -> list[str]:
-        node_type_hash = self._get_atom_type_hash(node_type)
+        node_type_hash = ExpressionHasher.named_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
             FieldNames.NODE_NAME: {"$regex": substring},
@@ -618,7 +597,7 @@ class RedisMongoDB(AtomDB):
         ]
 
     def get_node_by_name_starting_with(self, node_type: str, startswith: str):
-        node_type_hash = self._get_atom_type_hash(node_type)
+        node_type_hash = ExpressionHasher.named_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
             FieldNames.NODE_NAME: {"$regex": f"^{startswith}"},
@@ -703,45 +682,59 @@ class RedisMongoDB(AtomDB):
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                return None, [link_handle]
+                return [link_handle]
             except AtomDoesNotExist:
-                return None, []
+                return []
 
-        link_type_hash = WILDCARD if link_type == WILDCARD else self._get_atom_type_hash(link_type)
+        link_type_hash = WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
 
         # NOTE unreachable
         if link_type in UNORDERED_LINK_TYPES:
             target_handles = sorted(target_handles)
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        cursor, patterns_matched = self._retrieve_pattern(pattern_hash, **kwargs)
-        toplevel_only = kwargs.get("toplevel_only", False)
-        return cursor, self._process_matched_results(patterns_matched, toplevel_only)
+        patterns_matched = self._retrieve_hash_targets_value(
+            KeyPrefix.PATTERNS,
+            pattern_hash,
+            **kwargs)
+        if kwargs.get("toplevel_only", False):
+            return self._filter_non_toplevel(patterns_matched)
+        else:
+            return patterns_matched
 
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> tuple[int | None, IncomingLinksT]:
-        cursor, links = self._retrieve_incoming_set(atom_handle, **kwargs)
+    def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
+        links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
         if kwargs.get("handles_only", False):
-            return cursor, links
+            return links
         else:
-            return cursor, [self.get_atom(handle, **kwargs) for handle in links]
+            return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
         try:
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
-            cursor, templates_matched = self._retrieve_template(template_hash, **kwargs)
-            toplevel_only = kwargs.get("toplevel_only", False)
-            return cursor, self._process_matched_results(templates_matched, toplevel_only)
+            templates_matched = self._retrieve_hash_targets_value(
+                KeyPrefix.TEMPLATES,
+                template_hash, **kwargs)
+            if kwargs.get("toplevel_only", False):
+                return self._filter_non_toplevel(templates_matched)
+            else:
+                return templates_matched
         except Exception as exception:
             logger().error(f"Failed to get matched type template - Details: {str(exception)}")
             raise ValueError(str(exception))
 
     def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
-        named_type_hash = self._get_atom_type_hash(link_type)
-        cursor, templates_matched = self._retrieve_template(named_type_hash, **kwargs)
-        toplevel_only = kwargs.get("toplevel_only", False)
-        return cursor, self._process_matched_results(templates_matched, toplevel_only)
+        named_type_hash = ExpressionHasher.named_type_hash(link_type)
+        templates_matched = self._retrieve_hash_targets_value(
+            KeyPrefix.TEMPLATES,
+            named_type_hash,
+            **kwargs)
+        if kwargs.get("toplevel_only", False):
+            return self._filter_non_toplevel(templates_matched)
+        else:
+            return templates_matched
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
@@ -887,7 +880,7 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
-    def _retrieve_incoming_set(self, handle: str, **kwargs) -> tuple[int | None, list[str]]:
+    def _retrieve_incoming_set(self, handle: str, **kwargs) -> MatchedTargetsListT:
         """
         Retrieve the incoming set for the given handle from Redis.
 
@@ -906,8 +899,8 @@ class RedisMongoDB(AtomDB):
             None if `cursor` is absent in kwargs) and a list of members.
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        cursor, members = self._get_redis_members(key, **kwargs)
-        return cursor, list(members)
+        return list(self._get_redis_members(key, **kwargs))
+
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
@@ -998,7 +991,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_hash_targets_value(
         self, key_prefix: str, handle: str, **kwargs
-    ) -> MatchedTypesResultT:
+    ) -> MatchedTargetsListT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1012,21 +1005,19 @@ class RedisMongoDB(AtomDB):
             key_prefix (str): The prefix to be used in the Redis key.
             handle (str): The unique identifier for the atom whose hash targets value is to be
                 retrieved.
-            **kwargs: Additional keyword arguments for cursor-based pagination.
+            **kwargs: Additional keyword arguments
 
         Returns:
-            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
-            `cursor` is absent in kwargs) and a list of members in the hash targets value.
+            MatchedTargetsListT: List of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        cursor, members = self._get_redis_members(key, **kwargs)
+        #return list(self._get_redis_members(key, **kwargs))
+        members = self._get_redis_members(key, **kwargs)
         if len(members) == 0:
-            return cursor, []
+            return []
         else:
             n = len(next(iter(members))) // self.hash_length
-            return (
-                cursor,
-                [
+            return [
                     (
                         member[0 : self.hash_length],  # noqa: E203
                         tuple(
@@ -1039,28 +1030,8 @@ class RedisMongoDB(AtomDB):
                         ),
                     )
                     for member in members
-                ],
-            )
+            ]
 
-    def _retrieve_template(self, handle: str, **kwargs) -> MatchedTypesResultT:
-        """
-        Retrieve the template for the given handle from Redis.
-
-        This method constructs a Redis key using the provided handle and retrieves the members
-        associated with that key. It supports additional keyword arguments for cursor-based
-        pagination. If the members are not found, it returns an empty list. Otherwise, it
-        calculates the number of targets based on the length of the first member and returns
-        the cursor position and a list of members.
-
-        Args:
-            handle (str): The unique identifier for the atom whose template is to be retrieved.
-            **kwargs: Additional keyword arguments for cursor-based pagination.
-
-        Returns:
-            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
-            `cursor` is absent in kwargs) and a list of members in the template.
-        """
-        return self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, handle, **kwargs)
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
@@ -1076,26 +1047,6 @@ class RedisMongoDB(AtomDB):
         """
         key = _build_redis_key(KeyPrefix.TEMPLATES, handle)
         self.redis.srem(key, smember)
-
-    def _retrieve_pattern(self, handle: str, **kwargs) -> MatchedTypesResultT:
-        """
-        Retrieve the pattern for the given handle from Redis.
-
-        This method constructs a Redis key using the provided handle and retrieves the members
-        associated with that key. It supports additional keyword arguments for cursor-based
-        pagination. If the members are not found, it returns an empty list. Otherwise, it
-        calculates the number of targets based on the length of the first member and returns
-        the cursor position and a list of members.
-
-        Args:
-            handle (str): The unique identifier for the atom whose pattern is to be retrieved.
-            **kwargs: Additional keyword arguments for cursor-based pagination.
-
-        Returns:
-            MatchedTypesResultT: A tuple containing the cursor position (which can be None if
-            `cursor` is absent in kwargs) and a list of members in the pattern.
-        """
-        return self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, handle, **kwargs)
 
     def _retrieve_custom_index(self, index_id: str) -> dict[str, Any] | None:
         """
@@ -1140,30 +1091,17 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Unexpected error retrieving custom index with ID {index_id}: {e}")
             raise e
 
-    def _get_redis_members(self, key: str, **kwargs) -> tuple[int | None, list[str]]:
+    def _get_redis_members(self, key: str, **kwargs) -> MatchedTargetsListT:
         """
-        Retrieve members from a Redis set, with optional cursor-based paging.
+        Retrieve members from a Redis set.
 
         Args:
             key (str): The key of the set in Redis.
-            **kwargs: Additional keyword arguments.
-                cursor (int, optional): The cursor for pagination.
-                chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            tuple[int | None, list[str]]: The cursor (which can be None if `cursor` is absent in
-            kwargs) and a list of members retrieved from Redis.
+            MatchedTargetsListT: List of members retrieved from Redis.
         """
-        cursor: int | None
-        members: list[str]
-        if (cursor := kwargs.get("cursor")) is not None:
-            chunk_size = kwargs.get("chunk_size", 1000)
-            cursor, members = self.redis.sscan(name=key, cursor=cursor, count=chunk_size)  # type: ignore
-        else:
-            cursor = None
-            members = list(self.redis.smembers(key))  # type: ignore
-
-        return cursor, members
+        return list(self.redis.smembers(key))  # type: ignore
 
     def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
         """
@@ -1285,24 +1223,6 @@ class RedisMongoDB(AtomDB):
             for handle in incoming_buffer:
                 key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
                 self.redis.sadd(key, *incoming_buffer[handle])
-
-    def _process_matched_results(
-        self,
-        matched: MatchedTargetsListT,
-        toplevel_only: bool = False,
-    ) -> MatchedTargetsListT:
-        """
-        Process the matched results and filter them based on the toplevel_only flag.
-
-        Args:
-            matched (MatchedTargetsListT): The list of matched results to be processed.
-            toplevel_only (bool): Flag indicating whether to filter out non-toplevel links.
-                Defaults to False.
-
-        Returns:
-            MatchedTargetsListT: The processed matched results.
-        """
-        return self._filter_non_toplevel(matched) if toplevel_only else matched
 
     @staticmethod
     def _is_document_link(document: dict[str, Any]) -> bool:

@@ -296,7 +296,7 @@ class TestInMemoryDB:
         human = ExpressionHasher.terminal_hash("Concept", "human")
         monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
         link_handle = database.get_link_handle(link_type, [human, monkey])
-        expected = (None, [link_handle])
+        expected = [link_handle]
         actual = database.get_matched_links(link_type, [human, monkey])
 
         assert expected == actual
@@ -304,9 +304,7 @@ class TestInMemoryDB:
     def test_get_matched_links_link_equal_wildcard(self, database: InMemoryDB):
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = (
-            None,
-            [
+        expected = [
                 (
                     "b5459e299a5c5e8662c427f7e01b3bf1",
                     (
@@ -314,8 +312,7 @@ class TestInMemoryDB:
                         "5b34c54bee150c04f9fa584b899dc030",
                     ),
                 )
-            ],
-        )
+        ]
         actual = database.get_matched_links("*", [human, chimp])
 
         assert expected == actual
@@ -323,10 +320,7 @@ class TestInMemoryDB:
     def test_get_matched_links_link_diff_wildcard(self, database: InMemoryDB):
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = (
-            None,
-            sorted(
-                [
+        expected  = sorted([
                     (
                         "b5459e299a5c5e8662c427f7e01b3bf1",
                         (
@@ -341,13 +335,10 @@ class TestInMemoryDB:
                             "5b34c54bee150c04f9fa584b899dc030",
                         ),
                     ),
-                ],
-                key=lambda i: i[0],
-            ),
-        )
+                ], key=lambda i: i[0])
 
-        cursor, actual = database.get_matched_links(link_type, ["*", chimp])
-        assert expected == (cursor, sorted(actual, key=lambda i: i[0]))
+        actual = database.get_matched_links(link_type, ["*", chimp])
+        assert expected == sorted(actual, key=lambda i: i[0])
 
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = "Similarity-Fake"
@@ -388,9 +379,7 @@ class TestInMemoryDB:
                 ],
             }
         )
-        expected = (
-            None,
-            [
+        expected = [
                 (
                     "661fb5a7c90faabfeada7e1f63805fc0",
                     (
@@ -398,11 +387,10 @@ class TestInMemoryDB:
                         "260e118be658feeeb612dcd56d270d77",
                     ),
                 )
-            ],
-        )
-        cursor, actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
+        ]
+        actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
 
-        assert expected == (cursor, actual)
+        assert expected == actual
         assert len(actual) == 1
 
     def test_get_matched_links_wrong_parameter(self, database: InMemoryDB):
@@ -436,8 +424,7 @@ class TestInMemoryDB:
                 ],
             }
         )
-        cursor, actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel=True)
-        assert cursor is None
+        actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel=True)
         assert len(actual) == 2
 
     @pytest.mark.skip(
@@ -492,14 +479,12 @@ class TestInMemoryDB:
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: InMemoryDB):
-        cursors = [-1] * 6
-        cursors[0], v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
-        cursors[1], v2 = database.get_matched_type_template(["Similarity", "Concept", "Concept"])
-        cursors[2], v3 = database.get_matched_type_template(["Inheritance", "Concept", "blah"])
-        cursors[3], v4 = database.get_matched_type_template(["Similarity", "blah", "Concept"])
-        cursors[4], v5 = database.get_matched_links("Inheritance", ["*", "*"])
-        cursors[5], v6 = database.get_matched_links("Similarity", ["*", "*"])
-        assert all(c is None for c in cursors)
+        v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
+        v2 = database.get_matched_type_template(["Similarity", "Concept", "Concept"])
+        v3 = database.get_matched_type_template(["Inheritance", "Concept", "blah"])
+        v4 = database.get_matched_type_template(["Similarity", "blah", "Concept"])
+        v5 = database.get_matched_links("Inheritance", ["*", "*"])
+        v6 = database.get_matched_links("Similarity", ["*", "*"])
         assert len(v1) == 12
         assert len(v2) == 14
         assert len(v3) == 0
@@ -530,23 +515,19 @@ class TestInMemoryDB:
             }
         )
 
-        cursor, ret = database.get_matched_type_template(
+        ret = database.get_matched_type_template(
             ["Evaluation", "Reactome", "Concept"], toplevel_only=True
         )
-        assert cursor is None
         assert len(ret) == 0
 
-        cursor, ret = database.get_matched_type_template(
+        ret = database.get_matched_type_template(
             ["Evaluation", "Reactome", "Concept"], toplevel_only=False
         )
-        assert cursor is None
         assert len(ret) == 1
 
     def test_get_matched_type(self, database: InMemoryDB):
-        cursors = [-1] * 2
-        cursors[0], inheritance = database.get_matched_type("Inheritance")
-        cursors[1], similarity = database.get_matched_type("Similarity")
-        assert all(c is None for c in cursors)
+        inheritance = database.get_matched_type("Inheritance")
+        similarity = database.get_matched_type("Similarity")
         assert len(inheritance) == 12
         assert len(similarity) == 14
 
@@ -572,12 +553,10 @@ class TestInMemoryDB:
                 ],
             }
         )
-        cursor, ret = database.get_matched_type("EvaluationLink")
-        assert cursor is None
+        ret = database.get_matched_type("EvaluationLink")
         assert len(ret) == 2
 
-        cursor, ret = database.get_matched_type("EvaluationLink", toplevel_only=True)
-        assert cursor is None
+        ret = database.get_matched_type("EvaluationLink", toplevel_only=True)
         assert len(ret) == 1
 
     def test_get_node_name(self, database):
@@ -659,8 +638,7 @@ class TestInMemoryDB:
         assert exc_info.value.args[0] == 'The "type" and "targets" fields must be sent'
 
     def test_add_nested_links(self, database: InMemoryDB):
-        cursor, answer = database.get_matched_type("Evaluation")
-        assert cursor is None
+        answer = database.get_matched_type("Evaluation")
         assert len(answer) == 0
 
         database.add_link(
@@ -693,8 +671,7 @@ class TestInMemoryDB:
                 ],
             }
         )
-        cursor, answer = database.get_matched_type("Evaluation")
-        assert cursor is None
+        answer = database.get_matched_type("Evaluation")
         assert len(answer) == 2
 
     def test_get_link_type(self, database: InMemoryDB):
@@ -753,30 +730,25 @@ class TestInMemoryDB:
         m = database.get_node_handle("Concept", "monkey")
         s = database.get_link_handle("Similarity", [h, m])
 
-        cursor, links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        assert cursor is None
+        links = database.get_incoming_links(atom_handle=h, handles_only=False)
         atom = database.get_atom(handle=s)
         assert atom in links
 
-        cursor, links = database.get_incoming_links(
+        links = database.get_incoming_links(
             atom_handle=h, handles_only=False, targets_document=True
         )
-        assert cursor is None
         for link in links:
             for a, b in zip(link["targets"], link["targets_document"]):
                 assert a == b["handle"]
 
-        cursor, links = database.get_incoming_links(atom_handle=h, handles_only=True)
-        assert cursor is None
+        links = database.get_incoming_links(atom_handle=h, handles_only=True)
         assert links == list(database.db.incoming_set.get(h))
         assert s in links
 
-        cursor, links = database.get_incoming_links(atom_handle=m, handles_only=True)
-        assert cursor is None
+        links = database.get_incoming_links(atom_handle=m, handles_only=True)
         assert links == list(database.db.incoming_set.get(m))
 
-        cursor, links = database.get_incoming_links(atom_handle=s, handles_only=True)
-        assert cursor is None
+        links = database.get_incoming_links(atom_handle=s, handles_only=True)
         assert links == []
 
     def test_get_atom_type(self, database: InMemoryDB):
@@ -789,10 +761,8 @@ class TestInMemoryDB:
         assert "Inheritance" == database.get_atom_type(i)
 
     def test_get_all_links(self, database: InMemoryDB):
-        cursors = [-1] * 2
-        cursors[0], link_h = database.get_all_links("Similarity")
-        cursors[1], link_i = database.get_all_links("Inheritance")
-        assert all(c is None for c in cursors)
+        _, link_h = database.get_all_links("Similarity")
+        _, link_i = database.get_all_links("Inheritance")
         assert len(link_h) == 14
         assert len(link_i) == 12
         assert (None, []) == database.get_all_links("snet")

@@ -537,27 +537,24 @@ class TestDatabase:
             db.is_ordered("handle")
 
     @pytest.mark.parametrize(
-        "database,params,links_len,cursor_value",
+        "database,params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 3, None),
-            ("redis_mongo_db", {"handles_only": True}, 3, None),
-            ("redis_mongo_db", {"no_target_format": True}, 3, None),
-            ("redis_mongo_db", {"cursor": 0, "chunk_size": 1}, 1, 1),
+            ("redis_mongo_db", {}, 3),
+            ("redis_mongo_db", {"handles_only": True}, 3),
+            ("redis_mongo_db", {"no_target_format": True}, 3),
             # NOTE should return None on all cases
-            ("in_memory_db", {}, 3, None),
-            ("in_memory_db", {"handles_only": True}, 3, None),
-            ("in_memory_db", {"no_target_format": True}, 3, None),
-            ("in_memory_db", {"cursor": 0, "chunk_size": 1}, 3, 0),
+            ("in_memory_db", {}, 3),
+            ("in_memory_db", {"handles_only": True}, 3),
+            ("in_memory_db", {"no_target_format": True}, 3),
         ],
     )
-    def test_get_incoming_links(self, database, params, links_len, cursor_value, request):
+    def test_get_incoming_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = self._add_node(db, "Aaa", "Test", database)
         self._add_link(db, "Aa", [node_a], database)
         self._add_link(db, "Ab", [node_a], database)
         self._add_link(db, "Ac", [node_a], database)
-        cursor, links = db.get_incoming_links(node_a["handle"], **params)
-        assert cursor == cursor_value
+        links = db.get_incoming_links(node_a["handle"], **params)
         assert len(links) == links_len
         assert all(
             [
@@ -567,31 +564,29 @@ class TestDatabase:
         )
 
     @pytest.mark.parametrize(
-        "database,params,links_len,cursor_value",
+        "database,params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 1, None),
-            ("redis_mongo_db", {"toplevel_only": True}, 1, None),
-            # ("redis_mongo_db", {"link_type": "NoTopLevel" , "toplevel_only": True}, 0, None), # doesn"t work
+            ("redis_mongo_db", {}, 1),
+            ("redis_mongo_db", {"toplevel_only": True}, 1),
+            # ("redis_mongo_db", {"link_type": "NoTopLevel" , "toplevel_only": True}, 0), # doesn"t work
             # Note returning different values
-            # ("in_memory_db", {"link_type": "*", "toplevel_only": True}, 3, None),
-            # ("redis_mongo_db", {"link_type": "*", "toplevel_only": True}, 0, None),
-            # ("redis_mongo_db", {"link_type": "*"}, 3, None), # should return 3
-            ("redis_mongo_db", {"target_handles": "*"}, 1, None),
-            ("redis_mongo_db", {"handles_only": True}, 1, None),
-            ("redis_mongo_db", {"no_target_format": True}, 1, None),
-            ("redis_mongo_db", {"cursor": 0, "chunk_size": 1}, 1, None),
-            ("in_memory_db", {}, 1, None),
-            ("in_memory_db", {"toplevel_only": True}, 1, None),
-            # ("in_memory_db", {"link_type": "NoTopLevel", "toplevel_only": True}, 0, None), # doesn"t work
-            ("in_memory_db", {"link_type": "*"}, 3, None),
-            ("in_memory_db", {"toplevel_only": True}, 1, None),
-            ("in_memory_db", {"target_handles": "*"}, 1, None),
-            ("in_memory_db", {"handles_only": True}, 1, None),
-            ("in_memory_db", {"no_target_format": True}, 1, None),
-            ("in_memory_db", {"cursor": 0, "chunk_size": 1}, 1, 0),
+            # ("in_memory_db", {"link_type": "*", "toplevel_only": True}, 3),
+            # ("redis_mongo_db", {"link_type": "*", "toplevel_only": True}, 0),
+            # ("redis_mongo_db", {"link_type": "*"}, 3), # should return 3
+            ("redis_mongo_db", {"target_handles": ["*"]}, 1),
+            ("redis_mongo_db", {"handles_only": True}, 1),
+            ("redis_mongo_db", {"no_target_format": True}, 1),
+            ("in_memory_db", {}, 1),
+            ("in_memory_db", {"toplevel_only": True}, 1),
+            # ("in_memory_db", {"link_type": "NoTopLevel", "toplevel_only": True}, 0), # doesn"t work
+            ("in_memory_db", {"link_type": "*"}, 3),
+            ("in_memory_db", {"toplevel_only": True}, 1),
+            ("in_memory_db", {"target_handles": ["*"]}, 1),
+            ("in_memory_db", {"handles_only": True}, 1),
+            ("in_memory_db", {"no_target_format": True}, 1),
         ],
     )
-    def test_get_matched_links(self, database, params, links_len, cursor_value, request):
+    def test_get_matched_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = self._add_node(db, "Aaa", "Test", database)
         link_a = self._add_link(db, "Aa", [node_a], database)
@@ -601,8 +596,7 @@ class TestDatabase:
         params["target_handles"] = (
             link_a["targets"] if not params.get("target_handles") else params["target_handles"]
         )
-        cursor, links = db.get_matched_links(**params)
-        assert cursor == cursor_value
+        links = db.get_matched_links(**params)
         assert len(links) == links_len
         if all(isinstance(link, tuple) for link in links):
             for link in links:
@@ -613,44 +607,40 @@ class TestDatabase:
             assert all([_check_handle(link) for link in links])
 
     @pytest.mark.parametrize(
-        "database,params,links_len,cursor_value",
+        "database,params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {"link_type": "Z", "target_handles": []}, 0, None),
-            # ("redis_mongo_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0, None),
-            # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"]}, 0, None),
-            # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0, None),
+            ("redis_mongo_db", {"link_type": "Z", "target_handles": []}, 0),
+            # ("redis_mongo_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0),
+            # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"]}, 0),
+            # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0),
         ],
     )
-    def test_get_matched_no_links(self, database, params, links_len, cursor_value, request):
+    def test_get_matched_no_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         self._add_node(db, "Aaa", "Test", database)
-        cursor, links = db.get_matched_links(**params)
-        assert cursor == cursor_value
+        links = db.get_matched_links(**params)
         assert len(links) == links_len
 
     @pytest.mark.parametrize(
-        "database,params,links_len,cursor_value,is_top_level",
+        "database,params,links_len,is_top_level",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 1, None, True),
-            ("redis_mongo_db", {}, 1, None, False),
-            ("redis_mongo_db", {"toplevel_only": True}, 0, None, False),
-            ("redis_mongo_db", {"cursor": 0, "chunk_size": 1}, 1, 0, False),
-            ("in_memory_db", {}, 1, None, True),
-            ("in_memory_db", {}, 1, None, False),
-            ("in_memory_db", {"toplevel_only": True}, 0, None, False),
+            ("redis_mongo_db", {}, 1, True),
+            ("redis_mongo_db", {}, 1, False),
+            ("redis_mongo_db", {"toplevel_only": True}, 0, False),
+            ("in_memory_db", {}, 1, True),
+            ("in_memory_db", {}, 1, False),
+            ("in_memory_db", {"toplevel_only": True}, 0, False),
             # NOTE should return None or same as redis_mongo
-            ("in_memory_db", {"cursor": 0, "chunk_size": 1}, 1, 0, False),
         ],
     )
     def test_get_matched_type_template(
-        self, database, params, links_len, cursor_value, is_top_level, request
+        self, database, params, links_len, is_top_level, request
     ):
         db: AtomDB = request.getfixturevalue(database)
         node_a = self._add_node(db, "Aaa", "Test", database)
         node_b = self._add_node(db, "Bbb", "Test", database)
         link_a = self._add_link(db, "Aa", [node_a, node_b], database, is_top_level=is_top_level)
-        cursor, links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
-        assert cursor == cursor_value
+        links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
         assert len(links) == links_len
         if len(links) > 0:
             for link in links:
@@ -670,8 +660,7 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         link_a = self._add_link(db, "Aa", [], database)
         self._add_link(db, "Ab", [], database)
-        cursor, links = db.get_matched_type(link_a["type"])
-        assert cursor is None
+        links = db.get_matched_type(link_a["type"])
         assert len(links) == 1
         if len(links) > 0:
             for link in links:
