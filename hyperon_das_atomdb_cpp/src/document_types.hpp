@@ -46,6 +46,14 @@ class Atom {
 
     virtual ~Atom() = default;
 
+    const string to_string() const noexcept {
+        string result = "id: '" + id + "'";
+        result += ", handle: '" + handle + "'";
+        result += ", composite_type_hash: '" + composite_type_hash + "'";
+        result += ", named_type: '" + named_type + "'";
+        return result;
+    }
+
     string id;
     string handle;
     string composite_type_hash;
@@ -100,6 +108,12 @@ class Node : public Atom {
         }
     }
 
+    const string to_string() const noexcept {
+        string result = Atom::to_string();
+        result += ", name: '" + name + "'";
+        return "Node(" + result + ")";
+    }
+
     string name;
 };
 
@@ -139,6 +153,47 @@ class Link : public Atom {
         if (targets.empty()) {
             throw invalid_argument("Link targets cannot be empty.");
         }
+    }
+
+    const string to_string() const noexcept {
+        string result = Atom::to_string();
+        // result += ", composite_type=" + to_string(composite_type);
+        result += ", named_type_hash: '" + named_type_hash + "'";
+        result += ", targets: [";
+        if (!targets.empty()) {
+            for (const auto& target : targets) {
+                result += "'" + target + "', ";
+            }
+            result.pop_back();
+            result.pop_back();
+        }
+        result += "]";
+        // result += ", is_top_level=" + (is_top_level ? "true" : "false");
+        result += ", keys: {";
+        if (!keys.empty()) {
+            for (const auto& [key, value] : keys) {
+                result += "'" + key + "': '" + value + "', ";
+            }
+            result.pop_back();
+            result.pop_back();
+        }
+        result += "}";
+        result += ", targets_documents: [";
+        if (targets_documents.has_value()) {
+            if (!targets_documents.value().empty()) {
+                for (const auto& target : targets_documents.value()) {
+                    if (auto node = dynamic_pointer_cast<const Node>(target)) {
+                        result += string(node->to_string()) + ", ";
+                    } else if (auto link = dynamic_pointer_cast<const Link>(target)) {
+                        result += string(link->to_string()) + ", ";
+                    }
+                }
+                result.pop_back();
+                result.pop_back();
+            }
+        }
+        result += "]";
+        return "Link(" + result + ")";
     }
 
     /**

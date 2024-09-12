@@ -117,8 +117,10 @@ string InMemoryDB::get_link_handle(const string& link_type, const StringList& ta
     }
     string target_handles_str = "[";
     for (const auto& target_handle : target_handles) {
-        target_handles_str += target_handle + ",";
+        target_handles_str += target_handle + ", ";
     }
+    target_handles_str.pop_back();
+    target_handles_str.pop_back();
     target_handles_str += "]";
     throw AtomDoesNotExist("Nonexistent atom", link_type + ":" + target_handles_str);
 }

@@ -8,9 +8,9 @@ using namespace std;
 
 namespace atomdb {
 
-class AtomDoesNotExist : public exception {
+class BaseException : public exception {
    public:
-    AtomDoesNotExist(const string& message, const string details) : message(message), details(details) {}
+    BaseException(const string& message, const string details) : message(message), details(details) {}
 
     const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
@@ -19,16 +19,12 @@ class AtomDoesNotExist : public exception {
     string details;
 };
 
-class InvalidOperationException : public exception {
-   public:
-    InvalidOperationException(const string& message, const string details)
-        : message(message), details(details) {}
+class AtomDoesNotExist : public BaseException {
+    using BaseException::BaseException;
+};
 
-    const char* what() const noexcept override { return (message + ": " + details).c_str(); }
-
-   private:
-    string message;
-    string details;
+class InvalidOperationException : public BaseException {
+    using BaseException::BaseException;
 };
 
 }  // namespace atomdb
