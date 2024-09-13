@@ -429,10 +429,10 @@ class AtomDB {
      * @return The ID of the created index.
      */
     virtual const string create_field_index(const string& atom_type,
-                                      const StringList& fields,
-                                      const string& named_type = "",
-                                      const StringList& composite_type = {},
-                                      FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
+                                            const StringList& fields,
+                                            const string& named_type = "",
+                                            const StringList& composite_type = {},
+                                            FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
 
     /**
      * @brief Insert multiple documents into the database.

@@ -76,7 +76,7 @@ class Database {
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB(){};
+    InMemoryDB() {};
     ~InMemoryDB() {
         this->all_named_types.clear();
         this->named_type_table.clear();
