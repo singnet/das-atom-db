@@ -1,5 +1,4 @@
-#ifndef _DATABASE_HPP
-#define _DATABASE_HPP
+#pragma once
 
 #include <variant>
 
@@ -488,5 +487,3 @@ class AtomDB {
     virtual const shared_ptr<const Atom> _get_atom(const string& handle) const = 0;
 };
 }  // namespace atomdb
-
-#endif  // _DATABASE_HPP

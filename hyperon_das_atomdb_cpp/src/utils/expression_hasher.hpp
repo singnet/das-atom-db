@@ -1,9 +1,7 @@
-#ifndef _EXPRESSION_HASHER_HPP
-#define _EXPRESSION_HASHER_HPP
+#pragma once
 
 #include <openssl/md5.h>
 
-#include <iostream>
 #include <string>
 
 #include "type_aliases.hpp"
@@ -24,7 +22,7 @@ class ExpressionHasher {
      * @param input The input string to be hashed.
      * @return A string representing the MD5 hash of the input.
      */
-    static string compute_hash(const string& input) {
+    static const string compute_hash(const string& input) {
         MD5_CTX ctx;
         unsigned char MD5_BUFFER[MD5_DIGEST_LENGTH];
         char HASH[2 * MD5_DIGEST_LENGTH + 1];
@@ -38,7 +36,7 @@ class ExpressionHasher {
         }
         HASH[2 * MD5_DIGEST_LENGTH] = '\0';
 
-        return string(HASH);
+        return move(string(HASH));
     }
 
     /**
@@ -47,7 +45,7 @@ class ExpressionHasher {
      * @param name The name of the type.
      * @return A string representing the hash of the named type.
      */
-    static string named_type_hash(const string& name) { return compute_hash(name); }
+    static const string named_type_hash(const string& name) { return compute_hash(name); }
 
     /**
      * @brief Generates a hash for a terminal expression.
@@ -55,11 +53,11 @@ class ExpressionHasher {
      * @param type The type of the terminal expression.
      * @param name The name of the terminal expression.
      * @return A string representing the hash of the terminal expression.
+     * @throws invalid_argument if the terminal name is too large.
      */
-    static string terminal_hash(const string& type, const string& name) {
+    static const string terminal_hash(const string& type, const string& name) {
         if (type.length() + name.length() >= MAX_HASHABLE_STRING_SIZE) {
-            cerr << "Invalid (too large) terminal name" << endl;
-            exit(1);
+            throw invalid_argument("Invalid (too large) terminal name");
         }
         string hashable_string = type + JOINING_CHAR + name;
         return compute_hash(hashable_string);
@@ -71,7 +69,7 @@ class ExpressionHasher {
      * @param elements A vector of strings representing the elements of the composite expression.
      * @return A string representing the hash of the composite expression.
      */
-    static string composite_hash(const StringList& elements) {
+    static const string composite_hash(const StringList& elements) {
         if (elements.size() == 1) {
             return elements[0];
         }
@@ -95,7 +93,7 @@ class ExpressionHasher {
      * hashed.
      * @return A string representing the composite hash generated from the elements.
      */
-    static string composite_hash(const ListOfAny& elements) {
+    static const string composite_hash(const ListOfAny& elements) {
         StringList hashable_elements;
         for (const auto& element : elements) {
             hashable_elements.push_back(any_cast<string>(element));
@@ -112,7 +110,7 @@ class ExpressionHasher {
      * @param hash_base A string representing the base hash.
      * @return A string representing the composite hash generated from the base hash.
      */
-    static string composite_hash(const string& hash_base) { return hash_base; }
+    static const string composite_hash(const string& hash_base) { return hash_base; }
 
     /**
      * @brief Generates a hash for an expression.
@@ -121,7 +119,7 @@ class ExpressionHasher {
      * @param elements A vector of strings representing the elements of the expression.
      * @return A string representing the hash of the expression.
      */
-    static string expression_hash(const string& type_hash, const StringList& elements) {
+    static const string expression_hash(const string& type_hash, const StringList& elements) {
         StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
         return composite_hash(composite);
@@ -129,5 +127,3 @@ class ExpressionHasher {
 };
 
 }  // namespace atomdb
-
-#endif  // _EXPRESSION_HASHER_HPP

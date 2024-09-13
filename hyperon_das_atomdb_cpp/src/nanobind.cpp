@@ -77,6 +77,7 @@ NB_MODULE(hyperon_das_atomdb_nanobind, m) {
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
     nb::exception<AtomDoesNotExist>(exceptions, "AtomDoesNotExist");
+    nb::exception<InvalidAtomDB>(exceptions, "InvalidAtomDB");
     nb::exception<InvalidOperationException>(exceptions, "InvalidOperationException");
     // ---------------------------------------------------------------------------------------------
     // document_types submodule --------------------------------------------------------------------

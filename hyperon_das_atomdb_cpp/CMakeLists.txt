@@ -4,7 +4,7 @@ project(hyperon_das_atomdb_nanobind)
 # Set C++ standard and optimization flags
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -w")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 if (CMAKE_VERSION VERSION_LESS 3.18)

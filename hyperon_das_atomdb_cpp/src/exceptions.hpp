@@ -1,5 +1,4 @@
-#ifndef _EXCEPTIONS_HPP
-#define _EXCEPTIONS_HPP
+#pragma once
 
 #include <exception>
 #include <string>
@@ -8,9 +7,10 @@ using namespace std;
 
 namespace atomdb {
 
-class BaseException : public exception {
+class AtomDbBaseException : public exception {
    public:
-    BaseException(const string& message, const string details) : message(message), details(details) {}
+    AtomDbBaseException(const string& message, const string details)
+        : message(message), details(details) {}
 
     const char* what() const noexcept override { return (message + ": " + details).c_str(); }
 
@@ -19,14 +19,46 @@ class BaseException : public exception {
     string details;
 };
 
-class AtomDoesNotExist : public BaseException {
-    using BaseException::BaseException;
+/**
+ * @brief Exception thrown when an atom does not exist in the database.
+ */
+class AtomDoesNotExist : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
 };
 
-class InvalidOperationException : public BaseException {
-    using BaseException::BaseException;
+/**
+ * @brief Exception thrown when adding a node to the database fails.
+ */
+class AddNodeException : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
+};
+
+/**
+ * @brief Exception thrown when adding a link to the database fails.
+ */
+class AddLinkException : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
+};
+
+/**
+ * @brief Exception thrown when an invalid operation is performed on the database.
+ */
+class InvalidOperationException : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
+};
+
+/**
+ * @brief Exception raised for retryable errors.
+ */
+class RetryException : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
+};
+
+/**
+ * @brief Exception raised for invalid Atom DB operations.
+ */
+class InvalidAtomDB : public AtomDbBaseException {
+    using AtomDbBaseException::AtomDbBaseException;
 };
 
 }  // namespace atomdb
-
-#endif  // _EXCEPTIONS_HPP

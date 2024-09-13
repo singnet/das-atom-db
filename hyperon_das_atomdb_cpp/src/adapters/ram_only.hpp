@@ -1,5 +1,4 @@
-#ifndef _RAM_ONLY_HPP
-#define _RAM_ONLY_HPP
+#pragma once
 
 #include "database.hpp"
 #include "document_types.hpp"
@@ -260,5 +259,3 @@ class InMemoryDB : public AtomDB {
 };
 
 }  // namespace atomdb
-
-#endif  // _RAM_ONLY_HPP

@@ -15,7 +15,7 @@ using namespace atomdb;
 const string InMemoryDB::get_node_handle(const string& node_type, const string& node_name) const {
     auto node_handle = AtomDB::build_node_handle(node_type, node_name);
     if (this->db.node.find(node_handle) != this->db.node.end()) {
-        return node_handle;
+        return move(node_handle);
     }
     throw AtomDoesNotExist("Nonexistent atom", node_type + node_name);
 }
@@ -47,7 +47,7 @@ const StringList InMemoryDB::get_node_by_name(const string& node_type, const str
             node_handles.push_back(key);
         }
     }
-    return node_handles;
+    return move(node_handles);
 }
 
 //------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
             }
         }
     }
-    return node_handles;
+    return move(node_handles);
 }
 
 //------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ const pair<const OptCursor, const StringList> InMemoryDB::get_all_links(const st
             link_handles.push_back(link->id);
         }
     }
-    return {params.get<int>(ParamsKeys::CURSOR), link_handles};
+    return {params.get<int>(ParamsKeys::CURSOR), move(link_handles)};
 }
 
 //------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ const string InMemoryDB::get_link_handle(const string& link_type,
                                          const StringList& target_handles) const {
     auto link_handle = AtomDB::build_link_handle(link_type, target_handles);
     if (this->db.link.find(link_handle) != this->db.link.end()) {
-        return link_handle;
+        return move(link_handle);
     }
     string target_handles_str = "[";
     for (const auto& target_handle : target_handles) {
@@ -158,7 +158,7 @@ const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_l
     const string& atom_handle, const Params& params) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
-    return {params.get<int>(ParamsKeys::CURSOR), links};
+    return {params.get<int>(ParamsKeys::CURSOR), move(links)};
 }
 
 //------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::ge
     for (const auto& link_handle : links) {
         atoms.push_back(this->get_atom(link_handle, params));
     }
-    return {cursor, atoms};
+    return {cursor, move(atoms)};
 }
 
 //------------------------------------------------------------------------------
@@ -200,7 +200,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(patterns_matched)};
     }
 
-    return {params.get<int>(ParamsKeys::CURSOR), patterns_matched};
+    return {params.get<int>(ParamsKeys::CURSOR), move(patterns_matched)};
 }
 
 //------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
             return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
         }
-        return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
+        return {params.get<int>(ParamsKeys::CURSOR), move(templates_matched)};
     }
     return {params.get<int>(ParamsKeys::CURSOR), {}};
 }
@@ -232,7 +232,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
             return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
         }
-        return {params.get<int>(ParamsKeys::CURSOR), templates_matched};
+        return {params.get<int>(ParamsKeys::CURSOR), move(templates_matched)};
     }
     return {params.get<int>(ParamsKeys::CURSOR), {}};
 }
@@ -356,7 +356,7 @@ const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
         for (const auto& [_, link] : this->db.link) {
             atoms.push_back(link);
         }
-        return atoms;
+        return move(atoms);
     } catch (const exception& e) {
         // TODO: log error
         throw runtime_error("Error retrieving all atoms: " + string(e.what()));
@@ -419,7 +419,7 @@ const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _te
             throw invalid_argument("Invalid template element type.");
         }
     }
-    return hash_template;
+    return move(hash_template);
 }
 
 //------------------------------------------------------------------------------
@@ -475,7 +475,7 @@ const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const strin
     if (it != this->db.outgoing_set.end()) {
         auto handles = move(it->second);
         this->db.outgoing_set.erase(it);
-        return handles;
+        return move(handles);
     }
     return nullopt;
 }
@@ -595,7 +595,7 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
             }
         }
     }
-    return filtered_matched_targets;
+    return move(filtered_matched_targets);
 }
 
 //------------------------------------------------------------------------------
@@ -604,7 +604,7 @@ const vector<string> InMemoryDB::_build_targets_list(const Link& link) {
     for (const auto& [_, value] : link.keys) {
         targets.push_back(value);
     }
-    return targets;
+    return move(targets);
 }
 
 //------------------------------------------------------------------------------

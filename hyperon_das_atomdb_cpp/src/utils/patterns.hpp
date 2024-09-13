@@ -38,7 +38,7 @@ IntMatrix generate_binary_matrix(int numbers) {
         row_with_one.push_back(1);
         new_matrix.push_back(row_with_one);
     }
-    return new_matrix;
+    return move(new_matrix);
 }
 
 /**
@@ -70,7 +70,7 @@ StringMatrix multiply_binary_matrix_by_string_matrix(const IntMatrix& binary_mat
         result_matrix.pop_back();
     }
 
-    return result_matrix;
+    return move(result_matrix);
 }
 
 /**
@@ -93,7 +93,7 @@ StringList build_pattern_keys(const StringList& hash_list) {
         keys.push_back(ExpressionHasher::expression_hash(type_hash, elements));
     }
 
-    return keys;
+    return move(keys);
 }
 
 }  // namespace atomdb

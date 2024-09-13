@@ -1,5 +1,4 @@
-#ifndef _TYPE_ALIASES_HPP
-#define _TYPE_ALIASES_HPP
+#pragma once
 
 #include <any>
 #include <memory>
@@ -30,5 +29,3 @@ using Pattern_or_Template = tuple<string, opt<StringList>>;
 using Pattern_or_Template_List = vector<Pattern_or_Template>;
 
 }  // namespace atomdb
-
-#endif  // _TYPE_ALIASES_HPP

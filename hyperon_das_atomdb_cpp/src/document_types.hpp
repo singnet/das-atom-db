@@ -1,5 +1,4 @@
-#ifndef _DOCUMENT_TYPES_HPP
-#define _DOCUMENT_TYPES_HPP
+#pragma once
 
 #include <map>
 #include <stdexcept>
@@ -51,7 +50,7 @@ class Atom {
         result += ", handle: '" + handle + "'";
         result += ", composite_type_hash: '" + composite_type_hash + "'";
         result += ", named_type: '" + named_type + "'";
-        return result;
+        return move(result);
     }
 
     string id;
@@ -84,6 +83,12 @@ class AtomType : public Atom {
         }
     }
 
+    const string to_string() const noexcept {
+        string result = "AtomType(" + Atom::to_string();
+        result += ", named_type_hash: '" + named_type_hash + "')";
+        return move(result);
+    }
+
     string named_type_hash;
 };
 
@@ -109,9 +114,9 @@ class Node : public Atom {
     }
 
     const string to_string() const noexcept {
-        string result = Atom::to_string();
-        result += ", name: '" + name + "'";
-        return "Node(" + result + ")";
+        string result = "Node(" + Atom::to_string();
+        result += ", name: '" + name + "')";
+        return move(result);
     }
 
     string name;
@@ -156,7 +161,7 @@ class Link : public Atom {
     }
 
     const string to_string() const noexcept {
-        string result = Atom::to_string();
+        string result = "Link(" + Atom::to_string();
         // result += ", composite_type=" + to_string(composite_type);
         result += ", named_type_hash: '" + named_type_hash + "'";
         result += ", targets: [";
@@ -168,7 +173,8 @@ class Link : public Atom {
             result.pop_back();
         }
         result += "]";
-        // result += ", is_top_level=" + (is_top_level ? "true" : "false");
+        result += ", is_top_level: ";
+        result += is_top_level ? "true" : "false";
         result += ", keys: {";
         if (!keys.empty()) {
             for (const auto& [key, value] : keys) {
@@ -192,8 +198,8 @@ class Link : public Atom {
                 result.pop_back();
             }
         }
-        result += "]";
-        return "Link(" + result + ")";
+        result += "])";
+        return move(result);
     }
 
     /**
@@ -215,5 +221,3 @@ using NodeList = vector<Node>;
 using LinkList = vector<Link>;
 
 }  // namespace atomdb
-
-#endif  // _DOCUMENT_TYPES_HPP

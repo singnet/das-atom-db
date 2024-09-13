@@ -1,5 +1,4 @@
-#ifndef _PARAMS_HPP
-#define _PARAMS_HPP
+#pragma once
 
 #include "type_aliases.hpp"
 
@@ -104,5 +103,3 @@ class Params : private ParamsMap {
 };
 
 }  // namespace atomdb
-
-#endif  // _PARAMS_HPP
