@@ -105,8 +105,7 @@ NB_MODULE(hyperon_das_atomdb_nanobind, m) {
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
-    // database.hpp
-        nb::class_<NodeParams>(database, "NodeParams")
+    nb::class_<NodeParams>(database, "NodeParams")
         .def(nb::init<const string&, const string&>())
         .def_rw("type", &NodeParams::type)
         .def_rw("name", &NodeParams::name);
