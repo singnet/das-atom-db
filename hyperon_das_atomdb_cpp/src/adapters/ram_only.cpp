@@ -12,7 +12,7 @@ using namespace atomdb;
 // PUBLIC METHODS //////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-string InMemoryDB::get_node_handle(const string& node_type, const string& node_name) const {
+const string InMemoryDB::get_node_handle(const string& node_type, const string& node_name) const {
     auto node_handle = AtomDB::build_node_handle(node_type, node_name);
     if (this->db.node.find(node_handle) != this->db.node.end()) {
         return node_handle;
@@ -21,7 +21,7 @@ string InMemoryDB::get_node_handle(const string& node_type, const string& node_n
 }
 
 //------------------------------------------------------------------------------
-string InMemoryDB::get_node_name(const string& node_handle) const {
+const string InMemoryDB::get_node_name(const string& node_handle) const {
     auto it = this->db.node.find(node_handle);
     if (it != this->db.node.end()) {
         return it->second->name;
@@ -30,7 +30,7 @@ string InMemoryDB::get_node_name(const string& node_handle) const {
 }
 
 //------------------------------------------------------------------------------
-string InMemoryDB::get_node_type(const string& node_handle) const {
+const string InMemoryDB::get_node_type(const string& node_handle) const {
     auto it = this->db.node.find(node_handle);
     if (it != this->db.node.end()) {
         return it->second->named_type;
@@ -39,7 +39,7 @@ string InMemoryDB::get_node_type(const string& node_handle) const {
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_node_by_name(const string& node_type, const string& substring) const {
+const StringList InMemoryDB::get_node_by_name(const string& node_type, const string& substring) const {
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
     for (const auto& [key, node] : this->db.node) {
@@ -51,12 +51,13 @@ StringList InMemoryDB::get_node_by_name(const string& node_type, const string& s
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_atoms_by_field(const vector<unordered_map<string, string>>& query) const {
+const StringList InMemoryDB::get_atoms_by_field(
+    const vector<unordered_map<string, string>>& query) const {
     throw runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, AtomList> InMemoryDB::get_atoms_by_index(
+const pair<const OptCursor, const AtomList> InMemoryDB::get_atoms_by_index(
     const string& index_id,
     const vector<unordered_map<string, string>>& query,
     int curso,
@@ -65,20 +66,20 @@ pair<OptCursor, AtomList> InMemoryDB::get_atoms_by_index(
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_atoms_by_text_field(const string& text_value,
-                                               const string& field,
-                                               const string& text_index_id) const {
+const StringList InMemoryDB::get_atoms_by_text_field(const string& text_value,
+                                                     const string& field,
+                                                     const string& text_index_id) const {
     throw runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_node_by_name_starting_with(const string& node_type,
-                                                      const string& startswith) const {
+const StringList InMemoryDB::get_node_by_name_starting_with(const string& node_type,
+                                                            const string& startswith) const {
     throw runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) const {
+const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) const {
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
     if (names) {
@@ -98,8 +99,8 @@ StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) const 
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, StringList> InMemoryDB::get_all_links(const string& link_type,
-                                                      const Params& params) const {
+const pair<const OptCursor, const StringList> InMemoryDB::get_all_links(const string& link_type,
+                                                                        const Params& params) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
@@ -110,7 +111,8 @@ pair<OptCursor, StringList> InMemoryDB::get_all_links(const string& link_type,
 }
 
 //------------------------------------------------------------------------------
-string InMemoryDB::get_link_handle(const string& link_type, const StringList& target_handles) const {
+const string InMemoryDB::get_link_handle(const string& link_type,
+                                         const StringList& target_handles) const {
     auto link_handle = AtomDB::build_link_handle(link_type, target_handles);
     if (this->db.link.find(link_handle) != this->db.link.end()) {
         return link_handle;
@@ -126,7 +128,7 @@ string InMemoryDB::get_link_handle(const string& link_type, const StringList& ta
 }
 
 //------------------------------------------------------------------------------
-string InMemoryDB::get_link_type(const string& link_handle) const {
+const string InMemoryDB::get_link_type(const string& link_handle) const {
     auto link = this->_get_link(link_handle);
     if (link) {
         return link->named_type;
@@ -135,7 +137,7 @@ string InMemoryDB::get_link_type(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-StringList InMemoryDB::get_link_targets(const string& link_handle) const {
+const StringList InMemoryDB::get_link_targets(const string& link_handle) const {
     auto it = this->db.outgoing_set.find(link_handle);
     if (it != this->db.outgoing_set.end()) {
         return it->second;
@@ -152,15 +154,15 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, StringUnorderedSet> InMemoryDB::get_incoming_links_handles(const string& atom_handle,
-                                                                           const Params& params) const {
+const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
+    const string& atom_handle, const Params& params) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
     return {params.get<int>(ParamsKeys::CURSOR), links};
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
+const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
     const string& atom_handle, const Params& params) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
     vector<shared_ptr<const Atom>> atoms;
@@ -171,9 +173,8 @@ pair<OptCursor, vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_a
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(const string& link_type,
-                                                                        const StringList& target_handles,
-                                                                        const Params& params) const {
+const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_links(
+    const string& link_type, const StringList& target_handles, const Params& params) const {
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         return {params.get<int>(ParamsKeys::CURSOR),
@@ -203,7 +204,7 @@ pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_links(const st
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
+const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
     const ListOfAny& _template, const Params& params) const {
     auto template_hash = ExpressionHasher::composite_hash(_template);
     auto it = this->db.templates.find(template_hash);
@@ -220,8 +221,8 @@ pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
 }
 
 //------------------------------------------------------------------------------
-pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(const string& link_type,
-                                                                       const Params& params) const {
+const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type(
+    const string& link_type, const Params& params) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
@@ -237,7 +238,7 @@ pair<OptCursor, Pattern_or_Template_List> InMemoryDB::get_matched_type(const str
 }
 
 //------------------------------------------------------------------------------
-opt<string> InMemoryDB::get_atom_type(const string& handle) const {
+const opt<const string> InMemoryDB::get_atom_type(const string& handle) const {
     auto atom = this->_get_atom(handle);
     if (atom) {
         return atom->named_type;
@@ -246,7 +247,7 @@ opt<string> InMemoryDB::get_atom_type(const string& handle) const {
 }
 
 //------------------------------------------------------------------------------
-unordered_map<string, any> InMemoryDB::get_atom_as_dict(const string& handle, int arity) const {
+const unordered_map<string, any> InMemoryDB::get_atom_as_dict(const string& handle, int arity) const {
     auto node = this->_get_node(handle);
     if (node) {
         return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
@@ -260,7 +261,7 @@ unordered_map<string, any> InMemoryDB::get_atom_as_dict(const string& handle, in
 }
 
 //------------------------------------------------------------------------------
-unordered_map<string, int> InMemoryDB::count_atoms() const {
+const unordered_map<string, int> InMemoryDB::count_atoms() const {
     auto node_count = this->db.node.size();
     auto link_count = this->db.link.size();
     auto atom_count = node_count + link_count;
@@ -320,11 +321,11 @@ void InMemoryDB::delete_atom(const string& handle) {
 }
 
 //------------------------------------------------------------------------------
-string InMemoryDB::create_field_index(const string& atom_type,
-                                      const StringList& fields,
-                                      const string& named_type,
-                                      const StringList& composite_type,
-                                      FieldIndexType index_type) {
+const string InMemoryDB::create_field_index(const string& atom_type,
+                                            const StringList& fields,
+                                            const string& named_type,
+                                            const StringList& composite_type,
+                                            FieldIndexType index_type) {
     throw runtime_error("Not implemented");
 }
 
@@ -469,7 +470,7 @@ void InMemoryDB::_add_outgoing_set(const string& key, const StringList& targets_
 }
 
 //------------------------------------------------------------------------------
-const opt<StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
+const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
     auto it = this->db.outgoing_set.find(handle);
     if (it != this->db.outgoing_set.end()) {
         auto handles = move(it->second);

@@ -82,63 +82,67 @@ class InMemoryDB : public AtomDB {
         this->named_type_table.clear();
     };
 
-    string get_node_handle(const string& node_type, const string& node_name) const override;
+    const string get_node_handle(const string& node_type, const string& node_name) const override;
 
-    string get_node_name(const string& node_handle) const override;
+    const string get_node_name(const string& node_handle) const override;
 
-    string get_node_type(const string& node_handle) const override;
+    const string get_node_type(const string& node_handle) const override;
 
-    StringList get_node_by_name(const string& node_type, const string& substring) const override;
+    const StringList get_node_by_name(const string& node_type, const string& substring) const override;
 
-    StringList get_atoms_by_field(const vector<unordered_map<string, string>>& query) const override;
+    const StringList get_atoms_by_field(
+        const vector<unordered_map<string, string>>& query) const override;
 
-    pair<OptCursor, AtomList> get_atoms_by_index(const string& index_id,
-                                                 const vector<unordered_map<string, string>>& query,
-                                                 int cursor = 0,
-                                                 int chunk_size = 500) const override;
+    const pair<const OptCursor, const AtomList> get_atoms_by_index(
+        const string& index_id,
+        const vector<unordered_map<string, string>>& query,
+        int cursor = 0,
+        int chunk_size = 500) const override;
 
-    StringList get_atoms_by_text_field(const string& text_value,
-                                       const string& field = "",
-                                       const string& text_index_id = "") const override;
+    const StringList get_atoms_by_text_field(const string& text_value,
+                                             const string& field = "",
+                                             const string& text_index_id = "") const override;
 
-    StringList get_node_by_name_starting_with(const string& node_type,
-                                              const string& startswith) const override;
+    const StringList get_node_by_name_starting_with(const string& node_type,
+                                                    const string& startswith) const override;
 
-    StringList get_all_nodes(const string& node_type, bool names = false) const override;
+    const StringList get_all_nodes(const string& node_type, bool names = false) const override;
 
-    pair<OptCursor, StringList> get_all_links(const string& link_type,
-                                              const Params& params = {}) const override;
+    const pair<const OptCursor, const StringList> get_all_links(
+        const string& link_type, const Params& params = {}) const override;
 
-    string get_link_handle(const string& link_type, const StringList& target_handles) const override;
+    const string get_link_handle(const string& link_type,
+                                 const StringList& target_handles) const override;
 
-    string get_link_type(const string& link_handle) const override;
+    const string get_link_type(const string& link_handle) const override;
 
-    StringList get_link_targets(const string& link_handle) const override;
+    const StringList get_link_targets(const string& link_handle) const override;
 
     bool is_ordered(const string& link_handle) const override;
 
-    pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
+    const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
         const string& atom_handle, const Params& params = {}) const override;
 
-    pair<OptCursor, vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
+    const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
         const string& atom_handle, const Params& params = {}) const override;
 
-    pair<OptCursor, Pattern_or_Template_List> get_matched_links(
+    const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
         const string& link_type,
         const StringList& target_handles,
         const Params& params = {}) const override;
 
-    pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
+    const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template, const Params& params = {}) const override;
 
-    pair<OptCursor, Pattern_or_Template_List> get_matched_type(const string& link_type,
-                                                               const Params& params = {}) const override;
+    const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
+        const string& link_type, const Params& params = {}) const override;
 
-    opt<string> get_atom_type(const string& handle) const override;
+    const opt<const string> get_atom_type(const string& handle) const override;
 
-    unordered_map<string, any> get_atom_as_dict(const string& handle, int arity = 0) const override;
+    const unordered_map<string, any> get_atom_as_dict(const string& handle,
+                                                      int arity = 0) const override;
 
-    unordered_map<string, int> count_atoms() const override;
+    const unordered_map<string, int> count_atoms() const override;
 
     void clear_database() override;
 
@@ -151,11 +155,11 @@ class InMemoryDB : public AtomDB {
 
     void delete_atom(const string& handle) override;
 
-    string create_field_index(const string& atom_type,
-                              const StringList& fields,
-                              const string& named_type = "",
-                              const StringList& composite_type = {},
-                              FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
+    const string create_field_index(const string& atom_type,
+                                    const StringList& fields,
+                                    const string& named_type = "",
+                                    const StringList& composite_type = {},
+                                    FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
     void bulk_insert(const vector<unique_ptr<const Atom>>& documents) override;
 
@@ -218,7 +222,7 @@ class InMemoryDB : public AtomDB {
 
     void _add_outgoing_set(const string& key, const StringList& targets_hash);
 
-    const opt<StringList> _get_and_delete_outgoing_set(const string& handle);
+    const opt<const StringList> _get_and_delete_outgoing_set(const string& handle);
 
     void _add_incoming_set(const string& key, const StringList& targets_hash);
 

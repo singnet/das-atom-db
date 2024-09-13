@@ -89,7 +89,7 @@ class AtomDB {
      * @param node_name The node name.
      * @return The node handle.
      */
-    static string build_node_handle(const string& node_type, const string& node_name) {
+    static const string build_node_handle(const string& node_type, const string& node_name) {
         return ExpressionHasher::terminal_hash(node_type, node_name);
     }
 
@@ -99,7 +99,7 @@ class AtomDB {
      * @param target_handles A list of link target identifiers.
      * @return The link handle.
      */
-    static string build_link_handle(const string& link_type, const StringList& target_handles) {
+    static const string build_link_handle(const string& link_type, const StringList& target_handles) {
         string link_type_hash = ExpressionHasher::named_type_hash(link_type.c_str());
         return ExpressionHasher::expression_hash(link_type_hash, target_handles);
     }
@@ -142,21 +142,21 @@ class AtomDB {
      * @param node_name The node name.
      * @return The node handle.
      */
-    virtual string get_node_handle(const string& node_type, const string& node_name) const = 0;
+    virtual const string get_node_handle(const string& node_type, const string& node_name) const = 0;
 
     /**
      * @brief Get the name of the node with the specified handle.
      * @param node_handle The node handle.
      * @return The node name.
      */
-    virtual string get_node_name(const string& node_handle) const = 0;
+    virtual const string get_node_name(const string& node_handle) const = 0;
 
     /**
      * @brief Get the type of the node with the specified handle.
      * @param node_handle The node handle.
      * @return The node type.
      */
-    virtual string get_node_type(const string& node_handle) const = 0;
+    virtual const string get_node_type(const string& node_handle) const = 0;
 
     /**
      * @brief Get the name of (a) node(s) of the specified type containing the given substring.
@@ -164,14 +164,16 @@ class AtomDB {
      * @param substring The substring to search for in node names.
      * @return List of handles of nodes whose names matched the criteria.
      */
-    virtual StringList get_node_by_name(const string& node_type, const string& substring) const = 0;
+    virtual const StringList get_node_by_name(const string& node_type,
+                                              const string& substring) const = 0;
 
     /**
      * @brief Query the database by field and value.
      * @param query List of dicts containing 'field' and 'value' keys.
      * @return List of node IDs.
      */
-    virtual StringList get_atoms_by_field(const vector<unordered_map<string, string>>& query) const = 0;
+    virtual const StringList get_atoms_by_field(
+        const vector<unordered_map<string, string>>& query) const = 0;
 
     /**
      * @brief Retrieves atoms from the database using the specified index.
@@ -184,7 +186,7 @@ class AtomDB {
      *         used for pagination or further retrieval operations, and the list contains the
      *         retrieved atoms.
      */
-    virtual pair<OptCursor, AtomList> get_atoms_by_index(
+    virtual const pair<const OptCursor, const AtomList> get_atoms_by_index(
         const string& index_id,
         const vector<unordered_map<string, string>>& query,
         int cursor = 0,
@@ -197,9 +199,9 @@ class AtomDB {
      * @param text_index_id TOKEN_INVERTED_LIST index id to search for.
      * @return List of node IDs ordered by the closest match.
      */
-    virtual StringList get_atoms_by_text_field(const string& text_value,
-                                               const string& field = "",
-                                               const string& text_index_id = "") const = 0;
+    virtual const StringList get_atoms_by_text_field(const string& text_value,
+                                                     const string& field = "",
+                                                     const string& text_index_id = "") const = 0;
 
     /**
      * @brief Query the database by node name starting with 'startswith' value.
@@ -207,8 +209,8 @@ class AtomDB {
      * @param startswith The starting substring to search for.
      * @return List of node IDs.
      */
-    virtual StringList get_node_by_name_starting_with(const string& node_type,
-                                                      const string& startswith) const = 0;
+    virtual const StringList get_node_by_name_starting_with(const string& node_type,
+                                                            const string& startswith) const = 0;
 
     /**
      * @brief Get all nodes of a specific type.
@@ -216,7 +218,7 @@ class AtomDB {
      * @param names If True, return node names instead of handles. Default is False.
      * @return A list of node handles or names, depending on the value of 'names'.
      */
-    virtual StringList get_all_nodes(const string& node_type, bool names = false) const = 0;
+    virtual const StringList get_all_nodes(const string& node_type, bool names = false) const = 0;
 
     /**
      * @brief Retrieves all links of the specified type from the database.
@@ -224,8 +226,8 @@ class AtomDB {
      * @param params An optional Params object containing additional retrieval options.
      * @return A pair containing an optional cursor and a list of strings representing the links.
      */
-    virtual pair<OptCursor, StringList> get_all_links(const string& link_type,
-                                                      const Params& params = {}) const = 0;
+    virtual const pair<const OptCursor, const StringList> get_all_links(
+        const string& link_type, const Params& params = {}) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -233,21 +235,22 @@ class AtomDB {
      * @param target_handles A list of link target identifiers.
      * @return The link handle.
      */
-    virtual string get_link_handle(const string& link_type, const StringList& target_handles) const = 0;
+    virtual const string get_link_handle(const string& link_type,
+                                         const StringList& target_handles) const = 0;
 
     /**
      * @brief Get the type of the link with the specified handle.
      * @param link_handle The link handle.
      * @return The link type.
      */
-    virtual string get_link_type(const string& link_handle) const = 0;
+    virtual const string get_link_type(const string& link_handle) const = 0;
 
     /**
      * @brief Get the target handles of a link specified by its handle.
      * @param link_handle The link handle.
      * @return A list of target identifiers of the link.
      */
-    virtual StringList get_link_targets(const string& link_handle) const = 0;
+    virtual const StringList get_link_targets(const string& link_handle) const = 0;
 
     /**
      * @brief Check if a link specified by its handle is ordered.
@@ -263,7 +266,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a set of strings representing the incoming
      *         link handles.
      */
-    virtual pair<OptCursor, StringUnorderedSet> get_incoming_links_handles(
+    virtual const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
         const string& atom_handle, const Params& params = {}) const = 0;
 
     /**
@@ -273,7 +276,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of Atom objects representing the
      *         incoming links.
      */
-    virtual pair<OptCursor, vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
+    virtual const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
         const string& atom_handle, const Params& params = {}) const = 0;
 
     /**
@@ -284,7 +287,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched links.
      */
-    virtual pair<OptCursor, Pattern_or_Template_List> get_matched_links(
+    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
         const string& link_type, const StringList& target_handles, const Params& params = {}) const = 0;
 
     /**
@@ -294,7 +297,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched type templates.
      */
-    virtual pair<OptCursor, Pattern_or_Template_List> get_matched_type_template(
+    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template, const Params& params = {}) const = 0;
 
     /**
@@ -304,7 +307,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched types.
      */
-    virtual pair<OptCursor, Pattern_or_Template_List> get_matched_type(
+    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
         const string& link_type, const Params& params = {}) const = 0;
 
     /**
@@ -312,7 +315,7 @@ class AtomDB {
      * @param handle A string representing the handle of the atom.
      * @return An optional string containing the type of the atom if found, otherwise nullopt.
      */
-    virtual opt<string> get_atom_type(const string& handle) const = 0;
+    virtual const opt<const string> get_atom_type(const string& handle) const = 0;
 
     /**
      * @brief Retrieves an atom as a dictionary representation.
@@ -320,13 +323,14 @@ class AtomDB {
      * @param arity The arity of the atom. Defaults to 0.
      * @return A dictionary representation of the atom.
      */
-    virtual unordered_map<string, any> get_atom_as_dict(const string& handle, int arity = 0) const = 0;
+    virtual const unordered_map<string, any> get_atom_as_dict(const string& handle,
+                                                              int arity = 0) const = 0;
 
     /**
      * @brief Count the total number of atoms in the database.
      * @return A dictionary containing the count of node atoms, link atoms, and total atoms.
      */
-    virtual unordered_map<string, int> count_atoms() const = 0;
+    virtual const unordered_map<string, int> count_atoms() const = 0;
 
     /**
      * @brief Clear the entire database, removing all data.
@@ -424,7 +428,7 @@ class AtomDB {
      * @param index_type The type of the index to create.
      * @return The ID of the created index.
      */
-    virtual string create_field_index(const string& atom_type,
+    virtual const string create_field_index(const string& atom_type,
                                       const StringList& fields,
                                       const string& named_type = "",
                                       const StringList& composite_type = {},
