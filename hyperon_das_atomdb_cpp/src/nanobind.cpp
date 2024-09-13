@@ -145,11 +145,14 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def(
             "add_link",
             [](
-                InMemoryDB& self, const LinkParams& link_params, bool toplevel
+                InMemoryDB& self,
+                const LinkParams& link_params,
+                bool toplevel
             ) -> shared_ptr<const Link> {
                 return self.add_link(link_params, toplevel);
             },
-            "link_params"_a, "toplevel"_a = true
+            "link_params"_a,
+            "toplevel"_a = true
         )
         .def(
             "get_atom",
@@ -160,12 +163,14 @@ NB_MODULE(hyperon_das_atomdb, m) {
                 bool targets_documents = false,
                 bool deep_representation = false
             ) -> shared_ptr<const Atom> {
-                Params params = Params({
-                    {ParamsKeys::NO_TARGET_FORMAT, no_target_format},
-                    {ParamsKeys::TARGETS_DOCUMENTS, targets_documents},
-                    {ParamsKeys::DEEP_REPRESENTATION, deep_representation}
-                });
-                return self.get_atom(handle, params);
+                /* TODO: adds a lot of overhead, have to find a faster alternative
+                 * Params params = Params({
+                 *     {ParamsKeys::NO_TARGET_FORMAT, no_target_format},
+                 *     {ParamsKeys::TARGETS_DOCUMENTS, targets_documents},
+                 *     {ParamsKeys::DEEP_REPRESENTATION, deep_representation}
+                 * });
+                 */
+                return self.get_atom(handle); //, params);
             },
             "handle"_a,
             nb::kw_only(),
@@ -176,7 +181,9 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def(
             "get_node_handle",
             [](
-                InMemoryDB& self, const string& node_type, const string& node_name
+                InMemoryDB& self,
+                const string& node_type,
+                const string& node_name
             ) -> const string {
                 return self.get_node_handle(node_type, node_name);
             }
@@ -190,10 +197,12 @@ NB_MODULE(hyperon_das_atomdb, m) {
                 opt<int> cursor = nullopt,
                 bool toplevel_only = false
             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
-                Params params = Params({{ParamsKeys::TOPLEVEL_ONLY, toplevel_only}});
-                if (cursor) 
-                    params.set(ParamsKeys::CURSOR, cursor.value());
-                return self.get_matched_links(link_type, target_handles, params);
+                /* TODO: adds a lot of overhead, have to find a faster alternative
+                 * Params params = Params({{ParamsKeys::TOPLEVEL_ONLY, toplevel_only}});
+                 * if (cursor) 
+                 *     params.set(ParamsKeys::CURSOR, cursor.value());
+                 */
+                return self.get_matched_links(link_type, target_handles); //, params);
             },
             "link_type"_a,
             "target_handles"_a,

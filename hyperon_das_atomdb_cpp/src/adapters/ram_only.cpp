@@ -178,22 +178,23 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         return {params.get<int>(ParamsKeys::CURSOR),
-                {make_tuple(this->get_link_handle(link_type, target_handles), nullopt)}};
+                {make_pair(this->get_link_handle(link_type, target_handles), nullopt)}};
     }
 
     auto link_type_hash =
         link_type == WILDCARD ? WILDCARD : ExpressionHasher::named_type_hash(link_type);
 
-    StringList handles({link_type_hash});
+    StringList handles;
+    handles.reserve(target_handles.size() + 1);
+    handles.push_back(link_type_hash);
     handles.insert(handles.end(), target_handles.begin(), target_handles.end());
     auto pattern_hash = ExpressionHasher::composite_hash(handles);
 
     Pattern_or_Template_List patterns_matched;
     auto it = this->db.patterns.find(pattern_hash);
     if (it != this->db.patterns.end()) {
-        for (const auto& pattern_tuple : it->second) {
-            patterns_matched.push_back(pattern_tuple);
-        }
+        patterns_matched.reserve(it->second.size());
+        patterns_matched.insert(patterns_matched.end(), it->second.begin(), it->second.end());
     }
 
     if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
@@ -509,17 +510,18 @@ void InMemoryDB::_add_templates(const string& composite_type_hash,
                                 const StringList& targets_hash) {
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(make_tuple(key, targets_hash));
+        it->second.insert(make_pair(key, targets_hash));
     } else {
         this->db.templates[composite_type_hash] =
-            Database::TemplatesSet({make_tuple(key, targets_hash)});
+            Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
     }
 
     it = this->db.templates.find(named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(make_tuple(key, targets_hash));
+        it->second.insert(make_pair(key, targets_hash));
     } else {
-        this->db.templates[named_type_hash] = Database::PatternsSet({make_tuple(key, targets_hash)});
+        this->db.templates[named_type_hash] =
+            Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
     }
 }
 
@@ -531,12 +533,12 @@ void InMemoryDB::_delete_templates(const Link& link_document, const StringList& 
 
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(make_tuple(key, targets_hash));
+        it->second.erase(make_pair(key, targets_hash));
     }
 
     it = this->db.templates.find(named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(make_tuple(key, targets_hash));
+        it->second.erase(make_pair(key, targets_hash));
     }
 }
 
@@ -550,9 +552,10 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
     for (const auto& pattern_key : pattern_keys) {
         auto it = this->db.patterns.find(pattern_key);
         if (it == this->db.patterns.end()) {
-            this->db.patterns[pattern_key] = Database::PatternsSet({make_tuple(key, targets_hash)});
+            this->db.patterns[pattern_key] =
+                Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
         } else {
-            it->second.insert(make_tuple(key, targets_hash));
+            it->second.insert(make_pair(key, targets_hash));
         }
     }
 }
@@ -567,7 +570,7 @@ void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& t
     for (const auto& pattern_key : pattern_keys) {
         auto it = this->db.patterns.find(pattern_key);
         if (it != this->db.patterns.end()) {
-            it->second.erase(make_tuple(key, targets_hash));
+            it->second.erase(make_pair(key, targets_hash));
         }
     }
 }

@@ -40,9 +40,7 @@ class Params : private ParamsMap {
      *               Defaults to an empty map if not provided.
      * @return A Params object initialized with the specified params.
      */
-    Params(const ParamsMap& params = {}) {
-        this->insert(params.begin(), params.end());
-    };
+    Params(const ParamsMap& params = {}) { this->insert(params.begin(), params.end()); };
 
     /**
      * @brief Checks if the specified parameter exists in the collection.

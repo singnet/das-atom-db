@@ -5,7 +5,6 @@
 #include <optional>
 #include <set>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -25,7 +24,7 @@ using StringList = vector<string>;
 using StringUnorderedSet = unordered_set<string>;
 using ListOfAny = vector<any>;
 
-using Pattern_or_Template = tuple<string, opt<StringList>>;
+using Pattern_or_Template = pair<string, opt<StringList>>;
 using Pattern_or_Template_List = vector<Pattern_or_Template>;
 
 }  // namespace atomdb

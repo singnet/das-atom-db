@@ -13,28 +13,27 @@ namespace atomdb {
  */
 class Database {
    public:
-    struct TupleHash {
-        auto operator()(const tuple<string, StringList>& t) const -> size_t {
+    using Pattern_or_Template = pair<string, StringList>;
+
+    struct Pattern_or_Template_Hash {
+        auto operator()(const Pattern_or_Template& t) const -> size_t {
             size_t list_hash = 0;
-            for (const auto& str : get<1>(t)) {
+            for (const auto& str : t.second) {
                 list_hash ^= hash<string>{}(str);
             }
-            return hash<string>{}(get<0>(t)) ^ list_hash;
+            return hash<string>{}(t.first) ^ list_hash;
         }
     };
 
-    using Pattern = tuple<string, StringList>;
-    using PatternsSet = unordered_set<Pattern, TupleHash>;
-    using Template = tuple<string, StringList>;
-    using TemplatesSet = unordered_set<Template, TupleHash>;
+    using Pattern_or_Template_Set = unordered_set<Pattern_or_Template, Pattern_or_Template_Hash>;
 
     unordered_map<string, shared_ptr<AtomType>> atom_type;
     unordered_map<string, shared_ptr<Node>> node;
     unordered_map<string, shared_ptr<Link>> link;
     unordered_map<string, StringList> outgoing_set;
     unordered_map<string, StringUnorderedSet> incoming_set;
-    unordered_map<string, PatternsSet> patterns;
-    unordered_map<string, TemplatesSet> templates;
+    unordered_map<string, Pattern_or_Template_Set> patterns;
+    unordered_map<string, Pattern_or_Template_Set> templates;
 
     Database()
         : atom_type({}),
