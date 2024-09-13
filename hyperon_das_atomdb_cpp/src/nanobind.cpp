@@ -23,7 +23,7 @@ using namespace atomdb;
 namespace nb = nanobind;
 using namespace nb::literals;
 
-NB_MODULE(hyperon_das_atomdb_nanobind, m) {
+NB_MODULE(hyperon_das_atomdb, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;
     m.attr("TYPE_HASH") = TYPE_HASH;

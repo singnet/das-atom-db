@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15...3.27)
-project(hyperon_das_atomdb_nanobind)
+project(hyperon_das_atomdb)
 
 # Set C++ standard and optimization flags
 set(CMAKE_CXX_STANDARD 20)
