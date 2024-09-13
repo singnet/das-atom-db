@@ -31,10 +31,10 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Params
     if (!document) {
         throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
     }
-    if (params.get<bool>(ParamsKeys::NO_TARGET_FORMAT).value_or(false)) {
-        return move(document);
+    if (!params.get<bool>(ParamsKeys::NO_TARGET_FORMAT).value_or(false)) {
+        return _reformat_document(document, params);
     }
-    return _reformat_document(document, params);
+    return move(document);
 }
 
 // PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////

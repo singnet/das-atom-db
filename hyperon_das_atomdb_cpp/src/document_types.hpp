@@ -188,9 +188,9 @@ class Link : public Atom {
         if (targets_documents.has_value()) {
             if (!targets_documents.value().empty()) {
                 for (const auto& target : targets_documents.value()) {
-                    if (auto node = dynamic_pointer_cast<const Node>(target)) {
+                    if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         result += string(node->to_string()) + ", ";
-                    } else if (auto link = dynamic_pointer_cast<const Link>(target)) {
+                    } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
                         result += string(link->to_string()) + ", ";
                     }
                 }

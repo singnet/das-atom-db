@@ -41,9 +41,7 @@ class Params : private ParamsMap {
      * @return A Params object initialized with the specified params.
      */
     Params(const ParamsMap& params = {}) {
-        for (const auto& [key, value] : params) {
-            this->set(key, value);
-        }
+        this->insert(params.begin(), params.end());
     };
 
     /**
@@ -68,7 +66,7 @@ class Params : private ParamsMap {
                 return any_cast<T>(it->second);
             } catch (const bad_any_cast& e) {
                 if constexpr (is_same_v<T, string>) {
-                    return string(any_cast<const char*>(it->second));
+                    return move(string(any_cast<const char*>(it->second)));
                 }
                 throw e;
             }
