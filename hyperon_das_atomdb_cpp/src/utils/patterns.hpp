@@ -66,7 +66,7 @@ StringMatrix multiply_binary_matrix_by_string_matrix(const IntMatrix& binary_mat
     }
 
     // Remove the last row from the result matrix
-    if (!result_matrix.empty()) {
+    if (not result_matrix.empty()) {
         result_matrix.pop_back();
     }
 

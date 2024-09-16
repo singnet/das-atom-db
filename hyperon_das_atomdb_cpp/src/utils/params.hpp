@@ -90,7 +90,7 @@ class Params : private ParamsMap {
     opt<T> pop(const ParamKey& key) {
         auto temp_value = this->get<T>(key);
         if (temp_value.has_value()) {
-            T value = move(temp_value.value());
+            T value = move(*temp_value);
             this->erase(key);
             return value;
         }

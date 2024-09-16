@@ -100,7 +100,7 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const StringList> InMemoryDB::get_all_links(const string& link_type,
-                                                                        const Kwargs& kwargs) const {
+                                                                        const KwArgs& kwargs) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
@@ -155,7 +155,7 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
-    const string& atom_handle, const Kwargs& kwargs) const {
+    const string& atom_handle, const KwArgs& kwargs) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
     return {kwargs.cursor, move(links)};
@@ -163,7 +163,7 @@ const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_l
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
-    const string& atom_handle, const Kwargs& kwargs) const {
+    const string& atom_handle, const KwArgs& kwargs) const {
     const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, kwargs);
     vector<shared_ptr<const Atom>> atoms;
     for (const auto& link_handle : links) {
@@ -174,7 +174,7 @@ const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::ge
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_links(
-    const string& link_type, const StringList& target_handles, const Kwargs& kwargs) const {
+    const string& link_type, const StringList& target_handles, const KwArgs& kwargs) const {
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         return {kwargs.cursor, {make_pair(this->get_link_handle(link_type, target_handles), nullopt)}};
@@ -205,7 +205,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const ListOfAny& _template, const Kwargs& kwargs) const {
+    const ListOfAny& _template, const KwArgs& kwargs) const {
     auto template_hash = ExpressionHasher::composite_hash(_template);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
@@ -222,7 +222,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type(
-    const string& link_type, const Kwargs& kwargs) const {
+    const string& link_type, const KwArgs& kwargs) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
@@ -623,7 +623,7 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
 
     auto outgoing_atoms = this->_get_and_delete_outgoing_set(atom_handle);
     if (outgoing_atoms.has_value()) {
-        this->_delete_incoming_set(atom_handle, outgoing_atoms.value());
+        this->_delete_incoming_set(atom_handle, *outgoing_atoms);
     }
 
     if (auto link = dynamic_cast<const Link*>(&atom)) {

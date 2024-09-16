@@ -160,31 +160,10 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](
                 InMemoryDB& self,
                 const string& handle,
-                // nb::kwargs kwargs
                 bool no_target_format = false,
                 bool targets_documents = false,
                 bool deep_representation = false
             ) -> shared_ptr<const Atom> {
-                /* TODO: adds a lot of overhead, have to find a faster alternative
-                 * Params params = Params({
-                 *     {ParamsKeys::NO_TARGET_FORMAT, no_target_format},
-                 *     {ParamsKeys::TARGETS_DOCUMENTS, targets_documents},
-                 *     {ParamsKeys::DEEP_REPRESENTATION, deep_representation}
-                 * });
-                 */
-                // Flags flags;
-                // flags[Flags::NO_TARGET_FORMAT] = no_target_format;
-                // flags[Flags::TARGETS_DOCUMENTS] = targets_documents;
-                // flags[Flags::DEEP_REPRESENTATION] = deep_representation;
-                // auto _kwargs = _from_nb_kwargs(kwargs);
-                // Flags flags;
-                // flags[Flags::NO_TARGET_FORMAT] = _kwargs.no_target_format;
-                // flags[Flags::TARGETS_DOCUMENTS] = _kwargs.targets_documents;
-                // flags[Flags::DEEP_REPRESENTATION] = _kwargs.deep_representation;
-                // Kwargs kwargs;
-                // kwargs.no_target_format = no_target_format;
-                // kwargs.targets_documents = targets_documents;
-                // kwargs.deep_representation = deep_representation;
                 return self.get_atom(
                     handle,
                     {
@@ -219,13 +198,6 @@ NB_MODULE(hyperon_das_atomdb, m) {
                 const OptCursor cursor = nullopt,
                 bool toplevel_only = false
             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
-                /* TODO: adds a lot of overhead, have to find a faster alternative
-                 * Params params = Params({{ParamsKeys::TOPLEVEL_ONLY, toplevel_only}});
-                 * if (cursor) 
-                 *     params.set(ParamsKeys::CURSOR, cursor.value());
-                 */
-                // Flags flags;
-                // flags[Flags::TOPLEVEL_ONLY] = toplevel_only;
                 return self.get_matched_links(
                     link_type,
                     target_handles,

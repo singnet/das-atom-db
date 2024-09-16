@@ -12,7 +12,7 @@ using namespace std;
 
 namespace atomdb {
 
-struct Kwargs {
+struct KwArgs {
     bool no_target_format = false;
     bool targets_documents = false;
     bool deep_representation = false;
@@ -140,7 +140,7 @@ class AtomDB {
      * representation of the targets. Defaults to False.
      * @return An Atom object representing the retrieved atom.
      */
-    const shared_ptr<const Atom> get_atom(const string& handle, const Kwargs& kwargs = {}) const;
+    const shared_ptr<const Atom> get_atom(const string& handle, const KwArgs& kwargs = {}) const;
 
     // PURE VIRTUAL PUBLIC METHODS /////////////////////////////////////////////////////////////////
 
@@ -235,7 +235,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of strings representing the links.
      */
     virtual const pair<const OptCursor, const StringList> get_all_links(
-        const string& link_type, const Kwargs& kwargs = {}) const = 0;
+        const string& link_type, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -277,7 +277,7 @@ class AtomDB {
     virtual const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
         const string& atom_handle,
 
-        const Kwargs& kwargs = {}) const = 0;
+        const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves incoming link atoms for the specified atom.
@@ -289,7 +289,7 @@ class AtomDB {
     virtual const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
         const string& atom_handle,
 
-        const Kwargs& kwargs = {}) const = 0;
+        const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched links of the specified type and target handles.
@@ -303,7 +303,7 @@ class AtomDB {
         const string& link_type,
         const StringList& target_handles,
 
-        const Kwargs& kwargs = {}) const = 0;
+        const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
@@ -315,7 +315,7 @@ class AtomDB {
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template,
 
-        const Kwargs& kwargs = {}) const = 0;
+        const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.
@@ -325,7 +325,7 @@ class AtomDB {
      *         the matched types.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
-        const string& link_type, const Kwargs& kwargs = {}) const = 0;
+        const string& link_type, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves the type of the atom with the specified handle.
@@ -480,7 +480,7 @@ class AtomDB {
      * @return A reference to the reformatted Atom object.
      */
     const shared_ptr<const Atom> _reformat_document(const shared_ptr<const Atom>& document,
-                                                    const Kwargs& kwargs = {}) const;
+                                                    const KwArgs& kwargs = {}) const;
 
     /**
      * @brief Builds a node with the specified parameters.

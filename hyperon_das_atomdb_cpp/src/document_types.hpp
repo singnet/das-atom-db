@@ -18,6 +18,12 @@ namespace atomdb {
  */
 class Atom {
    public:
+    string id;
+    string handle;
+    string composite_type_hash;
+    string named_type;
+    Params custom_attributes = {};
+
     Atom() = default;
     Atom(const string& id,
          const string& handle,
@@ -52,12 +58,6 @@ class Atom {
         result += ", named_type: '" + named_type + "'";
         return move(result);
     }
-
-    string id;
-    string handle;
-    string composite_type_hash;
-    string named_type;
-    Params custom_attributes = {};
 };
 
 /**
@@ -69,6 +69,8 @@ class Atom {
  */
 class AtomType : public Atom {
    public:
+    string named_type_hash;
+
     AtomType() = default;
     AtomType(const string& id,
              const string& handle,
@@ -88,8 +90,6 @@ class AtomType : public Atom {
         result += ", named_type_hash: '" + named_type_hash + "')";
         return move(result);
     }
-
-    string named_type_hash;
 };
 
 /**
@@ -100,6 +100,8 @@ class AtomType : public Atom {
  */
 class Node : public Atom {
    public:
+    string name;
+
     Node() = default;
     Node(const string& id,
          const string& handle,
@@ -118,8 +120,38 @@ class Node : public Atom {
         result += ", name: '" + name + "')";
         return move(result);
     }
+};
 
-    string name;
+/**
+ * @brief Represents a composite type in the database.
+ */
+class CompositeType {
+   public:
+    using CompositeTypeList = vector<CompositeType>;
+
+    string single_hash = "";
+    CompositeTypeList list_of_composite_types = {};
+
+    CompositeType(const string& single_hash) : single_hash(single_hash) {
+        if (single_hash.empty()) {
+            throw invalid_argument("'single_hash' cannot be empty.");
+        }
+        if (not list_of_composite_types.empty()) {
+            throw invalid_argument(
+                "'list_of_composite_types' must be empty when 'single_hash' is not empty.");
+        }
+    }
+
+    CompositeType(const CompositeTypeList& list_of_composite_types)
+        : list_of_composite_types(list_of_composite_types) {
+        if (list_of_composite_types.empty()) {
+            throw invalid_argument("'list_of_composite_types' cannot be empty.");
+        }
+        if (!single_hash.empty()) {
+            throw invalid_argument(
+                "'single_hash' must be empty when 'list_of_composite_types' is not empty.");
+        }
+    }
 };
 
 /**
@@ -131,12 +163,24 @@ class Node : public Atom {
  */
 class Link : public Atom {
    public:
+    /**
+     * `composite_type` is designed to hold a list of elements, where each element can either be a
+     * `string` (single hash) or another list of CompositeType, allowing multiple levels of nesting.
+     */
+    CompositeType::CompositeTypeList composite_type;
+
+    string named_type_hash;
+    vector<string> targets;
+    bool is_top_level = true;
+    map<string, string> keys = {};
+    opt<vector<shared_ptr<const Atom>>> targets_documents = nullopt;
+
     Link() = default;
     Link(const string& id,
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const ListOfAny& composite_type,
+         const CompositeType::CompositeTypeList& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_top_level = true,
@@ -162,10 +206,10 @@ class Link : public Atom {
 
     const string to_string() const noexcept {
         string result = "Link(" + Atom::to_string();
-        // result += ", composite_type=" + to_string(composite_type);
+        result += ", composite_type: " + composite_type_list_to_string(composite_type);
         result += ", named_type_hash: '" + named_type_hash + "'";
         result += ", targets: [";
-        if (!targets.empty()) {
+        if (not targets.empty()) {
             for (const auto& target : targets) {
                 result += "'" + target + "', ";
             }
@@ -176,7 +220,7 @@ class Link : public Atom {
         result += ", is_top_level: ";
         result += is_top_level ? "true" : "false";
         result += ", keys: {";
-        if (!keys.empty()) {
+        if (not keys.empty()) {
             for (const auto& [key, value] : keys) {
                 result += "'" + key + "': '" + value + "', ";
             }
@@ -186,8 +230,8 @@ class Link : public Atom {
         result += "}";
         result += ", targets_documents: [";
         if (targets_documents.has_value()) {
-            if (!targets_documents.value().empty()) {
-                for (const auto& target : targets_documents.value()) {
+            if (not targets_documents->empty()) {
+                for (const auto& target : *targets_documents) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         result += string(node->to_string()) + ", ";
                     } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
@@ -202,17 +246,21 @@ class Link : public Atom {
         return move(result);
     }
 
-    /**
-     * `composite_type` is designed to hold a list of elements, where each element can either be a
-     * `string` or another list of the same type, allowing multiple levels of nesting.
-     */
-    ListOfAny composite_type;
-
-    string named_type_hash;
-    vector<string> targets;
-    bool is_top_level = true;
-    map<string, string> keys = {};
-    opt<vector<shared_ptr<const Atom>>> targets_documents = nullopt;
+    const string composite_type_list_to_string(
+        const CompositeType::CompositeTypeList& composite_type) const noexcept {
+        string result = "[";
+        for (const auto& element : composite_type) {
+            if (not element.single_hash.empty()) {
+                result += "'" + element.single_hash + "', ";
+            } else {
+                result += composite_type_list_to_string(element.list_of_composite_types) + ", ";
+            }
+        }
+        result.pop_back();
+        result.pop_back();
+        result += "]";
+        return move(result);
+    }
 };
 
 using AtomList = vector<Atom>;

@@ -107,7 +107,7 @@ class InMemoryDB : public AtomDB {
     const StringList get_all_nodes(const string& node_type, bool names = false) const override;
 
     const pair<const OptCursor, const StringList> get_all_links(
-        const string& link_type, const Kwargs& kwargs = {}) const override;
+        const string& link_type, const KwArgs& kwargs = {}) const override;
 
     const string get_link_handle(const string& link_type,
                                  const StringList& target_handles) const override;
@@ -121,28 +121,28 @@ class InMemoryDB : public AtomDB {
     const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
         const string& atom_handle,
 
-        const Kwargs& kwargs = {}) const override;
+        const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
         const string& atom_handle,
 
-        const Kwargs& kwargs = {}) const override;
+        const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
         const string& link_type,
         const StringList& target_handles,
 
-        const Kwargs& kwargs = {}) const override;
+        const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template,
 
-        const Kwargs& kwargs = {}) const override;
+        const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
         const string& link_type,
 
-        const Kwargs& kwargs = {}) const override;
+        const KwArgs& kwargs = {}) const override;
 
     const opt<const string> get_atom_type(const string& handle) const override;
 
@@ -259,7 +259,7 @@ class InMemoryDB : public AtomDB {
     void _update_index(const Atom& atom, bool delete_atom = false);
 
     // TODO: not used anywhere in the code - remove?
-    // void _update_atom_indexes(const vector<Atom>& documents, const Kwargs& kwargs = {}) {
+    // void _update_atom_indexes(const vector<Atom>& documents, const KwArgs& kwargs = {}) {
     //     for (const auto& document : documents) {
     //         this->_update_index(document, params);
     //     }

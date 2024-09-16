@@ -26,7 +26,7 @@ bool AtomDB::link_exists(const string& link_type, const StringList& target_handl
 }
 
 //------------------------------------------------------------------------------
-const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Kwargs& kwargs) const {
+const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const KwArgs& kwargs) const {
     auto document = _get_atom(handle);
     if (not document) {
         throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
@@ -41,19 +41,19 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Kwargs
 
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
-                                                        const Kwargs& kwargs) const {
+                                                        const KwArgs& kwargs) const {
     if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
         auto targets_documents = kwargs.targets_documents;
         auto deep_representation = kwargs.deep_representation;
         if (targets_documents || deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents = vector<shared_ptr<const Atom>>();
-            link_copy->targets_documents.value().reserve(link->targets.size());
+            link_copy->targets_documents->reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 if (deep_representation) {
-                    link_copy->targets_documents.value().push_back(this->get_atom(target, kwargs));
+                    link_copy->targets_documents->push_back(this->get_atom(target, kwargs));
                 } else {
-                    link_copy->targets_documents.value().push_back(this->get_atom(target));
+                    link_copy->targets_documents->push_back(this->get_atom(target));
                 }
             }
             return move(link_copy);
@@ -91,7 +91,7 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
     }
     string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};
-    ListOfAny composite_type_list = {link_type_hash};
+    CompositeType::CompositeTypeList composite_type_list = {link_type_hash};
     StringList composite_type_elements = {link_type_hash};
     string atom_hash;
     string atom_handle;

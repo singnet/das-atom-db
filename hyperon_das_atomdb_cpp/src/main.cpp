@@ -102,7 +102,7 @@ int main(int argc, char const* argv[]) {
     for (const auto& target : link->targets) {
         targets += target + ", ";
     }
-    if (!targets.empty()) {  // Remove trailing comma and space
+    if (not targets.empty()) {  // Remove trailing comma and space
         targets.pop_back();
         targets.pop_back();
     }
@@ -155,7 +155,7 @@ int main(int argc, char const* argv[]) {
             for (const auto& target : link->targets) {
                 targets += target + ", ";
             }
-            if (!targets.empty()) {  // Remove trailing comma and space
+            if (not targets.empty()) {  // Remove trailing comma and space
                 targets.pop_back();
                 targets.pop_back();
             }
@@ -163,7 +163,7 @@ int main(int argc, char const* argv[]) {
             cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
             if (link->targets_documents.has_value()) {
                 cout << "Link targets documents: [" << endl;
-                for (const auto& target : link->targets_documents.value()) {
+                for (const auto& target : *link->targets_documents) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         cout << "    Node handle: " << node->handle << endl;
                         cout << "    Node type: " << node->named_type << endl;
@@ -176,7 +176,7 @@ int main(int argc, char const* argv[]) {
                         for (const auto& target : link->targets) {
                             targets += target + ", ";
                         }
-                        if (!targets.empty()) {  // Remove trailing comma and space
+                        if (not targets.empty()) {  // Remove trailing comma and space
                             targets.pop_back();
                             targets.pop_back();
                         }
