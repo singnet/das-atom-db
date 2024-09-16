@@ -553,7 +553,11 @@ class InMemoryDB(AtomDB):
         self, link_type: str, target_handles: list[str], **kwargs
     ) -> MatchedLinksResultT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
-            return [self.get_link_handle(link_type, target_handles)]
+            try:
+                answer = [self.get_link_handle(link_type, target_handles)]
+            except AtomDoesNotExist as ex:
+                answer = []
+            return answer
 
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
@@ -576,6 +580,7 @@ class InMemoryDB(AtomDB):
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
 
+        #return [handle for handle, _ in patterns_matched]
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
@@ -676,11 +681,7 @@ class InMemoryDB(AtomDB):
         return node
 
     def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
-        result = self._build_link(link_params, toplevel)
-        # NOTE unreachable
-        if result is None:  # pragma: no cover
-            return None
-        handle, link, _ = result
+        handle, link, _ = self._build_link(link_params, toplevel)
         self.db.link[handle] = link
         self._update_index(link)
         return link

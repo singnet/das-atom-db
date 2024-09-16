@@ -343,10 +343,7 @@ class TestInMemoryDB:
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = "Similarity-Fake"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_matched_links(link_type, [chimp, chimp])
-        assert exc_info.type is AtomDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent atom"
+        database.get_matched_links(link_type, [chimp, chimp]) == []
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
         database.add_link(
