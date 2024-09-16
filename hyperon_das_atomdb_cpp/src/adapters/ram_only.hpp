@@ -135,9 +135,7 @@ class InMemoryDB : public AtomDB {
         const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const ListOfAny& _template,
-
-        const KwArgs& kwargs = {}) const override;
+        const ListOfAny& _template, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
         const string& link_type,
