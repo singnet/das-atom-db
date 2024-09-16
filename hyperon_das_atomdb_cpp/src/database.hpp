@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <variant>
 
 #include "constants.hpp"
@@ -7,11 +8,20 @@
 #include "exceptions.hpp"
 #include "type_aliases.hpp"
 #include "utils/expression_hasher.hpp"
-#include "utils/params.hpp"
 
 using namespace std;
 
 namespace atomdb {
+
+class Flags : public bitset<4> {
+   public:
+    enum Flag {
+        NO_TARGET_FORMAT = 0,
+        TARGETS_DOCUMENTS = 1,
+        DEEP_REPRESENTATION = 2,
+        TOPLEVEL_ONLY = 4
+    };
+};
 
 class AtomParams {
    public:
@@ -131,7 +141,7 @@ class AtomDB {
      * representation of the targets. Defaults to False.
      * @return An Atom object representing the retrieved atom.
      */
-    const shared_ptr<const Atom> get_atom(const string& handle, const Params& params = {}) const;
+    const shared_ptr<const Atom> get_atom(const string& handle, const Flags& params = {}) const;
 
     // PURE VIRTUAL PUBLIC METHODS /////////////////////////////////////////////////////////////////
 
@@ -226,7 +236,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of strings representing the links.
      */
     virtual const pair<const OptCursor, const StringList> get_all_links(
-        const string& link_type, const Params& params = {}) const = 0;
+        const string& link_type, const int cursor = NO_CURSOR, const Flags& flags = {}) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -266,7 +276,7 @@ class AtomDB {
      *         link handles.
      */
     virtual const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
-        const string& atom_handle, const Params& params = {}) const = 0;
+        const string& atom_handle, const int cursor = NO_CURSOR, const Flags& flags = {}) const = 0;
 
     /**
      * @brief Retrieves incoming link atoms for the specified atom.
@@ -276,7 +286,7 @@ class AtomDB {
      *         incoming links.
      */
     virtual const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
-        const string& atom_handle, const Params& params = {}) const = 0;
+        const string& atom_handle, const int cursor = NO_CURSOR, const Flags& flags = {}) const = 0;
 
     /**
      * @brief Retrieves matched links of the specified type and target handles.
@@ -287,7 +297,10 @@ class AtomDB {
      *         the matched links.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
-        const string& link_type, const StringList& target_handles, const Params& params = {}) const = 0;
+        const string& link_type,
+        const StringList& target_handles,
+        const int cursor = NO_CURSOR,
+        const Flags& flags = {}) const = 0;
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
@@ -297,7 +310,7 @@ class AtomDB {
      *         the matched type templates.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const ListOfAny& _template, const Params& params = {}) const = 0;
+        const ListOfAny& _template, const int cursor = NO_CURSOR, const Flags& flags = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.
@@ -307,7 +320,7 @@ class AtomDB {
      *         the matched types.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
-        const string& link_type, const Params& params = {}) const = 0;
+        const string& link_type, const int cursor = NO_CURSOR, const Flags& flags = {}) const = 0;
 
     /**
      * @brief Retrieves the type of the atom with the specified handle.
@@ -462,7 +475,7 @@ class AtomDB {
      * @return A reference to the reformatted Atom object.
      */
     const shared_ptr<const Atom> _reformat_document(const shared_ptr<const Atom>& document,
-                                                    const Params& params = {}) const;
+                                                    const Flags& flags = {}) const;
 
     /**
      * @brief Builds a node with the specified parameters.

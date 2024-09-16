@@ -100,14 +100,15 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const StringList> InMemoryDB::get_all_links(const string& link_type,
-                                                                        const Params& params) const {
+                                                                        const int cursor,
+                                                                        const Flags& flags) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
             link_handles.push_back(link->id);
         }
     }
-    return {params.get<int>(ParamsKeys::CURSOR), move(link_handles)};
+    return {cursor, move(link_handles)};
 }
 
 //------------------------------------------------------------------------------
@@ -155,30 +156,32 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
-    const string& atom_handle, const Params& params) const {
+    const string& atom_handle, const int cursor, const Flags& flags) const {
     auto it = this->db.incoming_set.find(atom_handle);
     auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
-    return {params.get<int>(ParamsKeys::CURSOR), move(links)};
+    return {cursor, move(links)};
 }
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
-    const string& atom_handle, const Params& params) const {
-    const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, params);
+    const string& atom_handle, const int cursor, const Flags& flags) const {
+    const auto& [_, links] = this->get_incoming_links_handles(atom_handle, cursor, flags);
     vector<shared_ptr<const Atom>> atoms;
     for (const auto& link_handle : links) {
-        atoms.push_back(this->get_atom(link_handle, params));
+        atoms.push_back(this->get_atom(link_handle, flags));
     }
     return {cursor, move(atoms)};
 }
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_links(
-    const string& link_type, const StringList& target_handles, const Params& params) const {
+    const string& link_type,
+    const StringList& target_handles,
+    const int cursor,
+    const Flags& flags) const {
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
-        return {params.get<int>(ParamsKeys::CURSOR),
-                {make_pair(this->get_link_handle(link_type, target_handles), nullopt)}};
+        return {cursor, {make_pair(this->get_link_handle(link_type, target_handles), nullopt)}};
     }
 
     auto link_type_hash =
@@ -197,45 +200,45 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         patterns_matched.insert(patterns_matched.end(), it->second.begin(), it->second.end());
     }
 
-    if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
-        return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(patterns_matched)};
+    if (flags[Flags::TOPLEVEL_ONLY]) {
+        return {cursor, this->_filter_non_toplevel(patterns_matched)};
     }
 
-    return {params.get<int>(ParamsKeys::CURSOR), move(patterns_matched)};
+    return {cursor, move(patterns_matched)};
 }
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const ListOfAny& _template, const Params& params) const {
+    const ListOfAny& _template, const int cursor, const Flags& flags) const {
     auto template_hash = ExpressionHasher::composite_hash(_template);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
         Pattern_or_Template_List templates_matched;
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
-        if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
-            return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
+        if (flags[Flags::TOPLEVEL_ONLY]) {
+            return {cursor, this->_filter_non_toplevel(templates_matched)};
         }
-        return {params.get<int>(ParamsKeys::CURSOR), move(templates_matched)};
+        return {cursor, move(templates_matched)};
     }
-    return {params.get<int>(ParamsKeys::CURSOR), {}};
+    return {cursor, {}};
 }
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type(
-    const string& link_type, const Params& params) const {
+    const string& link_type, const int cursor, const Flags& flags) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
         Pattern_or_Template_List templates_matched;
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
-        if (params.get<bool>(ParamsKeys::TOPLEVEL_ONLY).value_or(false)) {
-            return {params.get<int>(ParamsKeys::CURSOR), this->_filter_non_toplevel(templates_matched)};
+        if (flags[Flags::TOPLEVEL_ONLY]) {
+            return {cursor, this->_filter_non_toplevel(templates_matched)};
         }
-        return {params.get<int>(ParamsKeys::CURSOR), move(templates_matched)};
+        return {cursor, move(templates_matched)};
     }
-    return {params.get<int>(ParamsKeys::CURSOR), {}};
+    return {cursor, {}};
 }
 
 //------------------------------------------------------------------------------

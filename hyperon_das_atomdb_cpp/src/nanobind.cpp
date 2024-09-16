@@ -28,6 +28,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
     m.attr("WILDCARD") = WILDCARD;
     m.attr("TYPE_HASH") = TYPE_HASH;
     m.attr("TYPEDEF_MARK_HASH") = TYPEDEF_MARK_HASH;
+    m.attr("NO_CURSOR") = NO_CURSOR;
     nb::enum_<FieldIndexType>(m, "FieldIndexType", nb::is_arithmetic())
         .value("BINARY_TREE", FieldIndexType::BINARY_TREE)
         .value("TOKEN_INVERTED_LIST", FieldIndexType::TOKEN_INVERTED_LIST)
@@ -170,7 +171,11 @@ NB_MODULE(hyperon_das_atomdb, m) {
                  *     {ParamsKeys::DEEP_REPRESENTATION, deep_representation}
                  * });
                  */
-                return self.get_atom(handle); //, params);
+                Flags flags;
+                flags[Flags::NO_TARGET_FORMAT] = no_target_format;
+                flags[Flags::TARGETS_DOCUMENTS] = targets_documents;
+                flags[Flags::DEEP_REPRESENTATION] = deep_representation;
+                return self.get_atom(handle, flags);
             },
             "handle"_a,
             nb::kw_only(),
@@ -194,7 +199,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                 InMemoryDB& self,
                 const string& link_type,
                 const StringList& target_handles,
-                opt<int> cursor = nullopt,
+                const int cursor = NO_CURSOR,
                 bool toplevel_only = false
             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
                 /* TODO: adds a lot of overhead, have to find a faster alternative
@@ -202,12 +207,14 @@ NB_MODULE(hyperon_das_atomdb, m) {
                  * if (cursor) 
                  *     params.set(ParamsKeys::CURSOR, cursor.value());
                  */
-                return self.get_matched_links(link_type, target_handles); //, params);
+                Flags flags;
+                flags[Flags::TOPLEVEL_ONLY] = toplevel_only;
+                return self.get_matched_links(link_type, target_handles, cursor, flags);
             },
             "link_type"_a,
             "target_handles"_a,
             nb::kw_only(),
-            "cursor"_a = nullopt,
+            "cursor"_a = NO_CURSOR,
             "toplevel_only"_a = false
         );
     // ---------------------------------------------------------------------------------------------
