@@ -26,13 +26,13 @@ bool AtomDB::link_exists(const string& link_type, const StringList& target_handl
 }
 
 //------------------------------------------------------------------------------
-const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Flags& flags) const {
+const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Kwargs& kwargs) const {
     auto document = _get_atom(handle);
-    if (!document) {
+    if (not document) {
         throw AtomDoesNotExist("Nonexistent atom", "handle: " + handle);
     }
-    if (!flags[Flags::NO_TARGET_FORMAT]) {
-        return _reformat_document(document, flags);
+    if (not kwargs.no_target_format) {
+        return _reformat_document(document, kwargs);
     }
     return move(document);
 }
@@ -41,17 +41,17 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const Flags&
 
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
-                                                        const Flags& flags) const {
+                                                        const Kwargs& kwargs) const {
     if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
-        auto targets_documents = flags[Flags::TARGETS_DOCUMENTS];
-        auto deep_representation = flags[Flags::DEEP_REPRESENTATION];
+        auto targets_documents = kwargs.targets_documents;
+        auto deep_representation = kwargs.deep_representation;
         if (targets_documents || deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents = vector<shared_ptr<const Atom>>();
             link_copy->targets_documents.value().reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 if (deep_representation) {
-                    link_copy->targets_documents.value().push_back(this->get_atom(target, flags));
+                    link_copy->targets_documents.value().push_back(this->get_atom(target, kwargs));
                 } else {
                     link_copy->targets_documents.value().push_back(this->get_atom(target));
                 }

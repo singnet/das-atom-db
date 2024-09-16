@@ -113,7 +113,8 @@ int main(int argc, char const* argv[]) {
 
     auto atom = db.get_atom(
         link->handle,
-        Flags{Flags::NO_TARGET_FORMAT}
+        // Flags{Flags::NO_TARGET_FORMAT}
+        {.no_target_format = true}
     );
 
     cout << "Atom pointer id: " << atom.get() << endl;
@@ -123,7 +124,8 @@ int main(int argc, char const* argv[]) {
     {
         auto atom = db.get_atom(
             link->handle,
-            Flags{Flags::NO_TARGET_FORMAT}
+            // Flags{Flags::NO_TARGET_FORMAT}
+            {.no_target_format = true}
         );
 
         // prints the atoms pointer id
@@ -136,7 +138,8 @@ int main(int argc, char const* argv[]) {
     
     atom = db.get_atom(
         link->handle,
-        Flags{Flags::TARGETS_DOCUMENTS | Flags::DEEP_REPRESENTATION}
+        // Flags{Flags::TARGETS_DOCUMENTS | Flags::DEEP_REPRESENTATION}
+        {.targets_documents = true, .deep_representation = true}
     );
 
     cout << "Atom pointer id: " << atom.get() << endl;

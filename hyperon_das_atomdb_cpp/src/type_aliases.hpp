@@ -18,8 +18,7 @@ namespace atomdb {
 template <typename T>
 using opt = optional<T>;
 
-using OptCursor = int;
-constexpr const int NO_CURSOR = -1;
+using OptCursor = opt<int>;
 
 using StringSet = set<string>;
 using StringList = vector<string>;
