@@ -29,13 +29,12 @@ from hyperon_das_atomdb.database import (
     AtomT,
     FieldIndexType,
     FieldNames,
-    HandleListT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
     MatchedLinksResultT,
-    MatchedTypesResultT,
     MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
@@ -215,12 +214,10 @@ class RedisMongoDB(AtomDB):
                 self.typedef_base_type_hash,
             ]
         )
-        self.mongo_bulk_insertion_buffer: (
-            dict[
-                MongoCollectionNames,
-                tuple[Collection[Mapping[str, Any]], set[_HashableDocument]],
-            ]
-        ) = {
+        self.mongo_bulk_insertion_buffer: dict[
+            MongoCollectionNames,
+            tuple[Collection[Mapping[str, Any]], set[_HashableDocument]],
+        ] = {
             collection_name: (collection, set())
             for collection_name, collection in self.all_mongo_collections
         }
@@ -686,7 +683,9 @@ class RedisMongoDB(AtomDB):
             except AtomDoesNotExist:
                 return []
 
-        link_type_hash = WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
+        link_type_hash = (
+            WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
+        )
 
         # NOTE unreachable
         if link_type in UNORDERED_LINK_TYPES:
@@ -694,9 +693,8 @@ class RedisMongoDB(AtomDB):
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         patterns_matched = self._retrieve_hash_targets_value(
-            KeyPrefix.PATTERNS,
-            pattern_hash,
-            **kwargs)
+            KeyPrefix.PATTERNS, pattern_hash, **kwargs
+        )
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
         else:
@@ -715,8 +713,8 @@ class RedisMongoDB(AtomDB):
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
             templates_matched = self._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES,
-                template_hash, **kwargs)
+                KeyPrefix.TEMPLATES, template_hash, **kwargs
+            )
             if kwargs.get("toplevel_only", False):
                 return self._filter_non_toplevel(templates_matched)
             else:
@@ -728,9 +726,8 @@ class RedisMongoDB(AtomDB):
     def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self._retrieve_hash_targets_value(
-            KeyPrefix.TEMPLATES,
-            named_type_hash,
-            **kwargs)
+            KeyPrefix.TEMPLATES, named_type_hash, **kwargs
+        )
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(templates_matched)
         else:
@@ -901,7 +898,6 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
         return list(self._get_redis_members(key, **kwargs))
 
-
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
         Remove a specific member from the incoming set of the given handle in Redis.
@@ -1011,27 +1007,26 @@ class RedisMongoDB(AtomDB):
             MatchedTargetsListT: List of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        #return list(self._get_redis_members(key, **kwargs))
+        # return list(self._get_redis_members(key, **kwargs))
         members = self._get_redis_members(key, **kwargs)
         if len(members) == 0:
             return []
         else:
             n = len(next(iter(members))) // self.hash_length
             return [
-                    (
-                        member[0 : self.hash_length],  # noqa: E203
-                        tuple(
-                            member[
-                                (offset * self.hash_length) : (  # noqa: E203
-                                    (offset + 1) * self.hash_length
-                                )
-                            ]
-                            for offset in range(1, n)
-                        ),
-                    )
-                    for member in members
+                (
+                    member[0 : self.hash_length],  # noqa: E203
+                    tuple(
+                        member[
+                            (offset * self.hash_length) : (  # noqa: E203
+                                (offset + 1) * self.hash_length
+                            )
+                        ]
+                        for offset in range(1, n)
+                    ),
+                )
+                for member in members
             ]
-
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """

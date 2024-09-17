@@ -1,6 +1,9 @@
 from unittest import mock
+
 import pytest
+
 from hyperon_das_atomdb.database import AtomDB
+
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
@@ -633,9 +636,7 @@ class TestDatabase:
             # NOTE should return None or same as redis_mongo
         ],
     )
-    def test_get_matched_type_template(
-        self, database, params, links_len, is_top_level, request
-    ):
+    def test_get_matched_type_template(self, database, params, links_len, is_top_level, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = self._add_node(db, "Aaa", "Test", database)
         node_b = self._add_node(db, "Bbb", "Test", database)

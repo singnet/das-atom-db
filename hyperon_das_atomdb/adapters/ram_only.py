@@ -8,6 +8,7 @@ Classes:
     Database: A dataclass representing the structure of the in-memory database.
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
+
 from collections import OrderedDict
 from dataclasses import dataclass
 from dataclasses import field as dc_field
@@ -20,13 +21,12 @@ from hyperon_das_atomdb.database import (
     AtomT,
     FieldIndexType,
     FieldNames,
-    HandleListT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
     MatchedLinksResultT,
-    MatchedTypesResultT,
     MatchedTargetsListT,
+    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
@@ -555,7 +555,7 @@ class InMemoryDB(AtomDB):
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 answer = [self.get_link_handle(link_type, target_handles)]
-            except AtomDoesNotExist as ex:
+            except AtomDoesNotExist:
                 answer = []
             return answer
 
@@ -580,7 +580,7 @@ class InMemoryDB(AtomDB):
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
 
-        #return [handle for handle, _ in patterns_matched]
+        # return [handle for handle, _ in patterns_matched]
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:

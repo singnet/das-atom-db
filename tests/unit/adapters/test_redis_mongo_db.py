@@ -217,13 +217,13 @@ class TestRedisMongoDB:
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
         expected = [
+            (
+                "b5459e299a5c5e8662c427f7e01b3bf1",
                 (
-                    "b5459e299a5c5e8662c427f7e01b3bf1",
-                    (
-                        "af12f10f9ae2002a1607ba0b47ba8407",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
-                )
+                    "af12f10f9ae2002a1607ba0b47ba8407",
+                    "5b34c54bee150c04f9fa584b899dc030",
+                ),
+            )
         ]
         actual = database.get_matched_links(link_type, [human, chimp])
 
@@ -233,20 +233,20 @@ class TestRedisMongoDB:
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
         expected = [
+            (
+                "31535ddf214f5b239d3b517823cb8144",
                 (
-                    "31535ddf214f5b239d3b517823cb8144",
-                    (
-                        "1cdffc6b0b89ff41d68bec237481d1e1",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
+                    "1cdffc6b0b89ff41d68bec237481d1e1",
+                    "5b34c54bee150c04f9fa584b899dc030",
                 ),
+            ),
+            (
+                "b5459e299a5c5e8662c427f7e01b3bf1",
                 (
-                    "b5459e299a5c5e8662c427f7e01b3bf1",
-                    (
-                        "af12f10f9ae2002a1607ba0b47ba8407",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
+                    "af12f10f9ae2002a1607ba0b47ba8407",
+                    "5b34c54bee150c04f9fa584b899dc030",
                 ),
+            ),
         ]
         actual = database.get_matched_links(link_type, ["*", chimp])
 

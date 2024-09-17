@@ -305,13 +305,13 @@ class TestInMemoryDB:
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
         expected = [
+            (
+                "b5459e299a5c5e8662c427f7e01b3bf1",
                 (
-                    "b5459e299a5c5e8662c427f7e01b3bf1",
-                    (
-                        "af12f10f9ae2002a1607ba0b47ba8407",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
-                )
+                    "af12f10f9ae2002a1607ba0b47ba8407",
+                    "5b34c54bee150c04f9fa584b899dc030",
+                ),
+            )
         ]
         actual = database.get_matched_links("*", [human, chimp])
 
@@ -320,22 +320,25 @@ class TestInMemoryDB:
     def test_get_matched_links_link_diff_wildcard(self, database: InMemoryDB):
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected  = sorted([
+        expected = sorted(
+            [
+                (
+                    "b5459e299a5c5e8662c427f7e01b3bf1",
                     (
-                        "b5459e299a5c5e8662c427f7e01b3bf1",
-                        (
-                            "af12f10f9ae2002a1607ba0b47ba8407",
-                            "5b34c54bee150c04f9fa584b899dc030",
-                        ),
+                        "af12f10f9ae2002a1607ba0b47ba8407",
+                        "5b34c54bee150c04f9fa584b899dc030",
                     ),
+                ),
+                (
+                    "31535ddf214f5b239d3b517823cb8144",
                     (
-                        "31535ddf214f5b239d3b517823cb8144",
-                        (
-                            "1cdffc6b0b89ff41d68bec237481d1e1",
-                            "5b34c54bee150c04f9fa584b899dc030",
-                        ),
+                        "1cdffc6b0b89ff41d68bec237481d1e1",
+                        "5b34c54bee150c04f9fa584b899dc030",
                     ),
-                ], key=lambda i: i[0])
+                ),
+            ],
+            key=lambda i: i[0],
+        )
 
         actual = database.get_matched_links(link_type, ["*", chimp])
         assert expected == sorted(actual, key=lambda i: i[0])
@@ -377,13 +380,13 @@ class TestInMemoryDB:
             }
         )
         expected = [
+            (
+                "661fb5a7c90faabfeada7e1f63805fc0",
                 (
-                    "661fb5a7c90faabfeada7e1f63805fc0",
-                    (
-                        "a912032ece1826e55fa583dcaacdc4a9",
-                        "260e118be658feeeb612dcd56d270d77",
-                    ),
-                )
+                    "a912032ece1826e55fa583dcaacdc4a9",
+                    "260e118be658feeeb612dcd56d270d77",
+                ),
+            )
         ]
         actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
 
