@@ -1,1 +1,2 @@
 [#214] Added type alias for atom handle
+[#216] Removed cursor from api of get_matched*() and get_incoming_links()
