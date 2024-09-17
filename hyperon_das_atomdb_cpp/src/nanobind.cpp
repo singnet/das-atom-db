@@ -23,6 +23,22 @@ using namespace atomdb;
 namespace nb = nanobind;
 using namespace nb::literals;
 
+struct transformer {
+    static nb::list to_pylist(const CompositeType::CompositeTypeList& ct_list) {
+        nb::list py_list;
+        for (const auto& item : ct_list) {
+            if (item.single.has_value()) {
+                py_list.append(*item.single);
+            } else if (item.list.has_value()) {
+                py_list.append(transformer::to_pylist(*item.list));
+            } else {
+                throw invalid_argument("Invalid CompositeType");
+            }
+        }
+        return py_list;
+    }
+};
+
 NB_MODULE(hyperon_das_atomdb, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;
@@ -94,25 +110,12 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("__str__", [](const Node& self) -> const string { return self.to_string(); })
         .def("__repr__", [](const Node& self) -> const string { return self.to_string(); });
     nb::class_<Link, Atom>(document_types, "Link")
-        .def_prop_ro("composite_type", [](const Link& self) -> const nb::list {
-            struct transformer {
-                static nb::list to_pylist(const CompositeType::CompositeTypeList& ct_list) {
-                    nb::list py_list;
-                    for (const auto& item : ct_list) {
-                        if (item.single.has_value()) {
-                            py_list.append(*item.single);
-                        } else if (item.list.has_value()) {
-                            py_list.append(transformer::to_pylist(*item.list));
-                        } else {
-                            throw invalid_argument("Invalid CompositeType");
-                        }
-                    }
-                    return py_list;
-                }
-            };
-
-            return transformer::to_pylist(self.composite_type);
-        })
+        .def_prop_ro(
+            "composite_type",
+            [](const Link& self) -> const nb::list {
+                return transformer::to_pylist(self.composite_type);
+            }
+        )
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_top_level", &Link::is_top_level)
