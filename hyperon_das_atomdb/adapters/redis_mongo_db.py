@@ -1007,7 +1007,6 @@ class RedisMongoDB(AtomDB):
             MatchedTargetsListT: List of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        # return list(self._get_redis_members(key, **kwargs))
         members = self._get_redis_members(key, **kwargs)
         if len(members) == 0:
             return []

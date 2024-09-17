@@ -51,7 +51,7 @@ HandleListT: TypeAlias = list[HandleT]
 
 IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
 
-MatchedTargetsListT: TypeAlias = list[tuple[str, tuple[str, ...]]]
+MatchedTargetsListT: TypeAlias = list[tuple[HandleT, tuple[HandleT, ...]]]
 
 MatchedLinksResultT: TypeAlias = HandleListT | MatchedTargetsListT
 

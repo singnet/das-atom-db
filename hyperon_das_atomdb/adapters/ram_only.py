@@ -580,7 +580,6 @@ class InMemoryDB(AtomDB):
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
 
-        # return [handle for handle, _ in patterns_matched]
         return patterns_matched
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
