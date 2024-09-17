@@ -882,18 +882,14 @@ class RedisMongoDB(AtomDB):
         Retrieve the incoming set for the given handle from Redis.
 
         This method constructs a Redis key using the provided handle and retrieves the members
-        of the incoming set associated with that key. It supports additional keyword arguments
-        for cursor-based pagination.
+        of the incoming set associated with that key.
 
         Args:
             handle (str): The unique identifier for the atom whose incoming set is to be retrieved.
             **kwargs: Additional keyword arguments.
-                cursor (int, optional): The cursor for pagination.
-                chunk_size (int, optional): The size of each chunk to retrieve.
 
         Returns:
-            tuple[int | None, list[str]]: A tuple containing the cursor position (which can be
-            None if `cursor` is absent in kwargs) and a list of members.
+            tuple[int | None, list[str]]: List of members for the given key
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
         return list(self._get_redis_members(key, **kwargs))

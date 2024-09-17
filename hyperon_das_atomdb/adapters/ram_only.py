@@ -679,7 +679,7 @@ class InMemoryDB(AtomDB):
         self._update_index(node)
         return node
 
-    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT:
         handle, link, _ = self._build_link(link_params, toplevel)
         self.db.link[handle] = link
         self._update_index(link)
