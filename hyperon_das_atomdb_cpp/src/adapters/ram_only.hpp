@@ -135,7 +135,7 @@ class InMemoryDB : public AtomDB {
         const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const ListOfAny& _template, const KwArgs& kwargs = {}) const override;
+        const StringList& _template, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
         const string& link_type,
@@ -144,8 +144,8 @@ class InMemoryDB : public AtomDB {
 
     const opt<const string> get_atom_type(const string& handle) const override;
 
-    const unordered_map<string, any> get_atom_as_dict(const string& handle,
-                                                      int arity = 0) const override;
+    // const unordered_map<string, anything> get_atom_as_dict(const string& handle,
+    //                                                   int arity = 0) const override;
 
     const unordered_map<string, int> count_atoms() const override;
 
@@ -155,7 +155,7 @@ class InMemoryDB : public AtomDB {
 
     const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
 
-    void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
+    void reindex(const unordered_map<string, vector<unordered_map<string, void*>>>&
                      pattern_index_templates) override;
 
     void delete_atom(const string& handle) override;
@@ -215,7 +215,7 @@ class InMemoryDB : public AtomDB {
      * ```
      * @endcode
      */
-    const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
+    const StringList _build_named_type_hash_template(const StringList& _template) const;
 
     const string _build_named_type_hash_template(const string& _template) const;
 

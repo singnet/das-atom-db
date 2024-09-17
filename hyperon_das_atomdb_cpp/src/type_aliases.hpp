@@ -1,6 +1,5 @@
 #pragma once
 
-#include <any>
 #include <memory>
 #include <optional>
 #include <set>
@@ -23,7 +22,6 @@ using OptCursor = opt<int>;
 using StringSet = set<string>;
 using StringList = vector<string>;
 using StringUnorderedSet = unordered_set<string>;
-using ListOfAny = vector<any>;
 
 using Pattern_or_Template = pair<string, opt<StringList>>;
 using Pattern_or_Template_List = vector<Pattern_or_Template>;

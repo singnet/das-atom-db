@@ -24,32 +24,22 @@ struct KwArgs {
 
 class AtomParams {
    public:
-    using CustomAttributesInitializer = vector<pair<string, any>>;
-
     AtomParams() = default;
-    AtomParams(const string& type, const CustomAttributesInitializer& custom_attributes = {})
-        : type(type) {
+    AtomParams(const string& type) : type(type) {
         if (type.empty()) {
             throw invalid_argument("'type' cannot be empty.");
-        }
-        for (const auto& [key, value] : custom_attributes) {
-            this->custom_attributes.set(key, value);
         }
     }
 
     virtual ~AtomParams() = default;
 
     string type;
-    Params custom_attributes = {};
 };
 
 class NodeParams : public AtomParams {
    public:
     NodeParams() = default;
-    NodeParams(const string& type,
-               const string& name,
-               const CustomAttributesInitializer& custom_attributes = {})
-        : name(name), AtomParams(type, custom_attributes) {
+    NodeParams(const string& type, const string& name) : name(name), AtomParams(type) {
         if (name.empty()) {
             throw invalid_argument("'name' cannot be empty.");
         }
@@ -64,12 +54,8 @@ class LinkParams : public AtomParams {
     using Targets = vector<Target>;
 
     LinkParams() = default;
-    LinkParams(const string& type, const CustomAttributesInitializer& custom_attributes = {})
-        : AtomParams(type, custom_attributes) {}
-    LinkParams(const string& type,
-               const Targets& targets,
-               const CustomAttributesInitializer& custom_attributes = {})
-        : LinkParams(type, custom_attributes) {
+    LinkParams(const string& type) : AtomParams(type) {}
+    LinkParams(const string& type, const Targets& targets) : LinkParams(type) {
         if (targets.empty()) {
             throw invalid_argument("'targets' cannot be empty.");
         }
@@ -313,7 +299,7 @@ class AtomDB {
      *         the matched type templates.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const ListOfAny& _template, const KwArgs& kwargs = {}) const = 0;
+        const StringList& _template, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.
@@ -338,8 +324,8 @@ class AtomDB {
      * @param arity The arity of the atom. Defaults to 0.
      * @return A dictionary representation of the atom.
      */
-    virtual const unordered_map<string, any> get_atom_as_dict(const string& handle,
-                                                              int arity = 0) const = 0;
+    // virtual const unordered_map<string, anything> get_atom_as_dict(const string& handle,
+    //                                                           int arity = 0) const = 0;
 
     /**
      * @brief Count the total number of atoms in the database.
@@ -426,7 +412,7 @@ class AtomDB {
      * - Similarity(handle1, *)
      */
     virtual void reindex(
-        const unordered_map<string, vector<unordered_map<string, any>>>& pattern_index_templates) = 0;
+        const unordered_map<string, vector<unordered_map<string, void*>>>& pattern_index_templates) = 0;
 
     /**
      * @brief Delete an atom from the database.

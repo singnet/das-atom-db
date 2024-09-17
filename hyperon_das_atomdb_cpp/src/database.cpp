@@ -72,12 +72,11 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     }
     string handle = this->build_node_handle(node_type, node_name);
     string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
-    return make_shared<Node>(handle,                        // id
-                             handle,                        // handle
-                             composite_type_hash,           // composite_type_hash
-                             node_type,                     // named_type
-                             node_name,                     // name
-                             node_params.custom_attributes  // custom_attributes
+    return make_shared<Node>(handle,               // id
+                             handle,               // handle
+                             composite_type_hash,  // composite_type_hash
+                             node_type,            // named_type
+                             node_name             // name
     );
 }
 
@@ -116,16 +115,15 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
     string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
     string composite_type_hash = ExpressionHasher::composite_hash(composite_type_elements);
 
-    auto link = shared_ptr<Link>(new Link(handle,                        // id
-                                          handle,                        // handle
-                                          composite_type_hash,           // composite_type_hash
-                                          link_type,                     // named_type
-                                          composite_type_list,           // composite_type
-                                          link_type_hash,                // named_type_hash
-                                          target_handles,                // targets
-                                          is_top_level,                  // is_top_level
-                                          {},                            // keys
-                                          link_params.custom_attributes  // custom_attributes
+    auto link = shared_ptr<Link>(new Link(handle,               // id
+                                          handle,               // handle
+                                          composite_type_hash,  // composite_type_hash
+                                          link_type,            // named_type
+                                          composite_type_list,  // composite_type
+                                          link_type_hash,       // named_type_hash
+                                          target_handles,       // targets
+                                          is_top_level,         // is_top_level
+                                          {}                    // keys
                                           ));
 
     uint n = 0;

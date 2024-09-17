@@ -205,7 +205,7 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const ListOfAny& _template, const KwArgs& kwargs) const {
+    const StringList& _template, const KwArgs& kwargs) const {
     auto hash_base = this->_build_named_type_hash_template(_template);
     auto template_hash = ExpressionHasher::composite_hash(hash_base);
     auto it = this->db.templates.find(template_hash);
@@ -248,18 +248,19 @@ const opt<const string> InMemoryDB::get_atom_type(const string& handle) const {
 }
 
 //------------------------------------------------------------------------------
-const unordered_map<string, any> InMemoryDB::get_atom_as_dict(const string& handle, int arity) const {
-    auto node = this->_get_node(handle);
-    if (node) {
-        return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
-    }
-    auto link = this->_get_link(handle);
-    if (link) {
-        return {{"handle", link->handle},
-                {"type", link->named_type},
-                {"targets", this->_build_targets_list(*link)}};
-    }
-}
+// const unordered_map<string, anything> InMemoryDB::get_atom_as_dict(const string& handle, int arity)
+// const {
+//     auto node = this->_get_node(handle);
+//     if (node) {
+//         return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
+//     }
+//     auto link = this->_get_link(handle);
+//     if (link) {
+//         return {{"handle", link->handle},
+//                 {"type", link->named_type},
+//                 {"targets", this->_build_targets_list(*link)}};
+//     }
+// }
 
 //------------------------------------------------------------------------------
 const unordered_map<string, int> InMemoryDB::count_atoms() const {
@@ -294,7 +295,7 @@ const shared_ptr<const Link> InMemoryDB::add_link(const LinkParams& link_params,
 
 //------------------------------------------------------------------------------
 void InMemoryDB::reindex(
-    const unordered_map<string, vector<unordered_map<string, any>>>& pattern_index_templates) {
+    const unordered_map<string, vector<unordered_map<string, void*>>>& pattern_index_templates) {
     throw runtime_error("Not implemented");
 }
 
@@ -408,17 +409,10 @@ const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link
 }
 
 //------------------------------------------------------------------------------
-const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _template) const {
-    ListOfAny hash_template;
+const StringList InMemoryDB::_build_named_type_hash_template(const StringList& _template) const {
+    StringList hash_template;
     for (const auto& element : _template) {
-        if (const string* str = any_cast<string>(&element)) {
-            hash_template.push_back(_build_atom_type_key_hash(*str));
-        } else if (const ListOfAny* vec = any_cast<ListOfAny>(&element)) {
-            hash_template.push_back(_build_named_type_hash_template(*vec));
-        } else {
-            // TODO: log error
-            throw invalid_argument("Invalid template element type.");
-        }
+        hash_template.push_back(this->_build_atom_type_key_hash(element));
     }
     return move(hash_template);
 }

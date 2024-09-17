@@ -13,16 +13,13 @@ int main(int argc, char const* argv[]) {
     // Adding a Node
     auto node_params = NodeParams(
         "Person", // type
-        "John Doe", // name
-        {{"gender", "male"}} // custom attributes
+        "John Doe" // name
     );
-    node_params.custom_attributes.set("age", 42); // custom attribute can be set after initialization
 
     auto node = db.add_node(node_params);
     
     cout << "Node handle: " << node->handle << endl;
     cout << "Node name: " << node->name << endl;
-    cout << "Node age: " << node->custom_attributes.get<int>("age").value_or(-1) << endl;
 
     // Adding a Link
     /*
@@ -54,7 +51,7 @@ int main(int argc, char const* argv[]) {
     auto link_params = LinkParams(
         "Friendship", // type
         {   // targets - a list of NodeParams and LinkParams
-            NodeParams("Person", "John Doe", {{"location", "BH"}}),  // type and name
+            NodeParams("Person", "John Doe"), //{{"location", "BH"}}),  // type and name
             NodeParams("Person", "Samuel L. Jackson"),
             LinkParams(
                 "Fellowship", // type
@@ -63,11 +60,6 @@ int main(int argc, char const* argv[]) {
                     NodeParams("Person", "Michael Douglas")
                 }
             )
-        },
-        {   // custom attributes - a list of key-value pairs,
-            // where the key is a string and the value can be any type
-            {"since", "2021-01-01"},
-            {"location", "New York"}
         }
     );
     
@@ -78,7 +70,6 @@ int main(int argc, char const* argv[]) {
         "Friendship",  // type
         {{"since", "2021-01-01"}}  // custom attributes
     );
-    link_params.custom_attributes.set("location", "New York");  // Add a custom attribute
     
     // Adding 2 Person Nodes as targets
     link_params.add_target(NodeParams("Person", "Jane Doe"));
@@ -107,7 +98,6 @@ int main(int argc, char const* argv[]) {
         targets.pop_back();
     }
     cout << targets << "]" << endl;
-    cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
 
     cout << "----------------------------------------" << endl;
 
@@ -138,8 +128,7 @@ int main(int argc, char const* argv[]) {
     
     atom = db.get_atom(
         link->handle,
-        // Flags{Flags::TARGETS_DOCUMENTS | Flags::DEEP_REPRESENTATION}
-        {.targets_documents = true, .deep_representation = true}
+        {targets_documents: true, deep_representation: true}
     );
 
     cout << "Atom pointer id: " << atom.get() << endl;
@@ -160,7 +149,6 @@ int main(int argc, char const* argv[]) {
                 targets.pop_back();
             }
             cout << targets << "]" << endl;
-            cout << "Link location: " << link->custom_attributes.get<string>("location").value_or("") << endl;
             if (link->targets_documents.has_value()) {
                 cout << "Link targets documents: [" << endl;
                 for (const auto& target : *link->targets_documents) {

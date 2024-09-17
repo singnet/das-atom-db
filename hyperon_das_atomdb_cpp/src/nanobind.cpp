@@ -23,10 +23,10 @@ using namespace atomdb;
 namespace nb = nanobind;
 using namespace nb::literals;
 
-
 NB_MODULE(hyperon_das_atomdb, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;
+    m.attr("WILDCARD_HASH") = WILDCARD_HASH;
     m.attr("TYPE_HASH") = TYPE_HASH;
     m.attr("TYPEDEF_MARK_HASH") = TYPEDEF_MARK_HASH;
     nb::enum_<FieldIndexType>(m, "FieldIndexType", nb::is_arithmetic())
@@ -94,7 +94,25 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("__str__", [](const Node& self) -> const string { return self.to_string(); })
         .def("__repr__", [](const Node& self) -> const string { return self.to_string(); });
     nb::class_<Link, Atom>(document_types, "Link")
-        .def_ro("composite_type", &Link::composite_type)
+        .def_prop_ro("composite_type", [](const Link& self) -> const nb::list {
+            struct transformer {
+                static nb::list to_pylist(const CompositeType::CompositeTypeList& ct_list) {
+                    nb::list py_list;
+                    for (const auto& item : ct_list) {
+                        if (item.single.has_value()) {
+                            py_list.append(*item.single);
+                        } else if (item.list.has_value()) {
+                            py_list.append(transformer::to_pylist(*item.list));
+                        } else {
+                            throw invalid_argument("Invalid CompositeType");
+                        }
+                    }
+                    return py_list;
+                }
+            };
+
+            return transformer::to_pylist(self.composite_type);
+        })
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_top_level", &Link::is_top_level)

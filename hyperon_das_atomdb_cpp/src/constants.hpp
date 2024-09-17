@@ -10,6 +10,7 @@ namespace atomdb {
 constexpr const char* WILDCARD = "*";
 
 // pre-computed hashes
+static const string WILDCARD_HASH = ExpressionHasher::named_type_hash(WILDCARD);
 static const string TYPE_HASH = ExpressionHasher::named_type_hash("Type");
 static const string TYPEDEF_MARK_HASH = ExpressionHasher::named_type_hash(":");
 

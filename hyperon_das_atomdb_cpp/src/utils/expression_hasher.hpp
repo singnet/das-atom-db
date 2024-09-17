@@ -78,27 +78,9 @@ class ExpressionHasher {
         for (const auto& element : elements) {
             hashable_string += element + JOINING_CHAR;
         }
-        hashable_string.pop_back();
+        hashable_string.pop_back();  // remove the last joining character
 
         return compute_hash(hashable_string);
-    }
-
-    /**
-     * @brief Generates a composite hash from a list of elements.
-     *
-     * This function takes a vector of elements, each of which can be of any type,
-     * and generates a composite hash representing the combined hash of all elements.
-     *
-     * @param elements A vector of elements of type any, representing the components to be
-     * hashed.
-     * @return A string representing the composite hash generated from the elements.
-     */
-    static const string composite_hash(const ListOfAny& elements) {
-        StringList hashable_elements;
-        for (const auto& element : elements) {
-            hashable_elements.push_back(any_cast<string>(element));
-        }
-        return composite_hash(hashable_elements);
     }
 
     /**

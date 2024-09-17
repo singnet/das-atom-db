@@ -22,19 +22,13 @@ class Atom {
     string handle;
     string composite_type_hash;
     string named_type;
-    Params custom_attributes = {};
 
     Atom() = default;
     Atom(const string& id,
          const string& handle,
          const string& composite_type_hash,
-         const string& named_type,
-         const Params& custom_attributes = {})
-        : id(id),
-          handle(handle),
-          composite_type_hash(composite_type_hash),
-          named_type(named_type),
-          custom_attributes(custom_attributes) {
+         const string& named_type)
+        : id(id), handle(handle), composite_type_hash(composite_type_hash), named_type(named_type) {
         if (id.empty()) {
             throw invalid_argument("Atom ID cannot be empty.");
         }
@@ -76,10 +70,8 @@ class AtomType : public Atom {
              const string& handle,
              const string& composite_type_hash,
              const string& named_type,
-             const string& named_type_hash,
-             const Params& custom_attributes = {})
-        : named_type_hash(named_type_hash),
-          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
+             const string& named_type_hash)
+        : named_type_hash(named_type_hash), Atom(id, handle, composite_type_hash, named_type) {
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
@@ -107,9 +99,8 @@ class Node : public Atom {
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const string& name,
-         const Params& custom_attributes = {})
-        : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
+         const string& name)
+        : name(name), Atom(id, handle, composite_type_hash, named_type) {
         if (name.empty()) {
             throw invalid_argument("Node name cannot be empty.");
         }
@@ -129,28 +120,29 @@ class CompositeType {
    public:
     using CompositeTypeList = vector<CompositeType>;
 
-    string single_hash = "";
-    CompositeTypeList list_of_composite_types = {};
+    opt<string> single = nullopt;
+    opt<CompositeTypeList> list = nullopt;
 
-    CompositeType(const string& single_hash) : single_hash(single_hash) {
-        if (single_hash.empty()) {
-            throw invalid_argument("'single_hash' cannot be empty.");
+    CompositeType(const string& single) {
+        if (single.empty()) {
+            throw invalid_argument("'single' cannot be empty.");
         }
-        if (not list_of_composite_types.empty()) {
-            throw invalid_argument(
-                "'list_of_composite_types' must be empty when 'single_hash' is not empty.");
+        this->single = single;
+        if (list.has_value()) {
+            throw invalid_argument("'list' must be empty when 'single' is not empty.");
         }
+        this->list = nullopt;
     }
 
-    CompositeType(const CompositeTypeList& list_of_composite_types)
-        : list_of_composite_types(list_of_composite_types) {
-        if (list_of_composite_types.empty()) {
-            throw invalid_argument("'list_of_composite_types' cannot be empty.");
+    CompositeType(const CompositeTypeList& list) {
+        if (list.empty()) {
+            throw invalid_argument("'list' cannot be empty.");
         }
-        if (!single_hash.empty()) {
-            throw invalid_argument(
-                "'single_hash' must be empty when 'list_of_composite_types' is not empty.");
+        this->list = list;
+        if (single.has_value()) {
+            throw invalid_argument("'single' must be empty when 'list' is not empty.");
         }
+        this->single = nullopt;
     }
 };
 
@@ -184,15 +176,14 @@ class Link : public Atom {
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_top_level = true,
-         map<string, string> keys = {},
-         const Params& custom_attributes = {})
+         map<string, string> keys = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_top_level(is_top_level),
           keys(keys),
           targets_documents(nullopt),
-          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
+          Atom(id, handle, composite_type_hash, named_type) {
         if (composite_type.empty()) {
             throw invalid_argument("Composite type cannot be empty.");
         }
@@ -250,10 +241,12 @@ class Link : public Atom {
         const CompositeType::CompositeTypeList& composite_type) const noexcept {
         string result = "[";
         for (const auto& element : composite_type) {
-            if (not element.single_hash.empty()) {
-                result += "'" + element.single_hash + "', ";
+            if (element.single.has_value()) {
+                result += "'" + *element.single + "', ";
+            } else if (element.list.has_value()) {
+                result += composite_type_list_to_string(*element.list) + ", ";
             } else {
-                result += composite_type_list_to_string(element.list_of_composite_types) + ", ";
+                throw invalid_argument("Invalid composite type element.");
             }
         }
         result.pop_back();
