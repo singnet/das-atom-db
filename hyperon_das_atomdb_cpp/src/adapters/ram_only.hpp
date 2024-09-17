@@ -217,9 +217,9 @@ class InMemoryDB : public AtomDB {
      */
     const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
 
-    const string _build_named_type_hash_template(const string& _template);
+    const string _build_named_type_hash_template(const string& _template) const;
 
-    static const string _build_atom_type_key_hash(const string& name);
+    const string _build_atom_type_key_hash(const string& name) const;
 
     void _add_atom_type(const string& atom_type_name, const string& atom_type = "Type");
 
@@ -248,7 +248,7 @@ class InMemoryDB : public AtomDB {
 
     const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
 
-    static const vector<string> _build_targets_list(const Link& link);
+    const vector<string> _build_targets_list(const Link& link) const;
 
     void _delete_atom_index(const Atom& atom);
 

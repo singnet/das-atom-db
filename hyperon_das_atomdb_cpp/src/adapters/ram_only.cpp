@@ -206,7 +206,8 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
     const ListOfAny& _template, const KwArgs& kwargs) const {
-    auto template_hash = ExpressionHasher::composite_hash(_template);
+    auto hash_base = this->_build_named_type_hash_template(_template);
+    auto template_hash = ExpressionHasher::composite_hash(hash_base);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
         Pattern_or_Template_List templates_matched;
@@ -423,12 +424,12 @@ const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _te
 }
 
 //------------------------------------------------------------------------------
-const string InMemoryDB::_build_named_type_hash_template(const string& _template) {
+const string InMemoryDB::_build_named_type_hash_template(const string& _template) const {
     return ExpressionHasher::named_type_hash(_template);
 }
 
 //------------------------------------------------------------------------------
-const string InMemoryDB::_build_atom_type_key_hash(const string& name) {
+const string InMemoryDB::_build_atom_type_key_hash(const string& name) const {
     string name_hash = ExpressionHasher::named_type_hash(name);
     return ExpressionHasher::expression_hash(TYPEDEF_MARK_HASH, {name_hash, TYPE_HASH});
 }
@@ -601,7 +602,7 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
 }
 
 //------------------------------------------------------------------------------
-const vector<string> InMemoryDB::_build_targets_list(const Link& link) {
+const vector<string> InMemoryDB::_build_targets_list(const Link& link) const {
     vector<string> targets;
     for (const auto& [_, value] : link.keys) {
         targets.push_back(value);
