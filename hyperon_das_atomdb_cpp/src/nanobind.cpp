@@ -330,7 +330,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             "get_matched_type_template",
             [](
                 InMemoryDB& self,
-                const StringList& _template,
+                const ListOfAny& _template,
                 const OptCursor cursor = nullopt,
                 bool toplevel_only = false,
                 const nb::kwargs _ = {}

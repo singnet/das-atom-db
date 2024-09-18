@@ -84,6 +84,28 @@ class ExpressionHasher {
     }
 
     /**
+     * @brief Generates a composite hash from a list of elements.
+     *
+     * This function takes a vector of elements, each of which can be of any type,
+     * and generates a composite hash representing the combined hash of all elements.
+     *
+     * @param elements A vector of elements of type std::any, representing the components to be
+     * hashed.
+     * @return A string representing the composite hash generated from the elements.
+     */
+    static std::string composite_hash(const ListOfAny& elements) {
+        StringList hashable_elements;
+        for (const auto& element : elements) {
+            if (auto str = any_cast<string>(&element)) {
+                hashable_elements.push_back(*str);
+            } else {
+                throw invalid_argument("Invalid composite type element.");
+            }
+        }
+        return composite_hash(hashable_elements);
+    }
+
+    /**
      * @brief Generates a composite hash from a base hash.
      *
      * This function takes a base hash string and generates a composite hash

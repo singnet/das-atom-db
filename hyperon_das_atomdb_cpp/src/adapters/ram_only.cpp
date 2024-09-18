@@ -205,7 +205,15 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const StringList& _template, const KwArgs& kwargs) const {
+    const ListOfAny& _template, const KwArgs& kwargs) const {
+    /**
+     * NOTE:
+     * Next two lines are spending a lot of time in handling ListOfAny, however
+     * all test cases are passing in a flat list of strings to this method.
+     * So it seems that we could safely change the signature of this method to
+     * receive a StringList instead of ListOfAny and then simplify the underlying
+     * implementation.
+     */
     auto hash_base = this->_build_named_type_hash_template(_template);
     auto template_hash = ExpressionHasher::composite_hash(hash_base);
     auto it = this->db.templates.find(template_hash);
@@ -411,10 +419,16 @@ const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link
 }
 
 //------------------------------------------------------------------------------
-const StringList InMemoryDB::_build_named_type_hash_template(const StringList& _template) const {
-    StringList hash_template;
+const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _template) const {
+    ListOfAny hash_template;
     for (const auto& element : _template) {
-        hash_template.push_back(this->_build_atom_type_key_hash(element));
+        if (auto str = any_cast<string>(&element)) {
+            hash_template.push_back(this->_build_named_type_hash_template(*str));
+        } else if (auto list = any_cast<ListOfAny>(&element)) {
+            hash_template.push_back(this->_build_named_type_hash_template(*list));
+        } else {
+            throw invalid_argument("Invalid composite type element.");
+        }
     }
     return move(hash_template);
 }

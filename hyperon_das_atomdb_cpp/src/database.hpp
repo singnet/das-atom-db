@@ -263,7 +263,7 @@ class AtomDB {
      *         the matched type templates.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const StringList& _template, const KwArgs& kwargs = {}) const = 0;
+        const ListOfAny& _template, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.

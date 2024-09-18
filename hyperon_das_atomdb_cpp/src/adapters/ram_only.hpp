@@ -135,7 +135,7 @@ class InMemoryDB : public AtomDB {
         const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
-        const StringList& _template, const KwArgs& kwargs = {}) const override;
+        const ListOfAny& _template, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
         const string& link_type,
@@ -215,7 +215,7 @@ class InMemoryDB : public AtomDB {
      * ```
      * @endcode
      */
-    const StringList _build_named_type_hash_template(const StringList& _template) const;
+    const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
 
     const string _build_named_type_hash_template(const string& _template) const;
 
