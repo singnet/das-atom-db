@@ -115,16 +115,15 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
     string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);
     string composite_type_hash = ExpressionHasher::composite_hash(composite_type_elements);
 
-    auto link = shared_ptr<Link>(new Link(handle,               // id
-                                          handle,               // handle
-                                          composite_type_hash,  // composite_type_hash
-                                          link_type,            // named_type
-                                          composite_type_list,  // composite_type
-                                          link_type_hash,       // named_type_hash
-                                          target_handles,       // targets
-                                          is_top_level,         // is_top_level
-                                          {}                    // keys
-                                          ));
+    auto link = make_shared<Link>(handle,               // id
+                                  handle,               // handle
+                                  composite_type_hash,  // composite_type_hash
+                                  link_type,            // named_type
+                                  composite_type_list,  // composite_type
+                                  link_type_hash,       // named_type_hash
+                                  target_handles,       // targets
+                                  is_top_level          // is_top_level
+    );
 
     uint n = 0;
     for (const auto& target_handle : target_handles) {
