@@ -155,7 +155,7 @@ class InMemoryDB : public AtomDB {
 
     const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
 
-    void reindex(const unordered_map<string, vector<unordered_map<string, void*>>>&
+    void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
                      pattern_index_templates) override;
 
     void delete_atom(const string& handle) override;
@@ -163,14 +163,14 @@ class InMemoryDB : public AtomDB {
     const string create_field_index(const string& atom_type,
                                     const StringList& fields,
                                     const string& named_type = "",
-                                    const StringList& composite_type = {},
+                                    const opt<const StringList>& composite_type = nullopt,
                                     FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
-    void bulk_insert(const vector<unique_ptr<const Atom>>& documents) override;
+    void bulk_insert(const vector<shared_ptr<const Atom>>& documents) override;
 
     const vector<shared_ptr<const Atom>> retrieve_all_atoms() const override;
 
-    void commit(const vector<Atom>& buffer = {}) override;
+    void commit(const opt<const vector<Atom>>& buffer = nullopt) override;
 
    protected:
     Database db;

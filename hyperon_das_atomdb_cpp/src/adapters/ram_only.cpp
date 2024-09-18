@@ -295,7 +295,7 @@ const shared_ptr<const Link> InMemoryDB::add_link(const LinkParams& link_params,
 
 //------------------------------------------------------------------------------
 void InMemoryDB::reindex(
-    const unordered_map<string, vector<unordered_map<string, void*>>>& pattern_index_templates) {
+    const unordered_map<string, vector<unordered_map<string, any>>>& pattern_index_templates) {
     throw runtime_error("Not implemented");
 }
 
@@ -326,13 +326,13 @@ void InMemoryDB::delete_atom(const string& handle) {
 const string InMemoryDB::create_field_index(const string& atom_type,
                                             const StringList& fields,
                                             const string& named_type,
-                                            const StringList& composite_type,
+                                            const opt<const StringList>& composite_type,
                                             FieldIndexType index_type) {
     throw runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::bulk_insert(const vector<unique_ptr<const Atom>>& documents) {
+void InMemoryDB::bulk_insert(const vector<shared_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
             auto handle = document->id;
@@ -366,7 +366,9 @@ const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::commit(const vector<Atom>& buffer) { throw runtime_error("Not implemented"); }
+void InMemoryDB::commit(const opt<const vector<Atom>>& buffer) {
+    throw runtime_error("Not implemented");
+}
 
 // PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
 

@@ -11,12 +11,9 @@ int main(int argc, char const* argv[]) {
     InMemoryDB db;
 
     // Adding a Node
-    auto node_params = NodeParams(
-        "Person", // type
-        "John Doe" // name
-    );
+    auto node_params = NodeParams{type: "Person", name: "John Doe"};
 
-    auto node = db.add_node(node_params);
+    auto node = db.add_node({type: "Person", name: "John Doe"});
     
     cout << "Node handle: " << node->handle << endl;
     cout << "Node name: " << node->name << endl;
@@ -48,20 +45,41 @@ int main(int argc, char const* argv[]) {
     }
     */
 
-    auto link_params = LinkParams(
-        "Friendship", // type
-        {   // targets - a list of NodeParams and LinkParams
-            NodeParams("Person", "John Doe"), //{{"location", "BH"}}),  // type and name
-            NodeParams("Person", "Samuel L. Jackson"),
-            LinkParams(
-                "Fellowship", // type
-                {   // targets
-                    NodeParams("Person", "Jane Doe"),
-                    NodeParams("Person", "Michael Douglas")
+    // auto link_params = LinkParams(
+    //     "Friendship", // type
+    //     {   // targets - a list of NodeParams and LinkParams
+    //         NodeParams("Person", "John Doe"), //{{"location", "BH"}}),  // type and name
+    //         NodeParams("Person", "Samuel L. Jackson"),
+    //         LinkParams(
+    //             "Fellowship", // type
+    //             {   // targets
+    //                 NodeParams("Person", "Jane Doe"),
+    //                 NodeParams("Person", "Michael Douglas")
+    //             }
+    //         )
+    //     }
+    // );
+
+    LinkParams link_params = {
+        type: "Friendship",
+        targets: {
+            NodeParams{ type: "Person", name: "Jane Doe" },            // a Person node as a target
+            NodeParams{ type: "Person", name: "Samuel L. Jackson" },   // another Person node as a target
+            LinkParams{
+                type: "Fellowship",        // a Fellowship link as a target of Friendship
+                targets: {
+                    NodeParams{
+                        type: "Person",    // a Person node as a target of Fellowship
+                        name: "Jane Doe"
+                    },
+                    NodeParams{
+                        type: "Person",    // another Person node as a target of Fellowship
+                        name: "Michael Douglas"
+                    }
                 }
-            )
+            }
         }
-    );
+    };
     
     /* Another way to do the same as above
      * targets and custom attributes can be added after initialization

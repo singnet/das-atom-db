@@ -22,55 +22,22 @@ struct KwArgs {
     int chunk_size = 500;
 };
 
-class AtomParams {
-   public:
-    AtomParams() = default;
-    AtomParams(const string& type) : type(type) {
-        if (type.empty()) {
-            throw invalid_argument("'type' cannot be empty.");
-        }
-    }
-
-    virtual ~AtomParams() = default;
-
-    string type;
+struct NodeParams {
+    string type = "";
+    string name = "";
 };
 
-class NodeParams : public AtomParams {
-   public:
-    NodeParams() = default;
-    NodeParams(const string& type, const string& name) : name(name), AtomParams(type) {
-        if (name.empty()) {
-            throw invalid_argument("'name' cannot be empty.");
-        }
-    }
-
-    string name;
-};
-
-class LinkParams : public AtomParams {
-   public:
+struct LinkParams {
     using Target = variant<NodeParams, LinkParams>;
     using Targets = vector<Target>;
 
-    LinkParams() = default;
-    LinkParams(const string& type) : AtomParams(type) {}
-    LinkParams(const string& type, const Targets& targets) : LinkParams(type) {
-        if (targets.empty()) {
-            throw invalid_argument("'targets' cannot be empty.");
-        }
-        this->targets.reserve(targets.size());
-        this->targets.insert(this->targets.end(), targets.begin(), targets.end());
-    }
-
-    void add_target(const Target& atom) { targets.push_back(atom); }
+    string type = "";
+    Targets targets = {};
 
     static bool is_node(const Target& target) { return holds_alternative<NodeParams>(target); }
     static bool is_link(const Target& target) { return holds_alternative<LinkParams>(target); }
     static const NodeParams& as_node(const Target& target) { return get<NodeParams>(target); }
     static const LinkParams& as_link(const Target& target) { return get<LinkParams>(target); }
-
-    Targets targets = {};
 };
 
 class AtomDB {
@@ -286,10 +253,7 @@ class AtomDB {
      *         the matched links.
      */
     virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
-        const string& link_type,
-        const StringList& target_handles,
-
-        const KwArgs& kwargs = {}) const = 0;
+        const string& link_type, const StringList& target_handles, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
@@ -412,7 +376,7 @@ class AtomDB {
      * - Similarity(handle1, *)
      */
     virtual void reindex(
-        const unordered_map<string, vector<unordered_map<string, void*>>>& pattern_index_templates) = 0;
+        const unordered_map<string, vector<unordered_map<string, any>>>& pattern_index_templates) = 0;
 
     /**
      * @brief Delete an atom from the database.
@@ -432,14 +396,14 @@ class AtomDB {
     virtual const string create_field_index(const string& atom_type,
                                             const StringList& fields,
                                             const string& named_type = "",
-                                            const StringList& composite_type = {},
+                                            const opt<const StringList>& composite_type = nullopt,
                                             FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
 
     /**
      * @brief Insert multiple documents into the database.
      * @param documents A list of atoms, each representing a document to be inserted into the db.
      */
-    virtual void bulk_insert(const vector<unique_ptr<const Atom>>& documents) = 0;
+    virtual void bulk_insert(const vector<shared_ptr<const Atom>>& documents) = 0;
 
     /**
      * @brief Retrieve all atoms from the database.
@@ -450,7 +414,7 @@ class AtomDB {
     /**
      * @brief Commit the current state of the database.
      */
-    virtual void commit(const vector<Atom>& buffer = {}) = 0;
+    virtual void commit(const opt<const vector<Atom>>& buffer = nullopt) = 0;
 
    protected:
     AtomDB() = default;
