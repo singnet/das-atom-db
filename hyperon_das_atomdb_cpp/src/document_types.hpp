@@ -113,39 +113,6 @@ class Node : public Atom {
     }
 };
 
-// /**
-//  * @brief Represents a composite type in the database.
-//  */
-// class CompositeType {
-//    public:
-//     using CompositeTypeList = vector<CompositeType>;
-
-//     opt<string> single = nullopt;
-//     opt<CompositeTypeList> list = nullopt;
-
-//     CompositeType(const string& single) {
-//         if (single.empty()) {
-//             throw invalid_argument("'single' cannot be empty.");
-//         }
-//         this->single = single;
-//         if (list.has_value()) {
-//             throw invalid_argument("'list' must be empty when 'single' is not empty.");
-//         }
-//         this->list = nullopt;
-//     }
-
-//     CompositeType(const CompositeTypeList& list) {
-//         if (list.empty()) {
-//             throw invalid_argument("'list' cannot be empty.");
-//         }
-//         this->list = list;
-//         if (single.has_value()) {
-//             throw invalid_argument("'single' must be empty when 'list' is not empty.");
-//         }
-//         this->single = nullopt;
-//     }
-// };
-
 /**
  * @brief Represents a link in the system.
  *
