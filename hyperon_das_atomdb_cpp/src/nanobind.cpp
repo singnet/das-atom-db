@@ -24,15 +24,15 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 struct transformer {
-    static nb::list to_pylist(const CompositeType::CompositeTypeList& ct_list) {
+    static nb::list composite_type_to_pylist(const ListOfAny& ct_list) {
         nb::list py_list;
-        for (const auto& item : ct_list) {
-            if (item.single.has_value()) {
-                py_list.append(*item.single);
-            } else if (item.list.has_value()) {
-                py_list.append(transformer::to_pylist(*item.list));
+        for (const auto& element : ct_list) {
+            if (auto str = any_cast<string>(&element)) {
+                py_list.append(*str);
+            } else if (auto list = any_cast<ListOfAny>(&element)) {
+                py_list.append(transformer::composite_type_to_pylist(*list));
             } else {
-                throw invalid_argument("Invalid CompositeType");
+                throw invalid_argument("Invalid composite type element.");
             }
         }
         return py_list;
@@ -113,7 +113,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_prop_ro(
             "composite_type",
             [](const Link& self) -> const nb::list {
-                return transformer::to_pylist(self.composite_type);
+                return transformer::composite_type_to_pylist(self.composite_type);
             }
         )
         .def_ro("named_type_hash", &Link::named_type_hash)

@@ -113,38 +113,38 @@ class Node : public Atom {
     }
 };
 
-/**
- * @brief Represents a composite type in the database.
- */
-class CompositeType {
-   public:
-    using CompositeTypeList = vector<CompositeType>;
+// /**
+//  * @brief Represents a composite type in the database.
+//  */
+// class CompositeType {
+//    public:
+//     using CompositeTypeList = vector<CompositeType>;
 
-    opt<string> single = nullopt;
-    opt<CompositeTypeList> list = nullopt;
+//     opt<string> single = nullopt;
+//     opt<CompositeTypeList> list = nullopt;
 
-    CompositeType(const string& single) {
-        if (single.empty()) {
-            throw invalid_argument("'single' cannot be empty.");
-        }
-        this->single = single;
-        if (list.has_value()) {
-            throw invalid_argument("'list' must be empty when 'single' is not empty.");
-        }
-        this->list = nullopt;
-    }
+//     CompositeType(const string& single) {
+//         if (single.empty()) {
+//             throw invalid_argument("'single' cannot be empty.");
+//         }
+//         this->single = single;
+//         if (list.has_value()) {
+//             throw invalid_argument("'list' must be empty when 'single' is not empty.");
+//         }
+//         this->list = nullopt;
+//     }
 
-    CompositeType(const CompositeTypeList& list) {
-        if (list.empty()) {
-            throw invalid_argument("'list' cannot be empty.");
-        }
-        this->list = list;
-        if (single.has_value()) {
-            throw invalid_argument("'single' must be empty when 'list' is not empty.");
-        }
-        this->single = nullopt;
-    }
-};
+//     CompositeType(const CompositeTypeList& list) {
+//         if (list.empty()) {
+//             throw invalid_argument("'list' cannot be empty.");
+//         }
+//         this->list = list;
+//         if (single.has_value()) {
+//             throw invalid_argument("'single' must be empty when 'list' is not empty.");
+//         }
+//         this->single = nullopt;
+//     }
+// };
 
 /**
  * @brief Represents a link in the system.
@@ -157,9 +157,9 @@ class Link : public Atom {
    public:
     /**
      * `composite_type` is designed to hold a list of elements, where each element can either be a
-     * `string` (single hash) or another list of CompositeType, allowing multiple levels of nesting.
+     * `string` (single hash) or another list of `strings`, allowing multiple levels of nesting.
      */
-    CompositeType::CompositeTypeList composite_type;
+    ListOfAny composite_type;
 
     string named_type_hash;
     vector<string> targets;
@@ -172,7 +172,7 @@ class Link : public Atom {
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const CompositeType::CompositeTypeList& composite_type,
+         const ListOfAny& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_top_level = true,
@@ -237,14 +237,13 @@ class Link : public Atom {
         return move(result);
     }
 
-    const string composite_type_list_to_string(
-        const CompositeType::CompositeTypeList& composite_type) const noexcept {
+    const string composite_type_list_to_string(const ListOfAny& composite_type) const noexcept {
         string result = "[";
         for (const auto& element : composite_type) {
-            if (element.single.has_value()) {
-                result += "'" + *element.single + "', ";
-            } else if (element.list.has_value()) {
-                result += composite_type_list_to_string(*element.list) + ", ";
+            if (auto str = any_cast<string>(&element)) {
+                result += "'" + *str + "', ";
+            } else if (auto list = any_cast<ListOfAny>(&element)) {
+                result += composite_type_list_to_string(*list) + ", ";
             } else {
                 throw invalid_argument("Invalid composite type element.");
             }

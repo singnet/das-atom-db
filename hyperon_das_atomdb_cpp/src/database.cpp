@@ -90,7 +90,7 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
     }
     string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};
-    CompositeType::CompositeTypeList composite_type_list = {link_type_hash};
+    ListOfAny composite_type_list = {link_type_hash};
     StringList composite_type_elements = {link_type_hash};
     string atom_hash;
     string atom_handle;
