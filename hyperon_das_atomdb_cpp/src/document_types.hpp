@@ -45,7 +45,7 @@ class Atom {
 
     virtual ~Atom() = default;
 
-    const string to_string() const noexcept {
+    virtual const string to_string() const noexcept {
         string result = "id: '" + id + "'";
         result += ", handle: '" + handle + "'";
         result += ", composite_type_hash: '" + composite_type_hash + "'";

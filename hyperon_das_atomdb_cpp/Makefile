@@ -1,3 +1,5 @@
+NPROC := $(shell nproc)
+
 format:
 	@find ./src \
 		-iname "*.hpp" -o \
@@ -8,10 +10,10 @@ format:
 		| xargs clang-format -verbose -style=file -i
 
 build-make: clean
-	@mkdir -p build && cd build && cmake .. && make
+	@mkdir -p build && cd build && cmake .. && make -j ${NPROC}
 
 build-ninja: clean
-	@mkdir -p build && cd build && cmake -G Ninja .. && ninja
+	@mkdir -p build && cd build && cmake -G Ninja .. && ninja -j ${NPROC}
 
 clean:
 	@rm -rf build/*
