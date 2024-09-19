@@ -477,6 +477,11 @@ NB_MODULE(hyperon_das_atomdb, m) {
             "buffer"_a = nullopt
         );
     // ---------------------------------------------------------------------------------------------
+    // adapters submodule --------------------------------------------------------------------------
+    nb::module_ adapters = m.def_submodule("adapters");
+    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
+        .def(nb::init<>());
+    // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
     nb::exception<AtomDoesNotExist>(exceptions, "AtomDoesNotExist");
@@ -544,11 +549,6 @@ NB_MODULE(hyperon_das_atomdb, m) {
                 return LinkParams::is_link(target);
             }
         );
-    // ---------------------------------------------------------------------------------------------
-    // adapters submodule --------------------------------------------------------------------------
-    nb::module_ adapters = m.def_submodule("adapters");
-    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
-        .def(nb::init<>());
     // ---------------------------------------------------------------------------------------------
 }
 

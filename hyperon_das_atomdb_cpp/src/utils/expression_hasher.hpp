@@ -1,6 +1,6 @@
 #pragma once
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 #include <string>
 
@@ -16,6 +16,16 @@ namespace atomdb {
 
 class ExpressionHasher {
    public:
+    struct EVP_MD_CTX_RAII {
+        EVP_MD_CTX* ctx;
+        EVP_MD_CTX_RAII() : ctx(EVP_MD_CTX_new()) {
+            if (not ctx) throw std::runtime_error("Failed to create EVP_MD_CTX");
+        }
+        ~EVP_MD_CTX_RAII() {
+            if (ctx) EVP_MD_CTX_free(ctx);
+        }
+    };
+
     /**
      * @brief Computes the MD5 hash of the given input string.
      *
@@ -23,20 +33,24 @@ class ExpressionHasher {
      * @return A string representing the MD5 hash of the input.
      */
     static const string compute_hash(const string& input) {
-        MD5_CTX ctx;
-        unsigned char MD5_BUFFER[MD5_DIGEST_LENGTH];
-        char HASH[2 * MD5_DIGEST_LENGTH + 1];
+        EVP_MD_CTX_RAII ctx_raii;
 
-        MD5_Init(&ctx);
-        MD5_Update(&ctx, input.c_str(), input.length());
-        MD5_Final(MD5_BUFFER, &ctx);
+        unsigned char md5_buffer[EVP_MAX_MD_SIZE];
+        unsigned int md5_length = 0;
 
-        for (unsigned int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            sprintf(HASH + 2 * i, "%02x", MD5_BUFFER[i]);
+        if (EVP_DigestInit_ex(ctx_raii.ctx, EVP_md5(), nullptr) != 1 ||
+            EVP_DigestUpdate(ctx_raii.ctx, input.c_str(), input.length()) != 1 ||
+            EVP_DigestFinal_ex(ctx_raii.ctx, md5_buffer, &md5_length) != 1) {
+            throw std::runtime_error("Failed to compute MD5 hash");
         }
-        HASH[2 * MD5_DIGEST_LENGTH] = '\0';
 
-        return move(string(HASH));
+        char hash[2 * md5_length + 1];
+        for (unsigned int i = 0; i < md5_length; i++) {
+            sprintf(hash + 2 * i, "%02x", md5_buffer[i]);
+        }
+        hash[2 * md5_length] = '\0';
+
+        return move(std::string(hash));
     }
 
     /**

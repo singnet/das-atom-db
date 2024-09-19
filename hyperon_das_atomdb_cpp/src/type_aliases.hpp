@@ -34,6 +34,7 @@ using Pattern_or_Template_List = vector<Pattern_or_Template>;
 using ListOfAny = vector<any>;
 
 /**
+ * NOTE:
  * The following type alias was commented out because std::unordered_map<T, std::any> performs
  * poorly, and it was kept here just as a reminder of the performance implications.
  *

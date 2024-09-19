@@ -162,7 +162,7 @@ class Link : public Atom {
         }
     }
 
-    const string to_string() const noexcept {
+    const string to_string() const {
         string result = "Link(" + Atom::to_string();
         result += ", composite_type: " + composite_type_list_to_string(composite_type);
         result += ", named_type_hash: '" + named_type_hash + "'";
@@ -204,7 +204,7 @@ class Link : public Atom {
         return move(result);
     }
 
-    const string composite_type_list_to_string(const ListOfAny& composite_type) const noexcept {
+    const string composite_type_list_to_string(const ListOfAny& composite_type) const {
         string result = "[";
         for (const auto& element : composite_type) {
             if (auto str = any_cast<string>(&element)) {
