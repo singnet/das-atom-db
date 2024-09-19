@@ -15,6 +15,7 @@
 #include "database.hpp"
 #include "document_types.hpp"
 #include "exceptions.hpp"
+#include "params.hpp"
 #include "type_aliases.hpp"
 
 using namespace std;

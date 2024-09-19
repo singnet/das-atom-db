@@ -2,7 +2,7 @@
 
 #include "adapters/ram_only.hpp"
 #include "database.hpp"
-#include "utils/params.hpp"
+#include "params.hpp"
 
 using namespace std;
 using namespace atomdb;

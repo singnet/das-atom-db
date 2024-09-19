@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "utils/params.hpp"
+#include "params.hpp"
 
 using namespace std;
 
