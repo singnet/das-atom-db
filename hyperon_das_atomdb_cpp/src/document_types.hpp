@@ -154,6 +154,10 @@ class Link : public Atom {
         if (composite_type.empty()) {
             throw invalid_argument("Composite type cannot be empty.");
         }
+        if (not Validator::validate_composite_type(composite_type)) {
+            throw invalid_argument(
+                "Invalid composite type. All elements must be strings or lists of strings.");
+        }
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
@@ -162,7 +166,7 @@ class Link : public Atom {
         }
     }
 
-    const string to_string() const {
+    const string to_string() const noexcept {
         string result = "Link(" + Atom::to_string();
         result += ", composite_type: " + composite_type_list_to_string(composite_type);
         result += ", named_type_hash: '" + named_type_hash + "'";
@@ -204,15 +208,13 @@ class Link : public Atom {
         return move(result);
     }
 
-    const string composite_type_list_to_string(const ListOfAny& composite_type) const {
+    const string composite_type_list_to_string(const ListOfAny& composite_type) const noexcept {
         string result = "[";
         for (const auto& element : composite_type) {
             if (auto str = any_cast<string>(&element)) {
                 result += "'" + *str + "', ";
             } else if (auto list = any_cast<ListOfAny>(&element)) {
                 result += composite_type_list_to_string(*list) + ", ";
-            } else {
-                throw invalid_argument("Invalid composite type element.");
             }
         }
         result.pop_back();
@@ -220,6 +222,24 @@ class Link : public Atom {
         result += "]";
         return move(result);
     }
+
+   private:
+    struct Validator {
+        static bool validate_composite_type(const ListOfAny& composite_type) {
+            for (const auto& element : composite_type) {
+                if (auto str = any_cast<string>(&element)) {
+                    continue;
+                } else if (auto list = any_cast<ListOfAny>(&element)) {
+                    if (not Validator::validate_composite_type(*list)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
 };
 
 using AtomList = vector<Atom>;
