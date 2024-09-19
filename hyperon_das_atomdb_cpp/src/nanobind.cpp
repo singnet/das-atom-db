@@ -55,158 +55,143 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_static("build_link_handle", &AtomDB::build_link_handle)
         .def("node_exists", &AtomDB::node_exists)
         .def("link_exists", &AtomDB::link_exists)
-        .def("get_atom",
-             [](
-                 AtomDB& self,
-                 const string& handle,
-                 bool no_target_format = false,
-                 bool targets_documents = false,
-                 bool deep_representation = false,
-                 const nb::kwargs _ = {}
-             ) -> shared_ptr<const Atom> {
-                 return self.get_atom(
-                     handle,
-                     {
-                         no_target_format: no_target_format,
-                         targets_documents: targets_documents,
-                         deep_representation: deep_representation
-                     }
-                 );
-             },
-             "handle"_a,
-             nb::kw_only(),
-             "no_target_format"_a = false,
-             "targets_documents"_a = false,
-             "deep_representation"_a = false,
-             "_"_a = nb::kwargs()
-        )
+        .def(
+            "get_atom",
+            [](AtomDB& self,
+               const string& handle,
+               bool no_target_format = false,
+               bool targets_documents = false,
+               bool deep_representation = false,
+               const nb::kwargs _ = {}) -> shared_ptr<const Atom> {
+                return self.get_atom(handle, {
+                    no_target_format : no_target_format,
+                    targets_documents : targets_documents,
+                    deep_representation : deep_representation
+                });
+            },
+            "handle"_a,
+            nb::kw_only(),
+            "no_target_format"_a = false,
+            "targets_documents"_a = false,
+            "deep_representation"_a = false,
+            "_"_a = nb::kwargs())
         .def("get_node_handle", &AtomDB::get_node_handle)
         .def("get_node_name", &AtomDB::get_node_name)
         .def("get_node_type", &AtomDB::get_node_type)
         .def("get_node_by_name", &AtomDB::get_node_by_name)
         .def("get_atoms_by_field", &AtomDB::get_atoms_by_field)
-        .def("get_atoms_by_index", &AtomDB::get_atoms_by_index,
-             "index_id"_a, "query"_a, "cursor"_a = 0, "chunk_size"_a = 500
-        )
-        .def("get_atoms_by_text_field", &AtomDB::get_atoms_by_text_field,
-             "text_value"_a, "field"_a = "", "text_index_id"_a = ""
-        )
+        .def("get_atoms_by_index",
+             &AtomDB::get_atoms_by_index,
+             "index_id"_a,
+             "query"_a,
+             "cursor"_a = 0,
+             "chunk_size"_a = 500)
+        .def("get_atoms_by_text_field",
+             &AtomDB::get_atoms_by_text_field,
+             "text_value"_a,
+             "field"_a = "",
+             "text_index_id"_a = "")
         .def("get_node_by_name_starting_with", &AtomDB::get_node_by_name_starting_with)
         .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
-        .def("get_all_links",
-             [](
-                 InMemoryDB& self,
-                 const string& link_type,
-                 const OptCursor cursor = nullopt,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const StringList> {
-                 return self.get_all_links(link_type, { cursor: cursor });
-             },
-             "link_type"_a, nb::kw_only(), "cursor"_a = nullopt, "_"_a = nb::kwargs()
-        )
+        .def(
+            "get_all_links",
+            [](InMemoryDB& self,
+               const string& link_type,
+               const OptCursor cursor = nullopt,
+               const nb::kwargs _ = {}) -> const pair<const OptCursor, const StringList> {
+                return self.get_all_links(link_type, {cursor : cursor});
+            },
+            "link_type"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "_"_a = nb::kwargs())
         .def("get_link_handle", &AtomDB::get_link_handle)
         .def("get_link_type", &AtomDB::get_link_type)
         .def("get_link_targets", &AtomDB::get_link_targets)
         .def("is_ordered", &AtomDB::is_ordered)
-        .def("get_incoming_links_handles",
-             [](
-                 InMemoryDB& self,
-                 const string& atom_handle,
-                 const OptCursor cursor = nullopt,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const StringUnorderedSet> {
-                 return self.get_incoming_links_handles(atom_handle, { cursor: cursor });
-             },
-             "atom_handle"_a, nb::kw_only(), "cursor"_a = nullopt, "_"_a = nb::kwargs()
-        )
-        .def("get_incoming_links_atoms",
-             [](
-                 InMemoryDB& self,
-                 const string& atom_handle,
-                 const OptCursor cursor = nullopt,
-                 bool no_target_format = false,
-                 bool targets_documents = false,
-                 bool deep_representation = false,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const vector<shared_ptr<const Atom>>> {
-                 return self.get_incoming_links_atoms(
-                     atom_handle,
-                     {
-                         no_target_format: no_target_format,
-                         targets_documents: targets_documents,
-                         deep_representation: deep_representation,
-                         cursor: cursor
-                     }
-                 );
-             },
-             "atom_handle"_a,
-             nb::kw_only(),
-             "cursor"_a = nullopt,
-             "no_target_format"_a = false,
-             "targets_documents"_a = false,
-             "deep_representation"_a = false,
-             "_"_a = nb::kwargs()
-        )
-        .def("get_matched_links",
-             [](
-                 InMemoryDB& self,
-                 const string& link_type,
-                 const StringList& target_handles,
-                 const OptCursor cursor = nullopt,
-                 bool toplevel_only = false,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
-                 return self.get_matched_links(
-                     link_type,
-                     target_handles,
-                     { toplevel_only: toplevel_only, cursor: cursor }
-                 );            
-             },
-             "link_type"_a,
-             "target_handles"_a,
-             nb::kw_only(),
-             "cursor"_a = nullopt,
-             "toplevel_only"_a = false,
-             "_"_a = nb::kwargs()
-        )
-        .def("get_matched_type_template",
-             [](
-                 InMemoryDB& self,
-                 const ListOfAny& _template,
-                 const OptCursor cursor = nullopt,
-                 bool toplevel_only = false,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
-                 return self.get_matched_type_template(
-                     _template,
-                     { toplevel_only: toplevel_only, cursor: cursor }
-                 );
-             },
-             "_template"_a,
-             nb::kw_only(),
-             "cursor"_a = nullopt,
-             "toplevel_only"_a = false,
-             "_"_a = nb::kwargs()
-        )
-        .def("get_matched_type",
-             [](
-                 InMemoryDB& self,
-                 const string& link_type,
-                 const OptCursor cursor = nullopt,
-                 bool toplevel_only = false,
-                 const nb::kwargs _ = {}
-             ) -> const pair<const OptCursor, const Pattern_or_Template_List> {
-                 return self.get_matched_type(
-                     link_type,
-                     { toplevel_only: toplevel_only, cursor: cursor }
-                 );
-             },
-             "link_type"_a,
-             nb::kw_only(),
-             "cursor"_a = nullopt,
-             "toplevel_only"_a = false,
-             "_"_a = nb::kwargs()
-        )
+        .def(
+            "get_incoming_links_handles",
+            [](InMemoryDB& self,
+               const string& atom_handle,
+               const OptCursor cursor = nullopt,
+               const nb::kwargs _ = {}) -> const pair<const OptCursor, const StringUnorderedSet> {
+                return self.get_incoming_links_handles(atom_handle, {cursor : cursor});
+            },
+            "atom_handle"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "_"_a = nb::kwargs())
+        .def(
+            "get_incoming_links_atoms",
+            [](InMemoryDB& self,
+               const string& atom_handle,
+               const OptCursor cursor = nullopt,
+               bool no_target_format = false,
+               bool targets_documents = false,
+               bool deep_representation = false,
+               const nb::kwargs _ = {})
+                -> const pair<const OptCursor, const vector<shared_ptr<const Atom>>> {
+                return self.get_incoming_links_atoms(atom_handle, {
+                    no_target_format : no_target_format,
+                    targets_documents : targets_documents,
+                    deep_representation : deep_representation,
+                    cursor : cursor
+                });
+            },
+            "atom_handle"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "no_target_format"_a = false,
+            "targets_documents"_a = false,
+            "deep_representation"_a = false,
+            "_"_a = nb::kwargs())
+        .def(
+            "get_matched_links",
+            [](InMemoryDB& self,
+               const string& link_type,
+               const StringList& target_handles,
+               const OptCursor cursor = nullopt,
+               bool toplevel_only = false,
+               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+                return self.get_matched_links(
+                    link_type, target_handles, {toplevel_only : toplevel_only, cursor : cursor});
+            },
+            "link_type"_a,
+            "target_handles"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "toplevel_only"_a = false,
+            "_"_a = nb::kwargs())
+        .def(
+            "get_matched_type_template",
+            [](InMemoryDB& self,
+               const ListOfAny& _template,
+               const OptCursor cursor = nullopt,
+               bool toplevel_only = false,
+               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+                return self.get_matched_type_template(_template,
+                                                      {toplevel_only : toplevel_only, cursor : cursor});
+            },
+            "_template"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "toplevel_only"_a = false,
+            "_"_a = nb::kwargs())
+        .def(
+            "get_matched_type",
+            [](InMemoryDB& self,
+               const string& link_type,
+               const OptCursor cursor = nullopt,
+               bool toplevel_only = false,
+               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+                return self.get_matched_type(link_type,
+                                             {toplevel_only : toplevel_only, cursor : cursor});
+            },
+            "link_type"_a,
+            nb::kw_only(),
+            "cursor"_a = nullopt,
+            "toplevel_only"_a = false,
+            "_"_a = nb::kwargs())
         .def("get_atom_type", &AtomDB::get_atom_type)
         .def("count_atoms", &AtomDB::count_atoms)
         .def("clear_database", &AtomDB::clear_database)
@@ -214,21 +199,20 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("add_link", &AtomDB::add_link, "link_params"_a, "toplevel"_a = true)
         .def("reindex", &AtomDB::reindex)
         .def("delete_atom", &AtomDB::delete_atom)
-        .def("create_field_index", &AtomDB::create_field_index,
+        .def("create_field_index",
+             &AtomDB::create_field_index,
              "atom_type"_a,
              "fields"_a,
              "named_type"_a = "",
              "composite_type"_a = nullopt,
-             "index_type"_a = FieldIndexType::BINARY_TREE
-        )
+             "index_type"_a = FieldIndexType::BINARY_TREE)
         .def("bulk_insert", &AtomDB::bulk_insert)
         .def("retrieve_all_atoms", &AtomDB::retrieve_all_atoms)
         .def("commit", &AtomDB::commit);
     // ---------------------------------------------------------------------------------------------
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
-    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
-        .def(nb::init<>());
+    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB").def(nb::init<>());
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
@@ -246,14 +230,12 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string);
-    nb::class_<Node, Atom>(document_types, "Node")
-        .def_ro("name", &Node::name);
+    nb::class_<Node, Atom>(document_types, "Node").def_ro("name", &Node::name);
     nb::class_<Link, Atom>(document_types, "Link")
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return transformer::composite_type_to_pylist(self.composite_type);
-                     }
-        )
+                     })
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_top_level", &Link::is_top_level)
@@ -271,12 +253,8 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
         .def("add_target",
-             [](LinkParams& self, const LinkParams::Target& target) {
-                 self.targets.push_back(target);
-             }
-        )
+             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); })
         .def_static("is_node", &LinkParams::is_node)
         .def_static("is_link", &LinkParams::is_link);
     // ---------------------------------------------------------------------------------------------
 }
-
