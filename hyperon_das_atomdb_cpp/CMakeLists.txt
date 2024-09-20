@@ -15,13 +15,8 @@ endif()
 
 find_package(Python 3.10 COMPONENTS Interpreter ${DEV_MODULE} REQUIRED)
 
-# Find OpenSSL package
-find_package(OpenSSL REQUIRED)
-
 # Include directories
-include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/ext/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Collect header and source files
 file(GLOB_RECURSE headers
@@ -41,8 +36,5 @@ find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(${PROJECT_NAME} MODULE ${sources} ${headers})
 
-# Include OpenSSL directories
-target_include_directories(${PROJECT_NAME} PRIVATE ${OpenSSL_INCLUDE_DIR})
-
 # Link OpenSSL libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::Crypto)
+target_link_libraries(${PROJECT_NAME} PRIVATE mbedcrypto)

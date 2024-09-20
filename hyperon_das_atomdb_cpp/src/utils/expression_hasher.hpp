@@ -1,29 +1,25 @@
 #pragma once
 
-#include <openssl/evp.h>
+#include <mbedtls/md5.h>
 
 #include <string>
 
 #include "type_aliases.hpp"
 
-#define MAX_HASHABLE_STRING_SIZE 1024
-#define MAX_LITERAL_OR_SYMBOL_SIZE 256
-#define JOINING_CHAR ((char) ' ')
-
 using namespace std;
 
 namespace atomdb {
 
+#define JOINING_CHAR ((char) ' ')
+#define MAX_HASHABLE_STRING_SIZE ((size_t) 100000)
+#define MD5_BUFFER_SIZE ((size_t) 16)
+
 class ExpressionHasher {
    public:
-    struct EVP_MD_CTX_RAII {
-        EVP_MD_CTX* ctx;
-        EVP_MD_CTX_RAII() : ctx(EVP_MD_CTX_new()) {
-            if (not ctx) throw std::runtime_error("Failed to create EVP_MD_CTX");
-        }
-        ~EVP_MD_CTX_RAII() {
-            if (ctx) EVP_MD_CTX_free(ctx);
-        }
+    struct Context_RAII {
+        mbedtls_md5_context* ctx;
+        Context_RAII() : ctx(new mbedtls_md5_context()) { mbedtls_md5_init(ctx); }
+        ~Context_RAII() { mbedtls_md5_free(ctx); }
     };
 
     /**
@@ -33,24 +29,19 @@ class ExpressionHasher {
      * @return A string representing the MD5 hash of the input.
      */
     static const string compute_hash(const string& input) {
-        EVP_MD_CTX_RAII ctx_raii;
-
-        unsigned char md5_buffer[EVP_MAX_MD_SIZE];
-        unsigned int md5_length = 0;
-
-        if (EVP_DigestInit_ex(ctx_raii.ctx, EVP_md5(), nullptr) != 1 ||
-            EVP_DigestUpdate(ctx_raii.ctx, input.c_str(), input.length()) != 1 ||
-            EVP_DigestFinal_ex(ctx_raii.ctx, md5_buffer, &md5_length) != 1) {
-            throw std::runtime_error("Failed to compute MD5 hash");
+        Context_RAII ctx_raii;
+        uchar md5_buffer[MD5_BUFFER_SIZE];
+        if (mbedtls_md5_starts_ret(ctx_raii.ctx) != 0 or
+            mbedtls_md5_update_ret(ctx_raii.ctx, (const uchar*) input.c_str(), input.length()) != 0 or
+            mbedtls_md5_finish_ret(ctx_raii.ctx, md5_buffer) != 0) {
+            throw runtime_error("Failed to compute MD5 hash");
         }
-
-        char hash[2 * md5_length + 1];
-        for (unsigned int i = 0; i < md5_length; i++) {
+        char hash[2 * MD5_BUFFER_SIZE + 1];
+        for (unsigned int i = 0; i < MD5_BUFFER_SIZE; i++) {
             sprintf(hash + 2 * i, "%02x", md5_buffer[i]);
         }
-        hash[2 * md5_length] = '\0';
-
-        return move(std::string(hash));
+        hash[2 * MD5_BUFFER_SIZE] = '\0';
+        return move(string(hash));
     }
 
     /**

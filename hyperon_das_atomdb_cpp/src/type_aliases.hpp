@@ -14,6 +14,7 @@ using namespace std;
 namespace atomdb {
 
 // Type aliases for readability
+using uchar = unsigned char;
 
 template <typename T>
 using opt = optional<T>;
