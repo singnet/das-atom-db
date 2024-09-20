@@ -11,6 +11,7 @@
 #include <nanobind/stl/vector.h>
 
 #include "adapters/ram_only.hpp"
+#include "adapters/redis_mongo_db.hpp"
 #include "constants.hpp"
 #include "database.hpp"
 #include "document_types.hpp"
@@ -62,7 +63,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                bool no_target_format = false,
                bool targets_documents = false,
                bool deep_representation = false,
-               const nb::kwargs _ = {}) -> shared_ptr<const Atom> {
+               const nb::kwargs& _ = {}) -> shared_ptr<const Atom> {
                 return self.get_atom(handle, {
                     no_target_format : no_target_format,
                     targets_documents : targets_documents,
@@ -98,7 +99,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const string& link_type,
                const OptCursor cursor = nullopt,
-               const nb::kwargs _ = {}) -> const pair<const OptCursor, const StringList> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringList> {
                 return self.get_all_links(link_type, {cursor : cursor});
             },
             "link_type"_a,
@@ -114,7 +115,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const string& atom_handle,
                const OptCursor cursor = nullopt,
-               const nb::kwargs _ = {}) -> const pair<const OptCursor, const StringUnorderedSet> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringUnorderedSet> {
                 return self.get_incoming_links_handles(atom_handle, {cursor : cursor});
             },
             "atom_handle"_a,
@@ -129,7 +130,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                bool no_target_format = false,
                bool targets_documents = false,
                bool deep_representation = false,
-               const nb::kwargs _ = {})
+               const nb::kwargs& _ = {})
                 -> const pair<const OptCursor, const vector<shared_ptr<const Atom>>> {
                 return self.get_incoming_links_atoms(atom_handle, {
                     no_target_format : no_target_format,
@@ -152,7 +153,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                const StringList& target_handles,
                const OptCursor cursor = nullopt,
                bool toplevel_only = false,
-               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
                 return self.get_matched_links(
                     link_type, target_handles, {toplevel_only : toplevel_only, cursor : cursor});
             },
@@ -168,7 +169,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                const ListOfAny& _template,
                const OptCursor cursor = nullopt,
                bool toplevel_only = false,
-               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
                 return self.get_matched_type_template(_template,
                                                       {toplevel_only : toplevel_only, cursor : cursor});
             },
@@ -183,7 +184,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                const string& link_type,
                const OptCursor cursor = nullopt,
                bool toplevel_only = false,
-               const nb::kwargs _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const Pattern_or_Template_List> {
                 return self.get_matched_type(link_type,
                                              {toplevel_only : toplevel_only, cursor : cursor});
             },
@@ -213,6 +214,8 @@ NB_MODULE(hyperon_das_atomdb, m) {
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
     nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB").def(nb::init<>());
+    nb::class_<RedisMongoDB, InMemoryDB>(adapters, "RedisMongoDB")
+        .def("__init__", [](RedisMongoDB* t, const nb::kwargs& _) { new (t) RedisMongoDB(); });
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
