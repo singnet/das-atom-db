@@ -13,19 +13,19 @@ namespace atomdb {
  */
 class Database {
    public:
-    using Pattern_or_Template = pair<string, StringList>;
+    using Pattern_or_Template_Pair = pair<string, StringList>;
 
     struct Pattern_or_Template_Hash {
-        auto operator()(const Pattern_or_Template& t) const -> size_t {
-            size_t list_hash = 0;
-            for (const auto& str : t.second) {
-                list_hash ^= hash<string>{}(str);
+        auto operator()(const Pattern_or_Template_Pair& p_or_t_pair) const -> size_t {
+            size_t targets_list_hash = 0;
+            for (const auto& target : p_or_t_pair.second /*targets*/) {
+                targets_list_hash ^= hash<string>{}(target);
             }
-            return hash<string>{}(t.first) ^ list_hash;
+            return hash<string>{}(p_or_t_pair.first /*handle*/) ^ targets_list_hash;
         }
     };
 
-    using Pattern_or_Template_Set = unordered_set<Pattern_or_Template, Pattern_or_Template_Hash>;
+    using Pattern_or_Template_Set = unordered_set<Pattern_or_Template_Pair, Pattern_or_Template_Hash>;
 
     unordered_map<string, shared_ptr<AtomType>> atom_type;
     unordered_map<string, shared_ptr<Node>> node;
