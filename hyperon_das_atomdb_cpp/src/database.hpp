@@ -182,7 +182,7 @@ class AtomDB {
      * @param link_handle The link handle.
      * @return A list of target identifiers of the link.
      */
-    virtual const StringList get_link_targets(const string& link_handle) const = 0;
+    virtual const StringUnorderedSet get_link_targets(const string& link_handle) const = 0;
 
     /**
      * @brief Check if a link specified by its handle is ordered.
@@ -219,9 +219,9 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched links.
      */
-    virtual const Pattern_or_Template_List get_matched_links(const string& link_type,
-                                                             const StringList& target_handles,
-                                                             const KwArgs& kwargs = {}) const = 0;
+    virtual const StringUnorderedSet get_matched_links(const string& link_type,
+                                                       const StringList& target_handles,
+                                                       const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
@@ -230,8 +230,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched type templates.
      */
-    virtual const Pattern_or_Template_List get_matched_type_template(
-        const ListOfAny& _template, const KwArgs& kwargs = {}) const = 0;
+    virtual const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+                                                               const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched types based on the specified link type.
@@ -240,8 +240,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched types.
      */
-    virtual const Pattern_or_Template_List get_matched_type(const string& link_type,
-                                                            const KwArgs& kwargs = {}) const = 0;
+    virtual const StringUnorderedSet get_matched_type(const string& link_type,
+                                                      const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves the type of the atom with the specified handle.

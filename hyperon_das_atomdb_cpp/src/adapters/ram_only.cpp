@@ -137,7 +137,7 @@ const string InMemoryDB::get_link_type(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-const StringList InMemoryDB::get_link_targets(const string& link_handle) const {
+const StringUnorderedSet InMemoryDB::get_link_targets(const string& link_handle) const {
     auto it = this->db.outgoing_set.find(link_handle);
     if (it != this->db.outgoing_set.end()) {
         return it->second;
@@ -189,13 +189,13 @@ const vector<shared_ptr<const Atom>> InMemoryDB::get_incoming_links_atoms(const 
 }
 
 //------------------------------------------------------------------------------
-const Pattern_or_Template_List InMemoryDB::get_matched_links(const string& link_type,
-                                                             const StringList& target_handles,
-                                                             const KwArgs& kwargs) const {
+const StringUnorderedSet InMemoryDB::get_matched_links(const string& link_type,
+                                                       const StringList& target_handles,
+                                                       const KwArgs& kwargs) const {
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         try {
-            return {make_pair(this->get_link_handle(link_type, target_handles), nullopt)};
+            return {this->get_link_handle(link_type, target_handles)};
         } catch (const AtomDoesNotExist&) {
             return {};
         }
@@ -204,17 +204,15 @@ const Pattern_or_Template_List InMemoryDB::get_matched_links(const string& link_
     auto link_type_hash =
         link_type == WILDCARD ? WILDCARD : ExpressionHasher::named_type_hash(link_type);
 
-    StringList handles;
-    handles.reserve(target_handles.size() + 1);
-    handles.push_back(link_type_hash);
+    auto handles = StringList({link_type_hash});
     handles.insert(handles.end(), target_handles.begin(), target_handles.end());
     auto pattern_hash = ExpressionHasher::composite_hash(handles);
 
-    Pattern_or_Template_List patterns_matched;
+    StringUnorderedSet patterns_matched;
     auto it = this->db.patterns.find(pattern_hash);
     if (it != this->db.patterns.end()) {
         patterns_matched.reserve(it->second.size());
-        patterns_matched.insert(patterns_matched.end(), it->second.begin(), it->second.end());
+        patterns_matched.insert(it->second.begin(), it->second.end());
     }
 
     if (kwargs.toplevel_only) {
@@ -225,8 +223,8 @@ const Pattern_or_Template_List InMemoryDB::get_matched_links(const string& link_
 }
 
 //------------------------------------------------------------------------------
-const Pattern_or_Template_List InMemoryDB::get_matched_type_template(const ListOfAny& _template,
-                                                                     const KwArgs& kwargs) const {
+const StringUnorderedSet InMemoryDB::get_matched_type_template(const ListOfAny& _template,
+                                                               const KwArgs& kwargs) const {
     /**
      * NOTE:
      * Next two lines are spending a lot of time in handling ListOfAny, however
@@ -239,30 +237,24 @@ const Pattern_or_Template_List InMemoryDB::get_matched_type_template(const ListO
     auto template_hash = ExpressionHasher::composite_hash(hash_base);
     auto it = this->db.templates.find(template_hash);
     if (it != this->db.templates.end()) {
-        Pattern_or_Template_List templates_matched;
-        templates_matched.reserve(it->second.size());
-        templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (kwargs.toplevel_only) {
-            return this->_filter_non_toplevel(templates_matched);
+            return this->_filter_non_toplevel(it->second);
         }
-        return move(templates_matched);
+        return it->second;
     }
     return {};
 }
 
 //------------------------------------------------------------------------------
-const Pattern_or_Template_List InMemoryDB::get_matched_type(const string& link_type,
-                                                            const KwArgs& kwargs) const {
+const StringUnorderedSet InMemoryDB::get_matched_type(const string& link_type,
+                                                      const KwArgs& kwargs) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
-        Pattern_or_Template_List templates_matched;
-        templates_matched.reserve(it->second.size());
-        templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (kwargs.toplevel_only) {
-            return this->_filter_non_toplevel(templates_matched);
+            return this->_filter_non_toplevel(it->second);
         }
-        return move(templates_matched);
+        return it->second;
     }
     return {};
 }
@@ -499,12 +491,12 @@ void InMemoryDB::_delete_atom_type(const string& name) {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_outgoing_set(const string& key, const StringList& targets_hash) {
+void InMemoryDB::_add_outgoing_set(const string& key, const StringUnorderedSet& targets_hash) {
     this->db.outgoing_set[key] = targets_hash;
 }
 
 //------------------------------------------------------------------------------
-const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
+const opt<const StringUnorderedSet> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
     auto it = this->db.outgoing_set.find(handle);
     if (it != this->db.outgoing_set.end()) {
         auto handles = move(it->second);
@@ -515,7 +507,7 @@ const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const strin
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_incoming_set(const string& key, const StringList& targets_hash) {
+void InMemoryDB::_add_incoming_set(const string& key, const StringUnorderedSet& targets_hash) {
     for (const auto& target_hash : targets_hash) {
         auto it = this->db.incoming_set.find(target_hash);
         if (it == this->db.incoming_set.end()) {
@@ -527,8 +519,9 @@ void InMemoryDB::_add_incoming_set(const string& key, const StringList& targets_
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_incoming_set(const string& link_handle, const StringList& atoms_handle) {
-    for (const auto& atom_handle : atoms_handle) {
+void InMemoryDB::_delete_incoming_set(const string& link_handle,
+                                      const StringUnorderedSet& atoms_handles) {
+    for (const auto& atom_handle : atoms_handles) {
         auto it = this->db.incoming_set.find(atom_handle);
         if (it != this->db.incoming_set.end()) {
             it->second.erase(link_handle);
@@ -539,62 +532,58 @@ void InMemoryDB::_delete_incoming_set(const string& link_handle, const StringLis
 //------------------------------------------------------------------------------
 void InMemoryDB::_add_templates(const string& composite_type_hash,
                                 const string& named_type_hash,
-                                const string& key,
-                                const StringList& targets_hash) {
+                                const string& key) {
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(make_pair(key, targets_hash));
+        it->second.insert(key);
     } else {
-        this->db.templates[composite_type_hash] =
-            Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
+        this->db.templates[composite_type_hash] = StringUnorderedSet({key});
     }
 
     it = this->db.templates.find(named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(make_pair(key, targets_hash));
+        it->second.insert(key);
     } else {
-        this->db.templates[named_type_hash] =
-            Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
+        this->db.templates[named_type_hash] = StringUnorderedSet({key});
     }
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_templates(const Link& link_document, const StringList& targets_hash) {
+void InMemoryDB::_delete_templates(const Link& link_document) {
     string composite_type_hash = link_document.composite_type_hash;
     string named_type_hash = link_document.named_type_hash;
     string key = link_document.id;
 
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(make_pair(key, targets_hash));
+        it->second.erase(key);
     }
 
     it = this->db.templates.find(named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(make_pair(key, targets_hash));
+        it->second.erase(key);
     }
 }
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_add_patterns(const string& named_type_hash,
                                const string& key,
-                               const StringList& targets_hash) {
+                               const StringUnorderedSet& targets_hash) {
     auto hash_list = StringList({named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
     for (const auto& pattern_key : pattern_keys) {
         auto it = this->db.patterns.find(pattern_key);
         if (it == this->db.patterns.end()) {
-            this->db.patterns[pattern_key] =
-                Database::Pattern_or_Template_Set({make_pair(key, targets_hash)});
+            this->db.patterns[pattern_key] = StringUnorderedSet({key});
         } else {
-            it->second.insert(make_pair(key, targets_hash));
+            it->second.insert(key);
         }
     }
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
+void InMemoryDB::_delete_patterns(const Link& link_document, const StringUnorderedSet& targets_hash) {
     string named_type_hash = link_document.named_type_hash;
     string key = link_document.id;
     auto hash_list = StringList({named_type_hash});
@@ -603,7 +592,7 @@ void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& t
     for (const auto& pattern_key : pattern_keys) {
         auto it = this->db.patterns.find(pattern_key);
         if (it != this->db.patterns.end()) {
-            it->second.erase(make_pair(key, targets_hash));
+            it->second.erase(key);
         }
     }
 }
@@ -617,17 +606,16 @@ void InMemoryDB::_delete_link_and_update_index(const string& link_handle) {
 }
 
 //------------------------------------------------------------------------------
-const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
-    const Pattern_or_Template_List& matches) const {
+const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedSet& matches) const {
     if (this->db.link.empty()) {
         return matches;
     }
-    Pattern_or_Template_List filtered_matched_targets;
-    for (const auto& [link_handle, targets] : matches) {
+    StringUnorderedSet filtered_matched_targets;
+    for (const auto& link_handle : matches) {
         auto it = this->db.link.find(link_handle);
         if (it != this->db.link.end()) {
             if (it->second->is_top_level) {
-                filtered_matched_targets.push_back({link_handle, targets});
+                filtered_matched_targets.insert(link_handle);
             }
         }
     }
@@ -635,11 +623,11 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
 }
 
 //------------------------------------------------------------------------------
-const vector<string> InMemoryDB::_build_targets_list(const Link& link) const {
-    vector<string> targets;
+const StringUnorderedSet InMemoryDB::_build_targets_list(const Link& link) const {
+    StringUnorderedSet targets;
     targets.reserve(link.keys.size());
     for (const auto& [_, value] : link.keys) {
-        targets.push_back(value);
+        targets.insert(value);
     }
     return move(targets);
 }
@@ -662,8 +650,8 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
     }
 
     if (auto link = dynamic_cast<const Link*>(&atom)) {
+        this->_delete_templates(*link);
         auto targets_hash = this->_build_targets_list(*link);
-        this->_delete_templates(*link, targets_hash);
         this->_delete_patterns(*link, targets_hash);
     }
 }
@@ -677,7 +665,7 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
         auto targets_hash = this->_build_targets_list(*link);
         this->_add_outgoing_set(handle, targets_hash);
         this->_add_incoming_set(handle, targets_hash);
-        this->_add_templates(link->composite_type_hash, link->named_type_hash, handle, targets_hash);
+        this->_add_templates(link->composite_type_hash, link->named_type_hash, handle);
         this->_add_patterns(link->named_type_hash, handle, targets_hash);
     }
 }

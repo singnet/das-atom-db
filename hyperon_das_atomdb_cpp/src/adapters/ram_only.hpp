@@ -13,27 +13,13 @@ namespace atomdb {
  */
 class Database {
    public:
-    using Pattern_or_Template_Pair = pair<string, StringList>;
-
-    struct Pattern_or_Template_Hash {
-        auto operator()(const Pattern_or_Template_Pair& p_or_t_pair) const -> size_t {
-            size_t targets_list_hash = 0;
-            for (const auto& target : p_or_t_pair.second /*targets*/) {
-                targets_list_hash ^= hash<string>{}(target);
-            }
-            return hash<string>{}(p_or_t_pair.first /*handle*/) ^ targets_list_hash;
-        }
-    };
-
-    using Pattern_or_Template_Set = unordered_set<Pattern_or_Template_Pair, Pattern_or_Template_Hash>;
-
     unordered_map<string, shared_ptr<AtomType>> atom_type;
     unordered_map<string, shared_ptr<Node>> node;
     unordered_map<string, shared_ptr<Link>> link;
-    unordered_map<string, StringList> outgoing_set;
+    unordered_map<string, StringUnorderedSet> outgoing_set;
     unordered_map<string, StringUnorderedSet> incoming_set;
-    unordered_map<string, Pattern_or_Template_Set> patterns;
-    unordered_map<string, Pattern_or_Template_Set> templates;
+    unordered_map<string, StringUnorderedSet> patterns;
+    unordered_map<string, StringUnorderedSet> templates;
 
     Database()
         : atom_type({}),
@@ -114,7 +100,7 @@ class InMemoryDB : public AtomDB {
 
     const string get_link_type(const string& link_handle) const override;
 
-    const StringList get_link_targets(const string& link_handle) const override;
+    const StringUnorderedSet get_link_targets(const string& link_handle) const override;
 
     bool is_ordered(const string& link_handle) const override;
 
@@ -124,15 +110,15 @@ class InMemoryDB : public AtomDB {
     const vector<shared_ptr<const Atom>> get_incoming_links_atoms(
         const string& atom_handle, const KwArgs& kwargs = {}) const override;
 
-    const Pattern_or_Template_List get_matched_links(const string& link_type,
-                                                     const StringList& target_handles,
-                                                     const KwArgs& kwargs = {}) const override;
+    const StringUnorderedSet get_matched_links(const string& link_type,
+                                               const StringList& target_handles,
+                                               const KwArgs& kwargs = {}) const override;
 
-    const Pattern_or_Template_List get_matched_type_template(const ListOfAny& _template,
-                                                             const KwArgs& kwargs = {}) const override;
+    const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+                                                       const KwArgs& kwargs = {}) const override;
 
-    const Pattern_or_Template_List get_matched_type(const string& link_type,
-                                                    const KwArgs& kwargs = {}) const override;
+    const StringUnorderedSet get_matched_type(const string& link_type,
+                                              const KwArgs& kwargs = {}) const override;
 
     const opt<const string> get_atom_type(const string& handle) const override;
 
@@ -217,30 +203,31 @@ class InMemoryDB : public AtomDB {
 
     void _delete_atom_type(const string& name);
 
-    void _add_outgoing_set(const string& key, const StringList& targets_hash);
+    void _add_outgoing_set(const string& key, const StringUnorderedSet& targets_hash);
 
-    const opt<const StringList> _get_and_delete_outgoing_set(const string& handle);
+    const opt<const StringUnorderedSet> _get_and_delete_outgoing_set(const string& handle);
 
-    void _add_incoming_set(const string& key, const StringList& targets_hash);
+    void _add_incoming_set(const string& key, const StringUnorderedSet& targets_hash);
 
-    void _delete_incoming_set(const string& link_handle, const StringList& atoms_handle);
+    void _delete_incoming_set(const string& link_handle, const StringUnorderedSet& atoms_handles);
 
     void _add_templates(const string& composite_type_hash,
                         const string& named_type_hash,
-                        const string& key,
-                        const StringList& targets_hash);
+                        const string& key);
 
-    void _delete_templates(const Link& link_document, const StringList& targets_hash);
+    void _delete_templates(const Link& link_document);
 
-    void _add_patterns(const string& named_type_hash, const string& key, const StringList& targets_hash);
+    void _add_patterns(const string& named_type_hash,
+                       const string& key,
+                       const StringUnorderedSet& targets_hash);
 
-    void _delete_patterns(const Link& link_document, const StringList& targets_hash);
+    void _delete_patterns(const Link& link_document, const StringUnorderedSet& targets_hash);
 
     void _delete_link_and_update_index(const string& link_handle);
 
-    const Pattern_or_Template_List _filter_non_toplevel(const Pattern_or_Template_List& matches) const;
+    const StringUnorderedSet _filter_non_toplevel(const StringUnorderedSet& matches) const;
 
-    const vector<string> _build_targets_list(const Link& link) const;
+    const StringUnorderedSet _build_targets_list(const Link& link) const;
 
     void _delete_atom_index(const Atom& atom);
 

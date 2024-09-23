@@ -151,7 +151,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
                const string& link_type,
                const StringList& target_handles,
                bool toplevel_only = false,
-               const nb::kwargs& _ = {}) -> const Pattern_or_Template_List {
+               const nb::kwargs& _ = {}) -> const StringUnorderedSet {
                 return self.get_matched_links(
                     link_type, target_handles, {toplevel_only : toplevel_only});
             },
@@ -165,7 +165,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const ListOfAny& _template,
                bool toplevel_only = false,
-               const nb::kwargs& _ = {}) -> const Pattern_or_Template_List {
+               const nb::kwargs& _ = {}) -> const StringUnorderedSet {
                 return self.get_matched_type_template(_template, {toplevel_only : toplevel_only});
             },
             "_template"_a,
@@ -177,7 +177,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const string& link_type,
                bool toplevel_only = false,
-               const nb::kwargs& _ = {}) -> const Pattern_or_Template_List {
+               const nb::kwargs& _ = {}) -> const StringUnorderedSet {
                 return self.get_matched_type(link_type, {toplevel_only : toplevel_only});
             },
             "link_type"_a,

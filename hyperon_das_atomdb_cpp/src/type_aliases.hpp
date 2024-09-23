@@ -25,9 +25,6 @@ using StringSet = set<string>;
 using StringList = vector<string>;
 using StringUnorderedSet = unordered_set<string>;
 
-using Pattern_or_Template_Pair = pair<string, opt<StringList>>;
-using Pattern_or_Template_List = vector<Pattern_or_Template_Pair>;
-
 /**
  * std::vector<std::any> performs well enough in some particular cases, but be cautious when using it.
  * Always test how it performs in your specific use case.
