@@ -290,14 +290,14 @@ class TestInMemoryDB:
     def test_get_matched_links_link_equal_wildcard(self, database: InMemoryDB):
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        assert database.get_matched_links("*", [human, chimp]) == ["b5459e299a5c5e8662c427f7e01b3bf1"]
+        assert database.get_matched_links("*", [human, chimp]) == [
+            "b5459e299a5c5e8662c427f7e01b3bf1"
+        ]
 
     def test_get_matched_links_link_diff_wildcard(self, database: InMemoryDB):
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = [
-            "b5459e299a5c5e8662c427f7e01b3bf1",
-            "31535ddf214f5b239d3b517823cb8144"]
+        expected = ["b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"]
         actual = database.get_matched_links(link_type, ["*", chimp])
         assert sorted(expected) == sorted(actual)
 

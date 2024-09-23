@@ -15,7 +15,6 @@ from dataclasses import field as dc_field
 from typing import Any, Iterable
 
 from hyperon_das_atomdb.database import (
-    UNORDERED_LINK_TYPES,
     WILDCARD,
     AtomDB,
     AtomT,
@@ -28,7 +27,7 @@ from hyperon_das_atomdb.database import (
     NodeParamsT,
     NodeT,
 )
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_pattern_keys
@@ -397,11 +396,7 @@ class InMemoryDB(AtomDB):
                 atom[FieldNames.TYPE_NAME_HASH],
                 handle,
             )
-            self._add_patterns(
-                atom[FieldNames.TYPE_NAME_HASH],
-                handle,
-                targets_hash
-            )
+            self._add_patterns(atom[FieldNames.TYPE_NAME_HASH], handle, targets_hash)
 
     def _update_index(self, atom: AtomT, **kwargs) -> None:
         """
@@ -526,9 +521,7 @@ class InMemoryDB(AtomDB):
             details=f"link_handle: {link_handle}",
         )
 
-    def get_matched_links(
-        self, link_type: str, target_handles: list[str], **kwargs
-    ) -> HandleListT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 answer = [self.get_link_handle(link_type, target_handles)]

@@ -57,7 +57,9 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+            [human, monkey, chimp, rhino]
+        )
         answers = db.get_matched_links(
             "Inheritance",
             [db.node_handle("Concept", "mammal"), WILDCARD],
@@ -69,13 +71,17 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "human")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([monkey, chimp, ent])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+            [monkey, chimp, ent]
+        )
         answers = db.get_matched_links(
             "Similarity",
             [db.node_handle("Concept", "human"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted([monkey, chimp, ent])
+        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted(
+            [monkey, chimp, ent]
+        )
 
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -105,28 +111,34 @@ class TestRedisMongo:
         templates = db._retrieve_hash_targets_value(
             KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
         )
-        assert sorted(templates) == sorted([
-            "116df61c01859c710d178ba14a483509",
-            "1c3bf151ea200b2d9e088a1178d060cb",
-            "4120e428ab0fa162a04328e5217912ff",
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            "906fa505ae3bc6336d80a5f9aaa47b3b",
-            "959924e3aab197af80a84c1ab261fd65",
-            "b0f428929706d1d991e4d712ad08f9ab",
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            "e4685d56969398253b6f77efd21dc347",
-            "ee1c03e6d1f104ccd811cfbba018451a",
-            "f31dfe97db782e8cec26de18dddf8965",
-            "fbf03d17d6a40feff828a3f2c6e86f05"])
+        assert sorted(templates) == sorted(
+            [
+                "116df61c01859c710d178ba14a483509",
+                "1c3bf151ea200b2d9e088a1178d060cb",
+                "4120e428ab0fa162a04328e5217912ff",
+                "75756335011dcedb71a0d9a7bd2da9e8",
+                "906fa505ae3bc6336d80a5f9aaa47b3b",
+                "959924e3aab197af80a84c1ab261fd65",
+                "b0f428929706d1d991e4d712ad08f9ab",
+                "c93e1e758c53912638438e2a7d7f7b7f",
+                "e4685d56969398253b6f77efd21dc347",
+                "ee1c03e6d1f104ccd811cfbba018451a",
+                "f31dfe97db782e8cec26de18dddf8965",
+                "fbf03d17d6a40feff828a3f2c6e86f05",
+            ]
+        )
 
         patterns = db._retrieve_hash_targets_value(
             KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
         )
-        assert sorted(patterns) == sorted([
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            "fbf03d17d6a40feff828a3f2c6e86f05",
-            "f31dfe97db782e8cec26de18dddf8965",
-            "c93e1e758c53912638438e2a7d7f7b7f"])
+        assert sorted(patterns) == sorted(
+            [
+                "75756335011dcedb71a0d9a7bd2da9e8",
+                "fbf03d17d6a40feff828a3f2c6e86f05",
+                "f31dfe97db782e8cec26de18dddf8965",
+                "c93e1e758c53912638438e2a7d7f7b7f",
+            ]
+        )
 
     def test_patterns(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -145,7 +157,9 @@ class TestRedisMongo:
         answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+            [human, monkey, chimp, rhino]
+        )
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
         assert "strength" not in link_pre
@@ -728,30 +742,19 @@ class TestRedisMongo:
         assert response == []
 
         response = db.get_matched_links("Similarity", [human, "*"])
-        assert sorted(response) == sorted([
-            "16f7e407087bfa0b35b13d13a1aadcae",
-            "b5459e299a5c5e8662c427f7e01b3bf1",
-            "bad7472f41a0e7d601ca294eb4607c3a"])
+        assert sorted(response) == sorted(
+            [
+                "16f7e407087bfa0b35b13d13a1aadcae",
+                "b5459e299a5c5e8662c427f7e01b3bf1",
+                "bad7472f41a0e7d601ca294eb4607c3a",
+            ]
+        )
 
         template = ["Inheritance", "Concept", "Concept"]
 
         response = db.get_matched_type_template(template)
-        assert sorted(response) == sorted ([
-            "116df61c01859c710d178ba14a483509",
-            "1c3bf151ea200b2d9e088a1178d060cb",
-            "4120e428ab0fa162a04328e5217912ff",
-            "75756335011dcedb71a0d9a7bd2da9e8",
-            "906fa505ae3bc6336d80a5f9aaa47b3b",
-            "959924e3aab197af80a84c1ab261fd65",
-            "b0f428929706d1d991e4d712ad08f9ab",
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            "e4685d56969398253b6f77efd21dc347",
-            "ee1c03e6d1f104ccd811cfbba018451a",
-            "f31dfe97db782e8cec26de18dddf8965",
-            "fbf03d17d6a40feff828a3f2c6e86f05"])
-
-        response = db.get_matched_type("Inheritance")
-        assert sorted(response) == sorted([
+        assert sorted(response) == sorted(
+            [
                 "116df61c01859c710d178ba14a483509",
                 "1c3bf151ea200b2d9e088a1178d060cb",
                 "4120e428ab0fa162a04328e5217912ff",
@@ -763,7 +766,27 @@ class TestRedisMongo:
                 "e4685d56969398253b6f77efd21dc347",
                 "ee1c03e6d1f104ccd811cfbba018451a",
                 "f31dfe97db782e8cec26de18dddf8965",
-                "fbf03d17d6a40feff828a3f2c6e86f05"])
+                "fbf03d17d6a40feff828a3f2c6e86f05",
+            ]
+        )
+
+        response = db.get_matched_type("Inheritance")
+        assert sorted(response) == sorted(
+            [
+                "116df61c01859c710d178ba14a483509",
+                "1c3bf151ea200b2d9e088a1178d060cb",
+                "4120e428ab0fa162a04328e5217912ff",
+                "75756335011dcedb71a0d9a7bd2da9e8",
+                "906fa505ae3bc6336d80a5f9aaa47b3b",
+                "959924e3aab197af80a84c1ab261fd65",
+                "b0f428929706d1d991e4d712ad08f9ab",
+                "c93e1e758c53912638438e2a7d7f7b7f",
+                "e4685d56969398253b6f77efd21dc347",
+                "ee1c03e6d1f104ccd811cfbba018451a",
+                "f31dfe97db782e8cec26de18dddf8965",
+                "fbf03d17d6a40feff828a3f2c6e86f05",
+            ]
+        )
 
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
         db = _db

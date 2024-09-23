@@ -23,7 +23,6 @@ from redis import Redis
 from redis.cluster import RedisCluster
 
 from hyperon_das_atomdb.database import (
-    UNORDERED_LINK_TYPES,
     WILDCARD,
     AtomDB,
     AtomT,
@@ -661,9 +660,7 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return answer
 
-    def get_matched_links(
-        self, link_type: str, target_handles: list[str], **kwargs
-    ) -> HandleListT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
@@ -965,9 +962,7 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(
-        self, key_prefix: str, handle: str, **kwargs
-    ) -> HandleListT:
+    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> HandleListT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
