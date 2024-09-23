@@ -198,8 +198,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of strings representing the incoming
      *         link handles.
      */
-    virtual const pair<const OptCursor, const StringList> get_incoming_links_handles(
-        const string& atom_handle, const KwArgs& kwargs = {}) const = 0;
+    virtual const StringList get_incoming_links_handles(const string& atom_handle,
+                                                        const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves incoming link atoms for the specified atom.
@@ -208,7 +208,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of Atom objects representing the
      *         incoming links.
      */
-    virtual const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
+    virtual const vector<shared_ptr<const Atom>> get_incoming_links_atoms(
         const string& atom_handle, const KwArgs& kwargs = {}) const = 0;
 
     /**
@@ -219,8 +219,9 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched links.
      */
-    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
-        const string& link_type, const StringList& target_handles, const KwArgs& kwargs = {}) const = 0;
+    virtual const Pattern_or_Template_List get_matched_links(const string& link_type,
+                                                             const StringList& target_handles,
+                                                             const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
@@ -229,7 +230,7 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched type templates.
      */
-    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
+    virtual const Pattern_or_Template_List get_matched_type_template(
         const ListOfAny& _template, const KwArgs& kwargs = {}) const = 0;
 
     /**
@@ -239,8 +240,8 @@ class AtomDB {
      * @return A pair containing an optional cursor and a list of patterns or templates representing
      *         the matched types.
      */
-    virtual const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
-        const string& link_type, const KwArgs& kwargs = {}) const = 0;
+    virtual const Pattern_or_Template_List get_matched_type(const string& link_type,
+                                                            const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves the type of the atom with the specified handle.

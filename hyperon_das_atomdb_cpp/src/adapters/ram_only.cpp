@@ -154,22 +154,23 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const StringList> InMemoryDB::get_incoming_links_handles(
-    const string& atom_handle, const KwArgs& kwargs) const {
+const StringList InMemoryDB::get_incoming_links_handles(const string& atom_handle,
+                                                        const KwArgs& kwargs) const {
     if (not kwargs.handles_only) {
         throw runtime_error(
             "'handles_only' is not true in kwargs - "
             "'InMemoryDB::get_incoming_links_atoms' should be used instead");
     }
     auto it = this->db.incoming_set.find(atom_handle);
-    if (it != this->db.incoming_set.end())
-        return {kwargs.cursor, move(StringList(it->second.begin(), it->second.end()))};
-    return {kwargs.cursor, {}};
+    if (it != this->db.incoming_set.end()) {
+        return move(StringList(it->second.begin(), it->second.end()));
+    }
+    return {};
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
-    const string& atom_handle, const KwArgs& kwargs) const {
+const vector<shared_ptr<const Atom>> InMemoryDB::get_incoming_links_atoms(const string& atom_handle,
+                                                                          const KwArgs& kwargs) const {
     if (kwargs.handles_only) {
         throw runtime_error(
             "'handles_only' is true in kwargs - "
@@ -182,17 +183,22 @@ const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::ge
         for (const auto& link_handle : it->second) {
             atoms.push_back(this->get_atom(link_handle, kwargs));
         }
-        return {kwargs.cursor, move(atoms)};
+        return move(atoms);
     }
-    return {kwargs.cursor, {}};
+    return {};
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_links(
-    const string& link_type, const StringList& target_handles, const KwArgs& kwargs) const {
+const Pattern_or_Template_List InMemoryDB::get_matched_links(const string& link_type,
+                                                             const StringList& target_handles,
+                                                             const KwArgs& kwargs) const {
     if (link_type != WILDCARD &&
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
-        return {kwargs.cursor, {make_pair(this->get_link_handle(link_type, target_handles), nullopt)}};
+        try {
+            return {make_pair(this->get_link_handle(link_type, target_handles), nullopt)};
+        } catch (const AtomDoesNotExist&) {
+            return {};
+        }
     }
 
     auto link_type_hash =
@@ -212,15 +218,15 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
     }
 
     if (kwargs.toplevel_only) {
-        return {kwargs.cursor, this->_filter_non_toplevel(patterns_matched)};
+        return this->_filter_non_toplevel(patterns_matched);
     }
 
-    return {kwargs.cursor, move(patterns_matched)};
+    return move(patterns_matched);
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type_template(
-    const ListOfAny& _template, const KwArgs& kwargs) const {
+const Pattern_or_Template_List InMemoryDB::get_matched_type_template(const ListOfAny& _template,
+                                                                     const KwArgs& kwargs) const {
     /**
      * NOTE:
      * Next two lines are spending a lot of time in handling ListOfAny, however
@@ -237,16 +243,16 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (kwargs.toplevel_only) {
-            return {kwargs.cursor, this->_filter_non_toplevel(templates_matched)};
+            return this->_filter_non_toplevel(templates_matched);
         }
-        return {kwargs.cursor, move(templates_matched)};
+        return move(templates_matched);
     }
-    return {kwargs.cursor, {}};
+    return {};
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matched_type(
-    const string& link_type, const KwArgs& kwargs) const {
+const Pattern_or_Template_List InMemoryDB::get_matched_type(const string& link_type,
+                                                            const KwArgs& kwargs) const {
     auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
     auto it = this->db.templates.find(link_type_hash);
     if (it != this->db.templates.end()) {
@@ -254,11 +260,11 @@ const pair<const OptCursor, const Pattern_or_Template_List> InMemoryDB::get_matc
         templates_matched.reserve(it->second.size());
         templates_matched.insert(templates_matched.end(), it->second.begin(), it->second.end());
         if (kwargs.toplevel_only) {
-            return {kwargs.cursor, this->_filter_non_toplevel(templates_matched)};
+            return this->_filter_non_toplevel(templates_matched);
         }
-        return {kwargs.cursor, move(templates_matched)};
+        return move(templates_matched);
     }
-    return {kwargs.cursor, {}};
+    return {};
 }
 
 //------------------------------------------------------------------------------
@@ -427,7 +433,7 @@ const shared_ptr<const Link> InMemoryDB::_get_link(const string& handle) const {
 const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link_handle) {
     auto it = this->db.link.find(link_handle);
     if (it != this->db.link.end()) {
-        auto link_document = make_shared<Link>(*it->second);
+        auto link_document = make_shared<const Link>(*it->second);
         this->db.link.erase(it);
         return move(link_document);
     }
