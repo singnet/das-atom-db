@@ -154,11 +154,12 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const StringUnorderedSet> InMemoryDB::get_incoming_links_handles(
+const pair<const OptCursor, const StringList> InMemoryDB::get_incoming_links_handles(
     const string& atom_handle, const KwArgs& kwargs) const {
     auto it = this->db.incoming_set.find(atom_handle);
-    auto links = it != this->db.incoming_set.end() ? it->second : StringUnorderedSet();
-    return {kwargs.cursor, move(links)};
+    if (it != this->db.incoming_set.end())
+        return {kwargs.cursor, move(StringList(it->second.begin(), it->second.end()))};
+    return {kwargs.cursor, move(StringList())};
 }
 
 //------------------------------------------------------------------------------

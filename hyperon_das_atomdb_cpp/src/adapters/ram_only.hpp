@@ -118,7 +118,7 @@ class InMemoryDB : public AtomDB {
 
     bool is_ordered(const string& link_handle) const override;
 
-    const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
+    const pair<const OptCursor, const StringList> get_incoming_links_handles(
         const string& atom_handle,
 
         const KwArgs& kwargs = {}) const override;

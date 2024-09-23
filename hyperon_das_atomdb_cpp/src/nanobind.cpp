@@ -115,7 +115,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const string& atom_handle,
                const OptCursor cursor = nullopt,
-               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringUnorderedSet> {
+               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringList> {
                 return self.get_incoming_links_handles(atom_handle, {cursor : cursor});
             },
             "atom_handle"_a,

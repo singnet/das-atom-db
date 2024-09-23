@@ -195,13 +195,11 @@ class AtomDB {
      * @brief Retrieves incoming link handles for the specified atom.
      * @param atom_handle A string representing the handle of the atom.
      * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a set of strings representing the incoming
+     * @return A pair containing an optional cursor and a list of strings representing the incoming
      *         link handles.
      */
-    virtual const pair<const OptCursor, const StringUnorderedSet> get_incoming_links_handles(
-        const string& atom_handle,
-
-        const KwArgs& kwargs = {}) const = 0;
+    virtual const pair<const OptCursor, const StringList> get_incoming_links_handles(
+        const string& atom_handle, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves incoming link atoms for the specified atom.
@@ -211,9 +209,7 @@ class AtomDB {
      *         incoming links.
      */
     virtual const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
-        const string& atom_handle,
-
-        const KwArgs& kwargs = {}) const = 0;
+        const string& atom_handle, const KwArgs& kwargs = {}) const = 0;
 
     /**
      * @brief Retrieves matched links of the specified type and target handles.
