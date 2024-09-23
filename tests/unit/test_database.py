@@ -520,25 +520,6 @@ class TestDatabase:
         assert all(isinstance(t, str) for t in targets)
         assert targets == link_a["targets"]
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_is_ordered(self, database, request):
-        db: AtomDB = request.getfixturevalue(database)
-        link_a = self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
-        # NOTE just retrieves the link ...
-        assert db.is_ordered(link_a["handle"])
-
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_is_ordered_no_handle(self, database, request):
-        if database == "redis_mongo_db":
-            # TODO: fix this
-            pytest.skip(
-                "ERROR redis_mongo_db is raising ValueError exception, should be AtomDoesNotExist. "
-                "See https://github.com/singnet/das-atom-db/issues/210"
-            )
-        db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(Exception, match="Nonexistent atom"):
-            db.is_ordered("handle")
-
     @pytest.mark.parametrize(
         "database,params,links_len",
         [  # TODO: differences here must be fixed if possible
@@ -645,10 +626,9 @@ class TestDatabase:
         assert len(links) == links_len
         if len(links) > 0:
             for link in links:
-                assert _check_handle(link[0])
-                assert link[0] == link_a["handle"]
-                assert all(t in link[1] for t in link_a["targets"])
-                assert all(_check_handle(t) for t in link[1])
+                assert _check_handle(link)
+                assert link == link_a["handle"]
+                assert sorted(db.get_atom(link)["targets"]) == sorted(link_a["targets"])
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_matched_type(self, database, request):
@@ -665,10 +645,9 @@ class TestDatabase:
         assert len(links) == 1
         if len(links) > 0:
             for link in links:
-                assert _check_handle(link[0])
-                assert link[0] == link_a["handle"]
-                assert all(t in link[1] for t in link_a["targets"])
-                assert all(_check_handle(t) for t in link[1])
+                assert _check_handle(link)
+                assert link == link_a["handle"]
+                assert sorted(db.get_atom(link)["targets"]) == sorted(link_a["targets"])
 
     @pytest.mark.parametrize(
         "database,params,top_level,n_links,n_nodes",

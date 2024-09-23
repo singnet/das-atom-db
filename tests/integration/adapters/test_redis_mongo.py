@@ -57,25 +57,25 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         answers = db.get_matched_links(
             "Inheritance",
             [db.node_handle("Concept", "mammal"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][1] for answer in answers]) == sorted([animal])
+        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted([animal])
         answers = db.get_matched_links(
             "Similarity",
             [WILDCARD, db.node_handle("Concept", "human")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted([monkey, chimp, ent])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([monkey, chimp, ent])
         answers = db.get_matched_links(
             "Similarity",
             [db.node_handle("Concept", "human"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([answer[1][1] for answer in answers]) == sorted([monkey, chimp, ent])
+        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted([monkey, chimp, ent])
 
     def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -105,208 +105,28 @@ class TestRedisMongo:
         templates = db._retrieve_hash_targets_value(
             KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
         )
-        assert len(templates) == 12
-        assert (
-            tuple(
-                [
-                    "116df61c01859c710d178ba14a483509",
-                    tuple(
-                        [
-                            "c1db9b517073e51eb7ef6fed608ec204",
-                            "b99ae727c787f1b13b452fd4c9ce1b9a",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "1c3bf151ea200b2d9e088a1178d060cb",
-                    tuple(
-                        [
-                            "bdfe4e7a431f73386f37c6448afe5840",
-                            "0a32b476852eeb954979b87f5f6cb7af",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "4120e428ab0fa162a04328e5217912ff",
-                    tuple(
-                        [
-                            "bb34ce95f161a6b37ff54b3d4c817857",
-                            "0a32b476852eeb954979b87f5f6cb7af",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "75756335011dcedb71a0d9a7bd2da9e8",
-                    tuple(
-                        [
-                            "5b34c54bee150c04f9fa584b899dc030",
-                            "bdfe4e7a431f73386f37c6448afe5840",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "906fa505ae3bc6336d80a5f9aaa47b3b",
-                    tuple(
-                        [
-                            "d03e59654221c1e8fcda404fd5c8d6cb",
-                            "08126b066d32ee37743e255a2558cccd",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "959924e3aab197af80a84c1ab261fd65",
-                    tuple(
-                        [
-                            "08126b066d32ee37743e255a2558cccd",
-                            "b99ae727c787f1b13b452fd4c9ce1b9a",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "b0f428929706d1d991e4d712ad08f9ab",
-                    tuple(
-                        [
-                            "b99ae727c787f1b13b452fd4c9ce1b9a",
-                            "0a32b476852eeb954979b87f5f6cb7af",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "c93e1e758c53912638438e2a7d7f7b7f",
-                    tuple(
-                        [
-                            "af12f10f9ae2002a1607ba0b47ba8407",
-                            "bdfe4e7a431f73386f37c6448afe5840",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "e4685d56969398253b6f77efd21dc347",
-                    tuple(
-                        [
-                            "b94941d8cd1c0ee4ad3dd3dcab52b964",
-                            "80aff30094874e75028033a38ce677bb",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "ee1c03e6d1f104ccd811cfbba018451a",
-                    tuple(
-                        [
-                            "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-                            "80aff30094874e75028033a38ce677bb",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "f31dfe97db782e8cec26de18dddf8965",
-                    tuple(
-                        [
-                            "1cdffc6b0b89ff41d68bec237481d1e1",
-                            "bdfe4e7a431f73386f37c6448afe5840",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
-        assert (
-            tuple(
-                [
-                    "fbf03d17d6a40feff828a3f2c6e86f05",
-                    tuple(
-                        [
-                            "99d18c702e813b07260baf577c60c455",
-                            "bdfe4e7a431f73386f37c6448afe5840",
-                        ]
-                    ),
-                ]
-            )
-            in templates
-        )
+        assert sorted(templates) == sorted([
+            "116df61c01859c710d178ba14a483509",
+            "1c3bf151ea200b2d9e088a1178d060cb",
+            "4120e428ab0fa162a04328e5217912ff",
+            "75756335011dcedb71a0d9a7bd2da9e8",
+            "906fa505ae3bc6336d80a5f9aaa47b3b",
+            "959924e3aab197af80a84c1ab261fd65",
+            "b0f428929706d1d991e4d712ad08f9ab",
+            "c93e1e758c53912638438e2a7d7f7b7f",
+            "e4685d56969398253b6f77efd21dc347",
+            "ee1c03e6d1f104ccd811cfbba018451a",
+            "f31dfe97db782e8cec26de18dddf8965",
+            "fbf03d17d6a40feff828a3f2c6e86f05"])
 
         patterns = db._retrieve_hash_targets_value(
             KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
         )
-        assert len(patterns) == 4
-        assert (
+        assert sorted(patterns) == sorted([
             "75756335011dcedb71a0d9a7bd2da9e8",
-            (
-                "5b34c54bee150c04f9fa584b899dc030",
-                "bdfe4e7a431f73386f37c6448afe5840",
-            ),
-        ) in patterns
-        assert (
             "fbf03d17d6a40feff828a3f2c6e86f05",
-            (
-                "99d18c702e813b07260baf577c60c455",
-                "bdfe4e7a431f73386f37c6448afe5840",
-            ),
-        ) in patterns
-        assert (
             "f31dfe97db782e8cec26de18dddf8965",
-            (
-                "1cdffc6b0b89ff41d68bec237481d1e1",
-                "bdfe4e7a431f73386f37c6448afe5840",
-            ),
-        ) in patterns
-        assert (
-            "c93e1e758c53912638438e2a7d7f7b7f",
-            (
-                "af12f10f9ae2002a1607ba0b47ba8407",
-                "bdfe4e7a431f73386f37c6448afe5840",
-            ),
-        ) in patterns
+            "c93e1e758c53912638438e2a7d7f7b7f"])
 
     def test_patterns(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -325,7 +145,7 @@ class TestRedisMongo:
         answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted([human, monkey, chimp, rhino])
         assert db.get_atom(human)["name"] == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
         assert "strength" not in link_pre
@@ -362,7 +182,7 @@ class TestRedisMongo:
         answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert sorted([answer[1][0] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
             [human, monkey, chimp, rhino, dog]
         )
 
@@ -447,22 +267,12 @@ class TestRedisMongo:
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert sorted(
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
 
             links = [
                 db.get_atom(inheritance_cat_mammal_handle),
@@ -484,66 +294,46 @@ class TestRedisMongo:
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert sorted(
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert sorted(
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert sorted(
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
                 )
-            ) == sorted(
-                [
-                    (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
-                    (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                ]
-            )
+            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
 
         def _check_asserts_2():
             assert db.count_atoms() == {"atom_count": 3}
@@ -753,34 +543,34 @@ class TestRedisMongo:
             )
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == [(inheritance_dog_mammal_handle, (dog_handle, mammal_handle))]
+            ) == [inheritance_dog_mammal_handle]
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
@@ -824,22 +614,22 @@ class TestRedisMongo:
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
@@ -866,16 +656,16 @@ class TestRedisMongo:
             )
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == [(inheritance_cat_mammal_handle, (cat_handle, mammal_handle))]
+            ) == [inheritance_cat_mammal_handle]
 
         db = _db
 
@@ -938,207 +728,42 @@ class TestRedisMongo:
         assert response == []
 
         response = db.get_matched_links("Similarity", [human, "*"])
-        assert sorted(response) == [
-            (
-                "16f7e407087bfa0b35b13d13a1aadcae",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-                ),
-            ),
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            ),
-            (
-                "bad7472f41a0e7d601ca294eb4607c3a",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "1cdffc6b0b89ff41d68bec237481d1e1",
-                ),
-            ),
-        ]
+        assert sorted(response) == sorted([
+            "16f7e407087bfa0b35b13d13a1aadcae",
+            "b5459e299a5c5e8662c427f7e01b3bf1",
+            "bad7472f41a0e7d601ca294eb4607c3a"])
 
         template = ["Inheritance", "Concept", "Concept"]
 
         response = db.get_matched_type_template(template)
-        assert sorted(response) == [
-            (
-                "116df61c01859c710d178ba14a483509",
-                (
-                    "c1db9b517073e51eb7ef6fed608ec204",
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                ),
-            ),
-            (
-                "1c3bf151ea200b2d9e088a1178d060cb",
-                (
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
-                "4120e428ab0fa162a04328e5217912ff",
-                (
-                    "bb34ce95f161a6b37ff54b3d4c817857",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                (
-                    "5b34c54bee150c04f9fa584b899dc030",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
-                "906fa505ae3bc6336d80a5f9aaa47b3b",
-                (
-                    "d03e59654221c1e8fcda404fd5c8d6cb",
-                    "08126b066d32ee37743e255a2558cccd",
-                ),
-            ),
-            (
-                "959924e3aab197af80a84c1ab261fd65",
-                (
-                    "08126b066d32ee37743e255a2558cccd",
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                ),
-            ),
-            (
-                "b0f428929706d1d991e4d712ad08f9ab",
-                (
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
-                "c93e1e758c53912638438e2a7d7f7b7f",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
-                "e4685d56969398253b6f77efd21dc347",
-                (
-                    "b94941d8cd1c0ee4ad3dd3dcab52b964",
-                    "80aff30094874e75028033a38ce677bb",
-                ),
-            ),
-            (
-                "ee1c03e6d1f104ccd811cfbba018451a",
-                (
-                    "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-                    "80aff30094874e75028033a38ce677bb",
-                ),
-            ),
-            (
-                "f31dfe97db782e8cec26de18dddf8965",
-                (
-                    "1cdffc6b0b89ff41d68bec237481d1e1",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-                (
-                    "99d18c702e813b07260baf577c60c455",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-        ]
+        assert sorted(response) == sorted ([
+            "116df61c01859c710d178ba14a483509",
+            "1c3bf151ea200b2d9e088a1178d060cb",
+            "4120e428ab0fa162a04328e5217912ff",
+            "75756335011dcedb71a0d9a7bd2da9e8",
+            "906fa505ae3bc6336d80a5f9aaa47b3b",
+            "959924e3aab197af80a84c1ab261fd65",
+            "b0f428929706d1d991e4d712ad08f9ab",
+            "c93e1e758c53912638438e2a7d7f7b7f",
+            "e4685d56969398253b6f77efd21dc347",
+            "ee1c03e6d1f104ccd811cfbba018451a",
+            "f31dfe97db782e8cec26de18dddf8965",
+            "fbf03d17d6a40feff828a3f2c6e86f05"])
 
         response = db.get_matched_type("Inheritance")
-        assert sorted(response) == [
-            (
+        assert sorted(response) == sorted([
                 "116df61c01859c710d178ba14a483509",
-                (
-                    "c1db9b517073e51eb7ef6fed608ec204",
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                ),
-            ),
-            (
                 "1c3bf151ea200b2d9e088a1178d060cb",
-                (
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
                 "4120e428ab0fa162a04328e5217912ff",
-                (
-                    "bb34ce95f161a6b37ff54b3d4c817857",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
                 "75756335011dcedb71a0d9a7bd2da9e8",
-                (
-                    "5b34c54bee150c04f9fa584b899dc030",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
                 "906fa505ae3bc6336d80a5f9aaa47b3b",
-                (
-                    "d03e59654221c1e8fcda404fd5c8d6cb",
-                    "08126b066d32ee37743e255a2558cccd",
-                ),
-            ),
-            (
                 "959924e3aab197af80a84c1ab261fd65",
-                (
-                    "08126b066d32ee37743e255a2558cccd",
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                ),
-            ),
-            (
                 "b0f428929706d1d991e4d712ad08f9ab",
-                (
-                    "b99ae727c787f1b13b452fd4c9ce1b9a",
-                    "0a32b476852eeb954979b87f5f6cb7af",
-                ),
-            ),
-            (
                 "c93e1e758c53912638438e2a7d7f7b7f",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
                 "e4685d56969398253b6f77efd21dc347",
-                (
-                    "b94941d8cd1c0ee4ad3dd3dcab52b964",
-                    "80aff30094874e75028033a38ce677bb",
-                ),
-            ),
-            (
                 "ee1c03e6d1f104ccd811cfbba018451a",
-                (
-                    "4e8e26e3276af8a5c2ac2cc2dc95c6d2",
-                    "80aff30094874e75028033a38ce677bb",
-                ),
-            ),
-            (
                 "f31dfe97db782e8cec26de18dddf8965",
-                (
-                    "1cdffc6b0b89ff41d68bec237481d1e1",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-            (
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-                (
-                    "99d18c702e813b07260baf577c60c455",
-                    "bdfe4e7a431f73386f37c6448afe5840",
-                ),
-            ),
-        ]
+                "fbf03d17d6a40feff828a3f2c6e86f05"])
 
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
         db = _db

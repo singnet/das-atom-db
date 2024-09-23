@@ -184,24 +184,6 @@ class TestRedisMongoDB:
         assert exc_info.type is ValueError
         assert exc_info.value.args[0] == f"Invalid handle: {handle}-Fake"
 
-    def test_is_ordered(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        monkey = database.get_node_handle("Concept", "monkey")
-        mammal = database.get_node_handle("Concept", "mammal")
-        link_1 = database.get_link_handle("Inheritance", [human, mammal])
-        link_2 = database.get_link_handle("Similarity", [human, monkey])
-        assert database.is_ordered(link_1)
-        assert database.is_ordered(link_2)
-
-    def test_is_ordered_invalid(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        link = database.get_link_handle("Inheritance", [human, mammal])
-        with pytest.raises(ValueError) as exc_info:
-            database.get_link_targets(f"{link}-Fake")
-        assert exc_info.type is ValueError
-        assert exc_info.value.args[0] == f"Invalid handle: {link}-Fake"
-
     def test_get_matched_links_without_wildcard(self, database: RedisMongoDB):
         link_type = "Similarity"
         human = ExpressionHasher.terminal_hash("Concept", "human")
@@ -216,15 +198,7 @@ class TestRedisMongoDB:
         link_type = "*"
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = [
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            )
-        ]
+        expected = ["b5459e299a5c5e8662c427f7e01b3bf1"]
         actual = database.get_matched_links(link_type, [human, chimp])
 
         assert expected == actual
@@ -233,35 +207,15 @@ class TestRedisMongoDB:
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
         expected = [
-            (
-                "31535ddf214f5b239d3b517823cb8144",
-                (
-                    "1cdffc6b0b89ff41d68bec237481d1e1",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            ),
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            ),
+            "31535ddf214f5b239d3b517823cb8144",
+            "b5459e299a5c5e8662c427f7e01b3bf1",
         ]
         actual = database.get_matched_links(link_type, ["*", chimp])
 
         assert expected == actual
 
     def test_get_matched_links_toplevel_only(self, database: RedisMongoDB):
-        expected = [
-            (
-                "d542caa94b57219f1e489e3b03be7126",
-                (
-                    "a912032ece1826e55fa583dcaacdc4a9",
-                    "1e8ba9639663105e6c735ba83174f789",
-                ),
-            )
-        ]
+        expected = ["d542caa94b57219f1e489e3b03be7126"]
         actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
         assert expected == actual
         assert len(actual) == 1
