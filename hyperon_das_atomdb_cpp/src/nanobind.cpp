@@ -115,12 +115,15 @@ NB_MODULE(hyperon_das_atomdb, m) {
             [](InMemoryDB& self,
                const string& atom_handle,
                const OptCursor cursor = nullopt,
+               bool handles_only = true,
                const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringList> {
-                return self.get_incoming_links_handles(atom_handle, {cursor : cursor});
+                return self.get_incoming_links_handles(atom_handle,
+                                                       {handles_only : handles_only, cursor : cursor});
             },
             "atom_handle"_a,
             nb::kw_only(),
             "cursor"_a = nullopt,
+            "handles_only"_a = true,
             "_"_a = nb::kwargs())
         .def(
             "get_incoming_links_atoms",
@@ -130,12 +133,14 @@ NB_MODULE(hyperon_das_atomdb, m) {
                bool no_target_format = false,
                bool targets_documents = false,
                bool deep_representation = false,
+               bool handles_only = false,
                const nb::kwargs& _ = {})
                 -> const pair<const OptCursor, const vector<shared_ptr<const Atom>>> {
                 return self.get_incoming_links_atoms(atom_handle, {
                     no_target_format : no_target_format,
                     targets_documents : targets_documents,
                     deep_representation : deep_representation,
+                    handles_only : handles_only,
                     cursor : cursor
                 });
             },
@@ -145,6 +150,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
             "no_target_format"_a = false,
             "targets_documents"_a = false,
             "deep_representation"_a = false,
+            "handles_only"_a = false,
             "_"_a = nb::kwargs())
         .def(
             "get_matched_links",

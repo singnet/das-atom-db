@@ -156,21 +156,35 @@ bool InMemoryDB::is_ordered(const string& link_handle) const {
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const StringList> InMemoryDB::get_incoming_links_handles(
     const string& atom_handle, const KwArgs& kwargs) const {
+    if (not kwargs.handles_only) {
+        throw runtime_error(
+            "'handles_only' is not true in kwargs - "
+            "'InMemoryDB::get_incoming_links_atoms' should be used instead");
+    }
     auto it = this->db.incoming_set.find(atom_handle);
     if (it != this->db.incoming_set.end())
         return {kwargs.cursor, move(StringList(it->second.begin(), it->second.end()))};
-    return {kwargs.cursor, move(StringList())};
+    return {kwargs.cursor, {}};
 }
 
 //------------------------------------------------------------------------------
 const pair<const OptCursor, const vector<shared_ptr<const Atom>>> InMemoryDB::get_incoming_links_atoms(
     const string& atom_handle, const KwArgs& kwargs) const {
-    const auto& [cursor, links] = this->get_incoming_links_handles(atom_handle, kwargs);
-    vector<shared_ptr<const Atom>> atoms;
-    for (const auto& link_handle : links) {
-        atoms.push_back(this->get_atom(link_handle, kwargs));
+    if (kwargs.handles_only) {
+        throw runtime_error(
+            "'handles_only' is true in kwargs - "
+            "'InMemoryDB::get_incoming_links_handles' should be used instead");
     }
-    return {cursor, move(atoms)};
+    auto it = this->db.incoming_set.find(atom_handle);
+    if (it != this->db.incoming_set.end()) {
+        vector<shared_ptr<const Atom>> atoms;
+        atoms.reserve(it->second.size());
+        for (const auto& link_handle : it->second) {
+            atoms.push_back(this->get_atom(link_handle, kwargs));
+        }
+        return {kwargs.cursor, move(atoms)};
+    }
+    return {kwargs.cursor, {}};
 }
 
 //------------------------------------------------------------------------------
@@ -361,6 +375,7 @@ void InMemoryDB::bulk_insert(const vector<shared_ptr<const Atom>>& documents) {
 const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
     try {
         vector<shared_ptr<const Atom>> atoms;
+        atoms.reserve(this->db.node.size() + this->db.link.size());
         for (const auto& [_, node] : this->db.node) {
             atoms.push_back(node);
         }
@@ -422,6 +437,7 @@ const shared_ptr<const Link> InMemoryDB::_get_and_delete_link(const string& link
 //------------------------------------------------------------------------------
 const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _template) const {
     ListOfAny hash_template;
+    hash_template.reserve(_template.size());
     for (const auto& element : _template) {
         if (auto str = any_cast<string>(&element)) {
             hash_template.push_back(this->_build_named_type_hash_template(*str));
@@ -615,6 +631,7 @@ const Pattern_or_Template_List InMemoryDB::_filter_non_toplevel(
 //------------------------------------------------------------------------------
 const vector<string> InMemoryDB::_build_targets_list(const Link& link) const {
     vector<string> targets;
+    targets.reserve(link.keys.size());
     for (const auto& [_, value] : link.keys) {
         targets.push_back(value);
     }

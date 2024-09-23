@@ -119,28 +119,21 @@ class InMemoryDB : public AtomDB {
     bool is_ordered(const string& link_handle) const override;
 
     const pair<const OptCursor, const StringList> get_incoming_links_handles(
-        const string& atom_handle,
-
-        const KwArgs& kwargs = {}) const override;
+        const string& atom_handle, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const vector<shared_ptr<const Atom>>> get_incoming_links_atoms(
-        const string& atom_handle,
-
-        const KwArgs& kwargs = {}) const override;
+        const string& atom_handle, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_links(
         const string& link_type,
         const StringList& target_handles,
-
         const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type_template(
         const ListOfAny& _template, const KwArgs& kwargs = {}) const override;
 
     const pair<const OptCursor, const Pattern_or_Template_List> get_matched_type(
-        const string& link_type,
-
-        const KwArgs& kwargs = {}) const override;
+        const string& link_type, const KwArgs& kwargs = {}) const override;
 
     const opt<const string> get_atom_type(const string& handle) const override;
 
