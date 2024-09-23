@@ -18,6 +18,9 @@ find_package(Python 3.10 COMPONENTS Interpreter ${DEV_MODULE} REQUIRED)
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+add_library(libmbedcrypto STATIC IMPORTED)
+set_target_properties(libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libmbedcrypto.a)
+
 # Collect header and source files
 file(GLOB_RECURSE headers
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
@@ -37,4 +40,4 @@ find_package(nanobind CONFIG REQUIRED)
 nanobind_add_module(${PROJECT_NAME} MODULE ${sources} ${headers})
 
 # Link OpenSSL libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE mbedcrypto)
+target_link_libraries(${PROJECT_NAME} PRIVATE libmbedcrypto)
