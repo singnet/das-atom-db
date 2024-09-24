@@ -14,7 +14,6 @@ Classes:
 
 Constants:
     WILDCARD: A constant representing a wildcard character.
-    UNORDERED_LINK_TYPES: A list of unordered link types.
 
 Type Aliases:
     IncomingLinksT: A type alias for incoming links.
@@ -31,7 +30,6 @@ from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 WILDCARD = "*"
-UNORDERED_LINK_TYPES: list[Any] = []
 
 # pylint: disable=invalid-name
 
@@ -50,12 +48,6 @@ LinkParamsT: TypeAlias = LinkT
 HandleListT: TypeAlias = list[HandleT]
 
 IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
-
-MatchedTargetsListT: TypeAlias = list[tuple[HandleT, tuple[HandleT, ...]]]
-
-MatchedLinksResultT: TypeAlias = HandleListT | MatchedTargetsListT
-
-MatchedTypesResultT: TypeAlias = MatchedTargetsListT
 
 # pylint: enable=invalid-name
 
@@ -528,18 +520,6 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def is_ordered(self, link_handle: str) -> bool:
-        """
-        Check if a link specified by its handle is ordered.
-
-        Args:
-            link_handle (str): The link handle.
-
-        Returns:
-            bool: True if the link is ordered, False otherwise.
-        """
-
-    @abstractmethod
     def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
         """
         Retrieve incoming links for a specified atom handle.
@@ -553,9 +533,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_matched_links(
-        self, link_type: str, target_handles: list[str], **kwargs
-    ) -> MatchedLinksResultT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
         """
         Retrieve links that match a specified link type and target handles.
 
@@ -566,7 +544,7 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            MatchedLinksResultT: List of matching link handles.
+            HandleListT: List of matching link handles.
         """
 
     @abstractmethod

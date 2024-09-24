@@ -15,22 +15,19 @@ from dataclasses import field as dc_field
 from typing import Any, Iterable
 
 from hyperon_das_atomdb.database import (
-    UNORDERED_LINK_TYPES,
     WILDCARD,
     AtomDB,
     AtomT,
     FieldIndexType,
     FieldNames,
+    HandleListT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
-    MatchedLinksResultT,
-    MatchedTargetsListT,
-    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist, InvalidOperationException
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from hyperon_das_atomdb.utils.patterns import build_pattern_keys
@@ -43,10 +40,10 @@ class Database:
     atom_type: dict[str, Any] = dc_field(default_factory=dict)
     node: dict[str, AtomT] = dc_field(default_factory=dict)
     link: dict[str, AtomT] = dc_field(default_factory=dict)
-    outgoing_set: dict[str, Any] = dc_field(default_factory=dict)
+    outgoing_set: dict[str, set[str]] = dc_field(default_factory=dict)
     incoming_set: dict[str, set[str]] = dc_field(default_factory=dict)
-    patterns: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
-    templates: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
+    patterns: dict[str, set[str]] = dc_field(default_factory=dict)
+    templates: dict[str, set[str]] = dc_field(default_factory=dict)
 
 
 class InMemoryDB(AtomDB):
@@ -225,7 +222,6 @@ class InMemoryDB(AtomDB):
         composite_type_hash: str,
         named_type_hash: str,
         key: str,
-        targets_hash: list[str],
     ) -> None:
         """
         Add templates to the database.
@@ -234,38 +230,36 @@ class InMemoryDB(AtomDB):
             composite_type_hash (str): The hash of the composite type.
             named_type_hash (str): The hash of the named type.
             key (str): The key for the template.
-            targets_hash (list[str]): A list of target hashes to be added to the template.
         """
         template_composite_type_hash = self.db.templates.get(composite_type_hash)
         template_named_type_hash = self.db.templates.get(named_type_hash)
 
         if template_composite_type_hash is not None:
-            template_composite_type_hash.add((key, tuple(targets_hash)))
+            template_composite_type_hash.add(key)
         else:
-            self.db.templates[composite_type_hash] = {(key, tuple(targets_hash))}
+            self.db.templates[composite_type_hash] = {key}
 
         if template_named_type_hash is not None:
-            template_named_type_hash.add((key, tuple(targets_hash)))
+            template_named_type_hash.add(key)
         else:
-            self.db.templates[named_type_hash] = {(key, tuple(targets_hash))}
+            self.db.templates[named_type_hash] = {key}
 
-    def _delete_templates(self, link_document: dict, targets_hash: list[str]) -> None:
+    def _delete_templates(self, link_document: dict) -> None:
         """
         Delete templates from the database.
 
         Args:
             link_document (dict): The document of the link whose templates are to be deleted.
-            targets_hash (list[str]): A list of target hashes associated with the link.
         """
         template_composite_type = self.db.templates.get(
             link_document[FieldNames.COMPOSITE_TYPE_HASH], set()
         )
         if len(template_composite_type) > 0:
-            template_composite_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
+            template_composite_type.remove(link_document[FieldNames.ID_HASH])
 
         template_named_type = self.db.templates.get(link_document[FieldNames.TYPE_NAME_HASH], set())
         if len(template_named_type) > 0:
-            template_named_type.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
+            template_named_type.remove(link_document[FieldNames.ID_HASH])
 
     def _add_patterns(self, named_type_hash: str, key: str, targets_hash: list[str]) -> None:
         """
@@ -282,7 +276,7 @@ class InMemoryDB(AtomDB):
             self.db.patterns.setdefault(
                 pattern_key,
                 set(),
-            ).add((key, tuple(targets_hash)))
+            ).add(key)
 
     def _delete_patterns(self, link_document: dict, targets_hash: list[str]) -> None:
         """
@@ -295,7 +289,7 @@ class InMemoryDB(AtomDB):
         pattern_keys = build_pattern_keys([link_document[FieldNames.TYPE_NAME_HASH], *targets_hash])
         for pattern_key in pattern_keys:
             if pattern := self.db.patterns.get(pattern_key):
-                pattern.remove((link_document[FieldNames.ID_HASH], tuple(targets_hash)))
+                pattern.remove(link_document[FieldNames.ID_HASH])
 
     def _delete_link_and_update_index(self, link_handle: str) -> None:
         """
@@ -307,22 +301,21 @@ class InMemoryDB(AtomDB):
         if link_document := self._get_and_delete_link(link_handle):
             self._update_index(atom=link_document, delete_atom=True)
 
-    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
+    def _filter_non_toplevel(self, matches: HandleListT) -> HandleListT:
         """
         Filter out non-toplevel matches from the provided list.
 
         Args:
-            matches (MatchedTargetsListT): A list of matches, where each match is a tuple
-            containing a link handle and a tuple of target handles.
+            matches (HandleListT): A list of matches
 
         Returns:
-            MatchedTargetsListT: A list of matches that are toplevel only.
+            HandleListT: Filtered matches
         """
         if not self.db.link:
             return matches
         return [
-            (link_handle, matched_targets)
-            for link_handle, matched_targets in matches
+            link_handle
+            for link_handle in matches
             if (link := self.db.link.get(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
         ]
 
@@ -378,9 +371,7 @@ class InMemoryDB(AtomDB):
             self._delete_incoming_set(link_handle, outgoing_atoms)
 
         targets_hash = self._build_targets_list(atom)
-
-        self._delete_templates(atom, targets_hash)
-
+        self._delete_templates(atom)
         self._delete_patterns(atom, targets_hash)
 
     def _add_atom_index(self, atom: AtomT) -> None:
@@ -398,20 +389,14 @@ class InMemoryDB(AtomDB):
         if FieldNames.NODE_NAME not in atom:
             handle = atom[FieldNames.ID_HASH]
             targets_hash = self._build_targets_list(atom)
-            # self._add_atom_type(atom_type_name=atom_type_name)  # see 4 ln above - duplicate?
             self._add_outgoing_set(handle, targets_hash)
             self._add_incoming_set(handle, targets_hash)
             self._add_templates(
                 atom[FieldNames.COMPOSITE_TYPE_HASH],
                 atom[FieldNames.TYPE_NAME_HASH],
                 handle,
-                targets_hash,
             )
-            self._add_patterns(
-                atom[FieldNames.TYPE_NAME_HASH],
-                handle,
-                targets_hash,
-            )
+            self._add_patterns(atom[FieldNames.TYPE_NAME_HASH], handle, targets_hash)
 
     def _update_index(self, atom: AtomT, **kwargs) -> None:
         """
@@ -536,22 +521,7 @@ class InMemoryDB(AtomDB):
             details=f"link_handle: {link_handle}",
         )
 
-    def is_ordered(self, link_handle: str) -> bool:
-        link = self._get_link(link_handle)
-        if link is not None:
-            return True
-        logger().error(
-            f"Failed to retrieve document for link handle: {link_handle}. "
-            f"The link may not exist."
-        )
-        raise AtomDoesNotExist(
-            message="Nonexistent atom",
-            details=f"link_handle: {link_handle}",
-        )
-
-    def get_matched_links(
-        self, link_type: str, target_handles: list[str], **kwargs
-    ) -> MatchedLinksResultT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 answer = [self.get_link_handle(link_type, target_handles)]
@@ -562,16 +532,6 @@ class InMemoryDB(AtomDB):
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
         )
-        # NOTE unreachable
-        if link_type in UNORDERED_LINK_TYPES:  # pragma: no cover
-            logger().error(
-                "Failed to get matched links: Queries with unordered links are not implemented. "
-                f"link_type: {link_type}"
-            )
-            raise InvalidOperationException(
-                message="Queries with unordered links are not implemented",
-                details=f"link_type: {link_type}",
-            )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
@@ -588,7 +548,7 @@ class InMemoryDB(AtomDB):
             return list(links)
         return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
         templates_matched = list(self.db.templates.get(template_hash, set()))
@@ -596,7 +556,7 @@ class InMemoryDB(AtomDB):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = list(self.db.templates.get(link_type_hash, set()))
         if kwargs.get("toplevel_only", False):

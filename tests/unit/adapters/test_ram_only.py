@@ -277,20 +277,6 @@ class TestInMemoryDB:
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
-    def test_is_ordered_true(self, database: InMemoryDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        handle = database.get_link_handle("Inheritance", [human, mammal])
-        ret = database.is_ordered(handle)
-        assert ret is True
-
-    def test_is_ordered_false(self, database: InMemoryDB):
-        with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.is_ordered("handle_123")
-
-        assert exc_info.type is AtomDoesNotExist
-        assert exc_info.value.args[0] == "Nonexistent atom"
-
     def test_get_matched_links_without_wildcard(self, database):
         link_type = "Similarity"
         human = ExpressionHasher.terminal_hash("Concept", "human")
@@ -304,44 +290,16 @@ class TestInMemoryDB:
     def test_get_matched_links_link_equal_wildcard(self, database: InMemoryDB):
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = [
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            )
+        assert database.get_matched_links("*", [human, chimp]) == [
+            "b5459e299a5c5e8662c427f7e01b3bf1"
         ]
-        actual = database.get_matched_links("*", [human, chimp])
-
-        assert expected == actual
 
     def test_get_matched_links_link_diff_wildcard(self, database: InMemoryDB):
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = sorted(
-            [
-                (
-                    "b5459e299a5c5e8662c427f7e01b3bf1",
-                    (
-                        "af12f10f9ae2002a1607ba0b47ba8407",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
-                ),
-                (
-                    "31535ddf214f5b239d3b517823cb8144",
-                    (
-                        "1cdffc6b0b89ff41d68bec237481d1e1",
-                        "5b34c54bee150c04f9fa584b899dc030",
-                    ),
-                ),
-            ],
-            key=lambda i: i[0],
-        )
-
+        expected = ["b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"]
         actual = database.get_matched_links(link_type, ["*", chimp])
-        assert expected == sorted(actual, key=lambda i: i[0])
+        assert sorted(expected) == sorted(actual)
 
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = "Similarity-Fake"
@@ -379,19 +337,10 @@ class TestInMemoryDB:
                 ],
             }
         )
-        expected = [
-            (
-                "661fb5a7c90faabfeada7e1f63805fc0",
-                (
-                    "a912032ece1826e55fa583dcaacdc4a9",
-                    "260e118be658feeeb612dcd56d270d77",
-                ),
-            )
-        ]
+        expected = ["661fb5a7c90faabfeada7e1f63805fc0"]
         actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
 
         assert expected == actual
-        assert len(actual) == 1
 
     def test_get_matched_links_wrong_parameter(self, database: InMemoryDB):
         database.add_link(
@@ -816,48 +765,48 @@ class TestInMemoryDB:
         }
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
             "e40489cd1e7102e35469c937e05c8bba": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
         }
         assert db.db.patterns == {
             "6e644e70a9fe3145c88b5b6261af5754": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
             "5dd515aa7a451276feac4f8b9d84ae91": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
             "a11d7cbf62bc544f75702b5fb6a514ff": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "f29daafee640d91aa7091e44551fc74a": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "7ead6cfa03894c62761162b7603aa885": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
             "112002ff70ea491aad735f978e9d95f5": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
+                inheritance_dog_mammal_handle,
             },
             "3ba42d45a50c89600d92fb3f1a46c1b5": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "e55007a8477a4e6bf4fec76e4ffd7e10": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "23dc149b3218d166a14730db55249126": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "399751d7319f9061d97cd1d75728b66b": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
         }
 
@@ -958,36 +907,36 @@ class TestInMemoryDB:
         assert db.db.outgoing_set == {inheritance_dog_mammal_handle: [dog_handle, mammal_handle]}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "e40489cd1e7102e35469c937e05c8bba": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
         }
         assert db.db.patterns == {
             "6e644e70a9fe3145c88b5b6261af5754": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "5dd515aa7a451276feac4f8b9d84ae91": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "a11d7cbf62bc544f75702b5fb6a514ff": set(),
             "f29daafee640d91aa7091e44551fc74a": set(),
             "7ead6cfa03894c62761162b7603aa885": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "3ba42d45a50c89600d92fb3f1a46c1b5": set(),
             "112002ff70ea491aad735f978e9d95f5": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "e55007a8477a4e6bf4fec76e4ffd7e10": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "23dc149b3218d166a14730db55249126": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
             "399751d7319f9061d97cd1d75728b66b": {
-                (inheritance_dog_mammal_handle, (dog_handle, mammal_handle))
+                inheritance_dog_mammal_handle,
             },
         }
 
@@ -1010,33 +959,33 @@ class TestInMemoryDB:
         assert db.db.outgoing_set == {inheritance_cat_mammal_handle: [cat_handle, mammal_handle]}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                inheritance_cat_mammal_handle,
             },
             "e40489cd1e7102e35469c937e05c8bba": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle))
+                inheritance_cat_mammal_handle,
             },
         }
         assert db.db.patterns == {
             "6e644e70a9fe3145c88b5b6261af5754": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "5dd515aa7a451276feac4f8b9d84ae91": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "a11d7cbf62bc544f75702b5fb6a514ff": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "f29daafee640d91aa7091e44551fc74a": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "7ead6cfa03894c62761162b7603aa885": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "112002ff70ea491aad735f978e9d95f5": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "3ba42d45a50c89600d92fb3f1a46c1b5": {
-                (inheritance_cat_mammal_handle, (cat_handle, mammal_handle)),
+                inheritance_cat_mammal_handle,
             },
             "e55007a8477a4e6bf4fec76e4ffd7e10": set(),
             "23dc149b3218d166a14730db55249126": set(),
@@ -1128,86 +1077,32 @@ class TestInMemoryDB:
         }
 
         assert db.db.patterns["6e644e70a9fe3145c88b5b6261af5754"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["dab80dcb22dc4b246e3f8642a4e99449"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["957e33112374129ee9a7afacc702fe33"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["7fc3951816751ca77e6e14efecff2529"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["c48b5236102ae75ba3e71729a6bfa2e5"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["699ac93da51eeb8d573f9a20d7e81010"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.patterns["7d277b5039fb500cbf51806d06dbdc78"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
 
         assert db.db.templates["4c201422342d157b2dded43181e7782d"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
         assert db.db.templates["a9dea78180588431ec64d6bc4872fdbc"] == {
-            (
-                "4a7f5140c0017fe270c8693605fd000a",
-                (
-                    "167a378d17b1eda5587292814c8d0769",
-                    "e24c839b9ffaf295c5d9be05171cf5d1",
-                ),
-            )
+            "4a7f5140c0017fe270c8693605fd000a",
         }
 
     def test_bulk_insert(self):
