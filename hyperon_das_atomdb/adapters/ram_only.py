@@ -40,10 +40,10 @@ class Database:
     atom_type: dict[str, Any] = dc_field(default_factory=dict)
     node: dict[str, AtomT] = dc_field(default_factory=dict)
     link: dict[str, AtomT] = dc_field(default_factory=dict)
-    outgoing_set: dict[str, Any] = dc_field(default_factory=dict)
+    outgoing_set: dict[str, set[str]] = dc_field(default_factory=dict)
     incoming_set: dict[str, set[str]] = dc_field(default_factory=dict)
-    patterns: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
-    templates: dict[str, set[tuple[str, tuple[str, ...]]]] = dc_field(default_factory=dict)
+    patterns: dict[str, set[str] = dc_field(default_factory=dict)
+    templates: dict[str, set[str] = dc_field(default_factory=dict)
 
 
 class InMemoryDB(AtomDB):
