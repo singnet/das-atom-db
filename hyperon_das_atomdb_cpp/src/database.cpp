@@ -45,7 +45,7 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
     if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
         auto targets_documents = kwargs.targets_documents;
         auto deep_representation = kwargs.deep_representation;
-        if (targets_documents || deep_representation) {
+        if (targets_documents or deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents = vector<shared_ptr<const Atom>>();
             link_copy->targets_documents->reserve(link->targets.size());
@@ -66,7 +66,7 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
 shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     const auto& node_type = node_params.type;
     const auto& node_name = node_params.name;
-    if (node_type.empty() || node_name.empty()) {
+    if (node_type.empty() or node_name.empty()) {
         // TODO: log error ???
         throw invalid_argument("'type' and 'name' are required.");
     }
@@ -84,7 +84,7 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
 shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) {
     const auto& link_type = link_params.type;
     const auto& targets = link_params.targets;
-    if (link_type.empty() || targets.empty()) {
+    if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
         throw invalid_argument("'type' and 'targets' are required.");
     }
@@ -95,13 +95,13 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
     string atom_hash;
     string atom_handle;
     for (const auto& target : targets) {
-        if (LinkParams::is_node(target)) {
-            auto node = this->add_node(LinkParams::as_node(target));
+        if (auto node_params = get_if<NodeParams>(&target)) {
+            auto node = this->add_node(*node_params);
             atom_handle = node->id;
             atom_hash = node->composite_type_hash;
             composite_type_list.push_back(atom_hash);
-        } else if (LinkParams::is_link(target)) {
-            auto link = this->add_link(LinkParams::as_link(target), false);
+        } else if (auto link_params = get_if<LinkParams>(&target)) {
+            auto link = this->add_link(*link_params, false);
             atom_handle = link->id;
             atom_hash = link->composite_type_hash;
             composite_type_list.push_back(link->composite_type);

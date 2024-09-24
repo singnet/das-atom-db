@@ -77,7 +77,7 @@ class InMemoryDB : public AtomDB {
     const StringList get_atoms_by_field(
         const vector<unordered_map<string, string>>& query) const override;
 
-    const pair<const OptCursor, const AtomList> get_atoms_by_index(
+    const pair<const int, const AtomList> get_atoms_by_index(
         const string& index_id,
         const vector<unordered_map<string, string>>& query,
         int cursor = 0,
@@ -101,8 +101,6 @@ class InMemoryDB : public AtomDB {
     const string get_link_type(const string& link_handle) const override;
 
     const StringUnorderedSet get_link_targets(const string& link_handle) const override;
-
-    bool is_ordered(const string& link_handle) const override;
 
     const StringList get_incoming_links_handles(const string& atom_handle,
                                                 const KwArgs& kwargs = {}) const override;

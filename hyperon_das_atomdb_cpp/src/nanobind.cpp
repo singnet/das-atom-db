@@ -109,7 +109,6 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("get_link_handle", &AtomDB::get_link_handle)
         .def("get_link_type", &AtomDB::get_link_type)
         .def("get_link_targets", &AtomDB::get_link_targets)
-        .def("is_ordered", &AtomDB::is_ordered)
         .def(
             "get_incoming_links_handles",
             [](InMemoryDB& self,
@@ -247,8 +246,6 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
         .def("add_target",
-             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); })
-        .def_static("is_node", &LinkParams::is_node)
-        .def_static("is_link", &LinkParams::is_link);
+             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); });
     // ---------------------------------------------------------------------------------------------
 }

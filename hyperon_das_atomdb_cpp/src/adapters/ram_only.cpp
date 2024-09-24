@@ -43,7 +43,7 @@ const StringList InMemoryDB::get_node_by_name(const string& node_type, const str
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
     for (const auto& [key, node] : this->db.node) {
-        if (node->name.find(substring) != string::npos && node_type_hash == node->composite_type_hash) {
+        if (node->name.find(substring) != string::npos and node_type_hash == node->composite_type_hash) {
             node_handles.push_back(key);
         }
     }
@@ -57,10 +57,10 @@ const StringList InMemoryDB::get_atoms_by_field(
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const AtomList> InMemoryDB::get_atoms_by_index(
+const pair<const int, const AtomList> InMemoryDB::get_atoms_by_index(
     const string& index_id,
     const vector<unordered_map<string, string>>& query,
-    int curso,
+    int cursor,
     int chunk_size) const {
     throw runtime_error("Not implemented");
 }
@@ -146,14 +146,6 @@ const StringUnorderedSet InMemoryDB::get_link_targets(const string& link_handle)
 }
 
 //------------------------------------------------------------------------------
-bool InMemoryDB::is_ordered(const string& link_handle) const {
-    if (this->_get_link(link_handle)) {
-        return true;
-    }
-    throw AtomDoesNotExist("Nonexistent atom", "link_handle: " + link_handle);
-}
-
-//------------------------------------------------------------------------------
 const StringList InMemoryDB::get_incoming_links_handles(const string& atom_handle,
                                                         const KwArgs& kwargs) const {
     if (not kwargs.handles_only) {
@@ -192,7 +184,7 @@ const vector<shared_ptr<const Atom>> InMemoryDB::get_incoming_links_atoms(const 
 const StringUnorderedSet InMemoryDB::get_matched_links(const string& link_type,
                                                        const StringList& target_handles,
                                                        const KwArgs& kwargs) const {
-    if (link_type != WILDCARD &&
+    if (link_type != WILDCARD and
         find(target_handles.begin(), target_handles.end(), WILDCARD) == target_handles.end()) {
         try {
             return {this->get_link_handle(link_type, target_handles)};

@@ -118,7 +118,7 @@ class AtomDB {
      *         used for pagination or further retrieval operations, and the list contains the
      *         retrieved atoms.
      */
-    virtual const pair<const OptCursor, const AtomList> get_atoms_by_index(
+    virtual const pair<const int, const AtomList> get_atoms_by_index(
         const string& index_id,
         const vector<unordered_map<string, string>>& query,
         int cursor = 0,
@@ -183,13 +183,6 @@ class AtomDB {
      * @return A list of target identifiers of the link.
      */
     virtual const StringUnorderedSet get_link_targets(const string& link_handle) const = 0;
-
-    /**
-     * @brief Check if a link specified by its handle is ordered.
-     * @param link_handle The link handle.
-     * @return True if the link is ordered, False otherwise.
-     */
-    virtual bool is_ordered(const string& link_handle) const = 0;
 
     /**
      * @brief Retrieves incoming link handles for the specified atom.
