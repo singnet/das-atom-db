@@ -42,8 +42,8 @@ class Database:
     link: dict[str, AtomT] = dc_field(default_factory=dict)
     outgoing_set: dict[str, set[str]] = dc_field(default_factory=dict)
     incoming_set: dict[str, set[str]] = dc_field(default_factory=dict)
-    patterns: dict[str, set[str] = dc_field(default_factory=dict)
-    templates: dict[str, set[str] = dc_field(default_factory=dict)
+    patterns: dict[str, set[str]] = dc_field(default_factory=dict)
+    templates: dict[str, set[str]] = dc_field(default_factory=dict)
 
 
 class InMemoryDB(AtomDB):
