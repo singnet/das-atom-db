@@ -12,8 +12,6 @@ struct KwArgs {
     bool deep_representation = false;
     bool toplevel_only = false;
     bool handles_only = false;
-    OptCursor cursor = nullopt;
-    int chunk_size = 500;
 };
 
 struct NodeParams {

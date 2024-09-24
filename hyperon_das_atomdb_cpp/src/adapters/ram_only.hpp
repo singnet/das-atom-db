@@ -92,8 +92,7 @@ class InMemoryDB : public AtomDB {
 
     const StringList get_all_nodes(const string& node_type, bool names = false) const override;
 
-    const pair<const OptCursor, const StringList> get_all_links(
-        const string& link_type, const KwArgs& kwargs = {}) const override;
+    const pair<const int, const StringList> get_all_links(const string& link_type) const override;
 
     const string get_link_handle(const string& link_type,
                                  const StringList& target_handles) const override;

@@ -94,18 +94,9 @@ NB_MODULE(hyperon_das_atomdb, m) {
              "text_index_id"_a = "")
         .def("get_node_by_name_starting_with", &AtomDB::get_node_by_name_starting_with)
         .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
-        .def(
-            "get_all_links",
-            [](InMemoryDB& self,
-               const string& link_type,
-               const OptCursor cursor = nullopt,
-               const nb::kwargs& _ = {}) -> const pair<const OptCursor, const StringList> {
-                return self.get_all_links(link_type, {cursor : cursor});
-            },
-            "link_type"_a,
-            nb::kw_only(),
-            "cursor"_a = nullopt,
-            "_"_a = nb::kwargs())
+        .def("get_all_links",
+             [](InMemoryDB& self, const string& link_type, const nb::kwargs& _ = {})
+                 -> const pair<const int, const StringList> { return self.get_all_links(link_type); })
         .def("get_link_handle", &AtomDB::get_link_handle)
         .def("get_link_type", &AtomDB::get_link_type)
         .def("get_link_targets", &AtomDB::get_link_targets)

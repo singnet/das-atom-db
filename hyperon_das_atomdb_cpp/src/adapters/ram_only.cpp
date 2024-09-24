@@ -99,15 +99,14 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
 }
 
 //------------------------------------------------------------------------------
-const pair<const OptCursor, const StringList> InMemoryDB::get_all_links(const string& link_type,
-                                                                        const KwArgs& kwargs) const {
+const pair<const int, const StringList> InMemoryDB::get_all_links(const string& link_type) const {
     StringList link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
             link_handles.push_back(link->id);
         }
     }
-    return {kwargs.cursor, move(link_handles)};
+    return {0, move(link_handles)};
 }
 
 //------------------------------------------------------------------------------

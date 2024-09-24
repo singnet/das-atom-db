@@ -158,8 +158,7 @@ class AtomDB {
      * @param params An optional Params object containing additional retrieval options.
      * @return A pair containing an optional cursor and a list of strings representing the links.
      */
-    virtual const pair<const OptCursor, const StringList> get_all_links(
-        const string& link_type, const KwArgs& kwargs = {}) const = 0;
+    virtual const pair<const int, const StringList> get_all_links(const string& link_type) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.

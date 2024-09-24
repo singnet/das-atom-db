@@ -19,8 +19,6 @@ using uchar = unsigned char;
 template <typename T>
 using opt = optional<T>;
 
-using OptCursor = opt<int>;
-
 using StringSet = set<string>;
 using StringList = vector<string>;
 using StringUnorderedSet = unordered_set<string>;
