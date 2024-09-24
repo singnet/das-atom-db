@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
@@ -704,9 +705,7 @@ class TestDatabase:
     def test__get_atom_none(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node = db._get_atom("handle")
-        link = db._get_atom("handle")
         assert node is None
-        assert link is None
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_type(self, database, request):
@@ -738,18 +737,10 @@ class TestDatabase:
         assert isinstance(atom_link, dict)
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_atom_as_dict_none(self, database, request):
-        if database == "in_memory_db":
-            # TODO: fix this
-            pytest.skip(
-                "ERROR in_memory raises exception, they should return the same result/exception. "
-                "See https://github.com/singnet/das-atom-db/issues/210"
-            )
+    def test_get_atom_as_dict_exception(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        atom_node = db.get_atom_as_dict("handle")
-        atom_link = db.get_atom_as_dict("handle")
-        assert atom_node is None
-        assert atom_link is None
+        with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
+            db.get_atom_as_dict("handle")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_as_dict_exceptions(self, database, request):

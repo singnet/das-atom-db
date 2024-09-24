@@ -180,7 +180,7 @@ class InMemoryDB(AtomDB):
             key (str): The key for the outgoing set.
             targets_hash (list[str]): A list of target hashes to be added to the outgoing set.
         """
-        self.db.outgoing_set[key] = targets_hash
+        self.db.outgoing_set[key] = set(targets_hash)
 
     def _get_and_delete_outgoing_set(self, handle: str) -> list[str] | None:
         """
@@ -192,7 +192,7 @@ class InMemoryDB(AtomDB):
         Returns:
             list[str] | None: The outgoing set if found and deleted, otherwise None.
         """
-        return self.db.outgoing_set.pop(handle, None)
+        return list(self.db.outgoing_set.pop(handle)) if handle in self.db.outgoing_set else None
 
     def _add_incoming_set(self, key: str, targets_hash: list[str]) -> None:
         """
@@ -512,7 +512,7 @@ class InMemoryDB(AtomDB):
     def get_link_targets(self, link_handle: str) -> list[str]:
         answer = self.db.outgoing_set.get(link_handle)
         if answer is not None:
-            return answer
+            return list(answer)
         logger().error(
             f"Failed to retrieve link targets for {link_handle}. This link may not exist."
         )
@@ -639,8 +639,11 @@ class InMemoryDB(AtomDB):
         self._update_index(node)
         return node
 
-    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT:
-        handle, link, _ = self._build_link(link_params, toplevel)
+    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+        r = self._build_link(link_params, toplevel)
+        if r is None:
+            return None
+        handle, link, _ = r
         self.db.link[handle] = link
         self._update_index(link)
         return link

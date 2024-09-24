@@ -251,10 +251,14 @@ class AtomDB(ABC):
                 raise ValueError("The target must be a dictionary")
             if "targets" not in target:
                 atom = self.add_node(target)
+                if atom is None:
+                    return None
                 atom_hash = atom["composite_type_hash"]
                 composite_type.append(atom_hash)
             else:
                 atom = self.add_link(target, toplevel=False)
+                if atom is None:
+                    return None
                 atom_hash = atom["composite_type_hash"]
                 composite_type.append(atom["composite_type"])
             composite_type_hash.append(atom_hash)

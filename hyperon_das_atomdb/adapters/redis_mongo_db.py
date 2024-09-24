@@ -719,7 +719,10 @@ class RedisMongoDB(AtomDB):
         return document[FieldNames.TYPE_NAME]
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        return self.get_atom_as_dict(handle)
+        try:
+            return self.get_atom_as_dict(handle)
+        except AtomDoesNotExist:
+            return None
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
@@ -737,8 +740,11 @@ class RedisMongoDB(AtomDB):
             else:
                 document["name"] = document["name"]
             return document
-        else:
-            return None
+        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
+        raise AtomDoesNotExist(
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
+        )
 
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()
