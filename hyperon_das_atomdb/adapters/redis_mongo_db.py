@@ -879,7 +879,7 @@ class RedisMongoDB(AtomDB):
             HandleSetT: Set of members for the given key
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        return set(self._get_redis_members(key, **kwargs))
+        return self._get_redis_members(key, **kwargs)
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
