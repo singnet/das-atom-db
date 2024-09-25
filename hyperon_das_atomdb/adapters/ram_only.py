@@ -40,7 +40,7 @@ class Database:
     atom_type: dict[str, Any] = dc_field(default_factory=dict)
     node: dict[str, AtomT] = dc_field(default_factory=dict)
     link: dict[str, AtomT] = dc_field(default_factory=dict)
-    outgoing_set: dict[str, set[str]] = dc_field(default_factory=dict)
+    outgoing_set: dict[str, list[str]] = dc_field(default_factory=dict)
     incoming_set: dict[str, set[str]] = dc_field(default_factory=dict)
     patterns: dict[str, set[str]] = dc_field(default_factory=dict)
     templates: dict[str, set[str]] = dc_field(default_factory=dict)
@@ -180,7 +180,7 @@ class InMemoryDB(AtomDB):
             key (str): The key for the outgoing set.
             targets_hash (list[str]): A list of target hashes to be added to the outgoing set.
         """
-        self.db.outgoing_set[key] = set(targets_hash)
+        self.db.outgoing_set[key] = targets_hash
 
     def _get_and_delete_outgoing_set(self, handle: str) -> list[str] | None:
         """
@@ -192,7 +192,7 @@ class InMemoryDB(AtomDB):
         Returns:
             list[str] | None: The outgoing set if found and deleted, otherwise None.
         """
-        return list(self.db.outgoing_set.pop(handle)) if handle in self.db.outgoing_set else None
+        return self.db.outgoing_set.pop(handle, None)
 
     def _add_incoming_set(self, key: str, targets_hash: list[str]) -> None:
         """
