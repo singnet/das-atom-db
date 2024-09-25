@@ -760,8 +760,8 @@ class TestInMemoryDB:
             },
         }
         assert db.db.outgoing_set == {
-            inheritance_dog_mammal_handle: [dog_handle, mammal_handle],
-            inheritance_cat_mammal_handle: [cat_handle, mammal_handle],
+            inheritance_dog_mammal_handle: {dog_handle, mammal_handle},
+            inheritance_cat_mammal_handle: {cat_handle, mammal_handle},
         }
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
@@ -904,7 +904,7 @@ class TestInMemoryDB:
             dog_handle: {inheritance_dog_mammal_handle},
             mammal_handle: {inheritance_dog_mammal_handle},
         }
-        assert db.db.outgoing_set == {inheritance_dog_mammal_handle: [dog_handle, mammal_handle]}
+        assert db.db.outgoing_set == {inheritance_dog_mammal_handle: {dog_handle, mammal_handle}}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
                 inheritance_dog_mammal_handle,
@@ -956,7 +956,7 @@ class TestInMemoryDB:
             cat_handle: {inheritance_cat_mammal_handle},
             mammal_handle: {inheritance_cat_mammal_handle},
         }
-        assert db.db.outgoing_set == {inheritance_cat_mammal_handle: [cat_handle, mammal_handle]}
+        assert db.db.outgoing_set == {inheritance_cat_mammal_handle: {cat_handle, mammal_handle}}
         assert db.db.templates == {
             "41c082428b28d7e9ea96160f7fd614ad": {
                 inheritance_cat_mammal_handle,
