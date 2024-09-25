@@ -20,7 +20,7 @@ from hyperon_das_atomdb.database import (
     AtomT,
     FieldIndexType,
     FieldNames,
-    HandleListT,
+    HandleSetT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
@@ -182,7 +182,7 @@ class InMemoryDB(AtomDB):
         """
         self.db.outgoing_set[key] = targets_hash
 
-    def _get_and_delete_outgoing_set(self, handle: str) -> set[str] | None:
+    def _get_and_delete_outgoing_set(self, handle: str) -> list[str] | None:
         """
         Retrieve and delete an outgoing set from the database by its handle.
 
@@ -301,23 +301,23 @@ class InMemoryDB(AtomDB):
         if link_document := self._get_and_delete_link(link_handle):
             self._update_index(atom=link_document, delete_atom=True)
 
-    def _filter_non_toplevel(self, matches: HandleListT) -> HandleListT:
+    def _filter_non_toplevel(self, matches: HandleSetT) -> HandleSetT:
         """
         Filter out non-toplevel matches from the provided list.
 
         Args:
-            matches (HandleListT): A list of matches
+            matches (HandleSetT): A set of matches
 
         Returns:
-            HandleListT: Filtered matches
+            HandleSetT: Filtered matches
         """
         if not self.db.link:
             return matches
-        return [
+        return {
             link_handle
             for link_handle in matches
             if (link := self.db.link.get(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
-        ]
+        }
 
     @staticmethod
     def _build_targets_list(link: dict[str, Any]) -> list[str]:
@@ -521,13 +521,12 @@ class InMemoryDB(AtomDB):
             details=f"link_handle: {link_handle}",
         )
 
-    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleSetT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
-                answer = [self.get_link_handle(link_type, target_handles)]
+                return {self.get_link_handle(link_type, target_handles)}
             except AtomDoesNotExist:
-                answer = []
-            return answer
+                return set()
 
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
@@ -535,7 +534,7 @@ class InMemoryDB(AtomDB):
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
 
-        patterns_matched = list(pattern) if (pattern := self.db.patterns.get(pattern_hash)) else []
+        patterns_matched = self.db.patterns.get(pattern_hash, set())
 
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
@@ -548,17 +547,17 @@ class InMemoryDB(AtomDB):
             return list(links)
         return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         hash_base = self._build_named_type_hash_template(template)
         template_hash = ExpressionHasher.composite_hash(hash_base)
-        templates_matched = list(self.db.templates.get(template_hash, set()))
+        templates_matched = self.db.templates.get(template_hash, set())
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched
 
-    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
-        templates_matched = list(self.db.templates.get(link_type_hash, set()))
+        templates_matched = self.db.templates.get(link_type_hash, set())
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(templates_matched)
         return templates_matched

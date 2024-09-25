@@ -28,7 +28,7 @@ from hyperon_das_atomdb.database import (
     AtomT,
     FieldIndexType,
     FieldNames,
-    HandleListT,
+    HandleSetT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
@@ -487,7 +487,7 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(self, matches: HandleListT) -> HandleListT:
+    def _filter_non_toplevel(self, matches: HandleSetT) -> HandleSetT:
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -496,16 +496,16 @@ class RedisMongoDB(AtomDB):
         are included in the returned list.
 
         Args:
-            matches (HandleListT): A list of link handles to be filtered.
+            matches (HandleSetT): A set of link handles to be filtered.
 
         Returns:
-            HandleListT: A list of handles corresponding to toplevel links.
+            HandleSetT: A set of handles corresponding to toplevel links.
         """
-        return [
+        return {
             link_handle
             for link_handle in matches
             if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
-        ]
+        }
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
@@ -660,13 +660,13 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return answer
 
-    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleSetT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                return [link_handle]
+                return {link_handle}
             except AtomDoesNotExist:
-                return []
+                return set()
 
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
@@ -685,11 +685,11 @@ class RedisMongoDB(AtomDB):
         links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
         if kwargs.get("handles_only", False):
-            return links
+            return list(links)
         else:
             return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         try:
             hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
@@ -704,7 +704,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Failed to get matched type template - Details: {str(exception)}")
             raise ValueError(str(exception))
 
-    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self._retrieve_hash_targets_value(
             KeyPrefix.TEMPLATES, named_type_hash, **kwargs
@@ -864,7 +864,7 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
-    def _retrieve_incoming_set(self, handle: str, **kwargs) -> HandleListT:
+    def _retrieve_incoming_set(self, handle: str, **kwargs) -> HandleSetT:
         """
         Retrieve the incoming set for the given handle from Redis.
 
@@ -876,10 +876,10 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            HandleListT: List of members for the given key
+            HandleSetT: Set of members for the given key
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        return list(self._get_redis_members(key, **kwargs))
+        return set(self._get_redis_members(key, **kwargs))
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
@@ -968,7 +968,7 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> HandleListT:
+    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> HandleSetT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -983,10 +983,10 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments
 
         Returns:
-            HandleListT: List of members in the hash targets value.
+            HandleSetT: Set of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        return list(self._get_redis_members(key, **kwargs))
+        return self._get_redis_members(key, **kwargs)
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
@@ -1046,7 +1046,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Unexpected error retrieving custom index with ID {index_id}: {e}")
             raise e
 
-    def _get_redis_members(self, key: str, **kwargs) -> HandleListT:
+    def _get_redis_members(self, key: str, **kwargs) -> HandleSetT:
         """
         Retrieve members from a Redis set.
 
@@ -1054,9 +1054,9 @@ class RedisMongoDB(AtomDB):
             key (str): The key of the set in Redis.
 
         Returns:
-            HandleListT: List of members retrieved from Redis.
+            HandleSetT: Set of members retrieved from Redis.
         """
-        return list(self.redis.smembers(key))  # type: ignore
+        return set(self.redis.smembers(key))  # type: ignore
 
     def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
         """

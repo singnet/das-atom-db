@@ -47,6 +47,8 @@ LinkParamsT: TypeAlias = LinkT
 
 HandleListT: TypeAlias = list[HandleT]
 
+HandleSetT: TypeAlias = set[HandleT]
+
 IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
 
 # pylint: enable=invalid-name
@@ -537,7 +539,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
+    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleSetT:
         """
         Retrieve links that match a specified link type and target handles.
 
@@ -548,11 +550,11 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         """
         Retrieve links that match a specified type template.
 
@@ -562,11 +564,11 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         """
         Retrieve links that match a specified link type.
 
@@ -576,7 +578,7 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     def get_atom(self, handle: str, **kwargs) -> AtomT:
