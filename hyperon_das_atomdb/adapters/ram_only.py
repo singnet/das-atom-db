@@ -190,7 +190,7 @@ class InMemoryDB(AtomDB):
             handle (str): The handle of the outgoing set to retrieve and delete.
 
         Returns:
-            set[str] | None: The outgoing set if found and deleted, otherwise None.
+            List[str] | None: The outgoing list if found and deleted, otherwise None.
         """
         return self.db.outgoing_set.pop(handle, None)
 
