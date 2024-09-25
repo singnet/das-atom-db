@@ -182,7 +182,7 @@ class InMemoryDB(AtomDB):
         """
         self.db.outgoing_set[key] = set(targets_hash)
 
-    def _get_and_delete_outgoing_set(self, handle: str) -> list[str] | None:
+    def _get_and_delete_outgoing_set(self, handle: str) -> set[str] | None:
         """
         Retrieve and delete an outgoing set from the database by its handle.
 
@@ -190,9 +190,9 @@ class InMemoryDB(AtomDB):
             handle (str): The handle of the outgoing set to retrieve and delete.
 
         Returns:
-            list[str] | None: The outgoing set if found and deleted, otherwise None.
+            set[str] | None: The outgoing set if found and deleted, otherwise None.
         """
-        return list(self.db.outgoing_set.pop(handle)) if handle in self.db.outgoing_set else None
+        return self.db.outgoing_set.pop(handle, None)
 
     def _add_incoming_set(self, key: str, targets_hash: list[str]) -> None:
         """
@@ -205,13 +205,13 @@ class InMemoryDB(AtomDB):
         for target_hash in targets_hash:
             self.db.incoming_set.setdefault(target_hash, set()).add(key)
 
-    def _delete_incoming_set(self, link_handle: str, atoms_handle: list[str]) -> None:
+    def _delete_incoming_set(self, link_handle: str, atoms_handle: Iterable[str]) -> None:
         """
         Delete an incoming set from the database.
 
         Args:
             link_handle (str): The handle of the link to delete.
-            atoms_handle (list[str]): A list of atom handles associated with the link.
+            atoms_handle (Iterable[str]): A Iterable of atom handles associated with the link.
         """
         for atom_handle in atoms_handle:
             if handles := self.db.incoming_set.get(atom_handle):
@@ -320,7 +320,7 @@ class InMemoryDB(AtomDB):
         ]
 
     @staticmethod
-    def _build_targets_list(link: dict[str, Any]) -> list[Any]:
+    def _build_targets_list(link: dict[str, Any]) -> list[str]:
         """
         Build a list of target handles from the given link document.
 
@@ -509,10 +509,10 @@ class InMemoryDB(AtomDB):
             details=f"link_handle: {link_handle}",
         )
 
-    def get_link_targets(self, link_handle: str) -> list[str]:
+    def get_link_targets(self, link_handle: str) -> set[str]:
         answer = self.db.outgoing_set.get(link_handle)
         if answer is not None:
-            return list(answer)
+            return answer
         logger().error(
             f"Failed to retrieve link targets for {link_handle}. This link may not exist."
         )

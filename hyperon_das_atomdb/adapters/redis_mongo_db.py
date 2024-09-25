@@ -650,7 +650,7 @@ class RedisMongoDB(AtomDB):
                 details=f"{link_type}:{target_handles}",
             )
 
-    def get_link_targets(self, link_handle: str) -> list[str]:
+    def get_link_targets(self, link_handle: str) -> set[str]:
         answer = self._retrieve_outgoing_set(link_handle)
         if not answer:
             logger().error(
@@ -918,7 +918,7 @@ class RedisMongoDB(AtomDB):
         self.redis.delete(key)
         return data
 
-    def _retrieve_outgoing_set(self, handle: str, delete: bool = False) -> list[str]:
+    def _retrieve_outgoing_set(self, handle: str, delete: bool = False) -> set[str]:
         """
         Retrieve the outgoing set for the given handle from Redis.
 
@@ -932,7 +932,7 @@ class RedisMongoDB(AtomDB):
                 Defaults to False.
 
         Returns:
-            list[str]: A list of members in the outgoing set.
+            set[str]: A set of members in the outgoing set.
         """
         key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
         value: str
@@ -941,12 +941,12 @@ class RedisMongoDB(AtomDB):
         else:
             value = self.redis.get(key)  # type: ignore
         if value is None:
-            return []
+            return set()
         arity = len(value) // self.hash_length
-        return [
+        return {
             value[(offset * self.hash_length) : ((offset + 1) * self.hash_length)]  # noqa: E203
             for offset in range(arity)
-        ]
+        }
 
     def _retrieve_name(self, handle: str) -> str | None:
         """

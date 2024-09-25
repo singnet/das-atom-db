@@ -512,7 +512,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_link_targets(self, link_handle: str) -> list[str]:
+    def get_link_targets(self, link_handle: str) -> set[str]:
         """
         Get the target handles of a link specified by its handle.
 
@@ -520,7 +520,7 @@ class AtomDB(ABC):
             link_handle (str): The link handle.
 
         Returns:
-            list[str]: A list of target identifiers of the link.
+            set[str]: A set of target identifiers of the link.
         """
 
     @abstractmethod
