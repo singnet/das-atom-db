@@ -509,7 +509,7 @@ class InMemoryDB(AtomDB):
             details=f"link_handle: {link_handle}",
         )
 
-    def get_link_targets(self, link_handle: str) -> set[str]:
+    def get_link_targets(self, link_handle: str) -> list[str]:
         answer = self.db.outgoing_set.get(link_handle)
         if answer is not None:
             return answer

@@ -515,11 +515,11 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         link_a = self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
         targets = db.get_link_targets(link_a["handle"])
-        assert isinstance(targets, set)
+        assert isinstance(targets, list)
         assert len(targets) == 1
         assert all(_check_handle(t) for t in targets)
         assert all(isinstance(t, str) for t in targets)
-        assert targets == set(link_a["targets"])
+        assert targets == link_a["targets"]
 
     @pytest.mark.parametrize(
         "database,params,links_len",
