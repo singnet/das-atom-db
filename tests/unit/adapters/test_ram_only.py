@@ -304,7 +304,7 @@ class TestInMemoryDB:
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = "Similarity-Fake"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        database.get_matched_links(link_type, [chimp, chimp]) == []
+        assert database.get_matched_links(link_type, [chimp, chimp]) == set()
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
         database.add_link(
@@ -710,11 +710,11 @@ class TestInMemoryDB:
         assert "Inheritance" == database.get_atom_type(i)
 
     def test_get_all_links(self, database: InMemoryDB):
-        _, link_h = database.get_all_links("Similarity")
-        _, link_i = database.get_all_links("Inheritance")
+        link_h = database.get_all_links("Similarity")
+        link_i = database.get_all_links("Inheritance")
         assert len(link_h) == 14
         assert len(link_i) == 12
-        assert (None, []) == database.get_all_links("snet")
+        assert database.get_all_links("snet") == []
 
     def test_delete_atom(self):
         cat_handle = AtomDB.node_handle("Concept", "cat")

@@ -616,25 +616,9 @@ class RedisMongoDB(AtomDB):
                 for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, HandleListT]:
+    def get_all_links(self, link_type: str, **kwargs) -> HandleListT:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
-
-        if kwargs.get("cursor") is not None:
-            cursor: int = kwargs.get("cursor")  # type: ignore
-            chunk_size: int = kwargs.get("chunk_size", 500)
-            pymongo_cursor.skip(cursor).limit(chunk_size)
-
-            handles = [document[FieldNames.ID_HASH] for document in pymongo_cursor]
-
-            if not handles:
-                return 0, []
-
-            if len(handles) < chunk_size:
-                return 0, handles
-            else:
-                return cursor + chunk_size, handles
-
-        return 0, [document[FieldNames.ID_HASH] for document in pymongo_cursor]
+        return [document[FieldNames.ID_HASH] for document in pymongo_cursor]
 
     def get_link_handle(self, link_type: str, target_handles: HandleListT) -> str:
         link_handle = self.link_handle(link_type, target_handles)

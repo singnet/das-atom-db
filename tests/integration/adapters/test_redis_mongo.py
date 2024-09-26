@@ -1082,8 +1082,7 @@ class TestRedisMongo:
         assert db.get_matched_links("Similarity", ["node1", "node2"]) == {
             db.link_handle("Similarity", ["node1", "node2"])
         }
-        cursor, similarity = db.get_all_links("Similarity")
-        assert cursor == 0
+        similarity = db.get_all_links("Similarity")
         assert similarity == [db.link_handle("Similarity", ["node1", "node2"])]
         assert db.get_all_nodes("Concept") == ["node1", "node2"]
 
@@ -1092,10 +1091,8 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         response = db.retrieve_all_atoms()
-        cursors = [-1] * 2
-        cursors[0], inheritance = db.get_all_links("Inheritance")
-        cursors[1], similarity = db.get_all_links("Similarity")
-        assert all(c == 0 for c in cursors), f"{cursors=}"
+        inheritance = db.get_all_links("Inheritance")
+        similarity = db.get_all_links("Similarity")
         links = inheritance + similarity
         nodes = db.get_all_nodes("Concept")
         assert len(response) == len(links) + len(nodes)

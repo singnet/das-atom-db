@@ -454,28 +454,23 @@ class TestDatabase:
         assert len(nodes) == 3
 
     @pytest.mark.parametrize(
-        "database,params,links_len,cursor_value",
+        "database,params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {"link_type": "Ac"}, 3, 0),
-            ("redis_mongo_db", {"link_type": "Ac", "names": True, "chunk_size": 1}, 3, 0),
-            ("redis_mongo_db", {"link_type": "Ac", "names": True, "cursor": 0}, 3, 0),
-            ("redis_mongo_db", {"link_type": "Z", "names": True, "cursor": 1}, 0, 0),
-            ("redis_mongo_db", {"link_type": "Ac", "chunk_size": 1, "cursor": 0}, 1, 1),
-            ("in_memory_db", {"link_type": "Ac"}, 3, None),
+            ("redis_mongo_db", {"link_type": "Ac"}, 3),
+            ("redis_mongo_db", {"link_type": "Ac", "names": True}, 3),
+            ("redis_mongo_db", {"link_type": "Z", "names": True}, 0),
+            ("in_memory_db", {"link_type": "Ac"}, 3),
             # NOTE should return the same value for the cursor
-            ("in_memory_db", {"link_type": "Ac", "names": True, "cursor": 0}, 3, 0),
-            ("in_memory_db", {"link_type": "Ac", "names": True, "cursor": 0}, 3, 0),
-            ("in_memory_db", {"link_type": "Z", "names": True, "cursor": 1}, 0, 1),
-            ("in_memory_db", {"link_type": "Ac", "chunk_size": 1, "cursor": 0}, 3, 0),
+            ("in_memory_db", {"link_type": "Ac", "names": True}, 3),
+            ("in_memory_db", {"link_type": "Z", "names": True}, 0),
         ],
     )
-    def test_get_all_links(self, database, params, links_len, cursor_value, request):
+    def test_get_all_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
         self._add_link(db, "Ac", [{"name": "B", "type": "B"}], database)
         self._add_link(db, "Ac", [{"name": "C", "type": "C"}], database)
-        cursor, links = db.get_all_links(**params)
-        assert cursor == cursor_value
+        links = db.get_all_links(**params)
         assert isinstance(links, list)
         assert all(_check_handle(link) for link in links)
         assert all(isinstance(link, str) for link in links)
@@ -565,7 +560,6 @@ class TestDatabase:
             ("in_memory_db", {"toplevel_only": True}, 1),
             # ("in_memory_db", {"link_type": "NoTopLevel", "toplevel_only": True}, 0), # doesn"t work
             ("in_memory_db", {"link_type": "*"}, 3),
-            ("in_memory_db", {"toplevel_only": True}, 1),
             ("in_memory_db", {"target_handles": ["*"]}, 1),
             ("in_memory_db", {"handles_only": True}, 1),
             ("in_memory_db", {"no_target_format": True}, 1),
