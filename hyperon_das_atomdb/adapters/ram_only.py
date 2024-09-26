@@ -480,12 +480,12 @@ class InMemoryDB(AtomDB):
             if node[FieldNames.COMPOSITE_TYPE_HASH] == node_type_hash
         ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> HandleListT:
-        return [
+    def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
+        return {
             link[FieldNames.ID_HASH]
             for _, link in self.db.link.items()
             if link[FieldNames.TYPE_NAME] == link_type
-        ]
+        }
 
     def get_link_handle(self, link_type: str, target_handles: HandleListT) -> str:
         link_handle = self.link_handle(link_type, target_handles)

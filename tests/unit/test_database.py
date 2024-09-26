@@ -471,7 +471,7 @@ class TestDatabase:
         self._add_link(db, "Ac", [{"name": "B", "type": "B"}], database)
         self._add_link(db, "Ac", [{"name": "C", "type": "C"}], database)
         links = db.get_all_links(**params)
-        assert isinstance(links, list)
+        assert isinstance(links, set)
         assert all(_check_handle(link) for link in links)
         assert all(isinstance(link, str) for link in links)
         assert len(links) == links_len

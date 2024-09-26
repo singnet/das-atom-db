@@ -714,7 +714,7 @@ class TestInMemoryDB:
         link_i = database.get_all_links("Inheritance")
         assert len(link_h) == 14
         assert len(link_i) == 12
-        assert database.get_all_links("snet") == []
+        assert database.get_all_links("snet") == set()
 
     def test_delete_atom(self):
         cat_handle = AtomDB.node_handle("Concept", "cat")

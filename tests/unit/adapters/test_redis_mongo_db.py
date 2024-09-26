@@ -410,7 +410,7 @@ class TestRedisMongoDB:
         similarity = database.get_all_links("Similarity")
         inheritance = database.get_all_links("Inheritance")
         evaluation = database.get_all_links("Evaluation")
-        all_links_before = similarity + inheritance + evaluation
+        all_links_before = similarity.union(inheritance).union(evaluation)
         database.add_link(
             {
                 "type": "Similarity",
@@ -425,7 +425,7 @@ class TestRedisMongoDB:
         similarity = database.get_all_links("Similarity")
         inheritance = database.get_all_links("Inheritance")
         evaluation = database.get_all_links("Evaluation")
-        all_links_after = similarity + inheritance + evaluation
+        all_links_after = similarity.union(inheritance).union(evaluation)
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
         assert len(all_links_before) == 28

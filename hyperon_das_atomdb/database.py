@@ -475,7 +475,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_all_links(self, link_type: str, **kwargs) -> HandleListT:
+    def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         """
         Get all links of a specific type.
 
@@ -484,7 +484,7 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            HandleListT: Link handles.
+            HandleSetT: Link handles.
         """
 
     @abstractmethod

@@ -616,9 +616,9 @@ class RedisMongoDB(AtomDB):
                 for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> HandleListT:
+    def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
-        return [document[FieldNames.ID_HASH] for document in pymongo_cursor]
+        return {document[FieldNames.ID_HASH] for document in pymongo_cursor}
 
     def get_link_handle(self, link_type: str, target_handles: HandleListT) -> str:
         link_handle = self.link_handle(link_type, target_handles)

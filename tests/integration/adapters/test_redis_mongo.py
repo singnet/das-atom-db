@@ -1083,7 +1083,7 @@ class TestRedisMongo:
             db.link_handle("Similarity", ["node1", "node2"])
         }
         similarity = db.get_all_links("Similarity")
-        assert similarity == [db.link_handle("Similarity", ["node1", "node2"])]
+        assert similarity == {db.link_handle("Similarity", ["node1", "node2"])}
         assert db.get_all_nodes("Concept") == ["node1", "node2"]
 
     def test_retrieve_all_atoms(self, _cleanup, _db: RedisMongoDB):
@@ -1093,7 +1093,7 @@ class TestRedisMongo:
         response = db.retrieve_all_atoms()
         inheritance = db.get_all_links("Inheritance")
         similarity = db.get_all_links("Similarity")
-        links = inheritance + similarity
+        links = inheritance.union(similarity)
         nodes = db.get_all_nodes("Concept")
         assert len(response) == len(links) + len(nodes)
 
