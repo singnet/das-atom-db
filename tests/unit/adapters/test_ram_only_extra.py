@@ -1,13 +1,13 @@
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
 from tests.unit.fixtures import in_memory_db  # noqa: F401
-from tests.unit.test_database import _check_handle
+from tests.unit.test_database import check_handle
 
 
 class TestRamOnlyExtra:
     def test__build_atom_type_key_hash(self, in_memory_db):  # noqa: F811
         db: InMemoryDB = in_memory_db
         hash = db._build_atom_type_key_hash("A")
-        assert _check_handle(hash)
+        assert check_handle(hash)
         assert hash == "2c832bdcd9d74bf961205676d861540a"
 
     def test__delete_atom_type(self, in_memory_db):  # noqa: F811
