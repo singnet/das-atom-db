@@ -99,14 +99,14 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
 }
 
 //------------------------------------------------------------------------------
-const pair<const int, const StringList> InMemoryDB::get_all_links(const string& link_type) const {
-    StringList link_handles;
+const StringUnorderedSet InMemoryDB::get_all_links(const string& link_type) const {
+    StringUnorderedSet link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
-            link_handles.push_back(link->id);
+            link_handles.insert(link->id);
         }
     }
-    return {0, move(link_handles)};
+    return move(link_handles);
 }
 
 //------------------------------------------------------------------------------
@@ -136,7 +136,7 @@ const string InMemoryDB::get_link_type(const string& link_handle) const {
 }
 
 //------------------------------------------------------------------------------
-const StringUnorderedSet InMemoryDB::get_link_targets(const string& link_handle) const {
+const StringList InMemoryDB::get_link_targets(const string& link_handle) const {
     auto it = this->db.outgoing_set.find(link_handle);
     if (it != this->db.outgoing_set.end()) {
         return it->second;
@@ -482,12 +482,12 @@ void InMemoryDB::_delete_atom_type(const string& name) {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_outgoing_set(const string& key, const StringUnorderedSet& targets_hash) {
+void InMemoryDB::_add_outgoing_set(const string& key, const StringList& targets_hash) {
     this->db.outgoing_set[key] = targets_hash;
 }
 
 //------------------------------------------------------------------------------
-const opt<const StringUnorderedSet> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
+const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
     auto it = this->db.outgoing_set.find(handle);
     if (it != this->db.outgoing_set.end()) {
         auto handles = move(it->second);
@@ -498,7 +498,7 @@ const opt<const StringUnorderedSet> InMemoryDB::_get_and_delete_outgoing_set(con
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_add_incoming_set(const string& key, const StringUnorderedSet& targets_hash) {
+void InMemoryDB::_add_incoming_set(const string& key, const StringList& targets_hash) {
     for (const auto& target_hash : targets_hash) {
         auto it = this->db.incoming_set.find(target_hash);
         if (it == this->db.incoming_set.end()) {
@@ -510,8 +510,7 @@ void InMemoryDB::_add_incoming_set(const string& key, const StringUnorderedSet& 
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_incoming_set(const string& link_handle,
-                                      const StringUnorderedSet& atoms_handles) {
+void InMemoryDB::_delete_incoming_set(const string& link_handle, const StringList& atoms_handles) {
     for (const auto& atom_handle : atoms_handles) {
         auto it = this->db.incoming_set.find(atom_handle);
         if (it != this->db.incoming_set.end()) {
@@ -559,7 +558,7 @@ void InMemoryDB::_delete_templates(const Link& link_document) {
 //------------------------------------------------------------------------------
 void InMemoryDB::_add_patterns(const string& named_type_hash,
                                const string& key,
-                               const StringUnorderedSet& targets_hash) {
+                               const StringList& targets_hash) {
     auto hash_list = StringList({named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
@@ -574,7 +573,7 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::_delete_patterns(const Link& link_document, const StringUnorderedSet& targets_hash) {
+void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
     string named_type_hash = link_document.named_type_hash;
     string key = link_document.id;
     auto hash_list = StringList({named_type_hash});
@@ -614,11 +613,11 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
 }
 
 //------------------------------------------------------------------------------
-const StringUnorderedSet InMemoryDB::_build_targets_list(const Link& link) const {
-    StringUnorderedSet targets;
+const StringList InMemoryDB::_build_targets_list(const Link& link) const {
+    StringList targets;
     targets.reserve(link.keys.size());
     for (const auto& [_, value] : link.keys) {
-        targets.insert(value);
+        targets.push_back(value);
     }
     return move(targets);
 }

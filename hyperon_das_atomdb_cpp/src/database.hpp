@@ -156,9 +156,9 @@ class AtomDB {
      * @brief Retrieves all links of the specified type from the database.
      * @param link_type A string representing the type of the links to retrieve.
      * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of strings representing the links.
+     * @return Set of strings representing the links.
      */
-    virtual const pair<const int, const StringList> get_all_links(const string& link_type) const = 0;
+    virtual const StringUnorderedSet get_all_links(const string& link_type) const = 0;
 
     /**
      * @brief Get the handle of the link with the specified type and targets.
@@ -181,7 +181,7 @@ class AtomDB {
      * @param link_handle The link handle.
      * @return A list of target identifiers of the link.
      */
-    virtual const StringUnorderedSet get_link_targets(const string& link_handle) const = 0;
+    virtual const StringList get_link_targets(const string& link_handle) const = 0;
 
     /**
      * @brief Retrieves incoming link handles for the specified atom.

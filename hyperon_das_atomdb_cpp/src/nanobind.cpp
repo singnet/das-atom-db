@@ -96,7 +96,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
         .def("get_all_links",
              [](InMemoryDB& self, const string& link_type, const nb::kwargs& _ = {})
-                 -> const pair<const int, const StringList> { return self.get_all_links(link_type); })
+                 -> const StringUnorderedSet { return self.get_all_links(link_type); })
         .def("get_link_handle", &AtomDB::get_link_handle)
         .def("get_link_type", &AtomDB::get_link_type)
         .def("get_link_targets", &AtomDB::get_link_targets)
