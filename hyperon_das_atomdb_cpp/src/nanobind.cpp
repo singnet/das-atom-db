@@ -37,7 +37,24 @@ struct transformer {
                 throw invalid_argument("Invalid composite type element.");
             }
         }
-        return py_list;
+        return move(py_list);
+    }
+
+    static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
+        ListOfAny ct_list;
+        ct_list.reserve(py_list.size());
+        for (const auto& element : py_list) {
+            auto e_type = element.type();
+            auto type_name = string(nb::type_name(e_type).c_str());
+            if (type_name == "str") {
+                ct_list.push_back(nb::cast<string>(element));
+            } else if (type_name == "list") {
+                ct_list.push_back(transformer::pylist_to_composite_type(nb::cast<nb::list>(element)));
+            } else {
+                throw invalid_argument("Invalid composite type element.");
+            }
+        }
+        return move(ct_list);
     }
 };
 
@@ -214,7 +231,28 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string);
-    nb::class_<Node, Atom>(document_types, "Node").def_ro("name", &Node::name);
+    nb::class_<Node, Atom>(document_types, "Node")
+        .def_ro("name", &Node::name)
+        .def("__getstate__",
+             [](const Node& node) {
+                 return std::make_tuple(
+                     node.id, node.handle, node.composite_type_hash, node.named_type, node.name);
+             })
+        .def("__setstate__",
+             [](Node& node,
+                const std::tuple<string,  // id
+                                 string,  // handle
+                                 string,  // composite_type_hash
+                                 string,  // named_type
+                                 string   // name
+                                 >& state) {
+                 new (&node) Node(std::get<0>(state),  // id
+                                  std::get<1>(state),  // handle
+                                  std::get<2>(state),  // composite_type_hash
+                                  std::get<3>(state),  // named_type
+                                  std::get<4>(state)   // name
+                 );
+             });
     nb::class_<Link, Atom>(document_types, "Link")
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
@@ -224,7 +262,46 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_ro("targets", &Link::targets)
         .def_ro("is_top_level", &Link::is_top_level)
         .def_ro("keys", &Link::keys)
-        .def_ro("targets_documents", &Link::targets_documents);
+        .def_ro("targets_documents", &Link::targets_documents)
+        .def("__getstate__",
+             [](const Link& link) {
+                 return std::make_tuple(link.id,
+                                        link.handle,
+                                        link.composite_type_hash,
+                                        link.named_type,
+                                        transformer::composite_type_to_pylist(link.composite_type),
+                                        link.named_type_hash,
+                                        link.targets,
+                                        link.is_top_level,
+                                        link.keys,
+                                        link.targets_documents);
+             })
+        .def("__setstate__",
+             [](Link& link,
+                const std::tuple<string,                              // id
+                                 string,                              // handle
+                                 string,                              // composite_type_hash
+                                 string,                              // named_type
+                                 nb::list,                            // composite_type
+                                 string,                              // named_type_hash
+                                 vector<string>,                      // targets
+                                 bool,                                // is_top_level
+                                 map<string, string>,                 // keys
+                                 opt<vector<shared_ptr<const Atom>>>  // targets_documents
+                                 >& state) {
+                 auto composite_type = transformer::pylist_to_composite_type(std::get<4>(state));
+                 new (&link) Link(std::get<0>(state),  // id
+                                  std::get<1>(state),  // handle
+                                  std::get<2>(state),  // composite_type_hash
+                                  std::get<3>(state),  // named_type
+                                  composite_type,
+                                  std::get<5>(state),  // named_type_hash
+                                  std::get<6>(state),  // targets
+                                  std::get<7>(state),  // is_top_level
+                                  std::get<8>(state),  // keys
+                                  std::get<9>(state)   // targets_documents
+                 );
+             });
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");

@@ -143,7 +143,8 @@ class Link : public Atom {
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_top_level = true,
-         map<string, string> keys = {})
+         map<string, string> keys = {},
+         opt<vector<shared_ptr<const Atom>>> targets_documents = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
@@ -163,6 +164,19 @@ class Link : public Atom {
         }
         if (targets.empty()) {
             throw invalid_argument("Link targets cannot be empty.");
+        }
+        if (targets_documents.has_value()) {
+            if (not targets_documents->empty()) {
+                this->targets_documents = vector<shared_ptr<const Atom>>();
+                this->targets_documents->reserve(targets_documents->size());
+                for (const auto& target : *targets_documents) {
+                    if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+                        this->targets_documents->push_back(make_shared<Node>(*node));
+                    } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+                        this->targets_documents->push_back(make_shared<Link>(*link));
+                    }
+                }
+            }
         }
     }
 
@@ -190,8 +204,9 @@ class Link : public Atom {
             result.pop_back();
         }
         result += "}";
-        result += ", targets_documents: [";
+        result += ", targets_documents: ";
         if (targets_documents.has_value()) {
+            result += "[";
             if (not targets_documents->empty()) {
                 for (const auto& target : *targets_documents) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
@@ -203,8 +218,11 @@ class Link : public Atom {
                 result.pop_back();
                 result.pop_back();
             }
+            result += "]";
+        } else {
+            result += "NULL";
         }
-        result += "])";
+        result += ")";
         return move(result);
     }
 
@@ -225,6 +243,18 @@ class Link : public Atom {
 
    private:
     struct Validator {
+        /**
+         * @brief Validates the structure of a composite type.
+         *
+         * This function checks whether the given composite type adheres to the expected structure.
+         * A composite type is a list where each element can be either a string or another list of
+         * the same type. The function ensures that all elements in the composite type meet these
+         * criteria.
+         *
+         * @param composite_type A list of elements of type std::any representing the composite type
+         *                       to be validated.
+         * @return true if the composite type is valid, false otherwise.
+         */
         static bool validate_composite_type(const ListOfAny& composite_type) {
             for (const auto& element : composite_type) {
                 if (auto str = any_cast<string>(&element)) {
