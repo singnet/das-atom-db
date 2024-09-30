@@ -898,6 +898,7 @@ class AtomDB(ABC):
         This method is intended to be implemented by subclasses to handle the commit operation,
         which may involve persisting changes to a storage backend or performing other necessary
         actions to finalize the current state of the database.
+        Updates of atoms aren't allowed on the same transaction.
 
         Args:
             **kwargs: Additional keyword arguments that may be used by the implementation of the

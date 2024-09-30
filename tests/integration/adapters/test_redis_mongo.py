@@ -39,6 +39,7 @@ class TestRedisMongo:
             db.add_link(link)
         for link in similarity_docs.values():
             db.add_link(link)
+        db.commit()
 
     def _connect_db(self):
         db = RedisMongoDB(
