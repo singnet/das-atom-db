@@ -8,27 +8,27 @@ from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
-def _check_handle(handle):
+def check_handle(handle):
     return all((isinstance(handle, str), len(handle) == 32, int(handle, 16)))
 
 
+def add_node(db: AtomDB, node_name, node_type, adapter, extra_fields=None):
+    node_dict = {"name": node_name, "type": node_type}
+    node_dict.update(extra_fields or {})
+    node = db.add_node(node_dict)
+    if adapter == "redis_mongo_db":
+        db.commit()
+    return node
+
+
+def add_link(db: AtomDB, link_type, dict_targets, adapter, is_top_level=True):
+    link = db.add_link({"type": link_type, "targets": dict_targets}, toplevel=is_top_level)
+    if adapter != "in_memory_db":
+        db.commit()
+    return link
+
+
 class TestDatabase:
-    @staticmethod
-    def _add_node(db: AtomDB, node_name, node_type, adapter, extra_fields=None):
-        node_dict = {"name": node_name, "type": node_type}
-        node_dict.update(extra_fields or {})
-        node = db.add_node(node_dict)
-        if adapter == "redis_mongo_db":
-            db.commit()
-        return node
-
-    @staticmethod
-    def _add_link(db: AtomDB, link_type, dict_targets, adapter, is_top_level=True):
-        link = db.add_link({"type": link_type, "targets": dict_targets}, toplevel=is_top_level)
-        if adapter != "in_memory_db":
-            db.commit()
-        return link
-
     @pytest.mark.parametrize(
         "database,expected",
         [
@@ -43,7 +43,7 @@ class TestDatabase:
         assert handle, incorrect_handle
         assert handle != incorrect_handle
         assert handle == expected
-        assert _check_handle(handle)
+        assert check_handle(handle)
 
     @pytest.mark.parametrize(
         "database,expected",
@@ -70,7 +70,7 @@ class TestDatabase:
         handle = db.link_handle("Similarity", [])
         assert len(set([db.link_handle("Similarity", f) for f in [[], [], ""]])) == 1
         assert handle
-        assert _check_handle(handle)
+        assert check_handle(handle)
 
     @pytest.mark.parametrize(
         "database,expected",
@@ -87,152 +87,6 @@ class TestDatabase:
         # TODO: unreachable code must be deleted or fixed to become reachable
         # with pytest.raises(ValueError):
         #     db.link_handle("Similarity", set())
-
-    @pytest.mark.parametrize(
-        "database,kwlist",
-        [
-            ("redis_mongo_db", ["targets_document", "deep_representation"]),
-            ("in_memory_db", ["targets_document", "deep_representation"]),
-        ],
-    )
-    def test_reformat_document(self, database, kwlist, request):
-        db: AtomDB = request.getfixturevalue(database)
-        node_handle = db.add_node({"name": "A", "type": "Test"}).get("handle")
-        if database != "in_memory_db":
-            db.commit()
-        link = {"name": "A", "targets": [node_handle]}
-        for kw in kwlist:
-            answer = db._reformat_document(link, **{kw: True})
-            assert set(answer.keys()) == {"name", "targets", "targets_document"}
-            assert len(answer["targets"]) == 1
-            assert len(answer["targets_document"]) == 1
-            assert answer["name"] == "A"
-            assert isinstance(answer["targets"][0], (str if kw == "targets_document" else dict))
-
-    @pytest.mark.parametrize(
-        "database,kwlist",
-        [
-            ("redis_mongo_db", ["targets_document", "deep_representation"]),
-            ("in_memory_db", ["targets_document", "deep_representation"]),
-        ],
-    )
-    def test_reformat_document_exceptions(self, database, kwlist, request):
-        db: AtomDB = request.getfixturevalue(database)
-        link = {"name": "A", "targets": ["test"]}
-        for kw in kwlist:
-            with pytest.raises(Exception, match="Nonexistent atom"):
-                db._reformat_document(link, **{kw: True})
-
-    @pytest.mark.parametrize(
-        "database,expected_fields, expected_handle",
-        [
-            (
-                "redis_mongo_db",
-                ["handle", "_id", "composite_type_hash", "name", "named_type"],
-                "180fed764dbd593f1ea45b63b13d7e69",
-            ),
-            (
-                "in_memory_db",
-                ["handle", "_id", "composite_type_hash", "name", "named_type"],
-                "180fed764dbd593f1ea45b63b13d7e69",
-            ),
-        ],
-    )
-    def test_build_node(self, database, expected_fields, expected_handle, request):
-        db: AtomDB = request.getfixturevalue(database)
-        handle, node = db._build_node({"type": "Test", "name": "test"})
-        assert node
-        assert handle == expected_handle
-        assert all([k in node for k in expected_fields])
-        assert isinstance(node, dict)
-        assert _check_handle(handle)
-
-        # Test exception
-        with pytest.raises(Exception, match="The \"name\" and \"type\" fields must be sent"):
-            db._build_node({})
-
-    @pytest.mark.parametrize(
-        "database,expected_fields, expected_handle,is_top_level",
-        [
-            (
-                "redis_mongo_db",
-                [
-                    "handle",
-                    "_id",
-                    "composite_type_hash",
-                    "named_type_hash",
-                    "named_type",
-                    "is_toplevel",
-                    "targets",
-                ],
-                "180fed764dbd593f1ea45b63b13d7e69",
-                True,
-            ),
-            (
-                "redis_mongo_db",
-                [
-                    "handle",
-                    "_id",
-                    "composite_type_hash",
-                    "named_type_hash",
-                    "named_type",
-                    "is_toplevel",
-                    "targets",
-                ],
-                "180fed764dbd593f1ea45b63b13d7e69",
-                False,
-            ),
-            (
-                "in_memory_db",
-                [
-                    "handle",
-                    "_id",
-                    "composite_type_hash",
-                    "named_type_hash",
-                    "named_type",
-                    "is_toplevel",
-                    "targets",
-                ],
-                "180fed764dbd593f1ea45b63b13d7e69",
-                True,
-            ),
-            (
-                "in_memory_db",
-                [
-                    "handle",
-                    "_id",
-                    "composite_type_hash",
-                    "named_type_hash",
-                    "named_type",
-                    "is_toplevel",
-                    "targets",
-                ],
-                "180fed764dbd593f1ea45b63b13d7e69",
-                False,
-            ),
-        ],
-    )
-    def test_build_link(self, database, expected_fields, expected_handle, is_top_level, request):
-        db: AtomDB = request.getfixturevalue(database)
-        handle, link, targets = db._build_link(
-            {"type": "Test", "targets": [{"type": "Test", "name": "test"}]}, is_top_level
-        )
-        assert expected_handle in targets
-        assert all([k in link for k in expected_fields])
-        assert link["is_toplevel"] == is_top_level
-        assert _check_handle(handle)
-        assert isinstance(link, dict)
-        assert isinstance(targets, list)
-
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_build_link_exceptions(self, database, request):
-        db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(ValueError, match="The target must be a dictionary"):
-            db._build_link({"type": "Test", "targets": [""]})
-        with pytest.raises(Exception, match="The \"type\" and \"targets\" fields must be sent"):
-            db._build_link({"type": "Test", "targets": None})
-        with pytest.raises(Exception, match="The \"type\" and \"targets\" fields must be sent"):
-            db._build_link({"type": None, "targets": []})
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_node_exists(self, database, request):
@@ -274,10 +128,10 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_handle(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        expected_node = self._add_node(db, "A", "Test", database)
+        expected_node = add_node(db, "A", "Test", database)
         node = db.get_node_handle("Test", "A")
         assert node == expected_node["handle"]
-        assert _check_handle(node)
+        assert check_handle(node)
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_handle_exceptions(self, database, request):
@@ -288,7 +142,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_name(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        expected_node = self._add_node(db, "A", "Test", database)
+        expected_node = add_node(db, "A", "Test", database)
         name = db.get_node_name(expected_node["handle"])
         # NOTE all adapters must return the same type
         assert isinstance(name, str)
@@ -311,7 +165,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        expected_node = self._add_node(db, "A", "Test", database)
+        expected_node = add_node(db, "A", "Test", database)
         node_type = db.get_node_type(expected_node["handle"])
         assert isinstance(node_type, str)
         assert node_type == expected_node["named_type"]
@@ -325,14 +179,14 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_by_name(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        expected_nodes = [self._add_node(db, n, "Test", database) for n in {"A", "Aa", "Ac"}]
-        not_expected_nodes = [self._add_node(db, n, "Test", database) for n in {"B", "Ba", "Bc"}]
+        expected_nodes = [add_node(db, n, "Test", database) for n in {"A", "Aa", "Ac"}]
+        not_expected_nodes = [add_node(db, n, "Test", database) for n in {"B", "Ba", "Bc"}]
         nodes = db.get_node_by_name("Test", "A")
         not_nodes = db.get_node_by_name("Test", "C")
         assert not_nodes == []
         assert isinstance(nodes, list)
         assert len(nodes) == 3
-        assert all(_check_handle(node) for node in nodes)
+        assert all(check_handle(node) for node in nodes)
         assert all(n["handle"] in nodes for n in expected_nodes)
         assert not any(n["handle"] in nodes for n in not_expected_nodes)
 
@@ -344,14 +198,14 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        expected_node = self._add_node(db, "Ac", "Test", database)
-        expected_link = self._add_link(db, "Ac", [expected_node], database)
+        expected_node = add_node(db, "Ac", "Test", database)
+        expected_link = add_link(db, "Ac", [expected_node], database)
         nodes = db.get_atoms_by_field([{"field": "name", "value": "Ac"}])
         links = db.get_atoms_by_field([{"field": "named_type", "value": "Ac"}])
         assert isinstance(nodes, list)
         assert isinstance(links, list)
-        assert all(_check_handle(node) for node in nodes)
-        assert all(_check_handle(link) for link in links)
+        assert all(check_handle(node) for node in nodes)
+        assert all(check_handle(link) for link in links)
         assert nodes[0] == expected_node["handle"]
         assert links[0] == expected_link["handle"]
 
@@ -363,7 +217,7 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "A", "Test", database, {"value": 3})
+        add_node(db, "A", "Test", database, {"value": 3})
         index_id = db.create_field_index(atom_type="node", fields=["value"], named_type="Test")
         cursor, atoms = db.get_atoms_by_index(index_id, [{"field": "value", "value": 3}])
         assert isinstance(cursor, int)
@@ -391,14 +245,14 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "A", "Test", database, {"value": "Test sentence"})
-        self._add_link(db, "Test", [], database)
+        add_node(db, "A", "Test", database, {"value": "Test sentence"})
+        add_link(db, "Test", [], database)
         index_id = db.create_field_index(
             atom_type="node", fields=["value"], named_type="Test", index_type="token_inverted_list"
         )
         atoms = db.get_atoms_by_text_field("Test", "value", text_index_id=index_id)
         assert isinstance(atoms, list)
-        assert all(_check_handle(a) for a in atoms)
+        assert all(check_handle(a) for a in atoms)
         assert all(isinstance(a, str) for a in atoms)
         assert len(atoms) == 1
 
@@ -410,7 +264,7 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "A", "Test", database, {"value": "Test sentence"})
+        add_node(db, "A", "Test", database, {"value": "Test sentence"})
         index_id = db.create_field_index(
             atom_type="node", fields=["value"], named_type="Test", index_type="token_inverted_list"
         )
@@ -419,7 +273,7 @@ class TestDatabase:
         ):
             atoms = db.get_atoms_by_text_field("Test", text_index_id=index_id)
             assert isinstance(atoms, list)
-            assert all(_check_handle(a) for a in atoms)
+            assert all(check_handle(a) for a in atoms)
             assert all(isinstance(a, str) for a in atoms)
             assert len(atoms) == 1
 
@@ -431,12 +285,12 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        node_b = self._add_node(db, "Abb", "Test", database)
-        self._add_node(db, "Bbb", "Test", database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        node_b = add_node(db, "Abb", "Test", database)
+        add_node(db, "Bbb", "Test", database)
         nodes = db.get_node_by_name_starting_with("Test", "A")
         assert isinstance(nodes, list)
-        assert all(_check_handle(n) for n in nodes)
+        assert all(check_handle(n) for n in nodes)
         assert all(isinstance(n, str) for n in nodes)
         assert all(handle in nodes for handle in [node_a["handle"], node_b["handle"]])
         assert len(nodes) == 2
@@ -444,12 +298,12 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_all_nodes(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "Aaa", "Test", database)
-        self._add_node(db, "Abb", "Test", database)
-        self._add_node(db, "Bbb", "Test", database)
+        add_node(db, "Aaa", "Test", database)
+        add_node(db, "Abb", "Test", database)
+        add_node(db, "Bbb", "Test", database)
         nodes = db.get_all_nodes("Test")
         assert isinstance(nodes, list)
-        assert all(_check_handle(n) for n in nodes)
+        assert all(check_handle(n) for n in nodes)
         assert all(isinstance(n, str) for n in nodes)
         assert len(nodes) == 3
 
@@ -467,21 +321,21 @@ class TestDatabase:
     )
     def test_get_all_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
-        self._add_link(db, "Ac", [{"name": "B", "type": "B"}], database)
-        self._add_link(db, "Ac", [{"name": "C", "type": "C"}], database)
+        add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
+        add_link(db, "Ac", [{"name": "B", "type": "B"}], database)
+        add_link(db, "Ac", [{"name": "C", "type": "C"}], database)
         links = db.get_all_links(**params)
         assert isinstance(links, set)
-        assert all(_check_handle(link) for link in links)
+        assert all(check_handle(link) for link in links)
         assert all(isinstance(link, str) for link in links)
         assert len(links) == links_len
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_handle(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        link = self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
+        link = add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
         handle = db.get_link_handle(link["type"], link["targets"])
-        assert _check_handle(handle)
+        assert check_handle(handle)
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_handle_exceptions(self, database, request):
@@ -492,8 +346,8 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        link_a = self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
-        self._add_link(db, "Bc", [{"name": "A", "type": "A"}], database)
+        link_a = add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
+        add_link(db, "Bc", [{"name": "A", "type": "A"}], database)
         link_type = db.get_link_type(link_a["handle"])
         assert link_type
         assert isinstance(link_type, str)
@@ -508,11 +362,11 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_targets(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        link_a = self._add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
+        link_a = add_link(db, "Ac", [{"name": "A", "type": "A"}], database)
         targets = db.get_link_targets(link_a["handle"])
         assert isinstance(targets, list)
         assert len(targets) == 1
-        assert all(_check_handle(t) for t in targets)
+        assert all(check_handle(t) for t in targets)
         assert all(isinstance(t, str) for t in targets)
         assert targets == link_a["targets"]
 
@@ -530,17 +384,14 @@ class TestDatabase:
     )
     def test_get_incoming_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        self._add_link(db, "Aa", [node_a], database)
-        self._add_link(db, "Ab", [node_a], database)
-        self._add_link(db, "Ac", [node_a], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        add_link(db, "Aa", [node_a], database)
+        add_link(db, "Ab", [node_a], database)
+        add_link(db, "Ac", [node_a], database)
         links = db.get_incoming_links(node_a["handle"], **params)
         assert len(links) == links_len
         assert all(
-            [
-                _check_handle(link if params.get("handles_only") else link["handle"])
-                for link in links
-            ]
+            [check_handle(link if params.get("handles_only") else link["handle"]) for link in links]
         )
 
     @pytest.mark.parametrize(
@@ -567,10 +418,10 @@ class TestDatabase:
     )
     def test_get_matched_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Aa", [node_a], database)
-        _ = self._add_link(db, "NoTopLevel", [node_a], database, is_top_level=False)
-        _ = self._add_link(db, "Ac", [node_a], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Aa", [node_a], database)
+        _ = add_link(db, "NoTopLevel", [node_a], database, is_top_level=False)
+        _ = add_link(db, "Ac", [node_a], database)
         params["link_type"] = link_a["type"] if not params.get("link_type") else params["link_type"]
         params["target_handles"] = (
             link_a["targets"] if not params.get("target_handles") else params["target_handles"]
@@ -580,10 +431,10 @@ class TestDatabase:
         if all(isinstance(link, tuple) for link in links):
             for link in links:
                 while link:
-                    assert _check_handle(link[0])
+                    assert check_handle(link[0])
                     link = link[1] if len(link) > 1 else None
         else:
-            assert all([_check_handle(link) for link in links])
+            assert all([check_handle(link) for link in links])
 
     @pytest.mark.parametrize(
         "database,params,links_len",
@@ -596,7 +447,7 @@ class TestDatabase:
     )
     def test_get_matched_no_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "Aaa", "Test", database)
+        add_node(db, "Aaa", "Test", database)
         links = db.get_matched_links(**params)
         assert len(links) == links_len
 
@@ -614,14 +465,14 @@ class TestDatabase:
     )
     def test_get_matched_type_template(self, database, params, links_len, is_top_level, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        node_b = self._add_node(db, "Bbb", "Test", database)
-        link_a = self._add_link(db, "Aa", [node_a, node_b], database, is_top_level=is_top_level)
+        node_a = add_node(db, "Aaa", "Test", database)
+        node_b = add_node(db, "Bbb", "Test", database)
+        link_a = add_link(db, "Aa", [node_a, node_b], database, is_top_level=is_top_level)
         links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
         assert len(links) == links_len
         if len(links) > 0:
             for link in links:
-                assert _check_handle(link)
+                assert check_handle(link)
                 assert link == link_a["handle"]
                 assert sorted(db.get_atom(link)["targets"]) == sorted(link_a["targets"])
 
@@ -634,13 +485,13 @@ class TestDatabase:
                 "See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        link_a = self._add_link(db, "Aa", [], database)
-        self._add_link(db, "Ab", [], database)
+        link_a = add_link(db, "Aa", [], database)
+        add_link(db, "Ab", [], database)
         links = db.get_matched_type(link_a["type"])
         assert len(links) == 1
         if len(links) > 0:
             for link in links:
-                assert _check_handle(link)
+                assert check_handle(link)
                 assert link == link_a["handle"]
                 assert sorted(db.get_atom(link)["targets"]) == sorted(link_a["targets"])
 
@@ -659,11 +510,11 @@ class TestDatabase:
     )
     def test_get_atom_node(self, database, params, top_level, n_links, n_nodes, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
+        node_a = add_node(db, "Aaa", "Test", database)
         atom_n = db.get_atom(node_a["handle"], **params)
         assert atom_n
         assert atom_n["handle"] == node_a["handle"]
-        assert _check_handle(atom_n["handle"])
+        assert check_handle(atom_n["handle"])
 
     @pytest.mark.parametrize(
         "database,params,top_level,n_links,n_nodes",
@@ -680,32 +531,17 @@ class TestDatabase:
     )
     def test_get_atom_link(self, database, params, top_level, n_links, n_nodes, request):
         db: AtomDB = request.getfixturevalue(database)
-        link_a = self._add_link(db, "Aa", [], database, is_top_level=top_level)
+        link_a = add_link(db, "Aa", [], database, is_top_level=top_level)
         atom_l = db.get_atom(link_a["handle"], **params)
         assert atom_l
         assert atom_l["handle"] == link_a["handle"]
-        assert _check_handle(atom_l["handle"])
-
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test__get_atom(self, database, request):
-        db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Aa", [], database)
-        node = db._get_atom(node_a["handle"])
-        link = db._get_atom(link_a["handle"])
-        assert node, link
-
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test__get_atom_none(self, database, request):
-        db: AtomDB = request.getfixturevalue(database)
-        node = db._get_atom("handle")
-        assert node is None
+        assert check_handle(atom_l["handle"])
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [], database)
         atom_type_node = db.get_atom_type(node_a["handle"])
         atom_type_link = db.get_atom_type(link_a["handle"])
         assert isinstance(atom_type_node, str)
@@ -723,8 +559,8 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_as_dict(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [], database)
         atom_node = db.get_atom_as_dict(node_a["handle"])
         atom_link = db.get_atom_as_dict(link_a["handle"])
         assert isinstance(atom_node, dict)
@@ -764,8 +600,8 @@ class TestDatabase:
     )
     def test_count_atoms(self, database, params, request):
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "Aaa", "Test", database)
-        self._add_link(db, "Test", [], database)
+        add_node(db, "Aaa", "Test", database)
+        add_link(db, "Test", [], database)
         atoms_count = db.count_atoms(params)
         assert atoms_count
         assert isinstance(atoms_count, dict)
@@ -780,8 +616,8 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_clear_database(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "Aaa", "Test", database)
-        self._add_link(db, "Test", [], database)
+        add_node(db, "Aaa", "Test", database)
+        add_link(db, "Test", [], database)
         assert db.count_atoms()["atom_count"] == 2
         db.clear_database()
         assert db.count_atoms()["atom_count"] == 0
@@ -793,7 +629,7 @@ class TestDatabase:
             ("in_memory_db", {"name": "A", "type": "A"}),
         ],
     )
-    def test_add_node(self, database, node, request):
+    def testadd_node(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         if database == "redis_mongo_db":
             db.mongo_bulk_insertion_limit = 1
@@ -809,7 +645,7 @@ class TestDatabase:
             ("redis_mongo_db", {"name": "AAAA", "type": "A"}),
         ],
     )
-    def test_add_node_discard(self, database, node, request):
+    def testadd_node_discard(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         db.mongo_bulk_insertion_limit = 1
         db.max_mongo_db_document_size = 1
@@ -835,7 +671,7 @@ class TestDatabase:
             # ("in_memory_db", {"name": "A", "type": "A", "named_type": ""}),
         ],
     )
-    def test_add_node_exceptions(self, database, node, request):
+    def testadd_node_exceptions(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception):
             db.add_node(node)
@@ -849,7 +685,7 @@ class TestDatabase:
             ("in_memory_db", {"type": "A", "targets": []}, 1, True),
         ],
     )
-    def test_add_link(self, database, params, expected_count, top_level, request):
+    def testadd_link(self, database, params, expected_count, top_level, request):
         db: AtomDB = request.getfixturevalue(database)
         if database == "redis_mongo_db":
             db.mongo_bulk_insertion_limit = 1
@@ -867,8 +703,8 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        self._add_node(db, "Aaa", "Test", database)
-        self._add_link(db, "Test", [], database)
+        add_node(db, "Aaa", "Test", database)
+        add_link(db, "Test", [], database)
         db.reindex()
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -879,8 +715,8 @@ class TestDatabase:
                 "ERROR Atom not in incoming_set. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [], database)
         count = db.count_atoms({"precise": True})
         assert count["atom_count"] == 2
         assert count["node_count"] == 1
@@ -1045,8 +881,8 @@ class TestDatabase:
                 "ERROR redis_mongo_db is not updating targets. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [{"name": "A", "type": "A"}], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [{"name": "A", "type": "A"}], database)
         node_a["name"] = "B"
         link_a["targets"] = [node_a["handle"]]
         db.bulk_insert([node_a, link_a])
@@ -1075,8 +911,8 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_retrieve_all_atoms(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [{"name": "A", "type": "A"}], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [{"name": "A", "type": "A"}], database)
         node_b = db.get_atom(db.get_node_handle(node_type="A", node_name="A"))
         atoms = db.retrieve_all_atoms()
         assert isinstance(atoms, list)
@@ -1107,8 +943,8 @@ class TestDatabase:
                 "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        node_a = self._add_node(db, "Aaa", "Test", database)
-        link_a = self._add_link(db, "Test", [{"name": "A", "type": "A"}], database)
+        node_a = add_node(db, "Aaa", "Test", database)
+        link_a = add_link(db, "Test", [{"name": "A", "type": "A"}], database)
         node_a["name"] = "B"
         link_a["targets"] = [node_a["handle"]]
         db.commit(buffer=[node_a, link_a])
