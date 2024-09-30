@@ -264,13 +264,13 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == [inheritance_cat_mammal_handle]
-            assert db._retrieve_incoming_set(dog_handle) == [inheritance_dog_mammal_handle]
+            assert db._retrieve_incoming_set(cat_handle) == {inheritance_cat_mammal_handle}
+            assert db._retrieve_incoming_set(dog_handle) == {inheritance_dog_mammal_handle}
             assert sorted(db._retrieve_incoming_set(mammal_handle)) == sorted(
                 [inheritance_cat_mammal_handle, inheritance_dog_mammal_handle]
             )
-            assert db._retrieve_incoming_set(inheritance_cat_mammal_handle) == []
-            assert db._retrieve_incoming_set(inheritance_dog_mammal_handle) == []
+            assert db._retrieve_incoming_set(inheritance_cat_mammal_handle) == set()
+            assert db._retrieve_incoming_set(inheritance_dog_mammal_handle) == set()
             assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
                 [cat_handle, mammal_handle]
             )
@@ -326,122 +326,122 @@ class TestRedisMongo:
             ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
 
         def _check_asserts_2():
             assert db.count_atoms() == {"atom_count": 3}
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == []
+            assert db._retrieve_incoming_set(cat_handle) == set()
+            assert db._retrieve_incoming_set(dog_handle) == set()
+            assert db._retrieve_incoming_set(mammal_handle) == set()
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
                 )
-                == []
+                == set()
             )
 
         def _check_asserts_3():
@@ -449,94 +449,94 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) is None
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == []
+            assert db._retrieve_incoming_set(cat_handle) == set()
+            assert db._retrieve_incoming_set(dog_handle) == set()
+            assert db._retrieve_incoming_set(mammal_handle) == set()
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
                 )
-                == []
+                == set()
             )
 
         def _check_asserts_4():
@@ -548,66 +548,66 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) is None
             assert db._retrieve_name(dog_handle) == "dog"
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == []
-            assert db._retrieve_incoming_set(dog_handle) == [inheritance_dog_mammal_handle]
-            assert db._retrieve_incoming_set(mammal_handle) == [inheritance_dog_mammal_handle]
+            assert db._retrieve_incoming_set(cat_handle) == set()
+            assert db._retrieve_incoming_set(dog_handle) == {inheritance_dog_mammal_handle}
+            assert db._retrieve_incoming_set(mammal_handle) == {inheritance_dog_mammal_handle}
             assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
             assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
                 [dog_handle, mammal_handle]
             )
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == [inheritance_dog_mammal_handle]
+            ) == {inheritance_dog_mammal_handle}
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
                 )
-                == []
+                == set()
             )
 
         def _check_asserts_5():
@@ -619,67 +619,67 @@ class TestRedisMongo:
             assert db._retrieve_name(cat_handle) == "cat"
             assert db._retrieve_name(dog_handle) is None
             assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == [inheritance_cat_mammal_handle]
-            assert db._retrieve_incoming_set(dog_handle) == []
-            assert db._retrieve_incoming_set(mammal_handle) == [inheritance_cat_mammal_handle]
+            assert db._retrieve_incoming_set(cat_handle) == {inheritance_cat_mammal_handle}
+            assert db._retrieve_incoming_set(dog_handle) == set()
+            assert db._retrieve_incoming_set(mammal_handle) == {inheritance_cat_mammal_handle}
             assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
                 [cat_handle, mammal_handle]
             )
             assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
                 )
-                == []
+                == set()
             )
             assert (
                 db._retrieve_hash_targets_value(
                     KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
                 )
-                == []
+                == set()
             )
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
             assert db._retrieve_hash_targets_value(
                 KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == [inheritance_cat_mammal_handle]
+            ) == {inheritance_cat_mammal_handle}
 
         db = _db
 
@@ -736,10 +736,10 @@ class TestRedisMongo:
         db.commit()
 
         response = db.get_matched_links("Similarity", [human, monkey])
-        assert response == [AtomDB.link_handle("Similarity", [human, monkey])]
+        assert response == {AtomDB.link_handle("Similarity", [human, monkey])}
 
         response = db.get_matched_links("Fake", [human, monkey])
-        assert response == []
+        assert response == set()
 
         response = db.get_matched_links("Similarity", [human, "*"])
         assert sorted(response) == sorted(
@@ -1079,12 +1079,11 @@ class TestRedisMongo:
         db.bulk_insert(documents)
 
         assert db.count_atoms() == {"atom_count": 3}
-        assert db.get_matched_links("Similarity", ["node1", "node2"]) == [
+        assert db.get_matched_links("Similarity", ["node1", "node2"]) == {
             db.link_handle("Similarity", ["node1", "node2"])
-        ]
-        cursor, similarity = db.get_all_links("Similarity")
-        assert cursor == 0
-        assert similarity == [db.link_handle("Similarity", ["node1", "node2"])]
+        }
+        similarity = db.get_all_links("Similarity")
+        assert similarity == {db.link_handle("Similarity", ["node1", "node2"])}
         assert db.get_all_nodes("Concept") == ["node1", "node2"]
 
     def test_retrieve_all_atoms(self, _cleanup, _db: RedisMongoDB):
@@ -1092,11 +1091,9 @@ class TestRedisMongo:
         self._add_atoms(db)
         db.commit()
         response = db.retrieve_all_atoms()
-        cursors = [-1] * 2
-        cursors[0], inheritance = db.get_all_links("Inheritance")
-        cursors[1], similarity = db.get_all_links("Similarity")
-        assert all(c == 0 for c in cursors), f"{cursors=}"
-        links = inheritance + similarity
+        inheritance = db.get_all_links("Inheritance")
+        similarity = db.get_all_links("Similarity")
+        links = inheritance.union(similarity)
         nodes = db.get_all_nodes("Concept")
         assert len(response) == len(links) + len(nodes)
 

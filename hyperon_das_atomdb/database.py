@@ -47,6 +47,8 @@ LinkParamsT: TypeAlias = LinkT
 
 HandleListT: TypeAlias = list[HandleT]
 
+HandleSetT: TypeAlias = set[HandleT]
+
 IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
 
 # pylint: enable=invalid-name
@@ -102,13 +104,13 @@ class AtomDB(ABC):
         return ExpressionHasher.terminal_hash(node_type, node_name)
 
     @staticmethod
-    def link_handle(link_type: str, target_handles: list[str]) -> str:
+    def link_handle(link_type: str, target_handles: HandleListT) -> str:
         """
         Generate a unique handle for a link based on its type and target handles.
 
         Args:
             link_type (str): The type of the link.
-            target_handles (list[str]): A list of target handles for the link.
+            target_handles (HandleListT): A list of target handles for the link.
 
         Returns:
             str: A unique handle for the link.
@@ -194,7 +196,7 @@ class AtomDB(ABC):
 
     def _build_link(
         self, link_params: LinkParamsT, toplevel: bool = True
-    ) -> tuple[str, LinkT, list[str]] | None:
+    ) -> tuple[str, LinkT, HandleListT] | None:
         """
         Build a link the specified parameters.
 
@@ -207,7 +209,7 @@ class AtomDB(ABC):
                 nested inside other links. Defaults to True.
 
         Returns:
-            tuple[str, LinkT, list[str]] | None: A tuple containing the handle of the link, the
+            tuple[str, LinkT, HandleListT] | None: A tuple containing the handle of the link, the
             link dictionary, and a list of target hashes. Or None if something went wrong.
 
         Raises:
@@ -301,13 +303,13 @@ class AtomDB(ABC):
         except AtomDoesNotExist:
             return False
 
-    def link_exists(self, link_type: str, target_handles: list[str]) -> bool:
+    def link_exists(self, link_type: str, target_handles: HandleListT) -> bool:
         """
         Check if a link with the specified type and targets exists in the database.
 
         Args:
             link_type (str): The link type.
-            target_handles (list[str]): A list of link target identifiers.
+            target_handles (HandleListT): A list of link target identifiers.
 
         Returns:
             bool: True if the link exists, False otherwise.
@@ -356,7 +358,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_node_by_name(self, node_type: str, substring: str) -> list[str]:
+    def get_node_by_name(self, node_type: str, substring: str) -> HandleListT:
         """
         Get the name of a node of the specified type containing the given substring.
 
@@ -365,11 +367,11 @@ class AtomDB(ABC):
             substring (str): The substring to search for in node names.
 
         Returns:
-            list[str]: list of handles of nodes whose names matched the criteria.
+            HandleListT: list of handles of nodes whose names matched the criteria.
         """
 
     @abstractmethod
-    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
+    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> HandleListT:
         """
         Query the database by field and value, the performance is improved if the database already
         have indexes created for the fields, check 'create_field_index' to create indexes.
@@ -379,7 +381,7 @@ class AtomDB(ABC):
             query (list[dict[str, str]]): list of dicts containing 'field' and 'value' keys
 
         Returns:
-            list[str]: list of node IDs
+            HandleListT: list of node IDs
         """
 
     @abstractmethod
@@ -424,7 +426,7 @@ class AtomDB(ABC):
         text_value: str,
         field: str | None = None,
         text_index_id: str | None = None,
-    ) -> list[str]:
+    ) -> HandleListT:
         """
         Query the database by a text field, use the text_value arg to query using an existing text
         index (text_index_id is optional), if a TOKEN_INVERTED_LIST type of index wasn't previously
@@ -441,11 +443,11 @@ class AtomDB(ABC):
 
 
         Returns:
-            list[str]: list of node IDs ordered by the closest match
+            HandleListT: list of node IDs ordered by the closest match
         """
 
     @abstractmethod
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> list[str]:
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> HandleListT:
         """
         Query the database by node name starting with 'startswith' value, this query is indexed
         and the performance is improved by searching only the index that starts with the
@@ -456,7 +458,7 @@ class AtomDB(ABC):
             startswith (str): _description_
 
         Returns:
-            list[str]: list of node IDs
+            HandleListT: list of node IDs
         """
 
     @abstractmethod
@@ -473,7 +475,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
+    def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         """
         Get all links of a specific type.
 
@@ -482,18 +484,17 @@ class AtomDB(ABC):
             **kwargs: Additional arguments that may be used for filtering or other purposes.
 
         Returns:
-            tuple[int | None, list[str]]: tuple containing a cursor (which can be None if cursor is
-                not applicable) and a list of link handles.
+            HandleSetT: Link handles.
         """
 
     @abstractmethod
-    def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
+    def get_link_handle(self, link_type: str, target_handles: HandleListT) -> str:
         """
         Get the handle of the link with the specified type and targets.
 
         Args:
             link_type (str): The link type.
-            target_handles (list[str]): A list of link target identifiers.
+            target_handles (HandleListT): A list of link target identifiers.
 
         Returns:
             str: The link handle.
@@ -512,7 +513,7 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_link_targets(self, link_handle: str) -> list[str]:
+    def get_link_targets(self, link_handle: str) -> HandleListT:
         """
         Get the target handles of a link specified by its handle.
 
@@ -520,7 +521,7 @@ class AtomDB(ABC):
             link_handle (str): The link handle.
 
         Returns:
-            list[str]: A list of target identifiers of the link.
+            HandleListT: A list of target identifiers of the link.
         """
 
     @abstractmethod
@@ -537,22 +538,24 @@ class AtomDB(ABC):
         """
 
     @abstractmethod
-    def get_matched_links(self, link_type: str, target_handles: list[str], **kwargs) -> HandleListT:
+    def get_matched_links(
+        self, link_type: str, target_handles: HandleListT, **kwargs
+    ) -> HandleSetT:
         """
         Retrieve links that match a specified link type and target handles.
 
         Args:
             link_type (str): The type of the link to match.
-            target_handles (list[str]): A list of target handles to match.
+            target_handles (HandleListT): A list of target handles to match.
             **kwargs: Additional arguments that may be used for filtering or other
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleListT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         """
         Retrieve links that match a specified type template.
 
@@ -562,11 +565,11 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     @abstractmethod
-    def get_matched_type(self, link_type: str, **kwargs) -> HandleListT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         """
         Retrieve links that match a specified link type.
 
@@ -576,7 +579,7 @@ class AtomDB(ABC):
                 purposes.
 
         Returns:
-            HandleListT: List of matching link handles.
+            HandleSetT: Set of matching link handles.
         """
 
     def get_atom(self, handle: str, **kwargs) -> AtomT:
