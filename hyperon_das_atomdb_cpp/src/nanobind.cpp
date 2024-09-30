@@ -278,16 +278,16 @@ NB_MODULE(hyperon_das_atomdb, m) {
              })
         .def("__setstate__",
              [](Link& link,
-                const std::tuple<string,                              // id
-                                 string,                              // handle
-                                 string,                              // composite_type_hash
-                                 string,                              // named_type
-                                 nb::list,                            // composite_type
-                                 string,                              // named_type_hash
-                                 vector<string>,                      // targets
-                                 bool,                                // is_top_level
-                                 map<string, string>,                 // keys
-                                 opt<vector<shared_ptr<const Atom>>>  // targets_documents
+                const std::tuple<string,                      // id
+                                 string,                      // handle
+                                 string,                      // composite_type_hash
+                                 string,                      // named_type
+                                 nb::list,                    // composite_type
+                                 string,                      // named_type_hash
+                                 vector<string>,              // targets
+                                 bool,                        // is_top_level
+                                 map<string, string>,         // keys
+                                 opt<Link::TargetsDocuments>  // targets_documents
                                  >& state) {
                  auto composite_type = transformer::pylist_to_composite_type(std::get<4>(state));
                  new (&link) Link(std::get<0>(state),  // id

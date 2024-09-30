@@ -122,6 +122,8 @@ class Node : public Atom {
  */
 class Link : public Atom {
    public:
+    using TargetsDocuments = vector<shared_ptr<const Atom>>;
+
     /**
      * `composite_type` is designed to hold a list of elements, where each element can either be a
      * `string` (single hash) or another list of `strings`, allowing multiple levels of nesting.
@@ -132,7 +134,7 @@ class Link : public Atom {
     vector<string> targets;
     bool is_top_level = true;
     map<string, string> keys = {};
-    opt<vector<shared_ptr<const Atom>>> targets_documents = nullopt;
+    opt<TargetsDocuments> targets_documents = nullopt;
 
     Link() = default;
     Link(const string& id,
@@ -144,7 +146,7 @@ class Link : public Atom {
          const vector<string>& targets,
          bool is_top_level = true,
          map<string, string> keys = {},
-         opt<vector<shared_ptr<const Atom>>> targets_documents = {})
+         opt<TargetsDocuments> targets_documents = {})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
@@ -167,7 +169,7 @@ class Link : public Atom {
         }
         if (targets_documents.has_value()) {
             if (not targets_documents->empty()) {
-                this->targets_documents = vector<shared_ptr<const Atom>>();
+                this->targets_documents = TargetsDocuments();
                 this->targets_documents->reserve(targets_documents->size());
                 for (const auto& target : *targets_documents) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {

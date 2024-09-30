@@ -47,7 +47,7 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
         auto deep_representation = kwargs.deep_representation;
         if (targets_documents or deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
-            link_copy->targets_documents = vector<shared_ptr<const Atom>>();
+            link_copy->targets_documents = Link::TargetsDocuments();
             link_copy->targets_documents->reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 if (deep_representation) {
