@@ -39,7 +39,6 @@ class TestRedisMongo:
             db.add_link(link)
         for link in similarity_docs.values():
             db.add_link(link)
-        db.commit()
 
     def _connect_db(self):
         db = RedisMongoDB(
@@ -792,6 +791,7 @@ class TestRedisMongo:
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
         db = _db
         self._add_atoms(db)
+        db.commit()
         db.add_link(
             {
                 "type": "Similarity",
