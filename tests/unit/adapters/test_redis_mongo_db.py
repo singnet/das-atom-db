@@ -184,30 +184,12 @@ class TestRedisMongoDB:
         assert exc_info.type is ValueError
         assert exc_info.value.args[0] == f"Invalid handle: {handle}-Fake"
 
-    def test_is_ordered(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        monkey = database.get_node_handle("Concept", "monkey")
-        mammal = database.get_node_handle("Concept", "mammal")
-        link_1 = database.get_link_handle("Inheritance", [human, mammal])
-        link_2 = database.get_link_handle("Similarity", [human, monkey])
-        assert database.is_ordered(link_1)
-        assert database.is_ordered(link_2)
-
-    def test_is_ordered_invalid(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        link = database.get_link_handle("Inheritance", [human, mammal])
-        with pytest.raises(ValueError) as exc_info:
-            database.get_link_targets(f"{link}-Fake")
-        assert exc_info.type is ValueError
-        assert exc_info.value.args[0] == f"Invalid handle: {link}-Fake"
-
     def test_get_matched_links_without_wildcard(self, database: RedisMongoDB):
         link_type = "Similarity"
         human = ExpressionHasher.terminal_hash("Concept", "human")
         monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
         link_handle = database.get_link_handle(link_type, [human, monkey])
-        expected = [link_handle]
+        expected = {link_handle}
         actual = database.get_matched_links(link_type, [human, monkey])
 
         assert expected == actual
@@ -216,15 +198,7 @@ class TestRedisMongoDB:
         link_type = "*"
         human = ExpressionHasher.terminal_hash("Concept", "human")
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = [
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            )
-        ]
+        expected = {"b5459e299a5c5e8662c427f7e01b3bf1"}
         actual = database.get_matched_links(link_type, [human, chimp])
 
         assert expected == actual
@@ -232,36 +206,16 @@ class TestRedisMongoDB:
     def test_get_matched_links_link_diff_wildcard(self, database: RedisMongoDB):
         link_type = "Similarity"
         chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = [
-            (
-                "31535ddf214f5b239d3b517823cb8144",
-                (
-                    "1cdffc6b0b89ff41d68bec237481d1e1",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            ),
-            (
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                (
-                    "af12f10f9ae2002a1607ba0b47ba8407",
-                    "5b34c54bee150c04f9fa584b899dc030",
-                ),
-            ),
-        ]
+        expected = {
+            "31535ddf214f5b239d3b517823cb8144",
+            "b5459e299a5c5e8662c427f7e01b3bf1",
+        }
         actual = database.get_matched_links(link_type, ["*", chimp])
 
         assert expected == actual
 
     def test_get_matched_links_toplevel_only(self, database: RedisMongoDB):
-        expected = [
-            (
-                "d542caa94b57219f1e489e3b03be7126",
-                (
-                    "a912032ece1826e55fa583dcaacdc4a9",
-                    "1e8ba9639663105e6c735ba83174f789",
-                ),
-            )
-        ]
+        expected = {"d542caa94b57219f1e489e3b03be7126"}
         actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
         assert expected == actual
         assert len(actual) == 1
@@ -453,12 +407,10 @@ class TestRedisMongoDB:
         assert {"atom_count": 42} == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes("Concept")
-        cursors = [-1] * 3
-        cursors[0], similarity = database.get_all_links("Similarity")
-        cursors[1], inheritance = database.get_all_links("Inheritance")
-        cursors[2], evaluation = database.get_all_links("Evaluation")
-        assert all(c == 0 for c in cursors), f"{cursors=}"
-        all_links_before = similarity + inheritance + evaluation
+        similarity = database.get_all_links("Similarity")
+        inheritance = database.get_all_links("Inheritance")
+        evaluation = database.get_all_links("Evaluation")
+        all_links_before = similarity.union(inheritance).union(evaluation)
         database.add_link(
             {
                 "type": "Similarity",
@@ -470,12 +422,10 @@ class TestRedisMongoDB:
         )
         database.commit()
         all_nodes_after = database.get_all_nodes("Concept")
-        cursors = [-1] * 3
-        cursors[0], similarity = database.get_all_links("Similarity")
-        cursors[1], inheritance = database.get_all_links("Inheritance")
-        cursors[2], evaluation = database.get_all_links("Evaluation")
-        assert all(c == 0 for c in cursors), f"{cursors=}"
-        all_links_after = similarity + inheritance + evaluation
+        similarity = database.get_all_links("Similarity")
+        inheritance = database.get_all_links("Inheritance")
+        evaluation = database.get_all_links("Evaluation")
+        all_links_after = similarity.union(inheritance).union(evaluation)
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 16
         assert len(all_links_before) == 28
@@ -526,14 +476,14 @@ class TestRedisMongoDB:
         assert len(links) > 0
         assert all(isinstance(link, str) for link in links)
         answer = database.redis.smembers(f"incoming_set:{h}")
-        assert links == list(answer)
+        assert sorted(links) == sorted(answer)
         assert s in links
 
         links = database.get_incoming_links(atom_handle=m, handles_only=True)
         assert len(links) > 0
         assert all(isinstance(link, str) for link in links)
         answer = database.redis.smembers(f"incoming_set:{m}")
-        assert links == list(answer)
+        assert sorted(links) == sorted(answer)
 
         links = database.get_incoming_links(atom_handle=s, handles_only=True)
         assert len(links) == 0

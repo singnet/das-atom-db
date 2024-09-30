@@ -23,18 +23,16 @@ from redis import Redis
 from redis.cluster import RedisCluster
 
 from hyperon_das_atomdb.database import (
-    UNORDERED_LINK_TYPES,
     WILDCARD,
     AtomDB,
     AtomT,
     FieldIndexType,
     FieldNames,
+    HandleListT,
+    HandleSetT,
     IncomingLinksT,
     LinkParamsT,
     LinkT,
-    MatchedLinksResultT,
-    MatchedTargetsListT,
-    MatchedTypesResultT,
     NodeParamsT,
     NodeT,
 )
@@ -465,7 +463,7 @@ class RedisMongoDB(AtomDB):
             return [self._build_named_type_hash_template(element) for element in template]
 
     @staticmethod
-    def _get_document_keys(document: dict[str, Any]) -> list[str]:
+    def _get_document_keys(document: dict[str, Any]) -> HandleListT:
         """
         Retrieve the keys from the given document.
 
@@ -477,9 +475,9 @@ class RedisMongoDB(AtomDB):
             document (dict[str, Any]): The document from which to retrieve the keys.
 
         Returns:
-            list[str]: A list of keys extracted from the document.
+            HandleListT: A list of keys extracted from the document.
         """
-        answer: list[str] | None = document.get(FieldNames.KEYS, None)
+        answer: HandleListT | None = document.get(FieldNames.KEYS, None)
         if answer is not None:
             return answer
 
@@ -490,7 +488,7 @@ class RedisMongoDB(AtomDB):
             index += 1
         return answer
 
-    def _filter_non_toplevel(self, matches: MatchedTargetsListT) -> MatchedTargetsListT:
+    def _filter_non_toplevel(self, matches: HandleSetT) -> HandleSetT:
         """
         Filter out non-toplevel links from the given list of matches.
 
@@ -499,16 +497,16 @@ class RedisMongoDB(AtomDB):
         are included in the returned list.
 
         Args:
-            matches (MatchedTargetsListT): A list of link handles to be filtered.
+            matches (HandleSetT): A set of link handles to be filtered.
 
         Returns:
-            MatchedTargetsListT: A list of handles corresponding to toplevel links.
+            HandleSetT: A set of handles corresponding to toplevel links.
         """
-        return [
-            (link_handle, matched_targets)
-            for link_handle, matched_targets in matches
+        return {
+            link_handle
+            for link_handle in matches
             if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
-        ]
+        }
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
         node_handle = self.node_handle(node_type, node_name)
@@ -539,7 +537,7 @@ class RedisMongoDB(AtomDB):
         document = self.get_atom(node_handle)
         return document[FieldNames.TYPE_NAME]
 
-    def get_node_by_name(self, node_type: str, substring: str) -> list[str]:
+    def get_node_by_name(self, node_type: str, substring: str) -> HandleListT:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
         mongo_filter = {
             FieldNames.COMPOSITE_TYPE_HASH: node_type_hash,
@@ -550,7 +548,7 @@ class RedisMongoDB(AtomDB):
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
-    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> list[str]:
+    def get_atoms_by_field(self, query: list[OrderedDict[str, str]]) -> HandleListT:
         mongo_filter = collections.OrderedDict([(q["field"], q["value"]) for q in query])
         return [
             document[FieldNames.ID_HASH]
@@ -574,7 +572,7 @@ class RedisMongoDB(AtomDB):
         text_value: str,
         field: Optional[str] = None,
         text_index_id: Optional[str] = None,
-    ) -> list[str]:
+    ) -> HandleListT:
         if field is not None:
             mongo_filter = {
                 field: {"$regex": text_value},
@@ -618,27 +616,11 @@ class RedisMongoDB(AtomDB):
                 for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
             ]
 
-    def get_all_links(self, link_type: str, **kwargs) -> tuple[int | None, list[str]]:
+    def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
+        return {document[FieldNames.ID_HASH] for document in pymongo_cursor}
 
-        if kwargs.get("cursor") is not None:
-            cursor: int = kwargs.get("cursor")  # type: ignore
-            chunk_size: int = kwargs.get("chunk_size", 500)
-            pymongo_cursor.skip(cursor).limit(chunk_size)
-
-            handles = [document[FieldNames.ID_HASH] for document in pymongo_cursor]
-
-            if not handles:
-                return 0, []
-
-            if len(handles) < chunk_size:
-                return 0, handles
-            else:
-                return cursor + chunk_size, handles
-
-        return 0, [document[FieldNames.ID_HASH] for document in pymongo_cursor]
-
-    def get_link_handle(self, link_type: str, target_handles: list[str]) -> str:
+    def get_link_handle(self, link_type: str, target_handles: HandleListT) -> str:
         link_handle = self.link_handle(link_type, target_handles)
         document = self._retrieve_document(link_handle)
         if document is not None:
@@ -653,7 +635,7 @@ class RedisMongoDB(AtomDB):
                 details=f"{link_type}:{target_handles}",
             )
 
-    def get_link_targets(self, link_handle: str) -> list[str]:
+    def get_link_targets(self, link_handle: str) -> HandleListT:
         answer = self._retrieve_outgoing_set(link_handle)
         if not answer:
             logger().error(
@@ -663,33 +645,19 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Invalid handle: {link_handle}")
         return answer
 
-    def is_ordered(self, link_handle: str) -> bool:
-        document = self._retrieve_document(link_handle)
-        if document is None:
-            logger().error(
-                "Failed to retrieve document for link handle: {link_handle}. "
-                "The handle may be invalid or the corresponding link does not exist."
-            )
-            raise ValueError(f"Invalid handle: {link_handle}")
-        return True
-
     def get_matched_links(
-        self, link_type: str, target_handles: list[str], **kwargs
-    ) -> MatchedLinksResultT:
+        self, link_type: str, target_handles: HandleListT, **kwargs
+    ) -> HandleSetT:
         if link_type != WILDCARD and WILDCARD not in target_handles:
             try:
                 link_handle = self.get_link_handle(link_type, target_handles)
-                return [link_handle]
+                return {link_handle}
             except AtomDoesNotExist:
-                return []
+                return set()
 
         link_type_hash = (
             WILDCARD if link_type == WILDCARD else ExpressionHasher.named_type_hash(link_type)
         )
-
-        # NOTE unreachable
-        if link_type in UNORDERED_LINK_TYPES:
-            target_handles = sorted(target_handles)
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
         patterns_matched = self._retrieve_hash_targets_value(
@@ -704,13 +672,13 @@ class RedisMongoDB(AtomDB):
         links = self._retrieve_incoming_set(atom_handle, **kwargs)
 
         if kwargs.get("handles_only", False):
-            return links
+            return list(links)
         else:
             return [self.get_atom(handle, **kwargs) for handle in links]
 
-    def get_matched_type_template(self, template: list[Any], **kwargs) -> MatchedTypesResultT:
+    def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         try:
-            hash_base: list[str] = self._build_named_type_hash_template(template)  # type: ignore
+            hash_base: HandleListT = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
             templates_matched = self._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, template_hash, **kwargs
@@ -723,7 +691,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Failed to get matched type template - Details: {str(exception)}")
             raise ValueError(str(exception))
 
-    def get_matched_type(self, link_type: str, **kwargs) -> MatchedTypesResultT:
+    def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         templates_matched = self._retrieve_hash_targets_value(
             KeyPrefix.TEMPLATES, named_type_hash, **kwargs
@@ -738,7 +706,10 @@ class RedisMongoDB(AtomDB):
         return document[FieldNames.TYPE_NAME]
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        return self.get_atom_as_dict(handle)
+        try:
+            return self.get_atom_as_dict(handle)
+        except AtomDoesNotExist:
+            return None
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
@@ -756,8 +727,11 @@ class RedisMongoDB(AtomDB):
             else:
                 document["name"] = document["name"]
             return document
-        else:
-            return None
+        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
+        raise AtomDoesNotExist(
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
+        )
 
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()
@@ -841,7 +815,7 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
-    def _get_and_delete_links_by_handles(self, handles: list[str]) -> list[dict[str, Any]]:
+    def _get_and_delete_links_by_handles(self, handles: HandleListT) -> list[dict[str, Any]]:
         documents = []
         for handle in handles:
             if document := self.mongo_atoms_collection.find_one_and_delete(
@@ -852,7 +826,7 @@ class RedisMongoDB(AtomDB):
 
     @staticmethod
     def _apply_index_template(
-        template: dict[str, Any], named_type: str, targets: list[str], arity: int
+        template: dict[str, Any], named_type: str, targets: HandleListT, arity: int
     ) -> str:
         """
         Apply the index template to generate a Redis key.
@@ -865,7 +839,7 @@ class RedisMongoDB(AtomDB):
             template (dict[str, Any]): The index template containing type name and selected
                 positions.
             named_type (str): The named type to be included in the key.
-            targets (list[str]): The list of target handles to be included in the key.
+            targets (HandleListT): The list of target handles to be included in the key.
             arity (int): The arity of the link, indicating the number of targets.
 
         Returns:
@@ -877,7 +851,7 @@ class RedisMongoDB(AtomDB):
             key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
         return _build_redis_key(KeyPrefix.PATTERNS, ExpressionHasher.composite_hash(key))
 
-    def _retrieve_incoming_set(self, handle: str, **kwargs) -> MatchedTargetsListT:
+    def _retrieve_incoming_set(self, handle: str, **kwargs) -> HandleSetT:
         """
         Retrieve the incoming set for the given handle from Redis.
 
@@ -889,10 +863,10 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            tuple[int | None, list[str]]: List of members for the given key
+            HandleSetT: Set of members for the given key
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        return list(self._get_redis_members(key, **kwargs))
+        return self._get_redis_members(key, **kwargs)
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
@@ -912,7 +886,7 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
         self.redis.srem(key, smember)
 
-    def _retrieve_and_delete_incoming_set(self, handle: str) -> list[str]:
+    def _retrieve_and_delete_incoming_set(self, handle: str) -> HandleListT:
         """
         Retrieve and delete the incoming set for the given handle from Redis.
 
@@ -924,14 +898,14 @@ class RedisMongoDB(AtomDB):
                 retrieved and deleted.
 
         Returns:
-            list[str]: A list of members in the incoming set before deletion.
+            HandleListT: A list of members in the incoming set before deletion.
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        data: list[str] = list(self.redis.smembers(key))  # type: ignore
+        data: HandleListT = list(self.redis.smembers(key))  # type: ignore
         self.redis.delete(key)
         return data
 
-    def _retrieve_outgoing_set(self, handle: str, delete: bool = False) -> list[str]:
+    def _retrieve_outgoing_set(self, handle: str, delete: bool = False) -> HandleListT:
         """
         Retrieve the outgoing set for the given handle from Redis.
 
@@ -945,7 +919,7 @@ class RedisMongoDB(AtomDB):
                 Defaults to False.
 
         Returns:
-            list[str]: A list of members in the outgoing set.
+            HandleListT: A list of members in the outgoing set.
         """
         key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
         value: str
@@ -981,17 +955,13 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(
-        self, key_prefix: str, handle: str, **kwargs
-    ) -> MatchedTargetsListT:
+    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> HandleSetT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
         This method constructs a Redis key using the provided key prefix and handle, and retrieves
-        the members associated with that key. It supports additional keyword arguments for
-        cursor-based pagination. If the members are not found, it returns an empty list. Otherwise,
-        it calculates the number of targets based on the length of the first member and returns
-        the cursor position and a list of members.
+        the members associated with that key.
+        If the members are not found, it returns an empty list.
 
         Args:
             key_prefix (str): The prefix to be used in the Redis key.
@@ -1000,28 +970,10 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments
 
         Returns:
-            MatchedTargetsListT: List of members in the hash targets value.
+            HandleSetT: Set of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        members = self._get_redis_members(key, **kwargs)
-        if len(members) == 0:
-            return []
-        else:
-            n = len(next(iter(members))) // self.hash_length
-            return [
-                (
-                    member[0 : self.hash_length],  # noqa: E203
-                    tuple(
-                        member[
-                            (offset * self.hash_length) : (  # noqa: E203
-                                (offset + 1) * self.hash_length
-                            )
-                        ]
-                        for offset in range(1, n)
-                    ),
-                )
-                for member in members
-            ]
+        return self._get_redis_members(key, **kwargs)
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
@@ -1081,7 +1033,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Unexpected error retrieving custom index with ID {index_id}: {e}")
             raise e
 
-    def _get_redis_members(self, key: str, **kwargs) -> MatchedTargetsListT:
+    def _get_redis_members(self, key: str, **kwargs) -> HandleSetT:
         """
         Retrieve members from a Redis set.
 
@@ -1089,9 +1041,9 @@ class RedisMongoDB(AtomDB):
             key (str): The key of the set in Redis.
 
         Returns:
-            MatchedTargetsListT: List of members retrieved from Redis.
+            HandleSetT: Set of members retrieved from Redis.
         """
-        return list(self.redis.smembers(key))  # type: ignore
+        return set(self.redis.smembers(key))  # type: ignore
 
     def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
         """
@@ -1152,12 +1104,11 @@ class RedisMongoDB(AtomDB):
                 indicate whether the link should be deleted from the index.
         """
         handle: str = document[FieldNames.ID_HASH]
-        targets: list[str] = self._get_document_keys(document)
+        targets: HandleListT = self._get_document_keys(document)
         targets_str: str = "".join(targets)
         arity: int = len(targets)
         named_type: str = document[FieldNames.TYPE_NAME]
         named_type_hash: str = document[FieldNames.TYPE_NAME_HASH]
-        value: str = f"{handle}{targets_str}"
 
         index_templates: list[dict[str, Any]]
         if self.pattern_index_templates:
@@ -1182,13 +1133,13 @@ class RedisMongoDB(AtomDB):
                 FieldNames.COMPOSITE_TYPE_HASH,
                 FieldNames.TYPE_NAME_HASH,
             ]:
-                self._delete_smember_template(document[type_hash], value)
+                self._delete_smember_template(document[type_hash], handle)
 
             for template in index_templates:
                 key = self._apply_index_template(template, named_type_hash, targets, arity)
-                self.redis.srem(key, value)
+                self.redis.srem(key, handle)
         else:
-            incoming_buffer: dict[str, list[str]] = {}
+            incoming_buffer: dict[str, HandleListT] = {}
             key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
             self.redis.set(key, targets_str)
 
@@ -1204,11 +1155,11 @@ class RedisMongoDB(AtomDB):
                 FieldNames.TYPE_NAME_HASH,
             ]:
                 key = _build_redis_key(KeyPrefix.TEMPLATES, document[type_hash])
-                self.redis.sadd(key, value)
+                self.redis.sadd(key, handle)
 
             for template in index_templates:
                 key = self._apply_index_template(template, named_type_hash, targets, arity)
-                self.redis.sadd(key, value)
+                self.redis.sadd(key, handle)
 
             for handle in incoming_buffer:
                 key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
@@ -1246,15 +1197,13 @@ class RedisMongoDB(AtomDB):
             str: The calculated composite type hash.
         """
 
-        def calculate_composite_type_hashes(_composite_type: list[Any]) -> list[str]:
-            response = []
-            for t in _composite_type:
-                if isinstance(t, list):
-                    _hash = calculate_composite_type_hashes(t)
-                    response.append(ExpressionHasher.composite_hash(_hash))
-                else:
-                    response.append(ExpressionHasher.named_type_hash(t))
-            return response
+        def calculate_composite_type_hashes(_composite_type: list[Any]) -> HandleListT:
+            return [
+                ExpressionHasher.composite_hash(calculate_composite_type_hashes(t))
+                if isinstance(t, list)
+                else ExpressionHasher.named_type_hash(t)
+                for t in _composite_type
+            ]
 
         composite_type_hashes_list = calculate_composite_type_hashes(composite_type)
         return ExpressionHasher.composite_hash(composite_type_hashes_list)
