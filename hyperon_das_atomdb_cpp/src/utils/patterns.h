@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "constants.hpp"
-#include "expression_hasher.hpp"
+#include "constants.h"
+#include "expression_hasher.h"
 
 using namespace std;
 

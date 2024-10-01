@@ -1,11 +1,11 @@
 #pragma once
 
-#include "constants.hpp"
-#include "document_types.hpp"
-#include "exceptions.hpp"
-#include "params.hpp"
-#include "type_aliases.hpp"
-#include "utils/expression_hasher.hpp"
+#include "constants.h"
+#include "document_types.h"
+#include "exceptions.h"
+#include "params.h"
+#include "type_aliases.h"
+#include "utils/expression_hasher.h"
 
 using namespace std;
 

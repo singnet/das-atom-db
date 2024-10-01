@@ -10,14 +10,14 @@
 #include <nanobind/stl/variant.h>
 #include <nanobind/stl/vector.h>
 
-#include "adapters/ram_only.hpp"
-#include "adapters/redis_mongo_db.hpp"
-#include "constants.hpp"
-#include "database.hpp"
-#include "document_types.hpp"
-#include "exceptions.hpp"
-#include "params.hpp"
-#include "type_aliases.hpp"
+#include "adapters/ram_only.h"
+#include "adapters/redis_mongo_db.h"
+#include "constants.h"
+#include "database.h"
+#include "document_types.h"
+#include "exceptions.h"
+#include "params.h"
+#include "type_aliases.h"
 
 using namespace std;
 using namespace atomdb;
@@ -26,6 +26,31 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 struct transformer {
+    // Tuple types used for `pickle` conversion between C++ and Python
+    using AtomTypeTuple = std::tuple<string,  // id
+                                     string,  // handle
+                                     string,  // composite_type_hash
+                                     string,  // named_type
+                                     string   // named_type_hash
+                                     >;
+    using NodeTuple = std::tuple<string,  // id
+                                 string,  // handle
+                                 string,  // composite_type_hash
+                                 string,  // named_type
+                                 string   // name
+                                 >;
+    using LinkTuple = std::tuple<string,                      // id
+                                 string,                      // handle
+                                 string,                      // composite_type_hash
+                                 string,                      // named_type
+                                 nb::list,                    // composite_type
+                                 string,                      // named_type_hash
+                                 vector<string>,              // targets
+                                 bool,                        // is_top_level
+                                 map<string, string>,         // keys
+                                 opt<Link::TargetsDocuments>  // targets_documents
+                                 >;
+
     static nb::list composite_type_to_pylist(const ListOfAny& ct_list) {
         nb::list py_list;
         for (const auto& element : ct_list) {
@@ -58,7 +83,7 @@ struct transformer {
     }
 };
 
-NB_MODULE(hyperon_das_atomdb, m) {
+NB_MODULE(ext, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;
     m.attr("WILDCARD_HASH") = WILDCARD_HASH;
@@ -234,50 +259,36 @@ NB_MODULE(hyperon_das_atomdb, m) {
     nb::class_<AtomType, Atom>(document_types, "AtomType")
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__",
-             [](const AtomType& atom_type) {
+             [](const AtomType& atom_type) -> transformer::AtomTypeTuple {
                  return std::make_tuple(atom_type.id,
                                         atom_type.handle,
                                         atom_type.composite_type_hash,
                                         atom_type.named_type,
                                         atom_type.named_type_hash);
              })
-        .def("__setstate__",
-             [](AtomType& atom_type,
-                const std::tuple<string,  // id
-                                 string,  // handle
-                                 string,  // composite_type_hash
-                                 string,  // named_type
-                                 string   // named_type_hash
-                                 >& state) {
-                 new (&atom_type) AtomType(std::get<0>(state),  // id
-                                           std::get<1>(state),  // handle
-                                           std::get<2>(state),  // composite_type_hash
-                                           std::get<3>(state),  // named_type
-                                           std::get<4>(state)   // named_type_hash
-                 );
-             });
+        .def("__setstate__", [](AtomType& atom_type, const transformer::AtomTypeTuple& state) {
+            new (&atom_type) AtomType(std::get<0>(state),  // id
+                                      std::get<1>(state),  // handle
+                                      std::get<2>(state),  // composite_type_hash
+                                      std::get<3>(state),  // named_type
+                                      std::get<4>(state)   // named_type_hash
+            );
+        });
     nb::class_<Node, Atom>(document_types, "Node")
         .def_ro("name", &Node::name)
         .def("__getstate__",
-             [](const Node& node) {
+             [](const Node& node) -> transformer::NodeTuple {
                  return std::make_tuple(
                      node.id, node.handle, node.composite_type_hash, node.named_type, node.name);
              })
-        .def("__setstate__",
-             [](Node& node,
-                const std::tuple<string,  // id
-                                 string,  // handle
-                                 string,  // composite_type_hash
-                                 string,  // named_type
-                                 string   // name
-                                 >& state) {
-                 new (&node) Node(std::get<0>(state),  // id
-                                  std::get<1>(state),  // handle
-                                  std::get<2>(state),  // composite_type_hash
-                                  std::get<3>(state),  // named_type
-                                  std::get<4>(state)   // name
-                 );
-             });
+        .def("__setstate__", [](Node& node, const transformer::NodeTuple& state) {
+            new (&node) Node(std::get<0>(state),  // id
+                             std::get<1>(state),  // handle
+                             std::get<2>(state),  // composite_type_hash
+                             std::get<3>(state),  // named_type
+                             std::get<4>(state)   // name
+            );
+        });
     nb::class_<Link, Atom>(document_types, "Link")
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
@@ -289,7 +300,7 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def_ro("keys", &Link::keys)
         .def_ro("targets_documents", &Link::targets_documents)
         .def("__getstate__",
-             [](const Link& link) {
+             [](const Link& link) -> transformer::LinkTuple {
                  return std::make_tuple(link.id,
                                         link.handle,
                                         link.composite_type_hash,
@@ -301,32 +312,20 @@ NB_MODULE(hyperon_das_atomdb, m) {
                                         link.keys,
                                         link.targets_documents);
              })
-        .def("__setstate__",
-             [](Link& link,
-                const std::tuple<string,                      // id
-                                 string,                      // handle
-                                 string,                      // composite_type_hash
-                                 string,                      // named_type
-                                 nb::list,                    // composite_type
-                                 string,                      // named_type_hash
-                                 vector<string>,              // targets
-                                 bool,                        // is_top_level
-                                 map<string, string>,         // keys
-                                 opt<Link::TargetsDocuments>  // targets_documents
-                                 >& state) {
-                 auto composite_type = transformer::pylist_to_composite_type(std::get<4>(state));
-                 new (&link) Link(std::get<0>(state),  // id
-                                  std::get<1>(state),  // handle
-                                  std::get<2>(state),  // composite_type_hash
-                                  std::get<3>(state),  // named_type
-                                  composite_type,
-                                  std::get<5>(state),  // named_type_hash
-                                  std::get<6>(state),  // targets
-                                  std::get<7>(state),  // is_top_level
-                                  std::get<8>(state),  // keys
-                                  std::get<9>(state)   // targets_documents
-                 );
-             });
+        .def("__setstate__", [](Link& link, const transformer::LinkTuple& state) {
+            new (&link) Link(std::get<0>(state),  // id
+                             std::get<1>(state),  // handle
+                             std::get<2>(state),  // composite_type_hash
+                             std::get<3>(state),  // named_type
+                             /* composite_type */
+                             transformer::pylist_to_composite_type(std::get<4>(state)),
+                             std::get<5>(state),  // named_type_hash
+                             std::get<6>(state),  // targets
+                             std::get<7>(state),  // is_top_level
+                             std::get<8>(state),  // keys
+                             std::get<9>(state)   // targets_documents
+            );
+        });
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");

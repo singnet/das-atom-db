@@ -1,10 +1,10 @@
-#include "ram_only.hpp"
+#include "ram_only.h"
 
 #include <algorithm>
 
-#include "exceptions.hpp"
-#include "utils/expression_hasher.hpp"
-#include "utils/patterns.hpp"
+#include "exceptions.h"
+#include "utils/expression_hasher.h"
+#include "utils/patterns.h"
 
 using namespace std;
 using namespace atomdb;

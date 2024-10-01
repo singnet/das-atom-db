@@ -1,4 +1,4 @@
-#include "database.hpp"
+#include "database.h"
 
 using namespace std;
 using namespace atomdb;

@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "params.hpp"
+#include "params.h"
 
 using namespace std;
 
@@ -144,14 +144,12 @@ class Link : public Atom {
          const ListOfAny& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
-         bool is_top_level = true,
-         map<string, string> keys = {},
-         opt<TargetsDocuments> targets_documents = {})
+         bool is_top_level)
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_top_level(is_top_level),
-          keys(keys),
+          keys({}),
           targets_documents(nullopt),
           Atom(id, handle, composite_type_hash, named_type) {
         if (composite_type.empty()) {
@@ -167,6 +165,26 @@ class Link : public Atom {
         if (targets.empty()) {
             throw invalid_argument("Link targets cannot be empty.");
         }
+    }
+    Link(const string& id,
+         const string& handle,
+         const string& composite_type_hash,
+         const string& named_type,
+         const ListOfAny& composite_type,
+         const string& named_type_hash,
+         const vector<string>& targets,
+         bool is_top_level,
+         map<string, string> keys,
+         opt<TargetsDocuments> targets_documents)
+        : Link(id,
+               handle,
+               composite_type_hash,
+               named_type,
+               composite_type,
+               named_type_hash,
+               targets,
+               is_top_level) {
+        this->keys = keys;
         if (targets_documents.has_value()) {
             if (not targets_documents->empty()) {
                 this->targets_documents = TargetsDocuments();

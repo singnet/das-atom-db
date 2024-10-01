@@ -1,8 +1,8 @@
 #pragma once
 
-#include "database.hpp"
-#include "document_types.hpp"
-#include "type_aliases.hpp"
+#include "database.h"
+#include "document_types.h"
+#include "type_aliases.h"
 
 using namespace std;
 

@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "type_aliases.hpp"
+#include "type_aliases.h"
 
 using namespace std;
 
@@ -16,12 +16,6 @@ namespace atomdb {
 
 class ExpressionHasher {
    public:
-    struct Context_RAII {
-        mbedtls_md5_context* ctx;
-        Context_RAII() : ctx(new mbedtls_md5_context()) { mbedtls_md5_init(ctx); }
-        ~Context_RAII() { mbedtls_md5_free(ctx); }
-    };
-
     /**
      * @brief Computes the MD5 hash of the given input string.
      *
@@ -29,11 +23,13 @@ class ExpressionHasher {
      * @return A string representing the MD5 hash of the input.
      */
     static const string compute_hash(const string& input) {
-        Context_RAII ctx_raii;
+        auto ctx = unique_ptr<mbedtls_md5_context, decltype(&mbedtls_md5_free)>(
+            new mbedtls_md5_context(), &mbedtls_md5_free);
+        mbedtls_md5_init(ctx.get());
         uchar md5_buffer[MD5_BUFFER_SIZE];
-        if (mbedtls_md5_starts_ret(ctx_raii.ctx) != 0 or
-            mbedtls_md5_update_ret(ctx_raii.ctx, (const uchar*) input.c_str(), input.length()) != 0 or
-            mbedtls_md5_finish_ret(ctx_raii.ctx, md5_buffer) != 0) {
+        if (mbedtls_md5_starts_ret(ctx.get()) != 0 or
+            mbedtls_md5_update_ret(ctx.get(), (const uchar*) input.c_str(), input.length()) != 0 or
+            mbedtls_md5_finish_ret(ctx.get(), md5_buffer) != 0) {
             throw runtime_error("Failed to compute MD5 hash");
         }
         char hash[2 * MD5_BUFFER_SIZE + 1];

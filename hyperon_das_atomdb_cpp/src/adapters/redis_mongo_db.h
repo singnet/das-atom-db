@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ram_only.hpp"
+#include "ram_only.h"
 
 namespace atomdb {
 

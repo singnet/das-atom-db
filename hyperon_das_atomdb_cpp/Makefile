@@ -4,9 +4,10 @@ format:
 	@find ./src \
 		-iname "*.hpp" -o \
 		-iname "*.cpp" -o \
+		-iname "*.hh" -o \
+		-iname "*.cc" -o \
 		-iname "*.h" -o \
-		-iname "*.c" -o \
-		-iname "*.cc" \
+		-iname "*.c" \
 		| xargs clang-format -verbose -style=file -i
 
 build-make: clean
