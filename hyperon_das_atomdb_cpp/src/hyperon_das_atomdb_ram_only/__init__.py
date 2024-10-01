@@ -1,1 +1,1 @@
-from .ext import *
+from .ext import *  # type: ignore
