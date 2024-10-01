@@ -19,6 +19,9 @@ build-ninja: clean
 wheel: clean
 	@pip wheel .
 
+make pipinstall: clean
+	@pip install .
+
 clean:
 	@rm -rf build/* *whl
 	@mkdir -p build
