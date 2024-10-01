@@ -791,6 +791,7 @@ class TestRedisMongo:
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
         db = _db
         self._add_atoms(db)
+        db.commit()
         db.add_link(
             {
                 "type": "Similarity",
