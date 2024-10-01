@@ -21,29 +21,64 @@ Type Aliases:
 
 import re
 from abc import ABC, abstractmethod
+import dataclasses as dc
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
-from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from hyperon_das_atomdb.exceptions import (
+    AddLinkException,
+    AddNodeException,
+    AtomDoesNotExist,
+)
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
+from hyperon_das_atomdb_ram_only.document_types import Atom, Link, Node
 
 WILDCARD = "*"
 
 # pylint: disable=invalid-name
 
+
+@dc.dataclass
+class AtomDC:
+    id: str
+    handle: str
+    named_type: str
+    composite_type_hash: str
+
+
+@dc.dataclass
+class NodeDC(AtomDC):
+    name: str
+
+
+@dc.dataclass
+class LinkDC(AtomDC):
+    composite_type: list
+    named_type_hash: str
+    targets: list[str]
+    is_top_level: bool = True
+    keys: dict[str, str] = dc.field(default_factory=dict)
+    targets_documents: list[AtomDC] | None = dc.field(default=None)
+
+
+AtomT: TypeAlias = AtomDC | Atom
+NodeT: TypeAlias = NodeDC | Node
+LinkT: TypeAlias = LinkDC | Link
+
 HandleT: TypeAlias = str
 
-AtomT: TypeAlias = dict[str, Any]
+# AtomT: TypeAlias = dict[str, Any]
 
-NodeT: TypeAlias = AtomT
+# NodeT: TypeAlias = AtomT
 
-NodeParamsT: TypeAlias = NodeT
+NodeParamsT: TypeAlias = dict[str, Any]
 
-LinkT: TypeAlias = AtomT
+# LinkT: TypeAlias = AtomT
 
-LinkParamsT: TypeAlias = LinkT
+LinkParamsT: TypeAlias = dict[str, Any]
 
 HandleListT: TypeAlias = list[HandleT]
 
@@ -118,6 +153,24 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
+    @abstractmethod
+    def _node_t(self) -> type[NodeT]:
+        """
+        Return the type of the Node class.
+
+        Returns:
+            Type[NodeT]: The type of the Node class.
+        """
+
+    @abstractmethod
+    def _link_t(self) -> type[LinkT]:
+        """
+        Return the type of the Link class.
+
+        Returns:
+            Type[LinkT]: The type of the Link class.
+        """
+
     def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
@@ -133,19 +186,21 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        answer: AtomT = document
+        if not isinstance(document, LinkT):
+            return document
+        answer: LinkT = cast(LinkT, document)
         if kwargs.get("targets_document", False):
-            targets_document = [self.get_atom(target) for target in answer["targets"]]
-            answer["targets_document"] = targets_document
+            targets_document = [self.get_atom(target) for target in answer.targets]
+            answer.targets_document = targets_document
 
         if kwargs.get("deep_representation", False):
 
-            def _recursive_targets(targets, **_kwargs):
+            def _recursive_targets(targets, **_kwargs) -> list[AtomT]:
                 return [self.get_atom(target, **_kwargs) for target in targets]
 
             if "targets" in answer:
-                deep_targets = _recursive_targets(answer["targets"], **kwargs)
-                answer["targets"] = deep_targets
+                deep_targets = _recursive_targets(answer.targets, **kwargs)
+                answer.targets_documents = deep_targets
 
         return answer
 
@@ -182,15 +237,15 @@ class AtomDB(ABC):
 
         handle = self.node_handle(node_type, node_name)
 
-        node: NodeT = {
-            FieldNames.ID_HASH: handle,
-            "handle": handle,
-            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.named_type_hash(node_type),
-            FieldNames.NODE_NAME: node_name,
-            FieldNames.TYPE_NAME: node_type,
-        }
+        node: NodeT = self._node_t()(
+            id=handle,
+            handle=handle,
+            composite_type_hash=ExpressionHasher.named_type_hash(node_type),
+            name=node_name,
+            named_type=node_type,
+        )
 
-        node.update(valid_params)
+        # node.update(valid_params)  # TODO: custom attributes
 
         return handle, node
 
@@ -249,40 +304,42 @@ class AtomDB(ABC):
         composite_type_hash = [link_type_hash]
 
         for target in targets:
-            if not isinstance(target, dict):
+            if not isinstance(target, AtomT):
                 raise ValueError("The target must be a dictionary")
-            if "targets" not in target:
-                atom = self.add_node(target)
+            if isinstance(target, NodeT):
+                atom: NodeT | None = self.add_node(target)
                 if atom is None:
                     return None
-                atom_hash = atom["composite_type_hash"]
+                atom_hash = atom.composite_type_hash
                 composite_type.append(atom_hash)
-            else:
-                atom = self.add_link(target, toplevel=False)
+            elif isinstance(target, LinkT):
+                atom: LinkT | None = self.add_link(target, toplevel=False)
                 if atom is None:
                     return None
-                atom_hash = atom["composite_type_hash"]
-                composite_type.append(atom["composite_type"])
+                atom_hash = atom.composite_type_hash
+                composite_type.append(atom.composite_type)
+            else:
+                raise ValueError("Invalid target type")
             composite_type_hash.append(atom_hash)
-            target_handles.append(atom["_id"])
+            target_handles.append(atom.id)
 
         handle = ExpressionHasher.expression_hash(link_type_hash, target_handles)
 
-        link: LinkT = {
-            FieldNames.ID_HASH: handle,
-            "handle": handle,
-            "targets": target_handles,
-            FieldNames.COMPOSITE_TYPE_HASH: ExpressionHasher.composite_hash(composite_type_hash),
-            FieldNames.IS_TOPLEVEL: toplevel,
-            FieldNames.COMPOSITE_TYPE: composite_type,
-            FieldNames.TYPE_NAME: link_type,
-            FieldNames.TYPE_NAME_HASH: link_type_hash,
-        }
+        link: LinkT = self._link_t()(
+            id=handle,
+            handle=handle,
+            targets=target_handles,
+            composite_type_hash=ExpressionHasher.composite_hash(composite_type_hash),
+            is_top_level=toplevel,
+            composite_type=composite_type,
+            named_type=link_type,
+            named_type_hash=link_type_hash,
+        )
 
         for item in range(len(targets)):
-            link[f"key_{item}"] = target_handles[item]
+            link.keys[f"key_{item}"] = target_handles[item]
 
-        link.update(valid_params)
+        # link.update(valid_params)  # TODO: custom attributes
 
         return handle, link, target_handles
 

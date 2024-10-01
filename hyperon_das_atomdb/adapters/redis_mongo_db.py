@@ -13,7 +13,7 @@ import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Iterable, Mapping, Optional, OrderedDict
+from typing import Any, Iterable, Mapping, Optional, OrderedDict, cast
 
 from pymongo import ASCENDING, MongoClient
 from pymongo import errors as pymongo_errors
@@ -35,6 +35,8 @@ from hyperon_das_atomdb.database import (
     LinkT,
     NodeParamsT,
     NodeT,
+    NodeDC,
+    LinkDC,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -169,6 +171,15 @@ class RedisMongoDB(AtomDB):
     """A concrete implementation using Redis and Mongo database"""
 
     mongo_db: Database
+
+    NODE_T = NodeDC
+    LINK_T = LinkDC
+
+    def _node_t(self) -> type[NodeT]:
+        return RedisMongoDB.NODE_T
+
+    def _link_t(self) -> type[LinkT]:
+        return RedisMongoDB.LINK_T
 
     def __repr__(self) -> str:
         return "<Atom database RedisMongo>"  # pragma no cover
@@ -481,10 +492,10 @@ class RedisMongoDB(AtomDB):
         if answer is not None:
             return answer
 
-        answer = []
+        answer: HandleListT = []  # type: ignore
         index = 0
         while (key := document.get(f"{FieldNames.KEY_PREFIX.value}_{index}", None)) is not None:
-            answer.append(key)
+            answer.append(key)  # type: ignore
             index += 1
         return answer
 
@@ -505,7 +516,11 @@ class RedisMongoDB(AtomDB):
         return {
             link_handle
             for link_handle in matches
-            if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
+            if (
+                (link := self._retrieve_document(link_handle))
+                and isinstance(link, LinkT)
+                and cast(link, LinkT).is_top_level
+            )
         }
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
@@ -535,7 +550,7 @@ class RedisMongoDB(AtomDB):
 
     def get_node_type(self, node_handle: str) -> str | None:
         document = self.get_atom(node_handle)
-        return document[FieldNames.TYPE_NAME]
+        return cast(document, NodeT).name if isinstance(document, NodeT) else None
 
     def get_node_by_name(self, node_type: str, substring: str) -> HandleListT:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
@@ -703,13 +718,57 @@ class RedisMongoDB(AtomDB):
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
-        return document[FieldNames.TYPE_NAME]
+        return cast(document, LinkT).named_type if isinstance(document, LinkT) else None
 
     def _get_atom(self, handle: str) -> AtomT | None:
         try:
-            return self.get_atom_as_dict(handle)
+            return self.__get_atom(handle)
         except AtomDoesNotExist:
             return None
+
+    def __get_atom(self, handle: str) -> AtomT:
+        """
+        Retrieve an atom from the database using the given handle.
+
+        Args:
+            handle (str): The unique identifier for the atom to be retrieved.
+
+        Returns:
+            AtomT: The retrieved atom if found.
+
+        Raises:
+            AtomDoesNotExist: If the atom does not exist in the database.
+        """
+        document = self._retrieve_document(handle)
+        if document:
+            if "targets" in document:
+                link = RedisMongoDB.LINK_T(
+                    handle=handle,
+                    id=handle,
+                    named_type=document[FieldNames.TYPE_NAME],
+                    targets=document["targets"],
+                    composite_type=document[FieldNames.COMPOSITE_TYPE],
+                    is_top_level=document[FieldNames.IS_TOPLEVEL],
+                    named_type_hash=document[FieldNames.TYPE_NAME_HASH],
+                    keys=document[FieldNames.KEYS],
+                    composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                )
+                return link
+            else:
+                node = RedisMongoDB.NODE_T(
+                    handle=handle,
+                    id=handle,
+                    named_type=document[FieldNames.TYPE_NAME],
+                    name=document[FieldNames.NODE_NAME],
+                    composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                )
+                return node
+
+        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
+        raise AtomDoesNotExist(
+            message="Nonexistent atom",
+            details=f"handle: {handle}",
+        )
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
@@ -717,7 +776,7 @@ class RedisMongoDB(AtomDB):
             return None
         return atom[FieldNames.TYPE_NAME]
 
-    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> AtomT:
+    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
         document = self._retrieve_document(handle)
         if document:
             document["handle"] = document[FieldNames.ID_HASH]
@@ -1045,7 +1104,7 @@ class RedisMongoDB(AtomDB):
         """
         return set(self.redis.smembers(key))  # type: ignore
 
-    def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
+    def _update_atom_indexes(self, documents: Iterable[AtomT], **kwargs) -> None:
         """
         Update the indexes for the given documents in the database.
 
@@ -1058,12 +1117,13 @@ class RedisMongoDB(AtomDB):
             **kwargs: Additional keyword arguments for index updates.
         """
         for document in documents:
-            if self._is_document_link(document):
-                self._update_link_index(document, **kwargs)
+            # if self._is_document_link(document):
+            if isinstance(document, LinkT):
+                self._update_link_index(cast(document, LinkT), **kwargs)
             else:
-                self._update_node_index(document, **kwargs)
+                self._update_node_index(cast(document, NodeT), **kwargs)
 
-    def _update_node_index(self, document: dict[str, Any], **kwargs) -> None:
+    def _update_node_index(self, document: NodeT, **kwargs) -> None:
         """
         Update the index for the given node document in the database.
 
@@ -1089,7 +1149,7 @@ class RedisMongoDB(AtomDB):
         else:
             self.redis.set(key, node_name)
 
-    def _update_link_index(self, document: dict[str, Any], **kwargs) -> None:
+    def _update_link_index(self, document: LinkT, **kwargs) -> None:
         """
         Update the index for the given link document in the database.
 
