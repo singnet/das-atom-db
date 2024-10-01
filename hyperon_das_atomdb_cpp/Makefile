@@ -16,7 +16,12 @@ build-make: clean
 build-ninja: clean
 	@mkdir -p build && cd build && cmake -G Ninja .. && ninja -j ${NPROC}
 
+wheel: clean
+	@pip wheel .
+
 clean:
-	@rm -rf build/*
+	@rm -rf build/* *whl
 	@mkdir -p build
+
+
 

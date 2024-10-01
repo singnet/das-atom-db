@@ -11,7 +11,6 @@
 #include <nanobind/stl/vector.h>
 
 #include "adapters/ram_only.h"
-#include "adapters/redis_mongo_db.h"
 #include "constants.h"
 #include "database.h"
 #include "document_types.h"
@@ -237,8 +236,6 @@ NB_MODULE(ext, m) {
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
     nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB").def(nb::init<>());
-    nb::class_<RedisMongoDB, InMemoryDB>(adapters, "RedisMongoDB")
-        .def("__init__", [](RedisMongoDB* t, const nb::kwargs& _) { new (t) RedisMongoDB(); });
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
