@@ -77,7 +77,7 @@ class AtomType : public Atom {
         }
     }
 
-    const string to_string() const noexcept {
+    const string to_string() const noexcept override {
         string result = "AtomType(" + Atom::to_string();
         result += ", named_type_hash: '" + named_type_hash + "')";
         return move(result);
@@ -106,7 +106,7 @@ class Node : public Atom {
         }
     }
 
-    const string to_string() const noexcept {
+    const string to_string() const noexcept override {
         string result = "Node(" + Atom::to_string();
         result += ", name: '" + name + "')";
         return move(result);
@@ -182,7 +182,7 @@ class Link : public Atom {
         }
     }
 
-    const string to_string() const noexcept {
+    const string to_string() const noexcept override {
         string result = "Link(" + Atom::to_string();
         result += ", composite_type: " + composite_type_list_to_string(composite_type);
         result += ", named_type_hash: '" + named_type_hash + "'";

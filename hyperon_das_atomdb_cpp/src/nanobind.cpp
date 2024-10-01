@@ -231,6 +231,31 @@ NB_MODULE(hyperon_das_atomdb, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string);
+    nb::class_<AtomType, Atom>(document_types, "AtomType")
+        .def_ro("named_type_hash", &AtomType::named_type_hash)
+        .def("__getstate__",
+             [](const AtomType& atom_type) {
+                 return std::make_tuple(atom_type.id,
+                                        atom_type.handle,
+                                        atom_type.composite_type_hash,
+                                        atom_type.named_type,
+                                        atom_type.named_type_hash);
+             })
+        .def("__setstate__",
+             [](AtomType& atom_type,
+                const std::tuple<string,  // id
+                                 string,  // handle
+                                 string,  // composite_type_hash
+                                 string,  // named_type
+                                 string   // named_type_hash
+                                 >& state) {
+                 new (&atom_type) AtomType(std::get<0>(state),  // id
+                                           std::get<1>(state),  // handle
+                                           std::get<2>(state),  // composite_type_hash
+                                           std::get<3>(state),  // named_type
+                                           std::get<4>(state)   // named_type_hash
+                 );
+             });
     nb::class_<Node, Atom>(document_types, "Node")
         .def_ro("name", &Node::name)
         .def("__getstate__",
