@@ -94,7 +94,23 @@ NB_MODULE(ext, m) {
         .export_values();
     nb::class_<AtomDB>(m, "AtomDB")
         .def_static("build_node_handle", &AtomDB::build_node_handle)
-        .def_static("build_link_handle", &AtomDB::build_link_handle)
+        .def_static("node_handle", &AtomDB::build_node_handle)  // retrocompatibility
+        .def_static("build_link_handle",
+                    [](const string& link_type, const StringList& target_handles) {
+                        return AtomDB::build_link_handle(link_type, target_handles);
+                    })
+        .def_static("link_handle",  // retrocompatibility
+                    [](const string& link_type, const StringList& target_handles) {
+                        return AtomDB::build_link_handle(link_type, target_handles);
+                    })
+        .def_static("build_link_handle",
+                    [](const string& link_type, const string& target_handle) {
+                        return AtomDB::build_link_handle(link_type, target_handle);
+                    })
+        .def_static("link_handle",  // retrocompatibility
+                    [](const string& link_type, const string& target_handle) {
+                        return AtomDB::build_link_handle(link_type, target_handle);
+                    })
         .def("node_exists", &AtomDB::node_exists)
         .def("link_exists", &AtomDB::link_exists)
         .def(
@@ -235,18 +251,28 @@ NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
-    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB").def(nb::init<>());
+    nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
+        .def(nb::init<const string&>(), "database_name"_a = "das");
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
+    // nb::exception<AtomDbBaseException>(exceptions, "AtomDbBaseException");
     nb::exception<AtomDoesNotExist>(exceptions, "AtomDoesNotExist");
     nb::exception<InvalidAtomDB>(exceptions, "InvalidAtomDB");
     nb::exception<InvalidOperationException>(exceptions, "InvalidOperationException");
+    nb::register_exception_translator([](const std::exception_ptr& p, void* /* not used */) {
+        try {
+            std::rethrow_exception(p);
+        } catch (const AtomDoesNotExist& e) {
+            PyErr_SetString(PyExc_RuntimeError, e.get_info().c_str());
+            // PyErr_Format(PyExc_RuntimeError, "%s", e.get_info().c_str());
+        }
+    });
     // ---------------------------------------------------------------------------------------------
     // document_types submodule --------------------------------------------------------------------
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
-        .def_ro("id", &Atom::id)
+        .def_ro("_id", &Atom::_id)
         .def_ro("handle", &Atom::handle)
         .def_ro("composite_type_hash", &Atom::composite_type_hash)
         .def_ro("named_type", &Atom::named_type)
@@ -257,7 +283,7 @@ NB_MODULE(ext, m) {
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__",
              [](const AtomType& atom_type) -> transformer::AtomTypeTuple {
-                 return std::make_tuple(atom_type.id,
+                 return std::make_tuple(atom_type._id,
                                         atom_type.handle,
                                         atom_type.composite_type_hash,
                                         atom_type.named_type,
@@ -276,7 +302,7 @@ NB_MODULE(ext, m) {
         .def("__getstate__",
              [](const Node& node) -> transformer::NodeTuple {
                  return std::make_tuple(
-                     node.id, node.handle, node.composite_type_hash, node.named_type, node.name);
+                     node._id, node.handle, node.composite_type_hash, node.named_type, node.name);
              })
         .def("__setstate__", [](Node& node, const transformer::NodeTuple& state) {
             new (&node) Node(std::get<0>(state),  // id
@@ -298,7 +324,7 @@ NB_MODULE(ext, m) {
         .def_ro("targets_documents", &Link::targets_documents)
         .def("__getstate__",
              [](const Link& link) -> transformer::LinkTuple {
-                 return std::make_tuple(link.id,
+                 return std::make_tuple(link._id,
                                         link.handle,
                                         link.composite_type_hash,
                                         link.named_type,
@@ -327,11 +353,11 @@ NB_MODULE(ext, m) {
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
     nb::class_<NodeParams>(database, "NodeParams")
-        .def(nb::init<const string&, const string&>())
+        .def(nb::init<const string&, const string&>(), "type"_a, "name"_a)
         .def_rw("type", &NodeParams::type)
         .def_rw("name", &NodeParams::name);
     nb::class_<LinkParams>(database, "LinkParams")
-        .def(nb::init<const string&, const LinkParams::Targets&>())
+        .def(nb::init<const string&, const LinkParams::Targets&>(), "type"_a, "targets"_a)
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
         .def("add_target",

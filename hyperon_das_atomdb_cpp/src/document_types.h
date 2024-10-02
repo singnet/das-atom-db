@@ -18,7 +18,7 @@ namespace atomdb {
  */
 class Atom {
    public:
-    string id;
+    string _id;
     string handle;
     string composite_type_hash;
     string named_type;
@@ -28,7 +28,7 @@ class Atom {
          const string& handle,
          const string& composite_type_hash,
          const string& named_type)
-        : id(id), handle(handle), composite_type_hash(composite_type_hash), named_type(named_type) {
+        : _id(id), handle(handle), composite_type_hash(composite_type_hash), named_type(named_type) {
         if (id.empty()) {
             throw invalid_argument("Atom ID cannot be empty.");
         }
@@ -46,10 +46,10 @@ class Atom {
     virtual ~Atom() = default;
 
     virtual const string to_string() const noexcept {
-        string result = "id: '" + id + "'";
-        result += ", handle: '" + handle + "'";
-        result += ", composite_type_hash: '" + composite_type_hash + "'";
-        result += ", named_type: '" + named_type + "'";
+        string result = "id: '" + this->_id + "'";
+        result += ", handle: '" + this->handle + "'";
+        result += ", composite_type_hash: '" + this->composite_type_hash + "'";
+        result += ", named_type: '" + this->named_type + "'";
         return move(result);
     }
 };
@@ -79,7 +79,7 @@ class AtomType : public Atom {
 
     const string to_string() const noexcept override {
         string result = "AtomType(" + Atom::to_string();
-        result += ", named_type_hash: '" + named_type_hash + "')";
+        result += ", named_type_hash: '" + this->named_type_hash + "')";
         return move(result);
     }
 };
@@ -108,7 +108,7 @@ class Node : public Atom {
 
     const string to_string() const noexcept override {
         string result = "Node(" + Atom::to_string();
-        result += ", name: '" + name + "')";
+        result += ", name: '" + this->name + "')";
         return move(result);
     }
 };
@@ -162,9 +162,9 @@ class Link : public Atom {
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
-        if (targets.empty()) {
-            throw invalid_argument("Link targets cannot be empty.");
-        }
+        // if (targets.empty()) {  TODO: check if targets can be empty
+        //     throw invalid_argument("Link targets cannot be empty.");
+        // }
     }
     Link(const string& id,
          const string& handle,
@@ -202,11 +202,11 @@ class Link : public Atom {
 
     const string to_string() const noexcept override {
         string result = "Link(" + Atom::to_string();
-        result += ", composite_type: " + composite_type_list_to_string(composite_type);
-        result += ", named_type_hash: '" + named_type_hash + "'";
+        result += ", composite_type: " + composite_type_list_to_string(this->composite_type);
+        result += ", named_type_hash: '" + this->named_type_hash + "'";
         result += ", targets: [";
-        if (not targets.empty()) {
-            for (const auto& target : targets) {
+        if (not this->targets.empty()) {
+            for (const auto& target : this->targets) {
                 result += "'" + target + "', ";
             }
             result.pop_back();
@@ -214,10 +214,10 @@ class Link : public Atom {
         }
         result += "]";
         result += ", is_top_level: ";
-        result += is_top_level ? "true" : "false";
+        result += this->is_top_level ? "true" : "false";
         result += ", keys: {";
-        if (not keys.empty()) {
-            for (const auto& [key, value] : keys) {
+        if (not this->keys.empty()) {
+            for (const auto& [key, value] : this->keys) {
                 result += "'" + key + "': '" + value + "', ";
             }
             result.pop_back();
@@ -225,10 +225,10 @@ class Link : public Atom {
         }
         result += "}";
         result += ", targets_documents: ";
-        if (targets_documents.has_value()) {
+        if (this->targets_documents.has_value()) {
             result += "[";
-            if (not targets_documents->empty()) {
-                for (const auto& target : *targets_documents) {
+            if (not this->targets_documents->empty()) {
+                for (const auto& target : *(this->targets_documents)) {
                     if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
                         result += string(node->to_string()) + ", ";
                     } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {

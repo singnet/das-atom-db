@@ -17,7 +17,7 @@ const string InMemoryDB::get_node_handle(const string& node_type, const string& 
     if (this->db.node.find(node_handle) != this->db.node.end()) {
         return move(node_handle);
     }
-    throw AtomDoesNotExist("Nonexistent atom", node_type + node_name);
+    throw AtomDoesNotExist("Nonexistent atom", node_type + ":" + node_name);
 }
 
 //------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ const StringUnorderedSet InMemoryDB::get_all_links(const string& link_type) cons
     StringUnorderedSet link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
-            link_handles.insert(link->id);
+            link_handles.insert(link->_id);
         }
     }
     return move(link_handles);
@@ -120,8 +120,10 @@ const string InMemoryDB::get_link_handle(const string& link_type,
     for (const auto& target_handle : target_handles) {
         target_handles_str += target_handle + ", ";
     }
-    target_handles_str.pop_back();
-    target_handles_str.pop_back();
+    if (not target_handles.empty()) {
+        target_handles_str.pop_back();
+        target_handles_str.pop_back();
+    }
     target_handles_str += "]";
     throw AtomDoesNotExist("Nonexistent atom", link_type + ":" + target_handles_str);
 }
@@ -347,7 +349,7 @@ const string InMemoryDB::create_field_index(const string& atom_type,
 void InMemoryDB::bulk_insert(const vector<shared_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
-            auto handle = document->id;
+            auto handle = document->_id;
             if (auto node = dynamic_cast<const Node*>(document.get())) {
                 this->db.node[handle] = make_shared<Node>(*node);
             } else if (auto link = dynamic_cast<const Link*>(document.get())) {
@@ -542,7 +544,7 @@ void InMemoryDB::_add_templates(const string& composite_type_hash,
 void InMemoryDB::_delete_templates(const Link& link_document) {
     string composite_type_hash = link_document.composite_type_hash;
     string named_type_hash = link_document.named_type_hash;
-    string key = link_document.id;
+    string key = link_document._id;
 
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
@@ -575,7 +577,7 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
     string named_type_hash = link_document.named_type_hash;
-    string key = link_document.id;
+    string key = link_document._id;
     auto hash_list = StringList({named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
@@ -624,7 +626,7 @@ const StringList InMemoryDB::_build_targets_list(const Link& link) const {
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_atom_index(const Atom& atom) {
-    auto atom_handle = atom.id;
+    auto atom_handle = atom._id;
     auto it = this->db.incoming_set.find(atom_handle);
     if (it != this->db.incoming_set.end()) {
         auto handles = move(it->second);
@@ -651,7 +653,7 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
     auto atom_type_name = atom.named_type;
     this->_add_atom_type(atom_type_name);
     if (auto link = dynamic_cast<const Link*>(&atom)) {
-        auto handle = link->id;
+        auto handle = link->_id;
         auto targets_hash = this->_build_targets_list(*link);
         this->_add_outgoing_set(handle, targets_hash);
         this->_add_incoming_set(handle, targets_hash);

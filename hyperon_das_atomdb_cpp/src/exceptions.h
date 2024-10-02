@@ -9,12 +9,14 @@ namespace atomdb {
 
 class AtomDbBaseException : public exception {
    public:
-    AtomDbBaseException(const string& message, const string details)
+    AtomDbBaseException(const string& message, const string& details)
         : message(message), details(details) {}
 
-    const char* what() const noexcept override { return (message + ": " + details).c_str(); }
+    virtual const char* what() const noexcept override {
+        return (this->message + ": " + this->details).c_str();
+    }
 
-   private:
+   protected:
     string message;
     string details;
 };
@@ -23,7 +25,12 @@ class AtomDbBaseException : public exception {
  * @brief Exception thrown when an atom does not exist in the database.
  */
 class AtomDoesNotExist : public AtomDbBaseException {
+   public:
     using AtomDbBaseException::AtomDbBaseException;
+    // virtual const char* what() const noexcept override { return string("WTF!!!").c_str(); }
+    const string get_info() const noexcept {
+        return (this->message + ": " + this->details);
+    }
 };
 
 /**

@@ -60,7 +60,7 @@ class Database {
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB() {};
+    InMemoryDB(const string& database_name = "das") : database_name(database_name) {};
     ~InMemoryDB() {
         this->all_named_types.clear();
         this->named_type_table.clear();
@@ -148,6 +148,7 @@ class InMemoryDB : public AtomDB {
     void commit(const opt<const vector<Atom>>& buffer = nullopt) override;
 
    protected:
+    string database_name;
     Database db;
     set<string> all_named_types;
     unordered_map<string, string> named_type_table;

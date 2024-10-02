@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 import dataclasses as dc
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, TypeAlias, cast
+from typing import Any, TypeAlias
 
 from hyperon_das_atomdb.exceptions import (
     AddLinkException,
@@ -34,7 +34,17 @@ from hyperon_das_atomdb.exceptions import (
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-from hyperon_das_atomdb_ram_only.document_types import Atom, Link, Node
+from hyperon_das_atomdb_ram_only.document_types import (
+    Atom as CppAtom,
+    Link as CppLink,
+    Node as CppNode,
+    AtomType as CppAtomType,
+)
+
+from hyperon_das_atomdb_ram_only.database import (
+    LinkParams as CppLinkParams,
+    NodeParams as CppNodeParams,
+)
 
 WILDCARD = "*"
 
@@ -42,31 +52,53 @@ WILDCARD = "*"
 
 
 @dc.dataclass
-class AtomDC:
-    id: str
+class Atom(ABC):
+    _id: str
     handle: str
     named_type: str
     composite_type_hash: str
 
 
 @dc.dataclass
-class NodeDC(AtomDC):
+class AtomType(Atom):
+    named_type_hash: str
+
+
+@dc.dataclass
+class Node(Atom):
     name: str
 
 
 @dc.dataclass
-class LinkDC(AtomDC):
+class Link(Atom):
     composite_type: list
     named_type_hash: str
     targets: list[str]
     is_top_level: bool = True
     keys: dict[str, str] = dc.field(default_factory=dict)
-    targets_documents: list[AtomDC] | None = dc.field(default=None)
+    targets_documents: list[Atom] | None = dc.field(default=None)
 
 
-AtomT: TypeAlias = AtomDC | Atom
-NodeT: TypeAlias = NodeDC | Node
-LinkT: TypeAlias = LinkDC | Link
+AtomT: TypeAlias = Atom | CppAtom
+NodeT: TypeAlias = Node | CppNode
+LinkT: TypeAlias = Link | CppLink
+AtomTypeT: TypeAlias = AtomType | CppAtomType
+
+
+@dc.dataclass
+class NodeParams:
+    type: str
+    name: str
+
+
+@dc.dataclass
+class LinkParams:
+    type: str
+    targets: list[AtomT]
+
+
+NodeParamsT: TypeAlias = NodeParams | CppNodeParams
+LinkParamsT: TypeAlias = LinkParams | CppLinkParams
 
 HandleT: TypeAlias = str
 
@@ -74,11 +106,11 @@ HandleT: TypeAlias = str
 
 # NodeT: TypeAlias = AtomT
 
-NodeParamsT: TypeAlias = dict[str, Any]
+# NodeParamsT: TypeAlias = dict[str, Any]
 
 # LinkT: TypeAlias = AtomT
 
-LinkParamsT: TypeAlias = dict[str, Any]
+# LinkParamsT: TypeAlias = dict[str, Any]
 
 HandleListT: TypeAlias = list[HandleT]
 
@@ -101,6 +133,7 @@ class FieldNames(str, Enum):
     KEY_PREFIX = "key"
     KEYS = "keys"
     IS_TOPLEVEL = "is_toplevel"
+    TARGETS = "targets"
 
 
 class FieldIndexType(str, Enum):
@@ -153,25 +186,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    @abstractmethod
-    def _node_t(self) -> type[NodeT]:
-        """
-        Return the type of the Node class.
-
-        Returns:
-            Type[NodeT]: The type of the Node class.
-        """
-
-    @abstractmethod
-    def _link_t(self) -> type[LinkT]:
-        """
-        Return the type of the Link class.
-
-        Returns:
-            Type[LinkT]: The type of the Link class.
-        """
-
-    def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
+    def _reformat_document(self, document: Atom, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
 
@@ -186,36 +201,37 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        if not isinstance(document, LinkT):
+        if not isinstance(document, Link):
             return document
-        answer: LinkT = cast(LinkT, document)
+
+        answer: Link = document
+
         if kwargs.get("targets_document", False):
             targets_document = [self.get_atom(target) for target in answer.targets]
-            answer.targets_document = targets_document
+            answer.targets_documents = targets_document
 
         if kwargs.get("deep_representation", False):
 
             def _recursive_targets(targets, **_kwargs) -> list[AtomT]:
                 return [self.get_atom(target, **_kwargs) for target in targets]
 
-            if "targets" in answer:
-                deep_targets = _recursive_targets(answer.targets, **kwargs)
-                answer.targets_documents = deep_targets
+            deep_targets = _recursive_targets(answer.targets, **kwargs)
+            answer.targets_documents = deep_targets
 
         return answer
 
-    def _build_node(self, node_params: NodeParamsT) -> tuple[str, NodeT]:
+    def _build_node(self, node_params: NodeParams) -> Node:
         """
         Build a node with the specified parameters.
 
         Args:
-            node_params (NodeParamsT): A mapping containing node parameters.
+            node_params (NodeParams): A dataclass containing node parameters.
                 It should have the following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
         Returns:
-            tuple[str, NodeT]: A tuple containing the handle of the node and the node dictionary.
+            Node: A node instance.
 
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing in node_params.
@@ -223,11 +239,13 @@ class AtomDB(ABC):
         reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
 
         valid_params = {
-            key: value for key, value in node_params.items() if key not in reserved_parameters
+            key: value
+            for key, value in dc.asdict(node_params).items()
+            if key not in reserved_parameters
         }
 
-        node_type = valid_params.get("type")
-        node_name = valid_params.get("name")
+        node_type = node_params.type
+        node_name = node_params.name
 
         if node_type is None or node_name is None:
             raise AddNodeException(
@@ -237,8 +255,8 @@ class AtomDB(ABC):
 
         handle = self.node_handle(node_type, node_name)
 
-        node: NodeT = self._node_t()(
-            id=handle,
+        node = Node(
+            _id=handle,
             handle=handle,
             composite_type_hash=ExpressionHasher.named_type_hash(node_type),
             name=node_name,
@@ -247,16 +265,14 @@ class AtomDB(ABC):
 
         # node.update(valid_params)  # TODO: custom attributes
 
-        return handle, node
+        return node
 
-    def _build_link(
-        self, link_params: LinkParamsT, toplevel: bool = True
-    ) -> tuple[str, LinkT, HandleListT] | None:
+    def _build_link(self, link_params: LinkParams, toplevel: bool = True) -> Link | None:
         """
         Build a link the specified parameters.
 
         Args:
-            link_params (LinkParamsT): A mapping containing link parameters.
+            link_params (LinkParams): A dataclass containing link parameters.
                 It should have the following keys:
                 - 'type': The type of the link.
                 - 'targets': A list of target elements.
@@ -264,8 +280,7 @@ class AtomDB(ABC):
                 nested inside other links. Defaults to True.
 
         Returns:
-            tuple[str, LinkT, HandleListT] | None: A tuple containing the handle of the link, the
-            link dictionary, and a list of target hashes. Or None if something went wrong.
+            Link | None: A link instance. Or None if something went wrong.
 
         Raises:
             AddLinkException: If the 'type' or 'targets' fields are missing in
@@ -285,12 +300,12 @@ class AtomDB(ABC):
 
         valid_params = {
             key: value
-            for key, value in link_params.items()
+            for key, value in dc.asdict(link_params).items()
             if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
         }
 
-        targets = link_params.get("targets")
-        link_type = link_params.get("type")
+        targets = link_params.targets
+        link_type = link_params.type
 
         if link_type is None or targets is None:
             raise AddLinkException(
@@ -304,29 +319,27 @@ class AtomDB(ABC):
         composite_type_hash = [link_type_hash]
 
         for target in targets:
-            if not isinstance(target, AtomT):
-                raise ValueError("The target must be a dictionary")
-            if isinstance(target, NodeT):
-                atom: NodeT | None = self.add_node(target)
+            if isinstance(target, NodeParams):
+                atom = self.add_node(target)
                 if atom is None:
                     return None
                 atom_hash = atom.composite_type_hash
                 composite_type.append(atom_hash)
-            elif isinstance(target, LinkT):
-                atom: LinkT | None = self.add_link(target, toplevel=False)
+            elif isinstance(target, LinkParams):
+                atom = self.add_link(target, toplevel=False)
                 if atom is None:
                     return None
                 atom_hash = atom.composite_type_hash
                 composite_type.append(atom.composite_type)
             else:
-                raise ValueError("Invalid target type")
+                raise ValueError("The target must be a NodeParams or LinkParams dataclass instance")
             composite_type_hash.append(atom_hash)
-            target_handles.append(atom.id)
+            target_handles.append(atom._id)  # pylint: disable=protected-access
 
         handle = ExpressionHasher.expression_hash(link_type_hash, target_handles)
 
-        link: LinkT = self._link_t()(
-            id=handle,
+        link = Link(
+            _id=handle,
             handle=handle,
             targets=target_handles,
             composite_type_hash=ExpressionHasher.composite_hash(composite_type_hash),
@@ -341,7 +354,7 @@ class AtomDB(ABC):
 
         # link.update(valid_params)  # TODO: custom attributes
 
-        return handle, link, target_handles
+        return link
 
     def node_exists(self, node_type: str, node_name: str) -> bool:
         """
