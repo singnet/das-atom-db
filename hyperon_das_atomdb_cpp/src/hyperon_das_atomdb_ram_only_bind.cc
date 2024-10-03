@@ -133,7 +133,7 @@ NB_MODULE(ext, m) {
             "targets_documents"_a = false,
             "deep_representation"_a = false,
             "_"_a = nb::kwargs())
-        .def("get_node_handle", &AtomDB::get_node_handle)
+        .def("get_node_handle", &AtomDB::get_node_handle, "node_type"_a, "node_name"_a)
         .def("get_node_name", &AtomDB::get_node_name)
         .def("get_node_type", &AtomDB::get_node_type)
         .def("get_node_by_name", &AtomDB::get_node_by_name)
@@ -151,15 +151,18 @@ NB_MODULE(ext, m) {
              "text_index_id"_a = "")
         .def("get_node_by_name_starting_with", &AtomDB::get_node_by_name_starting_with)
         .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
-        .def("get_all_links",
-             [](InMemoryDB& self, const string& link_type, const nb::kwargs& _ = {})
-                 -> const StringUnorderedSet { return self.get_all_links(link_type); })
+        .def(
+            "get_all_links",
+            [](AtomDB& self, const string& link_type, const nb::kwargs& _ = {})
+                -> const StringUnorderedSet { return self.get_all_links(link_type); },
+            "link_type"_a,
+            "_"_a = nb::kwargs())
         .def("get_link_handle", &AtomDB::get_link_handle)
         .def("get_link_type", &AtomDB::get_link_type)
         .def("get_link_targets", &AtomDB::get_link_targets)
         .def(
             "get_incoming_links_handles",
-            [](InMemoryDB& self,
+            [](AtomDB& self,
                const string& atom_handle,
                bool handles_only = true,
                const nb::kwargs& _ = {}) -> const StringList {
@@ -171,7 +174,7 @@ NB_MODULE(ext, m) {
             "_"_a = nb::kwargs())
         .def(
             "get_incoming_links_atoms",
-            [](InMemoryDB& self,
+            [](AtomDB& self,
                const string& atom_handle,
                bool no_target_format = false,
                bool targets_documents = false,
@@ -194,7 +197,7 @@ NB_MODULE(ext, m) {
             "_"_a = nb::kwargs())
         .def(
             "get_matched_links",
-            [](InMemoryDB& self,
+            [](AtomDB& self,
                const string& link_type,
                const StringList& target_handles,
                bool toplevel_only = false,
@@ -209,11 +212,12 @@ NB_MODULE(ext, m) {
             "_"_a = nb::kwargs())
         .def(
             "get_matched_type_template",
-            [](InMemoryDB& self,
-               const ListOfAny& _template,
+            [](AtomDB& self,
+               const nb::list& _template,
                bool toplevel_only = false,
                const nb::kwargs& _ = {}) -> const StringUnorderedSet {
-                return self.get_matched_type_template(_template, {toplevel_only : toplevel_only});
+                return self.get_matched_type_template(transformer::pylist_to_composite_type(_template),
+                                                      {toplevel_only : toplevel_only});
             },
             "_template"_a,
             nb::kw_only(),
@@ -221,7 +225,7 @@ NB_MODULE(ext, m) {
             "_"_a = nb::kwargs())
         .def(
             "get_matched_type",
-            [](InMemoryDB& self,
+            [](AtomDB& self,
                const string& link_type,
                bool toplevel_only = false,
                const nb::kwargs& _ = {}) -> const StringUnorderedSet {
@@ -232,7 +236,12 @@ NB_MODULE(ext, m) {
             "toplevel_only"_a = false,
             "_"_a = nb::kwargs())
         .def("get_atom_type", &AtomDB::get_atom_type)
-        .def("count_atoms", &AtomDB::count_atoms)
+        .def(
+            "count_atoms",
+            [](const AtomDB& self, const opt<const nb::dict>& _) -> const unordered_map<string, int> {
+                return self.count_atoms();
+            },
+            "_"_a = nullopt)
         .def("clear_database", &AtomDB::clear_database)
         .def("add_node", &AtomDB::add_node)
         .def("add_link", &AtomDB::add_link, "link_params"_a, "toplevel"_a = true)
@@ -256,18 +265,9 @@ NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
-    // nb::exception<AtomDbBaseException>(exceptions, "AtomDbBaseException");
     nb::exception<AtomDoesNotExist>(exceptions, "AtomDoesNotExist");
     nb::exception<InvalidAtomDB>(exceptions, "InvalidAtomDB");
     nb::exception<InvalidOperationException>(exceptions, "InvalidOperationException");
-    nb::register_exception_translator([](const std::exception_ptr& p, void* /* not used */) {
-        try {
-            std::rethrow_exception(p);
-        } catch (const AtomDoesNotExist& e) {
-            PyErr_SetString(PyExc_RuntimeError, e.get_info().c_str());
-            // PyErr_Format(PyExc_RuntimeError, "%s", e.get_info().c_str());
-        }
-    });
     // ---------------------------------------------------------------------------------------------
     // document_types submodule --------------------------------------------------------------------
     nb::module_ document_types = m.def_submodule("document_types");
@@ -280,6 +280,12 @@ NB_MODULE(ext, m) {
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
+        .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
+             "_id"_a,
+             "handle"_a,
+             "composite_type_hash"_a,
+             "named_type"_a,
+             "named_type_hash"_a)
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__",
              [](const AtomType& atom_type) -> transformer::AtomTypeTuple {
@@ -298,6 +304,12 @@ NB_MODULE(ext, m) {
             );
         });
     nb::class_<Node, Atom>(document_types, "Node")
+        .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
+             "_id"_a,
+             "handle"_a,
+             "composite_type_hash"_a,
+             "named_type"_a,
+             "name"_a)
         .def_ro("name", &Node::name)
         .def("__getstate__",
              [](const Node& node) -> transformer::NodeTuple {
@@ -313,6 +325,34 @@ NB_MODULE(ext, m) {
             );
         });
     nb::class_<Link, Atom>(document_types, "Link")
+        .def(
+            "__init__",
+            [](Link& self,
+               const string& _id,
+               const string& handle,
+               const string& composite_type_hash,
+               const string& named_type,
+               const nb::list& composite_type,
+               const string& named_type_hash,
+               const vector<string>& targets,
+               bool is_top_level) {
+                new (&self) Link(_id,
+                                 handle,
+                                 composite_type_hash,
+                                 named_type,
+                                 transformer::pylist_to_composite_type(composite_type),
+                                 named_type_hash,
+                                 targets,
+                                 is_top_level);
+            },
+            "_id"_a,
+            "handle"_a,
+            "composite_type_hash"_a,
+            "named_type"_a,
+            "composite_type"_a,
+            "named_type_hash"_a,
+            "targets"_a,
+            "is_top_level"_a)
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return transformer::composite_type_to_pylist(self.composite_type);
@@ -340,7 +380,6 @@ NB_MODULE(ext, m) {
                              std::get<1>(state),  // handle
                              std::get<2>(state),  // composite_type_hash
                              std::get<3>(state),  // named_type
-                             /* composite_type */
                              transformer::pylist_to_composite_type(std::get<4>(state)),
                              std::get<5>(state),  // named_type_hash
                              std::get<6>(state),  // targets

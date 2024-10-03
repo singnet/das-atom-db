@@ -67,6 +67,7 @@ class AtomType(Atom):
 @dc.dataclass
 class Node(Atom):
     name: str
+    extra_fields: dict[str, Any] | None = dc.field(default=None)
 
 
 @dc.dataclass
@@ -77,6 +78,7 @@ class Link(Atom):
     is_top_level: bool = True
     keys: dict[str, str] = dc.field(default_factory=dict)
     targets_documents: list[Atom] | None = dc.field(default=None)
+    extra_fields: dict[str, Any] | None = dc.field(default=None)
 
 
 AtomT: TypeAlias = Atom | CppAtom
@@ -89,12 +91,14 @@ AtomTypeT: TypeAlias = AtomType | CppAtomType
 class NodeParams:
     type: str
     name: str
+    extra_fields: dict[str, Any] | None = dc.field(default=None)
 
 
 @dc.dataclass
 class LinkParams:
     type: str
     targets: list[AtomT]
+    extra_fields: dict[str, Any] | None = dc.field(default=None)
 
 
 NodeParamsT: TypeAlias = NodeParams | CppNodeParams
@@ -220,6 +224,25 @@ class AtomDB(ABC):
 
         return answer
 
+    @staticmethod
+    def _atom_to_dict(atom: Atom | NodeParams | LinkParams) -> dict[str, Any]:
+        """
+        Convert an atom to a dictionary representation.
+
+        Args:
+            atom (Atom): The atom to convert.
+
+        Returns:
+            dict[str, Any]: A dictionary representation of the atom.
+        """
+        atom_dict = dc.asdict(atom)
+        if "extra_fields" in atom_dict:
+            with_extra_fields: dict[str, Any] | None = atom_dict.pop("extra_fields", None) or dict()
+            if with_extra_fields:
+                with_extra_fields.update(atom_dict)
+                return with_extra_fields
+        return atom_dict
+
     def _build_node(self, node_params: NodeParams) -> Node:
         """
         Build a node with the specified parameters.
@@ -236,22 +259,22 @@ class AtomDB(ABC):
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing in node_params.
         """
-        reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
-
-        valid_params = {
-            key: value
-            for key, value in dc.asdict(node_params).items()
-            if key not in reserved_parameters
-        }
 
         node_type = node_params.type
         node_name = node_params.name
-
         if node_type is None or node_name is None:
             raise AddNodeException(
                 message='The "name" and "type" fields must be sent',
-                details=f"{valid_params=}",
+                details=f"{node_params=}",
             )
+
+        node_params_dict = self._atom_to_dict(node_params)
+        node_params_dict.pop("type")
+        node_params_dict.pop("name")
+        reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
+        valid_params = {
+            key: value for key, value in node_params_dict.items() if key not in reserved_parameters
+        }
 
         handle = self.node_handle(node_type, node_name)
 
@@ -261,6 +284,7 @@ class AtomDB(ABC):
             composite_type_hash=ExpressionHasher.named_type_hash(node_type),
             name=node_name,
             named_type=node_type,
+            extra_fields=valid_params or None,
         )
 
         # node.update(valid_params)  # TODO: custom attributes
@@ -286,6 +310,17 @@ class AtomDB(ABC):
             AddLinkException: If the 'type' or 'targets' fields are missing in
             link_params.
         """
+        link_type = link_params.type
+        targets = link_params.targets
+        if link_type is None or targets is None:
+            raise AddLinkException(
+                message='The "type" and "targets" fields must be sent',
+                details=f"{link_params=}",
+            )
+
+        link_params_dict = self._atom_to_dict(link_params)
+        link_params_dict.pop("type")
+        link_params_dict.pop("targets")
         reserved_parameters = [
             "handle",
             "targets",
@@ -293,29 +328,21 @@ class AtomDB(ABC):
             "composite_type_hash",
             "composite_type",
             "is_toplevel",
+            "is_top_level",
             "named_type",
             "named_type_hash",
             "key_n",
+            "keys",
         ]
-
         valid_params = {
             key: value
-            for key, value in dc.asdict(link_params).items()
+            for key, value in link_params_dict.items()
             if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
         }
 
-        targets = link_params.targets
-        link_type = link_params.type
-
-        if link_type is None or targets is None:
-            raise AddLinkException(
-                message='The "type" and "targets" fields must be sent',
-                details=f"{valid_params=}",
-            )
-
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         target_handles = []
-        composite_type = [link_type_hash]
+        composite_type: list[Any] = [link_type_hash]
         composite_type_hash = [link_type_hash]
 
         for target in targets:
@@ -347,6 +374,7 @@ class AtomDB(ABC):
             composite_type=composite_type,
             named_type=link_type,
             named_type_hash=link_type_hash,
+            extra_fields=valid_params or None,
         )
 
         for item in range(len(targets)):

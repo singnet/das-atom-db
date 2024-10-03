@@ -28,9 +28,7 @@ class AtomDoesNotExist : public AtomDbBaseException {
    public:
     using AtomDbBaseException::AtomDbBaseException;
     // virtual const char* what() const noexcept override { return string("WTF!!!").c_str(); }
-    const string get_info() const noexcept {
-        return (this->message + ": " + this->details);
-    }
+    const string get_info() const noexcept { return (this->message + ": " + this->details); }
 };
 
 /**

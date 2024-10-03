@@ -9,12 +9,11 @@ for caching and fast access to frequently used data.
 
 import base64
 import collections
-import dataclasses as dc
 import pickle
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Iterable, Mapping, Optional, OrderedDict, TypeAlias, List
+from typing import Any, Iterable, Mapping, Optional, OrderedDict, TypeAlias
 
 from pymongo import ASCENDING, MongoClient
 from pymongo import errors as pymongo_errors
@@ -471,7 +470,7 @@ class RedisMongoDB(AtomDB):
             return [self._build_named_type_hash_template(element) for element in template]
 
     @staticmethod
-    def _get_document_keys(document: dict[str, Any]) -> list | list[None]:
+    def _get_document_keys(document: dict[str, Any]) -> HandleListT:
         """
         Retrieve the keys from the given document.
 
@@ -488,6 +487,8 @@ class RedisMongoDB(AtomDB):
         answer = document.get(FieldNames.KEYS, None)
         if isinstance(answer, list):
             return answer
+        elif isinstance(answer, dict):
+            return list(answer.values())
 
         answer = []
         index = 0
@@ -824,7 +825,7 @@ class RedisMongoDB(AtomDB):
         node: Node = self._build_node(node_params)
         if sys.getsizeof(node_params.name) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-            buffer.add(_HashableDocument(dc.asdict(node)))
+            buffer.add(_HashableDocument(self._atom_to_dict(node)))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
                 self.commit()
             return node
@@ -837,7 +838,7 @@ class RedisMongoDB(AtomDB):
         if link is None:
             return None
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-        buffer.add(_HashableDocument(dc.asdict(link)))
+        buffer.add(_HashableDocument(self._atom_to_dict(link)))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
             self.commit()
         return link
@@ -1410,7 +1411,13 @@ class RedisMongoDB(AtomDB):
 
     def retrieve_all_atoms(self) -> list[AtomT]:
         try:
-            return list(self.mongo_atoms_collection.find())
+            # TODO: improve this, it's too expensive
+            atom_list = []
+            for atom_dict in self.mongo_atoms_collection.find():
+                atom = self.get_atom(atom_dict[FieldNames.ID_HASH])
+                if atom:
+                    atom_list.append(atom)
+            return atom_list
         except Exception as e:
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
@@ -1432,7 +1439,7 @@ class RedisMongoDB(AtomDB):
         """
         try:
             _id = FieldNames.ID_HASH
-            docs: list[DocumentT] = [dc.asdict(d) for d in documents]
+            docs: list[DocumentT] = [self._atom_to_dict(d) for d in documents]
             for document in docs:
                 self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
             self._update_atom_indexes(docs)
