@@ -7,6 +7,13 @@
 using namespace std;
 using namespace atomdb;
 
+struct custom_attributes {
+    unordered_map<string, string> strings = {};
+    unordered_map<string, long> integers = {};
+    unordered_map<string, double> floats = {};
+    unordered_map<string, bool> booleans = {};
+};
+
 int main(int argc, char const* argv[]) {
     InMemoryDB db;
 
@@ -17,6 +24,15 @@ int main(int argc, char const* argv[]) {
 
     cout << "Node handle: " << node->handle << endl;
     cout << "Node name: " << node->name << endl;
+
+    auto ca = custom_attributes{
+        strings : {{"key1", "value1"}, {"key2", "value2"}},
+        integers : {{"key3", 3}, {"key4", 4}}
+    };
+    ca.booleans["key5"] = true;
+    ca.floats["key6"] = 6.6;
+
+    cout << ca.strings["key1"] << endl;
 
     // Adding a Link
     /*

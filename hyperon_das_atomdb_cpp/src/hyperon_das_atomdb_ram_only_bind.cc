@@ -80,6 +80,50 @@ struct transformer {
         }
         return move(ct_list);
     }
+
+    static nb::dict atom_to_dict(const Atom& self) {
+        nb::dict dict;
+        dict["_id"] = self._id;
+        dict["handle"] = self.handle;
+        dict["composite_type_hash"] = self.composite_type_hash;
+        dict["named_type"] = self.named_type;
+        return move(dict);
+    };
+
+    static nb::dict atom_type_to_dict(const AtomType& self) {
+        nb::dict dict = transformer::atom_to_dict(self);
+        dict["named_type_hash"] = self.named_type_hash;
+        return move(dict);
+    };
+
+    static nb::dict node_to_dict(const Node& self) {
+        nb::dict dict = transformer::atom_to_dict(self);
+        dict["name"] = self.name;
+        return move(dict);
+    };
+
+    static nb::dict link_to_dict(const Link& self) {
+        nb::dict dict = transformer::atom_to_dict(self);
+        dict["composite_type"] = transformer::composite_type_to_pylist(self.composite_type);
+        dict["named_type_hash"] = self.named_type_hash;
+        dict["targets"] = self.targets;
+        dict["is_top_level"] = self.is_top_level;
+        dict["keys"] = self.keys;
+        if (self.targets_documents.has_value()) {
+            nb::list targets_documents;
+            for (const auto& target : *self.targets_documents) {
+                if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+                    targets_documents.append(transformer::node_to_dict(*node));
+                } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+                    targets_documents.append(transformer::link_to_dict(*link));
+                }
+            }
+            dict["targets_documents"] = move(targets_documents);
+        } else {
+            dict["targets_documents"] = nullptr;
+        }
+        return move(dict);
+    };
 };
 
 NB_MODULE(ext, m) {
@@ -278,7 +322,8 @@ NB_MODULE(ext, m) {
         .def_ro("named_type", &Atom::named_type)
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
-        .def("__repr__", &Atom::to_string);
+        .def("__repr__", &Atom::to_string)
+        .def("to_dict", &transformer::atom_to_dict);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
         .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
              "_id"_a,
@@ -295,14 +340,16 @@ NB_MODULE(ext, m) {
                                         atom_type.named_type,
                                         atom_type.named_type_hash);
              })
-        .def("__setstate__", [](AtomType& atom_type, const transformer::AtomTypeTuple& state) {
-            new (&atom_type) AtomType(std::get<0>(state),  // id
-                                      std::get<1>(state),  // handle
-                                      std::get<2>(state),  // composite_type_hash
-                                      std::get<3>(state),  // named_type
-                                      std::get<4>(state)   // named_type_hash
-            );
-        });
+        .def("__setstate__",
+             [](AtomType& atom_type, const transformer::AtomTypeTuple& state) {
+                 new (&atom_type) AtomType(std::get<0>(state),  // id
+                                           std::get<1>(state),  // handle
+                                           std::get<2>(state),  // composite_type_hash
+                                           std::get<3>(state),  // named_type
+                                           std::get<4>(state)   // named_type_hash
+                 );
+             })
+        .def("to_dict", &transformer::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
         .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
              "_id"_a,
@@ -316,14 +363,16 @@ NB_MODULE(ext, m) {
                  return std::make_tuple(
                      node._id, node.handle, node.composite_type_hash, node.named_type, node.name);
              })
-        .def("__setstate__", [](Node& node, const transformer::NodeTuple& state) {
-            new (&node) Node(std::get<0>(state),  // id
-                             std::get<1>(state),  // handle
-                             std::get<2>(state),  // composite_type_hash
-                             std::get<3>(state),  // named_type
-                             std::get<4>(state)   // name
-            );
-        });
+        .def("__setstate__",
+             [](Node& node, const transformer::NodeTuple& state) {
+                 new (&node) Node(std::get<0>(state),  // id
+                                  std::get<1>(state),  // handle
+                                  std::get<2>(state),  // composite_type_hash
+                                  std::get<3>(state),  // named_type
+                                  std::get<4>(state)   // name
+                 );
+             })
+        .def("to_dict", &transformer::node_to_dict);
     nb::class_<Link, Atom>(document_types, "Link")
         .def(
             "__init__",
@@ -335,15 +384,30 @@ NB_MODULE(ext, m) {
                const nb::list& composite_type,
                const string& named_type_hash,
                const vector<string>& targets,
-               bool is_top_level) {
-                new (&self) Link(_id,
-                                 handle,
-                                 composite_type_hash,
-                                 named_type,
-                                 transformer::pylist_to_composite_type(composite_type),
-                                 named_type_hash,
-                                 targets,
-                                 is_top_level);
+               bool is_top_level,
+               opt<map<string, string>> keys = nullopt,
+               opt<Link::TargetsDocuments> targets_documents = nullopt) {
+                if (keys.has_value() or targets_documents.has_value()) {
+                    new (&self) Link(_id,
+                                     handle,
+                                     composite_type_hash,
+                                     named_type,
+                                     transformer::pylist_to_composite_type(composite_type),
+                                     named_type_hash,
+                                     targets,
+                                     is_top_level,
+                                     keys.has_value() ? *keys : map<string, string>(),
+                                     targets_documents);
+                } else {
+                    new (&self) Link(_id,
+                                     handle,
+                                     composite_type_hash,
+                                     named_type,
+                                     transformer::pylist_to_composite_type(composite_type),
+                                     named_type_hash,
+                                     targets,
+                                     is_top_level);
+                }
             },
             "_id"_a,
             "handle"_a,
@@ -352,7 +416,9 @@ NB_MODULE(ext, m) {
             "composite_type"_a,
             "named_type_hash"_a,
             "targets"_a,
-            "is_top_level"_a)
+            "is_top_level"_a,
+            "keys"_a = nullopt,
+            "targets_documents"_a = nullopt)
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return transformer::composite_type_to_pylist(self.composite_type);
@@ -375,19 +441,21 @@ NB_MODULE(ext, m) {
                                         link.keys,
                                         link.targets_documents);
              })
-        .def("__setstate__", [](Link& link, const transformer::LinkTuple& state) {
-            new (&link) Link(std::get<0>(state),  // id
-                             std::get<1>(state),  // handle
-                             std::get<2>(state),  // composite_type_hash
-                             std::get<3>(state),  // named_type
-                             transformer::pylist_to_composite_type(std::get<4>(state)),
-                             std::get<5>(state),  // named_type_hash
-                             std::get<6>(state),  // targets
-                             std::get<7>(state),  // is_top_level
-                             std::get<8>(state),  // keys
-                             std::get<9>(state)   // targets_documents
-            );
-        });
+        .def("__setstate__",
+             [](Link& link, const transformer::LinkTuple& state) {
+                 new (&link) Link(std::get<0>(state),  // id
+                                  std::get<1>(state),  // handle
+                                  std::get<2>(state),  // composite_type_hash
+                                  std::get<3>(state),  // named_type
+                                  transformer::pylist_to_composite_type(std::get<4>(state)),
+                                  std::get<5>(state),  // named_type_hash
+                                  std::get<6>(state),  // targets
+                                  std::get<7>(state),  // is_top_level
+                                  std::get<8>(state),  // keys
+                                  std::get<9>(state)   // targets_documents
+                 );
+             })
+        .def("to_dict", &transformer::link_to_dict);
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
