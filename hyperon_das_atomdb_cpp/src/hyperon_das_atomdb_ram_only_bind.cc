@@ -21,6 +21,7 @@
 
 using namespace std;
 using namespace atomdb;
+namespace helpers = bind_helpers;
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -159,7 +160,7 @@ NB_MODULE(ext, m) {
                const nb::list& _template,
                bool toplevel_only = false,
                const nb::kwargs& _ = {}) -> const StringUnorderedSet {
-                return self.get_matched_type_template(transformer::pylist_to_composite_type(_template),
+                return self.get_matched_type_template(helpers::pylist_to_composite_type(_template),
                                                       {toplevel_only : toplevel_only});
             },
             "_template"_a,
@@ -222,7 +223,7 @@ NB_MODULE(ext, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
-        .def("to_dict", &transformer::atom_to_dict);
+        .def("to_dict", &helpers::atom_to_dict);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
         .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
              "_id"_a,
@@ -231,9 +232,9 @@ NB_MODULE(ext, m) {
              "named_type"_a,
              "named_type_hash"_a)
         .def_ro("named_type_hash", &AtomType::named_type_hash)
-        .def("__getstate__", &transformer::atom_type_to_tuple)
-        .def("__setstate__", &transformer::tuple_to_atom_type)
-        .def("to_dict", &transformer::atom_type_to_dict);
+        .def("__getstate__", &helpers::atom_type_to_tuple)
+        .def("__setstate__", &helpers::tuple_to_atom_type)
+        .def("to_dict", &helpers::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
         .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
              "_id"_a,
@@ -242,12 +243,12 @@ NB_MODULE(ext, m) {
              "named_type"_a,
              "name"_a)
         .def_ro("name", &Node::name)
-        .def("__getstate__", &transformer::node_to_tuple)
-        .def("__setstate__", &transformer::tuple_to_node)
-        .def("to_dict", &transformer::node_to_dict);
+        .def("__getstate__", &helpers::node_to_tuple)
+        .def("__setstate__", &helpers::tuple_to_node)
+        .def("to_dict", &helpers::node_to_dict);
     nb::class_<Link, Atom>(document_types, "Link")
         .def("__init__",
-             &transformer::init_link,
+             &helpers::init_link,
              "_id"_a,
              "handle"_a,
              "composite_type_hash"_a,
@@ -260,16 +261,16 @@ NB_MODULE(ext, m) {
              "targets_documents"_a = nullopt)
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
-                         return transformer::composite_type_to_pylist(self.composite_type);
+                         return helpers::composite_type_to_pylist(self.composite_type);
                      })
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_top_level", &Link::is_top_level)
         .def_ro("keys", &Link::keys)
         .def_ro("targets_documents", &Link::targets_documents)
-        .def("__getstate__", &transformer::link_to_tuple)
-        .def("__setstate__", &transformer::tuple_to_link)
-        .def("to_dict", &transformer::link_to_dict);
+        .def("__getstate__", &helpers::link_to_tuple)
+        .def("__setstate__", &helpers::tuple_to_link)
+        .def("to_dict", &helpers::link_to_dict);
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
