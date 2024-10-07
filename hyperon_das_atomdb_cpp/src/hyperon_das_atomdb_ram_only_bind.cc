@@ -37,26 +37,41 @@ NB_MODULE(ext, m) {
         .value("TOKEN_INVERTED_LIST", FieldIndexType::TOKEN_INVERTED_LIST)
         .export_values();
     nb::class_<AtomDB>(m, "AtomDB")
-        .def_static("build_node_handle", &AtomDB::build_node_handle)
-        .def_static("node_handle", &AtomDB::build_node_handle)  // retrocompatibility
-        .def_static("build_link_handle",
-                    [](const string& link_type, const StringList& target_handles) {
-                        return AtomDB::build_link_handle(link_type, target_handles);
-                    })
-        .def_static("link_handle",  // retrocompatibility
-                    [](const string& link_type, const StringList& target_handles) {
-                        return AtomDB::build_link_handle(link_type, target_handles);
-                    })
-        .def_static("build_link_handle",
-                    [](const string& link_type, const string& target_handle) {
-                        return AtomDB::build_link_handle(link_type, target_handle);
-                    })
-        .def_static("link_handle",  // retrocompatibility
-                    [](const string& link_type, const string& target_handle) {
-                        return AtomDB::build_link_handle(link_type, target_handle);
-                    })
-        .def("node_exists", &AtomDB::node_exists)
-        .def("link_exists", &AtomDB::link_exists)
+        .def_static("build_node_handle", &AtomDB::build_node_handle, "node_type"_a, "node_name"_a)
+        .def_static("node_handle",  // retrocompatibility
+                    &AtomDB::build_node_handle,
+                    "node_type"_a,
+                    "node_name"_a)
+        .def_static(
+            "build_link_handle",
+            [](const string& link_type, const StringList& target_handles) {
+                return AtomDB::build_link_handle(link_type, target_handles);
+            },
+            "link_type"_a,
+            "target_handles"_a)
+        .def_static(
+            "link_handle",  // retrocompatibility
+            [](const string& link_type, const StringList& target_handles) {
+                return AtomDB::build_link_handle(link_type, target_handles);
+            },
+            "link_type"_a,
+            "target_handles"_a)
+        .def_static(
+            "build_link_handle",
+            [](const string& link_type, const string& target_handle) {
+                return AtomDB::build_link_handle(link_type, target_handle);
+            },
+            "link_type"_a,
+            "target_handle"_a)
+        .def_static(
+            "link_handle",  // retrocompatibility
+            [](const string& link_type, const string& target_handle) {
+                return AtomDB::build_link_handle(link_type, target_handle);
+            },
+            "link_type"_a,
+            "target_handle"_a)
+        .def("node_exists", &AtomDB::node_exists, "node_type"_a, "node_name"_a)
+        .def("link_exists", &AtomDB::link_exists, "link_type"_a, "target_handles"_a)
         .def(
             "get_atom",
             [](AtomDB& self,
@@ -78,10 +93,10 @@ NB_MODULE(ext, m) {
             "deep_representation"_a = false,
             "_"_a = nb::kwargs())
         .def("get_node_handle", &AtomDB::get_node_handle, "node_type"_a, "node_name"_a)
-        .def("get_node_name", &AtomDB::get_node_name)
-        .def("get_node_type", &AtomDB::get_node_type)
-        .def("get_node_by_name", &AtomDB::get_node_by_name)
-        .def("get_atoms_by_field", &AtomDB::get_atoms_by_field)
+        .def("get_node_name", &AtomDB::get_node_name, "node_handle"_a)
+        .def("get_node_type", &AtomDB::get_node_type, "node_handle"_a)
+        .def("get_node_by_name", &AtomDB::get_node_by_name, "node_type"_a, "substring"_a)
+        .def("get_atoms_by_field", &AtomDB::get_atoms_by_field, "query"_a)
         .def("get_atoms_by_index",
              &AtomDB::get_atoms_by_index,
              "index_id"_a,
@@ -93,7 +108,10 @@ NB_MODULE(ext, m) {
              "text_value"_a,
              "field"_a = "",
              "text_index_id"_a = "")
-        .def("get_node_by_name_starting_with", &AtomDB::get_node_by_name_starting_with)
+        .def("get_node_by_name_starting_with",
+             &AtomDB::get_node_by_name_starting_with,
+             "node_type"_a,
+             "startswith"_a)
         .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
         .def(
             "get_all_links",
@@ -101,9 +119,9 @@ NB_MODULE(ext, m) {
                 -> const StringUnorderedSet { return self.get_all_links(link_type); },
             "link_type"_a,
             "_"_a = nb::kwargs())
-        .def("get_link_handle", &AtomDB::get_link_handle)
-        .def("get_link_type", &AtomDB::get_link_type)
-        .def("get_link_targets", &AtomDB::get_link_targets)
+        .def("get_link_handle", &AtomDB::get_link_handle, "link_type"_a, "target_handles"_a)
+        .def("get_link_type", &AtomDB::get_link_type, "link_handle"_a)
+        .def("get_link_targets", &AtomDB::get_link_targets, "link_handle"_a)
         .def(
             "get_incoming_links_handles",
             [](AtomDB& self,
@@ -179,7 +197,7 @@ NB_MODULE(ext, m) {
             nb::kw_only(),
             "toplevel_only"_a = false,
             "_"_a = nb::kwargs())
-        .def("get_atom_type", &AtomDB::get_atom_type)
+        .def("get_atom_type", &AtomDB::get_atom_type, "handle"_a)
         .def(
             "count_atoms",
             [](const AtomDB& self, const opt<const nb::dict>& _) -> const unordered_map<string, int> {
@@ -187,10 +205,10 @@ NB_MODULE(ext, m) {
             },
             "_"_a = nullopt)
         .def("clear_database", &AtomDB::clear_database)
-        .def("add_node", &AtomDB::add_node)
+        .def("add_node", &AtomDB::add_node, "node_params"_a)
         .def("add_link", &AtomDB::add_link, "link_params"_a, "toplevel"_a = true)
-        .def("reindex", &AtomDB::reindex)
-        .def("delete_atom", &AtomDB::delete_atom)
+        .def("reindex", &AtomDB::reindex, "pattern_index_templates"_a)
+        .def("delete_atom", &AtomDB::delete_atom, "handle"_a)
         .def("create_field_index",
              &AtomDB::create_field_index,
              "atom_type"_a,
@@ -198,9 +216,9 @@ NB_MODULE(ext, m) {
              "named_type"_a = "",
              "composite_type"_a = nullopt,
              "index_type"_a = FieldIndexType::BINARY_TREE)
-        .def("bulk_insert", &AtomDB::bulk_insert)
+        .def("bulk_insert", &AtomDB::bulk_insert, "documents"_a)
         .def("retrieve_all_atoms", &AtomDB::retrieve_all_atoms)
-        .def("commit", &AtomDB::commit);
+        .def("commit", &AtomDB::commit, "buffer"_a = nullopt);
     // ---------------------------------------------------------------------------------------------
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
@@ -217,6 +235,7 @@ NB_MODULE(ext, m) {
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
         .def_ro("_id", &Atom::_id)
+        .def_prop_ro("id", &Atom::_id)  // RO property for having access to `_id` as `id`
         .def_ro("handle", &Atom::handle)
         .def_ro("composite_type_hash", &Atom::composite_type_hash)
         .def_ro("named_type", &Atom::named_type)
@@ -282,7 +301,9 @@ NB_MODULE(ext, m) {
         .def(nb::init<const string&, const LinkParams::Targets&>(), "type"_a, "targets"_a)
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
-        .def("add_target",
-             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); });
+        .def(
+            "add_target",
+            [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
+            "target"_a);
     // ---------------------------------------------------------------------------------------------
 }
