@@ -127,6 +127,21 @@ class Link : public Atom {
     /**
      * `composite_type` is designed to hold a list of elements, where each element can either be a
      * `string` (single hash) or another list of `strings`, allowing multiple levels of nesting.
+     * Example:
+     ```
+       [
+          "5b19fd94cb294ecebae572045771f1ac",
+          "f74c835e804a481c8918e16671cabcde",
+          [
+             "5df522aeaaf04617b96128bd5ca7ad17",
+             [
+                "0a9aada9568e48febfc4395657a82840",
+                "72645c1ec2ef46d88542d54484cb45e9"
+             ],
+             "d3d4832042af4fdab5983c63a66885d2"
+          ]
+       ]
+     ```
      */
     ListOfAny composite_type;
 

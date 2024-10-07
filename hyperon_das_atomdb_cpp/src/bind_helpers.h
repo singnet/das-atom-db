@@ -12,32 +12,37 @@ namespace nb = nanobind;
 
 namespace bind_helpers {
 
-// Tuples and functions used for `pickle` conversion between C++ and Python
-using AtomTypeTuple = std::tuple<string,  // id
-                                 string,  // handle
-                                 string,  // composite_type_hash
-                                 string,  // named_type
-                                 string   // named_type_hash
-                                 >;
+// Tuples for `pickle` conversion between C++ and Python
+// See `__getstate__` and `__setstate__` in the bindings.
 
-using NodeTuple = std::tuple<string,  // id
-                             string,  // handle
-                             string,  // composite_type_hash
-                             string,  // named_type
-                             string   // name
-                             >;
+using AtomTypeTuple =   // Tuple for AtomType
+    std::tuple<string,  // _id
+               string,  // handle
+               string,  // composite_type_hash
+               string,  // named_type
+               string   // named_type_hash
+               >;
 
-using LinkTuple = std::tuple<string,                      // id
-                             string,                      // handle
-                             string,                      // composite_type_hash
-                             string,                      // named_type
-                             nb::list,                    // composite_type
-                             string,                      // named_type_hash
-                             vector<string>,              // targets
-                             bool,                        // is_toplevel
-                             map<string, string>,         // keys
-                             opt<Link::TargetsDocuments>  // targets_documents
-                             >;
+using NodeTuple =       // Tuple for Node
+    std::tuple<string,  // _id
+               string,  // handle
+               string,  // composite_type_hash
+               string,  // named_type
+               string   // name
+               >;
+
+using LinkTuple =                           // Tuple for Link
+    std::tuple<string,                      // _id
+               string,                      // handle
+               string,                      // composite_type_hash
+               string,                      // named_type
+               nb::list,                    // composite_type
+               string,                      // named_type_hash
+               vector<string>,              // targets
+               bool,                        // is_toplevel
+               map<string, string>,         // keys
+               opt<Link::TargetsDocuments>  // targets_documents
+               >;
 
 /**
  * @brief Converts a composite type list to a Python list.
@@ -105,12 +110,22 @@ static nb::dict atom_type_to_dict(const AtomType& self) {
     return move(dict);
 };
 
+/**
+ * @brief Converts a Node object to a Python dictionary.
+ * @param self The Node object to be converted.
+ * @return A Python dictionary (`nb::dict`) containing the attributes of the Node.
+ */
 static nb::dict node_to_dict(const Node& self) {
     nb::dict dict = atom_to_dict(self);
     dict["name"] = self.name;
     return move(dict);
 };
 
+/**
+ * @brief Converts a Link object to a Python dictionary.
+ * @param self The Link object to be converted.
+ * @return A Python dictionary (`nb::dict`) containing the attributes of the Link.
+ */
 static nb::dict link_to_dict(const Link& self) {
     nb::dict dict = atom_to_dict(self);
     dict["composite_type"] = composite_type_to_pylist(self.composite_type);
@@ -134,6 +149,11 @@ static nb::dict link_to_dict(const Link& self) {
     return move(dict);
 };
 
+/**
+ * @brief Converts an AtomType object to an AtomTypeTuple.
+ * @param atom_type The AtomType object to be converted.
+ * @return An AtomTypeTuple containing the attributes of the AtomType.
+ */
 static AtomTypeTuple atom_type_to_tuple(const AtomType& atom_type) {
     return make_tuple(atom_type._id,
                       atom_type.handle,
@@ -142,6 +162,11 @@ static AtomTypeTuple atom_type_to_tuple(const AtomType& atom_type) {
                       atom_type.named_type_hash);
 }
 
+/**
+ * @brief Converts an AtomTypeTuple to an AtomType object.
+ * @param atom_type The AtomType object to be updated.
+ * @param state The AtomTypeTuple containing the new state.
+ */
 static void tuple_to_atom_type(AtomType& atom_type, const AtomTypeTuple& state) {
     new (&atom_type) AtomType(std::get<0>(state),  // id
                               std::get<1>(state),  // handle
@@ -151,10 +176,20 @@ static void tuple_to_atom_type(AtomType& atom_type, const AtomTypeTuple& state) 
     );
 }
 
+/**
+ * @brief Converts a Node object to a NodeTuple.
+ * @param node The Node object to be converted.
+ * @return A NodeTuple containing the attributes of the Node.
+ */
 static NodeTuple node_to_tuple(const Node& node) {
     return std::make_tuple(node._id, node.handle, node.composite_type_hash, node.named_type, node.name);
 }
 
+/**
+ * @brief Converts a NodeTuple to a Node object.
+ * @param node The Node object to be updated.
+ * @param state The NodeTuple containing the new state.
+ */
 static void tuple_to_node(Node& node, const NodeTuple& state) {
     new (&node) Node(std::get<0>(state),  // id
                      std::get<1>(state),  // handle
@@ -164,6 +199,11 @@ static void tuple_to_node(Node& node, const NodeTuple& state) {
     );
 }
 
+/**
+ * @brief Converts a Link object to a LinkTuple.
+ * @param link The Link object to be converted.
+ * @return A LinkTuple containing the attributes of the Link.
+ */
 static LinkTuple link_to_tuple(const Link& link) {
     return std::make_tuple(link._id,
                            link.handle,
@@ -177,6 +217,11 @@ static LinkTuple link_to_tuple(const Link& link) {
                            link.targets_documents);
 }
 
+/**
+ * @brief Converts a LinkTuple to a Link object.
+ * @param link The Link object to be updated.
+ * @param state The LinkTuple containing the new state.
+ */
 static void tuple_to_link(Link& link, const LinkTuple& state) {
     new (&link) Link(std::get<0>(state),  // id
                      std::get<1>(state),  // handle
@@ -191,6 +236,20 @@ static void tuple_to_link(Link& link, const LinkTuple& state) {
     );
 }
 
+/**
+ * @brief Initializes a Link object with the provided parameters.
+ * @param self The Link object to be initialized.
+ * @param _id The ID of the link.
+ * @param handle The handle of the link.
+ * @param composite_type_hash The composite type hash of the link.
+ * @param named_type The named type of the link.
+ * @param composite_type The composite type list of the link.
+ * @param named_type_hash The named type hash of the link.
+ * @param targets The targets of the link.
+ * @param is_toplevel Indicates if the link is top-level.
+ * @param keys Optional map of keys associated with the link.
+ * @param targets_documents Optional targets documents associated with the link.
+ */
 static void init_link(Link& self,
                       const string& _id,
                       const string& handle,
