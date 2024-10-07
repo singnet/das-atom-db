@@ -2,6 +2,8 @@
 
 #include <variant>
 
+#include "type_aliases.h"
+
 using namespace std;
 
 namespace atomdb {
@@ -14,9 +16,17 @@ struct KwArgs {
     bool handles_only = false;
 };
 
+struct CustomAttributes {
+    StringUnorderedMap strings = {};
+    IntUnorderedMap integers = {};
+    FloatUnorderedMap floats = {};
+    BoolUnorderedMap booleans = {};
+};
+
 struct NodeParams {
     string type = "";
     string name = "";
+    opt<CustomAttributes> custom_attributes = nullopt;
 };
 
 struct LinkParams {
@@ -25,6 +35,7 @@ struct LinkParams {
 
     string type = "";
     Targets targets = {};
+    opt<CustomAttributes> custom_attributes = nullopt;
 };
 
 }  // namespace atomdb

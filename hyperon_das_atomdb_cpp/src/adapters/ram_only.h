@@ -223,8 +223,6 @@ class InMemoryDB : public AtomDB {
 
     const StringUnorderedSet _filter_non_toplevel(const StringUnorderedSet& matches) const;
 
-    const StringList _build_targets_list(const Link& link) const;
-
     void _delete_atom_index(const Atom& atom);
 
     void _add_atom_index(const Atom& atom);

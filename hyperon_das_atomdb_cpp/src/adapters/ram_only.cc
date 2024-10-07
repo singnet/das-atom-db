@@ -117,10 +117,10 @@ const string InMemoryDB::get_link_handle(const string& link_type,
         return move(link_handle);
     }
     string target_handles_str = "[";
-    for (const auto& target_handle : target_handles) {
-        target_handles_str += target_handle + ", ";
-    }
     if (not target_handles.empty()) {
+        for (const auto& target_handle : target_handles) {
+            target_handles_str += target_handle + ", ";
+        }
         target_handles_str.pop_back();
         target_handles_str.pop_back();
     }
@@ -260,21 +260,6 @@ const opt<const string> InMemoryDB::get_atom_type(const string& handle) const {
     }
     return nullopt;
 }
-
-//------------------------------------------------------------------------------
-// const unordered_map<string, anything> InMemoryDB::get_atom_as_dict(const string& handle, int arity)
-// const {
-//     auto node = this->_get_node(handle);
-//     if (node) {
-//         return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
-//     }
-//     auto link = this->_get_link(handle);
-//     if (link) {
-//         return {{"handle", link->handle},
-//                 {"type", link->named_type},
-//                 {"targets", this->_build_targets_list(*link)}};
-//     }
-// }
 
 //------------------------------------------------------------------------------
 const unordered_map<string, int> InMemoryDB::count_atoms() const {
@@ -615,16 +600,6 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
 }
 
 //------------------------------------------------------------------------------
-const StringList InMemoryDB::_build_targets_list(const Link& link) const {
-    StringList targets;
-    targets.reserve(link.keys.size());
-    for (const auto& [_, value] : link.keys) {
-        targets.push_back(value);
-    }
-    return move(targets);
-}
-
-//------------------------------------------------------------------------------
 void InMemoryDB::_delete_atom_index(const Atom& atom) {
     auto atom_handle = atom._id;
     auto it = this->db.incoming_set.find(atom_handle);
@@ -643,8 +618,7 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
 
     if (auto link = dynamic_cast<const Link*>(&atom)) {
         this->_delete_templates(*link);
-        auto targets_hash = this->_build_targets_list(*link);
-        this->_delete_patterns(*link, targets_hash);
+        this->_delete_patterns(*link, link->targets);
     }
 }
 
@@ -654,11 +628,10 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
     this->_add_atom_type(atom_type_name);
     if (auto link = dynamic_cast<const Link*>(&atom)) {
         auto handle = link->_id;
-        auto targets_hash = this->_build_targets_list(*link);
-        this->_add_outgoing_set(handle, targets_hash);
-        this->_add_incoming_set(handle, targets_hash);
+        this->_add_outgoing_set(handle, link->targets);
+        this->_add_incoming_set(handle, link->targets);
         this->_add_templates(link->composite_type_hash, link->named_type_hash, handle);
-        this->_add_patterns(link->named_type_hash, handle, targets_hash);
+        this->_add_patterns(link->named_type_hash, handle, link->targets);
     }
 }
 

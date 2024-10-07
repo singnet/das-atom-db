@@ -20,7 +20,14 @@ int main(int argc, char const* argv[]) {
     // Adding a Node
     auto node_params = NodeParams{type : "Person", name : "John Doe"};
 
-    auto node = db.add_node({type : "Person", name : "John Doe"});
+    auto node = db.add_node(NodeParams{
+        type : "Person",
+        name : "John Doe",
+        custom_attributes : CustomAttributes{
+            strings : {{"key1", "value1"}, {"key2", "value2"}},
+            integers : {{"key3", 3}, {"key4", 4}}
+        }
+    });
 
     cout << "Node handle: " << node->handle << endl;
     cout << "Node name: " << node->name << endl;
@@ -91,7 +98,12 @@ int main(int argc, char const* argv[]) {
                                 type : "Person",  // another Person node as a target of Fellowship
                                 name : "Michael Douglas"
                             }}
-             }}
+             }},
+        custom_attributes : CustomAttributes{
+            //
+            strings : {{"since", "2021-01-01"}},
+            integers : {{"location", 1}}
+        }
     };
 
     /* Another way to do the same as above

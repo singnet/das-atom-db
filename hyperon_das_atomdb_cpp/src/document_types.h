@@ -22,13 +22,19 @@ class Atom {
     string handle;
     string composite_type_hash;
     string named_type;
+    opt<CustomAttributes> custom_attributes;
 
     Atom() = default;
     Atom(const string& id,
          const string& handle,
          const string& composite_type_hash,
-         const string& named_type)
-        : _id(id), handle(handle), composite_type_hash(composite_type_hash), named_type(named_type) {
+         const string& named_type,
+         const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : _id(id),
+          handle(handle),
+          composite_type_hash(composite_type_hash),
+          named_type(named_type),
+          custom_attributes(custom_attributes) {
         if (id.empty()) {
             throw invalid_argument("Atom ID cannot be empty.");
         }
@@ -50,6 +56,51 @@ class Atom {
         result += ", handle: '" + this->handle + "'";
         result += ", composite_type_hash: '" + this->composite_type_hash + "'";
         result += ", named_type: '" + this->named_type + "'";
+        result += ", custom_attributes: ";
+        if (this->custom_attributes.has_value()) {
+            result += "CustomAttributes(";
+            if (not this->custom_attributes->strings.empty()) {
+                result += "strings: {";
+                for (const auto& [key, value] : this->custom_attributes->strings) {
+                    result += key + ": '" + value + "', ";
+                }
+                result.pop_back();
+                result.pop_back();
+                result += "}, ";
+            }
+            if (not this->custom_attributes->integers.empty()) {
+                result += "integers: {";
+                for (const auto& [key, value] : this->custom_attributes->integers) {
+                    result += key + ": " + std::to_string(value) + ", ";
+                }
+                result.pop_back();
+                result.pop_back();
+                result += "}, ";
+            }
+            if (not this->custom_attributes->floats.empty()) {
+                result += "floats: {";
+                for (const auto& [key, value] : this->custom_attributes->floats) {
+                    result += key + ": " + std::to_string(value) + ", ";
+                }
+                result.pop_back();
+                result.pop_back();
+                result += "}, ";
+            }
+            if (not this->custom_attributes->booleans.empty()) {
+                result += "booleans: {";
+                for (const auto& [key, value] : this->custom_attributes->booleans) {
+                    result += key + ": " + (value ? "true" : "false") + ", ";
+                }
+                result.pop_back();
+                result.pop_back();
+                result += "}, ";
+            }
+            result.pop_back();
+            result.pop_back();
+            result += ")";
+        } else {
+            result += "NULL";
+        }
         return move(result);
     }
 };
@@ -70,8 +121,10 @@ class AtomType : public Atom {
              const string& handle,
              const string& composite_type_hash,
              const string& named_type,
-             const string& named_type_hash)
-        : named_type_hash(named_type_hash), Atom(id, handle, composite_type_hash, named_type) {
+             const string& named_type_hash,
+             const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : named_type_hash(named_type_hash),
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
@@ -99,8 +152,9 @@ class Node : public Atom {
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const string& name)
-        : name(name), Atom(id, handle, composite_type_hash, named_type) {
+         const string& name,
+         const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (name.empty()) {
             throw invalid_argument("Node name cannot be empty.");
         }
@@ -148,7 +202,6 @@ class Link : public Atom {
     string named_type_hash;
     vector<string> targets;
     bool is_toplevel = true;
-    map<string, string> keys = {};
     opt<TargetsDocuments> targets_documents = nullopt;
 
     Link() = default;
@@ -159,14 +212,15 @@ class Link : public Atom {
          const ListOfAny& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
-         bool is_toplevel)
+         bool is_toplevel,
+         const opt<const TargetsDocuments>& targets_documents = nullopt,
+         const opt<const CustomAttributes>& custom_attributes = nullopt)
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_toplevel(is_toplevel),
-          keys({}),
           targets_documents(nullopt),
-          Atom(id, handle, composite_type_hash, named_type) {
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
         if (composite_type.empty()) {
             throw invalid_argument("Composite type cannot be empty.");
         }
@@ -180,36 +234,14 @@ class Link : public Atom {
         // if (targets.empty()) {  TODO: check if targets can be empty
         //     throw invalid_argument("Link targets cannot be empty.");
         // }
-    }
-    Link(const string& id,
-         const string& handle,
-         const string& composite_type_hash,
-         const string& named_type,
-         const ListOfAny& composite_type,
-         const string& named_type_hash,
-         const vector<string>& targets,
-         bool is_toplevel,
-         map<string, string> keys,
-         opt<TargetsDocuments> targets_documents)
-        : Link(id,
-               handle,
-               composite_type_hash,
-               named_type,
-               composite_type,
-               named_type_hash,
-               targets,
-               is_toplevel) {
-        this->keys = keys;
         if (targets_documents.has_value()) {
-            if (not targets_documents->empty()) {
-                this->targets_documents = TargetsDocuments();
-                this->targets_documents->reserve(targets_documents->size());
-                for (const auto& target : *targets_documents) {
-                    if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
-                        this->targets_documents->push_back(make_shared<Node>(*node));
-                    } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
-                        this->targets_documents->push_back(make_shared<Link>(*link));
-                    }
+            this->targets_documents = TargetsDocuments();
+            this->targets_documents->reserve(targets_documents->size());
+            for (const auto& target : *(targets_documents)) {
+                if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+                    this->targets_documents->push_back(make_shared<Node>(*node));
+                } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+                    this->targets_documents->push_back(make_shared<Link>(*link));
                 }
             }
         }
@@ -230,15 +262,6 @@ class Link : public Atom {
         result += "]";
         result += ", is_toplevel: ";
         result += this->is_toplevel ? "true" : "false";
-        result += ", keys: {";
-        if (not this->keys.empty()) {
-            for (const auto& [key, value] : this->keys) {
-                result += "'" + key + "': '" + value + "', ";
-            }
-            result.pop_back();
-            result.pop_back();
-        }
-        result += "}";
         result += ", targets_documents: ";
         if (this->targets_documents.has_value()) {
             result += "[";
@@ -263,15 +286,17 @@ class Link : public Atom {
 
     const string composite_type_list_to_string(const ListOfAny& composite_type) const noexcept {
         string result = "[";
-        for (const auto& element : composite_type) {
-            if (auto str = any_cast<string>(&element)) {
-                result += "'" + *str + "', ";
-            } else if (auto list = any_cast<ListOfAny>(&element)) {
-                result += composite_type_list_to_string(*list) + ", ";
+        if (not composite_type.empty()) {
+            for (const auto& element : composite_type) {
+                if (auto str = any_cast<string>(&element)) {
+                    result += "'" + *str + "', ";
+                } else if (auto list = any_cast<ListOfAny>(&element)) {
+                    result += composite_type_list_to_string(*list) + ", ";
+                }
             }
+            result.pop_back();
+            result.pop_back();
         }
-        result.pop_back();
-        result.pop_back();
         result += "]";
         return move(result);
     }

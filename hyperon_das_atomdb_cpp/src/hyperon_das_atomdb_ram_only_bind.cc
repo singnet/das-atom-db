@@ -235,32 +235,46 @@ NB_MODULE(ext, m) {
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
         .def_ro("_id", &Atom::_id)
-        .def_prop_ro("id", &Atom::_id)  // RO property for having access to `_id` as `id`
+        .def_prop_ro("id",  // RO property for having access to `_id` as `id`
+                     [](const Atom& self) -> string { return self._id; })
         .def_ro("handle", &Atom::handle)
         .def_ro("composite_type_hash", &Atom::composite_type_hash)
         .def_ro("named_type", &Atom::named_type)
+        .def_ro("custom_attributes", &Atom::custom_attributes)
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
         .def("to_dict", &helpers::atom_to_dict);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
-        .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
+        .def(nb::init<const string&,
+                      const string&,
+                      const string&,
+                      const string&,
+                      const string&,
+                      const opt<const CustomAttributes>&>(),
              "_id"_a,
              "handle"_a,
              "composite_type_hash"_a,
              "named_type"_a,
-             "named_type_hash"_a)
+             "named_type_hash"_a,
+             "custom_attributes"_a = nullopt)
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__", &helpers::atom_type_to_tuple)
         .def("__setstate__", &helpers::tuple_to_atom_type)
         .def("to_dict", &helpers::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
-        .def(nb::init<const string&, const string&, const string&, const string&, const string&>(),
+        .def(nb::init<const string&,
+                      const string&,
+                      const string&,
+                      const string&,
+                      const string&,
+                      const opt<const CustomAttributes>&>(),
              "_id"_a,
              "handle"_a,
              "composite_type_hash"_a,
              "named_type"_a,
-             "name"_a)
+             "name"_a,
+             "custom_attributes"_a = nullopt)
         .def_ro("name", &Node::name)
         .def("__getstate__", &helpers::node_to_tuple)
         .def("__setstate__", &helpers::tuple_to_node)
@@ -276,8 +290,8 @@ NB_MODULE(ext, m) {
              "named_type_hash"_a,
              "targets"_a,
              "is_toplevel"_a,
-             "keys"_a = nullopt,
-             "targets_documents"_a = nullopt)
+             "targets_documents"_a = nullopt,
+             "custom_attributes"_a = nullopt)
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return helpers::composite_type_to_pylist(self.composite_type);
@@ -285,7 +299,6 @@ NB_MODULE(ext, m) {
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_toplevel", &Link::is_toplevel)
-        .def_ro("keys", &Link::keys)
         .def_ro("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)
         .def("__setstate__", &helpers::tuple_to_link)
@@ -293,12 +306,33 @@ NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
+    nb::class_<CustomAttributes>(database, "CustomAttributes")
+        .def(nb::init<const StringUnorderedMap&,
+                      const IntUnorderedMap&,
+                      const FloatUnorderedMap&,
+                      const BoolUnorderedMap&>(),
+             "strings"_a = StringUnorderedMap(),
+             "integers"_a = IntUnorderedMap(),
+             "floats"_a = FloatUnorderedMap(),
+             "booleans"_a = BoolUnorderedMap())
+        .def_rw("strings", &CustomAttributes::strings)
+        .def_rw("integers", &CustomAttributes::integers)
+        .def_rw("floats", &CustomAttributes::floats)
+        .def_rw("booleans", &CustomAttributes::booleans)
+        .def("__getstate__", &helpers::custom_attributes_to_tuple)
+        .def("__setstate__", &helpers::tuple_to_custom_attributes);
     nb::class_<NodeParams>(database, "NodeParams")
-        .def(nb::init<const string&, const string&>(), "type"_a, "name"_a)
+        .def(nb::init<const string&, const string&, const opt<CustomAttributes>&>(),
+             "type"_a,
+             "name"_a,
+             "custom_attributes"_a = nullopt)
         .def_rw("type", &NodeParams::type)
         .def_rw("name", &NodeParams::name);
     nb::class_<LinkParams>(database, "LinkParams")
-        .def(nb::init<const string&, const LinkParams::Targets&>(), "type"_a, "targets"_a)
+        .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
+             "type"_a,
+             "targets"_a,
+             "custom_attributes"_a = nullopt)
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
         .def(

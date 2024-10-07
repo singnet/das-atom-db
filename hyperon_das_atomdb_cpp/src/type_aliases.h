@@ -20,8 +20,12 @@ template <typename T>
 using opt = optional<T>;
 
 using StringSet = set<string>;
+using StringUnorderedMap = unordered_map<string, string>;
 using StringList = vector<string>;
 using StringUnorderedSet = unordered_set<string>;
+using IntUnorderedMap = unordered_map<string, long>;
+using FloatUnorderedMap = unordered_map<string, double>;
+using BoolUnorderedMap = unordered_map<string, bool>;
 
 /**
  * std::vector<std::any> performs well enough in some particular cases, but be cautious when using it.
