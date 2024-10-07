@@ -86,7 +86,7 @@ class TestDatabasePrivateMethods:
             db._build_node({})
 
     @pytest.mark.parametrize(
-        "database,expected_fields, expected_handle,is_top_level",
+        "database,expected_fields, expected_handle,is_toplevel",
         [
             (
                 "redis_mongo_db",
@@ -146,14 +146,14 @@ class TestDatabasePrivateMethods:
             ),
         ],
     )
-    def test__build_link(self, database, expected_fields, expected_handle, is_top_level, request):
+    def test__build_link(self, database, expected_fields, expected_handle, is_toplevel, request):
         db: AtomDB = request.getfixturevalue(database)
         handle, link, targets = db._build_link(
-            {"type": "Test", "targets": [{"type": "Test", "name": "test"}]}, is_top_level
+            {"type": "Test", "targets": [{"type": "Test", "name": "test"}]}, is_toplevel
         )
         assert expected_handle in targets
         assert all([k in link for k in expected_fields])
-        assert link["is_toplevel"] == is_top_level
+        assert link["is_toplevel"] == is_toplevel
         assert check_handle(handle)
         assert isinstance(link, dict)
         assert isinstance(targets, list)

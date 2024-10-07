@@ -413,10 +413,10 @@ class AtomDB {
     /**
      * @brief Builds a link with the specified parameters.
      * @param link_params A LinkParams object containing the parameters for the link.
-     * @param is_top_level A boolean indicating whether the link is a top-level link.
+     * @param is_toplevel A boolean indicating whether the link is a top-level link.
      * @return An optional Link object representing the constructed link.
      */
-    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_top_level = true);
+    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true);
 
     /**
      * @brief Retrieves an atom from the database using its handle.

@@ -48,10 +48,10 @@ def add_node(db: AtomDB, node_name, node_type, adapter, extra_fields=None):
 
 
 def add_link(
-    db: AtomDB, link_type, targets: list[NodeParamsT | LinkParamsT], adapter, is_top_level=True
+    db: AtomDB, link_type, targets: list[NodeParamsT | LinkParamsT], adapter, is_toplevel=True
 ):
     param_class = CppLinkParams if adapter == "in_memory_db" else LinkParams
-    link = db.add_link(param_class(type=link_type, targets=targets), toplevel=is_top_level)
+    link = db.add_link(param_class(type=link_type, targets=targets), toplevel=is_toplevel)
     if adapter != "in_memory_db":
         db.commit()
     return link
@@ -509,7 +509,7 @@ class TestDatabase:
         node_a = add_node(db, "Aaa", "Test", database)
         node_a_params = atom_to_params(node_a, database)
         link_a = add_link(db, "Aa", [node_a_params], database)
-        _ = add_link(db, "NoTopLevel", [node_a_params], database, is_top_level=False)
+        _ = add_link(db, "NoTopLevel", [node_a_params], database, is_toplevel=False)
         _ = add_link(db, "Ac", [node_a_params], database)
         params["link_type"] = (
             link_a.named_type if not params.get("link_type") else params["link_type"]
@@ -543,7 +543,7 @@ class TestDatabase:
         assert len(links) == links_len
 
     @pytest.mark.parametrize(
-        "database,params,links_len,is_top_level",
+        "database,params,links_len,is_toplevel",
         [  # TODO: differences here must be fixed if possible
             ("redis_mongo_db", {}, 1, True),
             ("redis_mongo_db", {}, 1, False),
@@ -554,14 +554,14 @@ class TestDatabase:
             # NOTE should return None or same as redis_mongo
         ],
     )
-    def test_get_matched_type_template(self, database, params, links_len, is_top_level, request):
+    def test_get_matched_type_template(self, database, params, links_len, is_toplevel, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)
         node_a_params = atom_to_params(node_a, database)
         node_b_params = atom_to_params(node_b, database)
         link_a = add_link(
-            db, "Aa", [node_a_params, node_b_params], database, is_top_level=is_top_level
+            db, "Aa", [node_a_params, node_b_params], database, is_toplevel=is_toplevel
         )
         links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
         assert len(links) == links_len
@@ -626,7 +626,7 @@ class TestDatabase:
     )
     def test_get_atom_link(self, database, params, top_level, n_links, n_nodes, request):
         db: AtomDB = request.getfixturevalue(database)
-        link_a = add_link(db, "Aa", [], database, is_top_level=top_level)
+        link_a = add_link(db, "Aa", [], database, is_toplevel=top_level)
         atom_l = db.get_atom(link_a.handle, **params)
         assert atom_l
         assert atom_l.handle == link_a.handle
@@ -996,7 +996,7 @@ class TestDatabase:
             named_type=link_a.named_type,
             composite_type=link_a.composite_type,
             named_type_hash=link_a.named_type_hash,
-            is_top_level=link_a.is_top_level,
+            is_toplevel=link_a.is_toplevel,
         )
         db.bulk_insert([node_a_copy, link_a_copy])
         count = db.count_atoms({"precise": True})
@@ -1087,7 +1087,7 @@ class TestDatabase:
             named_type=link_a.named_type,
             composite_type=link_a.composite_type,
             named_type_hash=link_a.named_type_hash,
-            is_top_level=link_a.is_top_level,
+            is_toplevel=link_a.is_toplevel,
         )
 
         db.commit(buffer=[node_a_dict, link_a_dict])

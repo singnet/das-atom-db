@@ -132,7 +132,7 @@ class Link : public Atom {
 
     string named_type_hash;
     vector<string> targets;
-    bool is_top_level = true;
+    bool is_toplevel = true;
     map<string, string> keys = {};
     opt<TargetsDocuments> targets_documents = nullopt;
 
@@ -144,11 +144,11 @@ class Link : public Atom {
          const ListOfAny& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
-         bool is_top_level)
+         bool is_toplevel)
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
-          is_top_level(is_top_level),
+          is_toplevel(is_toplevel),
           keys({}),
           targets_documents(nullopt),
           Atom(id, handle, composite_type_hash, named_type) {
@@ -173,7 +173,7 @@ class Link : public Atom {
          const ListOfAny& composite_type,
          const string& named_type_hash,
          const vector<string>& targets,
-         bool is_top_level,
+         bool is_toplevel,
          map<string, string> keys,
          opt<TargetsDocuments> targets_documents)
         : Link(id,
@@ -183,7 +183,7 @@ class Link : public Atom {
                composite_type,
                named_type_hash,
                targets,
-               is_top_level) {
+               is_toplevel) {
         this->keys = keys;
         if (targets_documents.has_value()) {
             if (not targets_documents->empty()) {
@@ -213,8 +213,8 @@ class Link : public Atom {
             result.pop_back();
         }
         result += "]";
-        result += ", is_top_level: ";
-        result += this->is_top_level ? "true" : "false";
+        result += ", is_toplevel: ";
+        result += this->is_toplevel ? "true" : "false";
         result += ", keys: {";
         if (not this->keys.empty()) {
             for (const auto& [key, value] : this->keys) {

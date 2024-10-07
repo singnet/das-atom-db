@@ -606,7 +606,7 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
     for (const auto& link_handle : matches) {
         auto it = this->db.link.find(link_handle);
         if (it != this->db.link.end()) {
-            if (it->second->is_top_level) {
+            if (it->second->is_toplevel) {
                 filtered_matched_targets.insert(link_handle);
             }
         }

@@ -81,7 +81,7 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
 }
 
 //------------------------------------------------------------------------------
-shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_level) {
+shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_toplevel) {
     const auto& link_type = link_params.type;
     const auto& targets = link_params.targets;
     if (link_type.empty()) {  // or targets.empty()) {  TODO: check if targets can be empty
@@ -122,7 +122,7 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_top_
                                   composite_type_list,  // composite_type
                                   link_type_hash,       // named_type_hash
                                   target_handles,       // targets
-                                  is_top_level          // is_top_level
+                                  is_toplevel           // is_toplevel
     );
 
     uint n = 0;

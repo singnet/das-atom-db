@@ -75,7 +75,7 @@ class Link(Atom):
     composite_type: list
     named_type_hash: str
     targets: list[str]
-    is_top_level: bool = True
+    is_toplevel: bool = True
     keys: dict[str, str] = dc.field(default_factory=dict)
     targets_documents: list[Atom] | None = dc.field(default=None)
     extra_fields: dict[str, Any] | None = dc.field(default=None)
@@ -328,7 +328,7 @@ class AtomDB(ABC):
             "composite_type_hash",
             "composite_type",
             "is_toplevel",
-            "is_top_level",
+            "is_toplevel",
             "named_type",
             "named_type_hash",
             "key_n",
@@ -370,7 +370,7 @@ class AtomDB(ABC):
             handle=handle,
             targets=target_handles,
             composite_type_hash=ExpressionHasher.composite_hash(composite_type_hash),
-            is_top_level=toplevel,
+            is_toplevel=toplevel,
             composite_type=composite_type,
             named_type=link_type,
             named_type_hash=link_type_hash,

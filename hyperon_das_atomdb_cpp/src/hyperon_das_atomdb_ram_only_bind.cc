@@ -256,7 +256,7 @@ NB_MODULE(ext, m) {
              "composite_type"_a,
              "named_type_hash"_a,
              "targets"_a,
-             "is_top_level"_a,
+             "is_toplevel"_a,
              "keys"_a = nullopt,
              "targets_documents"_a = nullopt)
         .def_prop_ro("composite_type",
@@ -265,7 +265,7 @@ NB_MODULE(ext, m) {
                      })
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
-        .def_ro("is_top_level", &Link::is_top_level)
+        .def_ro("is_toplevel", &Link::is_toplevel)
         .def_ro("keys", &Link::keys)
         .def_ro("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)

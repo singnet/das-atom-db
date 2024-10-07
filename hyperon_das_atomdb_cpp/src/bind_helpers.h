@@ -34,7 +34,7 @@ using LinkTuple = std::tuple<string,                      // id
                              nb::list,                    // composite_type
                              string,                      // named_type_hash
                              vector<string>,              // targets
-                             bool,                        // is_top_level
+                             bool,                        // is_toplevel
                              map<string, string>,         // keys
                              opt<Link::TargetsDocuments>  // targets_documents
                              >;
@@ -116,7 +116,7 @@ static nb::dict link_to_dict(const Link& self) {
     dict["composite_type"] = composite_type_to_pylist(self.composite_type);
     dict["named_type_hash"] = self.named_type_hash;
     dict["targets"] = self.targets;
-    dict["is_top_level"] = self.is_top_level;
+    dict["is_toplevel"] = self.is_toplevel;
     dict["keys"] = self.keys;
     if (self.targets_documents.has_value()) {
         nb::list targets_documents;
@@ -172,7 +172,7 @@ static LinkTuple link_to_tuple(const Link& link) {
                            composite_type_to_pylist(link.composite_type),
                            link.named_type_hash,
                            link.targets,
-                           link.is_top_level,
+                           link.is_toplevel,
                            link.keys,
                            link.targets_documents);
 }
@@ -185,7 +185,7 @@ static void tuple_to_link(Link& link, const LinkTuple& state) {
                      pylist_to_composite_type(std::get<4>(state)),
                      std::get<5>(state),  // named_type_hash
                      std::get<6>(state),  // targets
-                     std::get<7>(state),  // is_top_level
+                     std::get<7>(state),  // is_toplevel
                      std::get<8>(state),  // keys
                      std::get<9>(state)   // targets_documents
     );
@@ -199,7 +199,7 @@ static void init_link(Link& self,
                       const nb::list& composite_type,
                       const string& named_type_hash,
                       const vector<string>& targets,
-                      bool is_top_level,
+                      bool is_toplevel,
                       opt<map<string, string>> keys = nullopt,
                       opt<Link::TargetsDocuments> targets_documents = nullopt) {
     if (keys.has_value() or targets_documents.has_value()) {
@@ -210,7 +210,7 @@ static void init_link(Link& self,
                          pylist_to_composite_type(composite_type),
                          named_type_hash,
                          targets,
-                         is_top_level,
+                         is_toplevel,
                          keys.has_value() ? *keys : map<string, string>(),
                          targets_documents);
     } else {
@@ -221,7 +221,7 @@ static void init_link(Link& self,
                          pylist_to_composite_type(composite_type),
                          named_type_hash,
                          targets,
-                         is_top_level);
+                         is_toplevel);
     }
 }
 

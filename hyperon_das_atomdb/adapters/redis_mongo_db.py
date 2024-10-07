@@ -724,7 +724,7 @@ class RedisMongoDB(AtomDB):
                 named_type=document[FieldNames.TYPE_NAME],
                 targets=document[FieldNames.TARGETS],
                 composite_type=document[FieldNames.COMPOSITE_TYPE],
-                is_top_level=document.get(FieldNames.IS_TOPLEVEL, True),
+                is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
                 named_type_hash=document[FieldNames.TYPE_NAME_HASH],
                 keys=document[FieldNames.KEYS],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
