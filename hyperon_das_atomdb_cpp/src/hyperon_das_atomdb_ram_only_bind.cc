@@ -11,6 +11,8 @@
 #include <nanobind/stl/vector.h>
 
 #include "adapters/ram_only.h"
+#include "atom_db_publicist.h"
+#include "atom_db_trampoline.h"
 #include "bind_helpers.h"
 #include "constants.h"
 #include "database.h"
@@ -200,10 +202,9 @@ NB_MODULE(ext, m) {
         .def("get_atom_type", &AtomDB::get_atom_type, "handle"_a)
         .def(
             "count_atoms",
-            [](const AtomDB& self, const opt<const nb::dict>& _) -> const unordered_map<string, int> {
-                return self.count_atoms();
-            },
-            "_"_a = nullopt)
+            [](const AtomDB& self, const opt<const nb::dict>& parameters = nullopt)
+                -> const unordered_map<string, int> { return self.count_atoms(); },
+            "parameters"_a = nullopt)
         .def("clear_database", &AtomDB::clear_database)
         .def("add_node", &AtomDB::add_node, "node_params"_a)
         .def("add_link", &AtomDB::add_link, "link_params"_a, "toplevel"_a = true)
@@ -246,11 +247,11 @@ NB_MODULE(ext, m) {
         .def("__repr__", &Atom::to_string)
         .def("to_dict", &helpers::atom_to_dict);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
-        .def(nb::init<const string&,
-                      const string&,
-                      const string&,
-                      const string&,
-                      const string&,
+        .def(nb::init<const string&,  // _id,
+                      const string&,  // handle,
+                      const string&,  // composite_type_hash,
+                      const string&,  // named_type,
+                      const string&,  // named_type_hash,
                       const opt<const CustomAttributes>&>(),
              "_id"_a,
              "handle"_a,
@@ -263,11 +264,11 @@ NB_MODULE(ext, m) {
         .def("__setstate__", &helpers::tuple_to_atom_type)
         .def("to_dict", &helpers::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
-        .def(nb::init<const string&,
-                      const string&,
-                      const string&,
-                      const string&,
-                      const string&,
+        .def(nb::init<const string&,  // _id,
+                      const string&,  // handle,
+                      const string&,  // composite_type_hash,
+                      const string&,  // named_type,
+                      const string&,  // name,
                       const opt<const CustomAttributes>&>(),
              "_id"_a,
              "handle"_a,
@@ -299,7 +300,7 @@ NB_MODULE(ext, m) {
         .def_ro("named_type_hash", &Link::named_type_hash)
         .def_ro("targets", &Link::targets)
         .def_ro("is_toplevel", &Link::is_toplevel)
-        .def_ro("targets_documents", &Link::targets_documents)
+        .def_rw("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)
         .def("__setstate__", &helpers::tuple_to_link)
         .def("to_dict", &helpers::link_to_dict);
@@ -327,7 +328,8 @@ NB_MODULE(ext, m) {
              "name"_a,
              "custom_attributes"_a = nullopt)
         .def_rw("type", &NodeParams::type)
-        .def_rw("name", &NodeParams::name);
+        .def_rw("name", &NodeParams::name)
+        .def_rw("custom_attributes", &NodeParams::custom_attributes);
     nb::class_<LinkParams>(database, "LinkParams")
         .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
              "type"_a,
@@ -338,6 +340,7 @@ NB_MODULE(ext, m) {
         .def(
             "add_target",
             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
-            "target"_a);
+            "target"_a)
+        .def_rw("custom_attributes", &LinkParams::custom_attributes);
     // ---------------------------------------------------------------------------------------------
 }

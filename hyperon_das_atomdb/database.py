@@ -21,100 +21,41 @@ Type Aliases:
 
 import re
 from abc import ABC, abstractmethod
-import dataclasses as dc
 from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias
 
-from hyperon_das_atomdb.exceptions import (
-    AddLinkException,
-    AddNodeException,
-    AtomDoesNotExist,
+from hyperon_das_atomdb_ram_only import (  # AtomDB,
+    TYPE_HASH,
+    TYPEDEF_MARK_HASH,
+    WILDCARD,
+    WILDCARD_HASH,
+    FieldIndexType,
 )
+from hyperon_das_atomdb_ram_only.database import CustomAttributes as cppCustomAttributes
+from hyperon_das_atomdb_ram_only.database import LinkParams as cppLinkParams
+from hyperon_das_atomdb_ram_only.database import NodeParams as cppNodeParams
+from hyperon_das_atomdb_ram_only.document_types import Atom as cppAtom
+from hyperon_das_atomdb_ram_only.document_types import AtomType as cppAtomType
+from hyperon_das_atomdb_ram_only.document_types import Link as cppLink
+from hyperon_das_atomdb_ram_only.document_types import Node as cppNode
+
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-from hyperon_das_atomdb_ram_only.document_types import (
-    Atom as CppAtom,
-    Link as CppLink,
-    Node as CppNode,
-    AtomType as CppAtomType,
-)
-
-from hyperon_das_atomdb_ram_only.database import (
-    LinkParams as CppLinkParams,
-    NodeParams as CppNodeParams,
-)
-
-WILDCARD = "*"
-
 # pylint: disable=invalid-name
 
+CustomAttributesT: TypeAlias = cppCustomAttributes
+AtomT: TypeAlias = cppAtom
+NodeT: TypeAlias = cppNode
+LinkT: TypeAlias = cppLink
+AtomTypeT: TypeAlias = cppAtomType
 
-@dc.dataclass
-class Atom(ABC):
-    _id: str
-    handle: str
-    named_type: str
-    composite_type_hash: str
-
-
-@dc.dataclass
-class AtomType(Atom):
-    named_type_hash: str
-
-
-@dc.dataclass
-class Node(Atom):
-    name: str
-    extra_fields: dict[str, Any] | None = dc.field(default=None)
-
-
-@dc.dataclass
-class Link(Atom):
-    composite_type: list
-    named_type_hash: str
-    targets: list[str]
-    is_toplevel: bool = True
-    keys: dict[str, str] = dc.field(default_factory=dict)
-    targets_documents: list[Atom] | None = dc.field(default=None)
-    extra_fields: dict[str, Any] | None = dc.field(default=None)
-
-
-AtomT: TypeAlias = Atom | CppAtom
-NodeT: TypeAlias = Node | CppNode
-LinkT: TypeAlias = Link | CppLink
-AtomTypeT: TypeAlias = AtomType | CppAtomType
-
-
-@dc.dataclass
-class NodeParams:
-    type: str
-    name: str
-    extra_fields: dict[str, Any] | None = dc.field(default=None)
-
-
-@dc.dataclass
-class LinkParams:
-    type: str
-    targets: list[AtomT]
-    extra_fields: dict[str, Any] | None = dc.field(default=None)
-
-
-NodeParamsT: TypeAlias = NodeParams | CppNodeParams
-LinkParamsT: TypeAlias = LinkParams | CppLinkParams
+NodeParamsT: TypeAlias = cppNodeParams
+LinkParamsT: TypeAlias = cppLinkParams
 
 HandleT: TypeAlias = str
-
-# AtomT: TypeAlias = dict[str, Any]
-
-# NodeT: TypeAlias = AtomT
-
-# NodeParamsT: TypeAlias = dict[str, Any]
-
-# LinkT: TypeAlias = AtomT
-
-# LinkParamsT: TypeAlias = dict[str, Any]
 
 HandleListT: TypeAlias = list[HandleT]
 
@@ -138,13 +79,14 @@ class FieldNames(str, Enum):
     KEYS = "keys"
     IS_TOPLEVEL = "is_toplevel"
     TARGETS = "targets"
+    CUSTOM_ATTRIBUTES = "custom_attributes"
 
 
-class FieldIndexType(str, Enum):
-    """Enumeration of index types used in the AtomDB."""
-
-    BINARY_TREE = "binary_tree"
-    TOKEN_INVERTED_LIST = "token_inverted_list"
+# class FieldIndexType(str, Enum):
+#     """Enumeration of index types used in the AtomDB."""
+#
+#     BINARY_TREE = "binary_tree"
+#     TOKEN_INVERTED_LIST = "token_inverted_list"
 
 
 class AtomDB(ABC):
@@ -190,7 +132,7 @@ class AtomDB(ABC):
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
         return ExpressionHasher.expression_hash(named_type_hash, target_handles)
 
-    def _reformat_document(self, document: Atom, **kwargs) -> AtomT:
+    def _reformat_document(self, document: AtomT, **kwargs) -> AtomT:
         """
         Transform a document to the target format.
 
@@ -205,10 +147,10 @@ class AtomDB(ABC):
         Returns:
             AtomT: The transformed document in the target format.
         """
-        if not isinstance(document, Link):
+        if not isinstance(document, LinkT):  # type: ignore
             return document
 
-        answer: Link = document
+        answer: LinkT = document
 
         if kwargs.get("targets_document", False):
             targets_document = [self.get_atom(target) for target in answer.targets]
@@ -224,42 +166,41 @@ class AtomDB(ABC):
 
         return answer
 
-    @staticmethod
-    def _atom_to_dict(atom: Atom | NodeParams | LinkParams) -> dict[str, Any]:
-        """
-        Convert an atom to a dictionary representation.
+    # @staticmethod
+    # def _atom_to_dict(atom: Atom | NodeParams | LinkParams) -> dict[str, Any]:
+    #     """
+    #     Convert an atom to a dictionary representation.
+    #
+    #     Args:
+    #         atom (Atom): The atom to convert.
+    #
+    #     Returns:
+    #         dict[str, Any]: A dictionary representation of the atom.
+    #     """
+    #     atom_dict = atom.to_dict()
+    #     if "extra_fields" in atom_dict:
+    #         with_extra_fields: dict[str, Any] | None = atom_dict.pop("extra_fields", None) or dict()
+    #         if with_extra_fields:
+    #             with_extra_fields.update(atom_dict)
+    #             return with_extra_fields
+    #     return atom_dict
 
-        Args:
-            atom (Atom): The atom to convert.
-
-        Returns:
-            dict[str, Any]: A dictionary representation of the atom.
-        """
-        atom_dict = dc.asdict(atom)
-        if "extra_fields" in atom_dict:
-            with_extra_fields: dict[str, Any] | None = atom_dict.pop("extra_fields", None) or dict()
-            if with_extra_fields:
-                with_extra_fields.update(atom_dict)
-                return with_extra_fields
-        return atom_dict
-
-    def _build_node(self, node_params: NodeParams) -> Node:
+    def _build_node(self, node_params: NodeParamsT) -> NodeT:
         """
         Build a node with the specified parameters.
 
         Args:
-            node_params (NodeParams): A dataclass containing node parameters.
+            node_params (NodeParamsT): A dataclass containing node parameters.
                 It should have the following keys:
                 - 'type': The type of the node.
                 - 'name': The name of the node.
 
         Returns:
-            Node: A node instance.
+            NodeT: A node instance.
 
         Raises:
             AddNodeException: If the 'type' or 'name' fields are missing in node_params.
         """
-
         node_type = node_params.type
         node_name = node_params.name
         if node_type is None or node_name is None:
@@ -268,30 +209,20 @@ class AtomDB(ABC):
                 details=f"{node_params=}",
             )
 
-        node_params_dict = self._atom_to_dict(node_params)
-        node_params_dict.pop("type")
-        node_params_dict.pop("name")
-        reserved_parameters = ["handle", "_id", "composite_type_hash", "named_type"]
-        valid_params = {
-            key: value for key, value in node_params_dict.items() if key not in reserved_parameters
-        }
-
         handle = self.node_handle(node_type, node_name)
 
-        node = Node(
+        node = NodeT(
             _id=handle,
             handle=handle,
             composite_type_hash=ExpressionHasher.named_type_hash(node_type),
             name=node_name,
             named_type=node_type,
-            extra_fields=valid_params or None,
+            custom_attributes=node_params.custom_attributes,
         )
-
-        # node.update(valid_params)  # TODO: custom attributes
 
         return node
 
-    def _build_link(self, link_params: LinkParams, toplevel: bool = True) -> Link | None:
+    def _build_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
         """
         Build a link the specified parameters.
 
@@ -304,7 +235,7 @@ class AtomDB(ABC):
                 nested inside other links. Defaults to True.
 
         Returns:
-            Link | None: A link instance. Or None if something went wrong.
+            LinkT | None: A link instance. Or None if something went wrong.
 
         Raises:
             AddLinkException: If the 'type' or 'targets' fields are missing in
@@ -318,41 +249,19 @@ class AtomDB(ABC):
                 details=f"{link_params=}",
             )
 
-        link_params_dict = self._atom_to_dict(link_params)
-        link_params_dict.pop("type")
-        link_params_dict.pop("targets")
-        reserved_parameters = [
-            "handle",
-            "targets",
-            "_id",
-            "composite_type_hash",
-            "composite_type",
-            "is_toplevel",
-            "is_toplevel",
-            "named_type",
-            "named_type_hash",
-            "key_n",
-            "keys",
-        ]
-        valid_params = {
-            key: value
-            for key, value in link_params_dict.items()
-            if key not in reserved_parameters and not re.search(AtomDB.key_pattern, key)
-        }
-
         link_type_hash = ExpressionHasher.named_type_hash(link_type)
         target_handles = []
         composite_type: list[Any] = [link_type_hash]
         composite_type_hash = [link_type_hash]
 
         for target in targets:
-            if isinstance(target, NodeParams):
+            if isinstance(target, NodeParamsT):  # type: ignore
                 atom = self.add_node(target)
                 if atom is None:
                     return None
                 atom_hash = atom.composite_type_hash
                 composite_type.append(atom_hash)
-            elif isinstance(target, LinkParams):
+            elif isinstance(target, LinkParamsT):  # type: ignore
                 atom = self.add_link(target, toplevel=False)
                 if atom is None:
                     return None
@@ -361,11 +270,11 @@ class AtomDB(ABC):
             else:
                 raise ValueError("The target must be a NodeParams or LinkParams dataclass instance")
             composite_type_hash.append(atom_hash)
-            target_handles.append(atom._id)  # pylint: disable=protected-access
+            target_handles.append(atom.id)
 
         handle = ExpressionHasher.expression_hash(link_type_hash, target_handles)
 
-        link = Link(
+        link = LinkT(
             _id=handle,
             handle=handle,
             targets=target_handles,
@@ -374,13 +283,8 @@ class AtomDB(ABC):
             composite_type=composite_type,
             named_type=link_type,
             named_type_hash=link_type_hash,
-            extra_fields=valid_params or None,
+            custom_attributes=link_params.custom_attributes,
         )
-
-        for item in range(len(targets)):
-            link.keys[f"key_{item}"] = target_handles[item]
-
-        # link.update(valid_params)  # TODO: custom attributes
 
         return link
 
@@ -486,7 +390,7 @@ class AtomDB(ABC):
     def get_atoms_by_index(
         self,
         index_id: str,
-        query: list[OrderedDict[str, str]],
+        query: list[dict[str, Any]],
         cursor: int = 0,
         chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
@@ -499,7 +403,7 @@ class AtomDB(ABC):
         Args:
             index_id (str): The ID of the index to query against. This index should have been
                 created previously using the `create_field_index` method.
-            query (list[OrderedDict[str, str]]): A list of ordered dictionaries, each containing
+            query (list[dict[str, Any]]): A list of ordered dictionaries, each containing
                 a "field" and "value" key, representing the criteria for filtering atoms.
             cursor (int): An optional cursor indicating the starting point within the result set
                 from which to return atoms. This can be used for pagination or to resume a
@@ -1002,3 +906,25 @@ class AtomDB(ABC):
             **kwargs: Additional keyword arguments that may be used by the implementation of the
             commit operation.
         """
+
+
+__all__ = [
+    "FieldNames",
+    "FieldIndexType",
+    "AtomDB",
+    "WILDCARD",
+    "WILDCARD_HASH",
+    "TYPE_HASH",
+    "TYPEDEF_MARK_HASH",
+    "CustomAttributesT",
+    "AtomT",
+    "NodeT",
+    "LinkT",
+    "AtomTypeT",
+    "NodeParamsT",
+    "LinkParamsT",
+    "HandleT",
+    "HandleListT",
+    "HandleSetT",
+    "IncomingLinksT",
+]

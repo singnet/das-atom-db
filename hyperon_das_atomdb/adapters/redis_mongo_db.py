@@ -35,8 +35,6 @@ from hyperon_das_atomdb.database import (
     LinkT,
     NodeParamsT,
     NodeT,
-    Link,
-    Node,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -484,7 +482,7 @@ class RedisMongoDB(AtomDB):
         Returns:
             HandleListT: A list of keys extracted from the document.
         """
-        answer = document.get(FieldNames.KEYS, None)
+        answer = document.get(FieldNames.TARGETS, document.get(FieldNames.KEYS, None))
         if isinstance(answer, list):
             return answer
         elif isinstance(answer, dict):
@@ -547,7 +545,7 @@ class RedisMongoDB(AtomDB):
 
     def get_node_type(self, node_handle: str) -> str | None:
         document = self.get_atom(node_handle)
-        return document.named_type if isinstance(document, Node) else None
+        return document.named_type if isinstance(document, NodeT) else None  # type: ignore
 
     def get_node_by_name(self, node_type: str, substring: str) -> HandleListT:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
@@ -570,7 +568,7 @@ class RedisMongoDB(AtomDB):
     def get_atoms_by_index(
         self,
         index_id: str,
-        query: list[OrderedDict[str, str]],
+        query: list[dict[str, Any]],
         cursor: int = 0,
         chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
@@ -711,14 +709,14 @@ class RedisMongoDB(AtomDB):
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
-        return document.named_type if isinstance(document, Link) else None
+        return document.named_type if isinstance(document, LinkT) else None  # type: ignore
 
     def _get_atom(self, handle: str) -> AtomT | None:
         document = self._retrieve_document(handle)
         if not document:
             return None
         if "targets" in document:
-            link = Link(
+            link = LinkT(
                 handle=handle,
                 _id=handle,
                 named_type=document[FieldNames.TYPE_NAME],
@@ -726,17 +724,18 @@ class RedisMongoDB(AtomDB):
                 composite_type=document[FieldNames.COMPOSITE_TYPE],
                 is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
                 named_type_hash=document[FieldNames.TYPE_NAME_HASH],
-                keys=document[FieldNames.KEYS],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, {}),
             )
             return link
         else:
-            node = Node(
+            node = NodeT(
                 handle=handle,
                 _id=handle,
                 named_type=document[FieldNames.TYPE_NAME],
                 name=document[FieldNames.NODE_NAME],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, {}),
             )
             return node
 
@@ -822,10 +821,10 @@ class RedisMongoDB(AtomDB):
                 buffer.clear()
 
     def add_node(self, node_params: NodeParamsT) -> NodeT | None:
-        node: Node = self._build_node(node_params)
+        node: NodeT = self._build_node(node_params)
         if sys.getsizeof(node_params.name) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-            buffer.add(_HashableDocument(self._atom_to_dict(node)))
+            buffer.add(_HashableDocument(node.to_dict()))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
                 self.commit()
             return node
@@ -834,11 +833,11 @@ class RedisMongoDB(AtomDB):
             return None
 
     def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
-        link: Link | None = self._build_link(link_params, toplevel)
+        link: LinkT | None = self._build_link(link_params, toplevel)
         if link is None:
             return None
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-        buffer.add(_HashableDocument(self._atom_to_dict(link)))
+        buffer.add(_HashableDocument(link.to_dict()))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
             self.commit()
         return link
@@ -1439,7 +1438,7 @@ class RedisMongoDB(AtomDB):
         """
         try:
             _id = FieldNames.ID_HASH
-            docs: list[DocumentT] = [self._atom_to_dict(d) for d in documents]
+            docs: list[DocumentT] = [d.to_dict() for d in documents]
             for document in docs:
                 self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
             self._update_atom_indexes(docs)
