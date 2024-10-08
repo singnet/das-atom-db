@@ -96,9 +96,7 @@ class TestDatabase:
     def test_link_handle(self, database, expected, request):
         db: AtomDB = request.getfixturevalue(database)
         handle = db.link_handle("Similarity", [])
-        handles = set(
-            [db.link_handle("Similarity", f) for f in [[], [], (), list(), tuple()]]
-        )
+        handles = set([db.link_handle("Similarity", f) for f in [[], [], (), list(), tuple()]])
         assert len(handles) == 1, handles
         assert handle
         assert check_handle(handle)

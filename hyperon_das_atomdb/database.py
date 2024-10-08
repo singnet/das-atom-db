@@ -25,7 +25,7 @@ from collections import OrderedDict
 from enum import Enum
 from typing import Any, TypeAlias
 
-from hyperon_das_atomdb_ram_only import (  # AtomDB,
+from hyperon_das_atomdb_ram_only import (
     TYPE_HASH,
     TYPEDEF_MARK_HASH,
     WILDCARD,
