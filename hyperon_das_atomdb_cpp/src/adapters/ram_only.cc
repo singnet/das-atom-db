@@ -17,7 +17,7 @@ const string InMemoryDB::get_node_handle(const string& node_type, const string& 
     if (this->db.node.find(node_handle) != this->db.node.end()) {
         return move(node_handle);
     }
-    throw AtomDoesNotExist("Nonexistent atom", node_type + node_name);
+    throw AtomDoesNotExist("Nonexistent atom", node_type + ":" + node_name);
 }
 
 //------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ const StringUnorderedSet InMemoryDB::get_all_links(const string& link_type) cons
     StringUnorderedSet link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
-            link_handles.insert(link->id);
+            link_handles.insert(link->_id);
         }
     }
     return move(link_handles);
@@ -117,11 +117,13 @@ const string InMemoryDB::get_link_handle(const string& link_type,
         return move(link_handle);
     }
     string target_handles_str = "[";
-    for (const auto& target_handle : target_handles) {
-        target_handles_str += target_handle + ", ";
+    if (not target_handles.empty()) {
+        for (const auto& target_handle : target_handles) {
+            target_handles_str += target_handle + ", ";
+        }
+        target_handles_str.pop_back();
+        target_handles_str.pop_back();
     }
-    target_handles_str.pop_back();
-    target_handles_str.pop_back();
     target_handles_str += "]";
     throw AtomDoesNotExist("Nonexistent atom", link_type + ":" + target_handles_str);
 }
@@ -260,21 +262,6 @@ const opt<const string> InMemoryDB::get_atom_type(const string& handle) const {
 }
 
 //------------------------------------------------------------------------------
-// const unordered_map<string, anything> InMemoryDB::get_atom_as_dict(const string& handle, int arity)
-// const {
-//     auto node = this->_get_node(handle);
-//     if (node) {
-//         return {{"handle", node->handle}, {"type", node->named_type}, {"name", node->name}};
-//     }
-//     auto link = this->_get_link(handle);
-//     if (link) {
-//         return {{"handle", link->handle},
-//                 {"type", link->named_type},
-//                 {"targets", this->_build_targets_list(*link)}};
-//     }
-// }
-
-//------------------------------------------------------------------------------
 const unordered_map<string, int> InMemoryDB::count_atoms() const {
     auto node_count = this->db.node.size();
     auto link_count = this->db.link.size();
@@ -347,7 +334,7 @@ const string InMemoryDB::create_field_index(const string& atom_type,
 void InMemoryDB::bulk_insert(const vector<shared_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
-            auto handle = document->id;
+            auto handle = document->_id;
             if (auto node = dynamic_cast<const Node*>(document.get())) {
                 this->db.node[handle] = make_shared<Node>(*node);
             } else if (auto link = dynamic_cast<const Link*>(document.get())) {
@@ -542,7 +529,7 @@ void InMemoryDB::_add_templates(const string& composite_type_hash,
 void InMemoryDB::_delete_templates(const Link& link_document) {
     string composite_type_hash = link_document.composite_type_hash;
     string named_type_hash = link_document.named_type_hash;
-    string key = link_document.id;
+    string key = link_document._id;
 
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
@@ -575,7 +562,7 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
     string named_type_hash = link_document.named_type_hash;
-    string key = link_document.id;
+    string key = link_document._id;
     auto hash_list = StringList({named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
@@ -604,7 +591,7 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
     for (const auto& link_handle : matches) {
         auto it = this->db.link.find(link_handle);
         if (it != this->db.link.end()) {
-            if (it->second->is_top_level) {
+            if (it->second->is_toplevel) {
                 filtered_matched_targets.insert(link_handle);
             }
         }
@@ -613,18 +600,8 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
 }
 
 //------------------------------------------------------------------------------
-const StringList InMemoryDB::_build_targets_list(const Link& link) const {
-    StringList targets;
-    targets.reserve(link.keys.size());
-    for (const auto& [_, value] : link.keys) {
-        targets.push_back(value);
-    }
-    return move(targets);
-}
-
-//------------------------------------------------------------------------------
 void InMemoryDB::_delete_atom_index(const Atom& atom) {
-    auto atom_handle = atom.id;
+    auto atom_handle = atom._id;
     auto it = this->db.incoming_set.find(atom_handle);
     if (it != this->db.incoming_set.end()) {
         auto handles = move(it->second);
@@ -641,8 +618,7 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
 
     if (auto link = dynamic_cast<const Link*>(&atom)) {
         this->_delete_templates(*link);
-        auto targets_hash = this->_build_targets_list(*link);
-        this->_delete_patterns(*link, targets_hash);
+        this->_delete_patterns(*link, link->targets);
     }
 }
 
@@ -651,12 +627,11 @@ void InMemoryDB::_add_atom_index(const Atom& atom) {
     auto atom_type_name = atom.named_type;
     this->_add_atom_type(atom_type_name);
     if (auto link = dynamic_cast<const Link*>(&atom)) {
-        auto handle = link->id;
-        auto targets_hash = this->_build_targets_list(*link);
-        this->_add_outgoing_set(handle, targets_hash);
-        this->_add_incoming_set(handle, targets_hash);
+        auto handle = link->_id;
+        this->_add_outgoing_set(handle, link->targets);
+        this->_add_incoming_set(handle, link->targets);
         this->_add_templates(link->composite_type_hash, link->named_type_hash, handle);
-        this->_add_patterns(link->named_type_hash, handle, targets_hash);
+        this->_add_patterns(link->named_type_hash, handle, link->targets);
     }
 }
 

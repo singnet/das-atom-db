@@ -7,16 +7,39 @@
 using namespace std;
 using namespace atomdb;
 
+struct custom_attributes {
+    unordered_map<string, string> strings = {};
+    unordered_map<string, long> integers = {};
+    unordered_map<string, double> floats = {};
+    unordered_map<string, bool> booleans = {};
+};
+
 int main(int argc, char const* argv[]) {
     InMemoryDB db;
 
     // Adding a Node
     auto node_params = NodeParams{type : "Person", name : "John Doe"};
 
-    auto node = db.add_node({type : "Person", name : "John Doe"});
+    auto node = db.add_node(NodeParams{
+        type : "Person",
+        name : "John Doe",
+        custom_attributes : CustomAttributes{
+            strings : {{"key1", "value1"}, {"key2", "value2"}},
+            integers : {{"key3", 3}, {"key4", 4}}
+        }
+    });
 
     cout << "Node handle: " << node->handle << endl;
     cout << "Node name: " << node->name << endl;
+
+    auto ca = custom_attributes{
+        strings : {{"key1", "value1"}, {"key2", "value2"}},
+        integers : {{"key3", 3}, {"key4", 4}}
+    };
+    ca.booleans["key5"] = true;
+    ca.floats["key6"] = 6.6;
+
+    cout << ca.strings["key1"] << endl;
 
     // Adding a Link
     /*
@@ -75,7 +98,12 @@ int main(int argc, char const* argv[]) {
                                 type : "Person",  // another Person node as a target of Fellowship
                                 name : "Michael Douglas"
                             }}
-             }}
+             }},
+        custom_attributes : CustomAttributes{
+            //
+            strings : {{"since", "2021-01-01"}},
+            integers : {{"location", 1}}
+        }
     };
 
     /* Another way to do the same as above

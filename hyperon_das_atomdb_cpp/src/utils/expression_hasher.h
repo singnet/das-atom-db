@@ -76,10 +76,12 @@ class ExpressionHasher {
         }
 
         string hashable_string;
-        for (const auto& element : elements) {
-            hashable_string += element + JOINING_CHAR;
+        if (not elements.empty()) {
+            for (const auto& element : elements) {
+                hashable_string += element + JOINING_CHAR;
+            }
+            hashable_string.pop_back();  // remove the last joining character
         }
-        hashable_string.pop_back();  // remove the last joining character
 
         return compute_hash(hashable_string);
     }
