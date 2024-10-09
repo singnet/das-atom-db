@@ -28,6 +28,8 @@ namespace helpers = bind_helpers;
 namespace nb = nanobind;
 using namespace nb::literals;
 
+#include <iostream>
+
 NB_MODULE(ext, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;
@@ -38,7 +40,8 @@ NB_MODULE(ext, m) {
         .value("BINARY_TREE", FieldIndexType::BINARY_TREE)
         .value("TOKEN_INVERTED_LIST", FieldIndexType::TOKEN_INVERTED_LIST)
         .export_values();
-    nb::class_<AtomDB>(m, "AtomDB")
+    nb::class_<AtomDB, AtomDBTrampoline>(m, "AtomDB")
+        .def(nb::init<>())
         .def_static("build_node_handle", &AtomDB::build_node_handle, "node_type"_a, "node_name"_a)
         .def_static("node_handle",  // retrocompatibility
                     &AtomDB::build_node_handle,
@@ -79,19 +82,19 @@ NB_MODULE(ext, m) {
             [](AtomDB& self,
                const string& handle,
                bool no_target_format = false,
-               bool targets_documents = false,
+               bool targets_document = false,
                bool deep_representation = false,
                const nb::kwargs& _ = {}) -> shared_ptr<const Atom> {
                 return self.get_atom(handle, {
                     no_target_format : no_target_format,
-                    targets_documents : targets_documents,
+                    targets_document : targets_document,
                     deep_representation : deep_representation
                 });
             },
             "handle"_a,
             nb::kw_only(),
             "no_target_format"_a = false,
-            "targets_documents"_a = false,
+            "targets_document"_a = false,
             "deep_representation"_a = false,
             "_"_a = nb::kwargs())
         .def("get_node_handle", &AtomDB::get_node_handle, "node_type"_a, "node_name"_a)
@@ -141,13 +144,13 @@ NB_MODULE(ext, m) {
             [](AtomDB& self,
                const string& atom_handle,
                bool no_target_format = false,
-               bool targets_documents = false,
+               bool targets_document = false,
                bool deep_representation = false,
                bool handles_only = false,
                const nb::kwargs& _ = {}) -> const vector<shared_ptr<const Atom>> {
                 return self.get_incoming_links_atoms(atom_handle, {
                     no_target_format : no_target_format,
-                    targets_documents : targets_documents,
+                    targets_document : targets_document,
                     deep_representation : deep_representation,
                     handles_only : handles_only
                 });
@@ -155,7 +158,7 @@ NB_MODULE(ext, m) {
             "atom_handle"_a,
             nb::kw_only(),
             "no_target_format"_a = false,
-            "targets_documents"_a = false,
+            "targets_document"_a = false,
             "deep_representation"_a = false,
             "handles_only"_a = false,
             "_"_a = nb::kwargs())
@@ -219,7 +222,30 @@ NB_MODULE(ext, m) {
              "index_type"_a = FieldIndexType::BINARY_TREE)
         .def("bulk_insert", &AtomDB::bulk_insert, "documents"_a)
         .def("retrieve_all_atoms", &AtomDB::retrieve_all_atoms)
-        .def("commit", &AtomDB::commit, "buffer"_a = nullopt);
+        .def("commit", &AtomDB::commit, "buffer"_a = nullopt)
+        .def(
+            "_reformat_document",
+            [](const AtomDB& self,
+               const shared_ptr<const Atom>& document,
+               bool no_target_format = false,
+               bool targets_document = false,
+               bool deep_representation = false,
+               const nb::kwargs& _ = {}) {
+                return self._reformat_document(document, {
+                    no_target_format : no_target_format,
+                    targets_document : targets_document,
+                    deep_representation : deep_representation
+                });
+            },
+            "document"_a,
+            nb::kw_only(),
+            "no_target_format"_a = false,
+            "targets_document"_a = false,
+            "deep_representation"_a = false,
+            "_"_a = nb::kwargs())
+        .def("_build_node", &AtomDBPublicist::_build_node, "node_params"_a)
+        .def("_build_link", &AtomDBPublicist::_build_link, "link_params"_a, "is_toplevel"_a = true)
+        .def("_get_atom", &AtomDBPublicist::_get_atom, "handle"_a);
     // ---------------------------------------------------------------------------------------------
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
@@ -228,9 +254,13 @@ NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
+    nb::exception<AtomDbBaseException>(exceptions, "AtomDbBaseException");
+    nb::exception<AddLinkException>(exceptions, "AddLinkException");
+    nb::exception<AddNodeException>(exceptions, "AddNodeException");
     nb::exception<AtomDoesNotExist>(exceptions, "AtomDoesNotExist");
     nb::exception<InvalidAtomDB>(exceptions, "InvalidAtomDB");
     nb::exception<InvalidOperationException>(exceptions, "InvalidOperationException");
+    nb::exception<RetryException>(exceptions, "RetryException");
     // ---------------------------------------------------------------------------------------------
     // document_types submodule --------------------------------------------------------------------
     nb::module_ document_types = m.def_submodule("document_types");
@@ -331,15 +361,23 @@ NB_MODULE(ext, m) {
         .def_rw("name", &NodeParams::name)
         .def_rw("custom_attributes", &NodeParams::custom_attributes);
     nb::class_<LinkParams>(database, "LinkParams")
-        .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
+        .def(nb::init<const string&,
+                      const opt<const LinkParams::Targets>&,
+                      const opt<CustomAttributes>&>(),
              "type"_a,
-             "targets"_a,
+             "targets"_a = nullopt,
              "custom_attributes"_a = nullopt)
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
         .def(
             "add_target",
-            [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
+            [](LinkParams& self, const LinkParams::Target& target) {
+                if (self.targets.has_value()) {
+                    self.targets->push_back(target);
+                } else {
+                    self.targets = LinkParams::Targets{target};
+                }
+            },
             "target"_a)
         .def_rw("custom_attributes", &LinkParams::custom_attributes);
     // ---------------------------------------------------------------------------------------------

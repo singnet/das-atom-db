@@ -30,7 +30,6 @@ from hyperon_das_atomdb.database import (
     FieldNames,
     HandleListT,
     HandleSetT,
-    IncomingLinksT,
     LinkParamsT,
     LinkT,
     NodeParamsT,
@@ -180,6 +179,7 @@ class RedisMongoDB(AtomDB):
 
     def __init__(self, **kwargs: Optional[dict[str, Any]]) -> None:
         """Initialize an instance of a custom class with Redis and MongoDB connections."""
+        super().__init__()
         self.database_name = "das"
 
         self._setup_databases(**kwargs)
@@ -528,10 +528,7 @@ class RedisMongoDB(AtomDB):
                 f"Failed to retrieve node handle for {node_type}:{node_name}. "
                 f"This node may not exist."
             )
-            raise AtomDoesNotExist(
-                message="Nonexistent atom",
-                details=f"{node_type}:{node_name}",
-            )
+            raise AtomDoesNotExist("Nonexistent atom", f"{node_type}:{node_name}")
 
     def get_node_name(self, node_handle: str) -> str:
         answer = self._retrieve_name(node_handle)
@@ -640,10 +637,7 @@ class RedisMongoDB(AtomDB):
                 f"Failed to retrieve link handle for {link_type}:{target_handles}. "
                 "This link may not exist."
             )
-            raise AtomDoesNotExist(
-                message="Nonexistent atom",
-                details=f"{link_type}:{target_handles}",
-            )
+            raise AtomDoesNotExist("Nonexistent atom", f"{link_type}:{target_handles}")
 
     def get_link_targets(self, link_handle: str) -> HandleListT:
         answer = self._retrieve_outgoing_set(link_handle)
@@ -676,13 +670,21 @@ class RedisMongoDB(AtomDB):
         else:
             return patterns_matched
 
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
-        links = self._retrieve_incoming_set(atom_handle, **kwargs)
+    # def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
+    #     links = self._retrieve_incoming_set(atom_handle, **kwargs)
+    #
+    #     if kwargs.get("handles_only", False):
+    #         return list(links)
+    #     else:
+    #         return [self.get_atom(handle, **kwargs) for handle in links]
 
-        if kwargs.get("handles_only", False):
-            return list(links)
-        else:
-            return [self.get_atom(handle, **kwargs) for handle in links]
+    def get_incoming_links_handles(self, atom_handle: str, **kwargs) -> HandleListT:
+        links = self._retrieve_incoming_set(atom_handle, **kwargs)
+        return list(links)
+
+    def get_incoming_links_atoms(self, atom_handle: str, **kwargs) -> list[AtomT]:
+        links = self._retrieve_incoming_set(atom_handle, **kwargs)
+        return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         try:
@@ -756,10 +758,7 @@ class RedisMongoDB(AtomDB):
                 document["name"] = document["name"]
             return document
         logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
-        raise AtomDoesNotExist(
-            message="Nonexistent atom",
-            details=f"handle: {handle}",
-        )
+        raise AtomDoesNotExist("Nonexistent atom", f"handle: {handle}")
 
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()

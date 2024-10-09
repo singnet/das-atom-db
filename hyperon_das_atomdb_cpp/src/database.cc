@@ -12,6 +12,13 @@ bool AtomDB::node_exists(const string& node_type, const string& node_name) const
         return true;
     } catch (const AtomDoesNotExist& e) {
         return false;
+    } catch (const exception& e) {
+        string what = e.what();
+        if (what.find("Nonexistent atom") != string::npos) {
+            return false;
+        } else {
+            throw;
+        }
     }
 }
 
@@ -22,6 +29,13 @@ bool AtomDB::link_exists(const string& link_type, const StringList& target_handl
         return true;
     } catch (const AtomDoesNotExist& e) {
         return false;
+    } catch (const exception& e) {
+        string what = e.what();
+        if (what.find("Nonexistent atom") != string::npos) {
+            return false;
+        } else {
+            throw;
+        }
     }
 }
 
@@ -37,15 +51,13 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const KwArgs
     return move(document);
 }
 
-// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
-
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
                                                         const KwArgs& kwargs) const {
     if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
-        auto targets_documents = kwargs.targets_documents;
+        auto targets_document = kwargs.targets_document;
         auto deep_representation = kwargs.deep_representation;
-        if (targets_documents or deep_representation) {
+        if (targets_document or deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents = Link::TargetsDocuments();
             link_copy->targets_documents->reserve(link->targets.size());
@@ -61,6 +73,8 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
     }
     return document;
 }
+
+// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
 shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
@@ -84,7 +98,7 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
 shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_toplevel) {
     const auto& link_type = link_params.type;
     const auto& targets = link_params.targets;
-    if (link_type.empty()) {  // or targets.empty()) {  TODO: check if targets can be empty
+    if (link_type.empty() or not targets.has_value()) {
         // TODO: log error ???
         throw invalid_argument("'type' and 'targets' are required.");
     }
@@ -94,7 +108,7 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_topl
     StringList composite_type_elements = {link_type_hash};
     string atom_hash;
     string atom_handle;
-    for (const auto& target : targets) {
+    for (const auto& target : *targets) {
         if (auto node_params = get_if<NodeParams>(&target)) {
             auto node = this->add_node(*node_params);
             atom_handle = node->_id;

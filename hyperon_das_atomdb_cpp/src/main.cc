@@ -85,20 +85,21 @@ int main(int argc, char const* argv[]) {
 
     LinkParams link_params = {
         type : "Friendship",
-        targets :
-            {NodeParams{type : "Person", name : "Jane Doe"},           // a Person node as a target
-             NodeParams{type : "Person", name : "Samuel L. Jackson"},  // another Person node as a target
-             LinkParams{
-                 type : "Fellowship",  // a Fellowship link as a target of Friendship
-                 targets : {NodeParams{
-                                type : "Person",  // a Person node as a target of Fellowship
-                                name : "Jane Doe"
-                            },
-                            NodeParams{
-                                type : "Person",  // another Person node as a target of Fellowship
-                                name : "Michael Douglas"
-                            }}
-             }},
+        targets : LinkParams::Targets{
+            NodeParams{type : "Person", name : "Jane Doe"},           // a Person node as a target
+            NodeParams{type : "Person", name : "Samuel L. Jackson"},  // another Person node as a target
+            LinkParams{
+                type : "Fellowship",  // a Fellowship link as a target of Friendship
+                targets : LinkParams::Targets{
+                    NodeParams{
+                        type : "Person",  // a Person node as a target of Fellowship
+                        name : "Jane Doe"
+                    },
+                    NodeParams{
+                        type : "Person",  // another Person node as a target of Fellowship
+                        name : "Michael Douglas"
+                    }}
+            }},
         custom_attributes : CustomAttributes{
             //
             strings : {{"since", "2021-01-01"}},
@@ -165,7 +166,7 @@ int main(int argc, char const* argv[]) {
 
     cout << atom.use_count() << endl;
 
-    atom = db.get_atom(link->handle, {targets_documents : true, deep_representation : true});
+    atom = db.get_atom(link->handle, {targets_document : true, deep_representation : true});
 
     cout << "Atom pointer id: " << atom.get() << endl;
     cout << atom.use_count() << endl;

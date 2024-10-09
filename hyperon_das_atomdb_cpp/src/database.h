@@ -13,6 +13,7 @@ namespace atomdb {
 
 class AtomDB {
    public:
+    AtomDB() = default;
     virtual ~AtomDB() = default;
 
     /**
@@ -389,11 +390,6 @@ class AtomDB {
      */
     virtual void commit(const opt<const vector<Atom>>& buffer = nullopt) = 0;
 
-   protected:
-    AtomDB() = default;
-
-    // PROTECTED METHODS ///////////////////////////////////////////////////////////////////////////
-
     /**
      * @brief Reformats a document based on the provided params.
      * @param document A reference to the Atom object representing the document to be reformatted.
@@ -402,6 +398,9 @@ class AtomDB {
      */
     const shared_ptr<const Atom> _reformat_document(const shared_ptr<const Atom>& document,
                                                     const KwArgs& kwargs = {}) const;
+
+   protected:
+    // PROTECTED METHODS ///////////////////////////////////////////////////////////////////////////
 
     /**
      * @brief Builds a node with the specified parameters.

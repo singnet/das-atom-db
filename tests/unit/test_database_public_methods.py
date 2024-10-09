@@ -3,7 +3,6 @@ from typing import Callable, cast
 from unittest import mock
 
 import pytest
-from hyperon_das_atomdb_ram_only.exceptions import AtomDoesNotExist as cppAtomDoesNotExist
 
 from hyperon_das_atomdb.database import (
     AtomDB,
@@ -14,14 +13,8 @@ from hyperon_das_atomdb.database import (
     NodeParamsT,
     NodeT,
 )
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist as pyAtomDoesNotExist
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
-
-AtomDoesNotExist = (
-    pyAtomDoesNotExist,
-    cppAtomDoesNotExist,
-)
 
 
 def check_handle(handle):
@@ -47,12 +40,12 @@ def add_link(
     return link
 
 
-def atom_to_params(atom: AtomT, adapter: str) -> NodeParamsT | LinkParamsT:
+def atom_to_params(atom: AtomT) -> NodeParamsT | LinkParamsT:
     if isinstance(atom, NodeT):
         node = cast(NodeT, atom)
         return NodeParamsT(type=node.named_type, name=node.name)
     link = cast(LinkT, atom)
-    targets = [atom_to_params(t, adapter) for t in link.targets]
+    targets = [atom_to_params(t) for t in link.targets]
     return LinkParamsT(type=link.named_type, targets=targets)
 
 
@@ -123,6 +116,7 @@ class TestDatabase:
         db.add_node(NodeParamsT(name="A", type="Test"))
         if database != "in_memory_db":
             db.commit()
+
         no_exists = db.node_exists("Test", "B")
         exists = db.node_exists("Test", "A")
         assert isinstance(no_exists, bool)
@@ -165,7 +159,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_handle_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_handle("Test", "A")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -188,7 +182,7 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         # in memory returns a AtomDoesNotExist exception, redis_mongo returns ValueError
         # TODO: should this be fixed/synced? I mean, make both raise the same exception?
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_name("error")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -202,7 +196,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_type_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_type("test")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -231,7 +225,7 @@ class TestDatabase:
         expected_link = add_link(
             db,
             "Ac",
-            [atom_to_params(expected_node, database)],
+            [atom_to_params(expected_node)],
             database,
         )
         nodes = db.get_atoms_by_field([{"field": "name", "value": "Ac"}])
@@ -379,7 +373,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_handle_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_link_handle("A", [])
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -396,7 +390,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_type_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_link_type("")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -425,18 +419,15 @@ class TestDatabase:
     def test_get_incoming_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        node_params = atom_to_params(node_a, database)
+        node_params = atom_to_params(node_a)
         add_link(db, "Aa", [node_params], database)
         add_link(db, "Ab", [node_params], database)
         add_link(db, "Ac", [node_params], database)
-        get_incoming_links_func: Callable
-        if database == "in_memory_db":
-            if params.get("handles_only"):
-                get_incoming_links_func = db.get_incoming_links_handles
-            else:
-                get_incoming_links_func = db.get_incoming_links_atoms
-        else:
-            get_incoming_links_func = db.get_incoming_links
+        get_incoming_links_func: Callable = (
+            db.get_incoming_links_handles
+            if params.get("handles_only")
+            else db.get_incoming_links_atoms
+        )
         links = get_incoming_links_func(node_a.handle, **params)
         assert len(links) == links_len
         assert all(
@@ -468,7 +459,7 @@ class TestDatabase:
     def test_get_matched_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        node_a_params = atom_to_params(node_a, database)
+        node_a_params = atom_to_params(node_a)
         link_a = add_link(db, "Aa", [node_a_params], database)
         _ = add_link(db, "NoTopLevel", [node_a_params], database, is_toplevel=False)
         _ = add_link(db, "Ac", [node_a_params], database)
@@ -519,8 +510,8 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)
-        node_a_params = atom_to_params(node_a, database)
-        node_b_params = atom_to_params(node_b, database)
+        node_a_params = atom_to_params(node_a)
+        node_b_params = atom_to_params(node_b)
         link_a = add_link(
             db, "Aa", [node_a_params, node_b_params], database, is_toplevel=is_toplevel
         )
@@ -625,7 +616,7 @@ class TestDatabase:
     @pytest.mark.parametrize("database", ["redis_mongo_db"])  # in_memory_db doesn't implement this
     def test_get_atom_as_dict_exception(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist):
+        with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_atom_as_dict("handle")
 
     @pytest.mark.parametrize("database", ["redis_mongo_db"])  # in_memory_db doesn't implement this

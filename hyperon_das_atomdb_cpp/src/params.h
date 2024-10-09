@@ -10,7 +10,7 @@ namespace atomdb {
 
 struct KwArgs {
     bool no_target_format = false;
-    bool targets_documents = false;
+    bool targets_document = false;
     bool deep_representation = false;
     bool toplevel_only = false;
     bool handles_only = false;
@@ -34,7 +34,7 @@ struct LinkParams {
     using Targets = vector<Target>;
 
     string type = "";
-    Targets targets = {};
+    opt<Targets> targets = nullopt;
     opt<CustomAttributes> custom_attributes = nullopt;
 };
 
