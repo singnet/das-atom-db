@@ -6,23 +6,7 @@ from hyperon_das_atomdb.database import LinkParamsT, LinkT, NodeParamsT, NodeT
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-
-def dict_to_node_params(node_dict: dict) -> NodeParamsT:
-    return NodeParamsT(**node_dict)
-
-
-def dict_to_link_params(link_dict: dict) -> LinkParamsT:
-    return LinkParamsT(
-        type=link_dict["type"],
-        targets=(
-            None
-            if link_dict.get("targets", None) is None
-            else [
-                dict_to_link_params(target) if "targets" in target else dict_to_node_params(target)
-                for target in link_dict["targets"]
-            ]
-        ),
-    )
+from ..helpers import dict_to_link_params, dict_to_node_params
 
 
 class TestInMemoryDB:
@@ -631,7 +615,7 @@ class TestInMemoryDB:
 
     def test_add_link_without_targets_parameter(self, database: InMemoryDB):
         with pytest.raises(AddLinkException, match="'type' and 'targets' are required."):
-            database.add_link(dict_to_link_params({"targets": None, "type": "Similarity"}))
+            database.add_link(dict_to_link_params({"targets": [], "type": "Similarity"}))
 
     def test_add_nested_links(self, database: InMemoryDB):
         answer = database.get_matched_type("Evaluation")

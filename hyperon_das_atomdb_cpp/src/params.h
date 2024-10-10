@@ -87,30 +87,27 @@ struct LinkParams {
     using Targets = vector<Target>;
 
     string type = "";
-    opt<Targets> targets = nullopt;
+    Targets targets = {};
     opt<CustomAttributes> custom_attributes = nullopt;
 
     const string to_string() const {
         string result = "LinkParams(";
         result += "type: '" + this->type + "'";
         result += ", targets: ";
-        if (this->targets.has_value()) {
-            result += "[";
-            if (not this->targets->empty()) {
-                for (const auto& target : *this->targets) {
-                    if (auto node_params = get_if<NodeParams>(&target)) {
-                        result += node_params->to_string() + ", ";
-                    } else if (auto link_params = get_if<LinkParams>(&target)) {
-                        result += link_params->to_string() + ", ";
-                    }
+        result += "[";
+        if (not this->targets.empty()) {
+            for (const auto& target : this->targets) {
+                if (auto node_params = get_if<NodeParams>(&target)) {
+                    result += node_params->to_string() + ", ";
+                } else if (auto link_params = get_if<LinkParams>(&target)) {
+                    result += link_params->to_string() + ", ";
                 }
-                result.pop_back();
-                result.pop_back();
             }
-            result += "]";
-        } else {
-            result += "None";
+            result.pop_back();
+            result.pop_back();
         }
+        result += "]";
+
         result += ", custom_attributes: ";
         if (this->custom_attributes.has_value()) {
             result += "CustomAttributes(";

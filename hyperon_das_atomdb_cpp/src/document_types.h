@@ -231,9 +231,9 @@ class Link : public Atom {
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
-        // if (targets.empty()) {
-        //     throw invalid_argument("Link targets cannot be empty.");
-        // }
+        if (targets.empty()) {
+            throw invalid_argument("Link targets cannot be empty.");
+        }
         if (targets_documents.has_value()) {
             this->targets_documents = TargetsDocuments();
             this->targets_documents->reserve(targets_documents->size());

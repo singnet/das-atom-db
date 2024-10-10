@@ -361,24 +361,16 @@ NB_MODULE(ext, m) {
         .def_rw("name", &NodeParams::name)
         .def_rw("custom_attributes", &NodeParams::custom_attributes);
     nb::class_<LinkParams>(database, "LinkParams")
-        .def(nb::init<const string&,
-                      const opt<const LinkParams::Targets>&,
-                      const opt<CustomAttributes>&>(),
+        .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
              "type"_a,
-             "targets"_a = nullopt,
+             "targets"_a,
              "custom_attributes"_a = nullopt)
         .def_rw("type", &LinkParams::type)
         .def_rw("targets", &LinkParams::targets)
+        .def_rw("custom_attributes", &LinkParams::custom_attributes)
         .def(
             "add_target",
-            [](LinkParams& self, const LinkParams::Target& target) {
-                if (self.targets.has_value()) {
-                    self.targets->push_back(target);
-                } else {
-                    self.targets = LinkParams::Targets{target};
-                }
-            },
-            "target"_a)
-        .def_rw("custom_attributes", &LinkParams::custom_attributes);
+            [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
+            "target"_a);
     // ---------------------------------------------------------------------------------------------
 }

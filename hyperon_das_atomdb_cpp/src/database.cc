@@ -82,7 +82,8 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     const auto& node_name = node_params.name;
     if (node_type.empty() or node_name.empty()) {
         // TODO: log error ???
-        throw AddNodeException("'type' and 'name' are required.", node_params.to_string());
+        throw AddNodeException("'type' and 'name' are required.",
+                               "node_params: " + node_params.to_string());
     }
     string handle = this->build_node_handle(node_type, node_name);
     string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
@@ -98,12 +99,11 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
 shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_toplevel) {
     const auto& link_type = link_params.type;
     const auto& targets = link_params.targets;
-    if (link_type.empty() or not targets.has_value()) {
+    if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
-        throw AddLinkException(
-            "'type' and 'targets' are required.",
-            link_params.to_string() + ", is_toplevel: " + (is_toplevel ? "true" : "false")
-        );
+        throw AddLinkException("'type' and 'targets' are required.",
+                               "link_params: " + link_params.to_string() +
+                                   ", is_toplevel: " + (is_toplevel ? "true" : "false"));
     }
     string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};
@@ -111,7 +111,7 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_topl
     StringList composite_type_elements = {link_type_hash};
     string atom_hash;
     string atom_handle;
-    for (const auto& target : *targets) {
+    for (const auto& target : targets) {
         if (auto node_params = get_if<NodeParams>(&target)) {
             auto node = this->add_node(*node_params);
             atom_handle = node->_id;

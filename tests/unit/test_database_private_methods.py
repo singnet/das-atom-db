@@ -3,7 +3,7 @@ import pytest
 from hyperon_das_atomdb.database import AtomDB, LinkParamsT, LinkT, NodeParamsT, NodeT
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
-from .test_database_public_methods import add_link, add_node, check_handle
+from .helpers import add_link, add_node, atom_to_params, check_handle
 
 
 class TestDatabasePrivateMethods:
@@ -11,7 +11,7 @@ class TestDatabasePrivateMethods:
     def test__get_atom(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Aa", [], database)
+        link_a = add_link(db, "Aa", [atom_to_params(node_a)], database)
         node = db._get_atom(node_a.handle)
         link = db._get_atom(link_a.handle)
         assert node, link
@@ -186,6 +186,6 @@ class TestDatabasePrivateMethods:
     def test__build_link_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="'type' and 'targets' are required."):
-            db._build_link(LinkParamsT(type="Test", targets=None))
+            db._build_link(LinkParamsT(type="Test", targets=[]))
         with pytest.raises(Exception, match="'type' and 'targets' are required."):
             db._build_link(LinkParamsT(type="", targets=[NodeParamsT(type="Test", name="test")]))
