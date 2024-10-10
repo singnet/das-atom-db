@@ -82,7 +82,7 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     const auto& node_name = node_params.name;
     if (node_type.empty() or node_name.empty()) {
         // TODO: log error ???
-        throw invalid_argument("'type' and 'name' are required.");
+        throw AddNodeException("'type' and 'name' are required.", node_params.to_string());
     }
     string handle = this->build_node_handle(node_type, node_name);
     string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
@@ -100,7 +100,10 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_topl
     const auto& targets = link_params.targets;
     if (link_type.empty() or not targets.has_value()) {
         // TODO: log error ???
-        throw invalid_argument("'type' and 'targets' are required.");
+        throw AddLinkException(
+            "'type' and 'targets' are required.",
+            link_params.to_string() + ", is_toplevel: " + (is_toplevel ? "true" : "false")
+        );
     }
     string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};
