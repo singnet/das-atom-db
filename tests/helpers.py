@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import cast
 
 from hyperon_das_atomdb.database import (
@@ -48,10 +49,16 @@ def dict_to_node_params(node_dict: dict) -> NodeParamsT:
 
 
 def dict_to_link_params(link_dict: dict) -> LinkParamsT:
-    return LinkParamsT(
-        type=link_dict["type"],
-        targets=[
-            dict_to_link_params(target) if "targets" in target else dict_to_node_params(target)
-            for target in link_dict["targets"]
-        ],
-    )
+    targets = [
+        dict_to_link_params(target) if "targets" in target else dict_to_node_params(target)
+        for target in link_dict["targets"]
+    ]
+    params = deepcopy(link_dict)
+    params.update({"targets": targets})
+    return LinkParamsT(**params)
+    #     type=link_dict["type"],
+    #     targets=[
+    #         dict_to_link_params(target) if "targets" in target else dict_to_node_params(target)
+    #         for target in link_dict["targets"]
+    #     ],
+    # )

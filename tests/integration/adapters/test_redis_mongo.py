@@ -2,7 +2,7 @@ import pytest
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
-from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType
+from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType, CustomAttributesT
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
 from .animals_kb import (
@@ -19,6 +19,7 @@ from .animals_kb import (
     similarity_docs,
 )
 from .helpers import Database, PyMongoFindExplain, _db_down, _db_up, cleanup, mongo_port, redis_port
+from tests.helpers import dict_to_node_params, dict_to_link_params
 
 
 class TestRedisMongo:
@@ -34,11 +35,11 @@ class TestRedisMongo:
 
     def _add_atoms(self, db: RedisMongoDB):
         for node in node_docs.values():
-            db.add_node(node)
+            db.add_node(dict_to_node_params(node))
         for link in inheritance_docs.values():
-            db.add_link(link)
+            db.add_link(dict_to_link_params(link))
         for link in similarity_docs.values():
-            db.add_link(link)
+            db.add_link(dict_to_link_params(link))
 
     def _connect_db(self):
         db = RedisMongoDB(
@@ -57,7 +58,7 @@ class TestRedisMongo:
             [WILDCARD, db.node_handle("Concept", "mammal")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
             [human, monkey, chimp, rhino]
         )
         answers = db.get_matched_links(
@@ -65,13 +66,13 @@ class TestRedisMongo:
             [db.node_handle("Concept", "mammal"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted([animal])
+        assert sorted([db.get_atom(answer).targets[1] for answer in answers]) == sorted([animal])
         answers = db.get_matched_links(
             "Similarity",
             [WILDCARD, db.node_handle("Concept", "human")],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
             [monkey, chimp, ent]
         )
         answers = db.get_matched_links(
@@ -79,7 +80,7 @@ class TestRedisMongo:
             [db.node_handle("Concept", "human"), WILDCARD],
             toplevel_only=toplevel_only,
         )
-        assert sorted([db.get_atom(answer)["targets"][1] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer).targets[1] for answer in answers]) == sorted(
             [monkey, chimp, ent]
         )
 
@@ -157,25 +158,26 @@ class TestRedisMongo:
         answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
             [human, monkey, chimp, rhino]
         )
-        assert db.get_atom(human)["name"] == node_docs[human]["name"]
+        assert db.get_atom(human).name == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
-        assert "strength" not in link_pre
-        assert link_pre["named_type"] == "Inheritance"
-        assert link_pre["targets"] == [human, mammal]
+        assert link_pre.custom_attributes is None
+        assert link_pre.named_type == "Inheritance"
+        assert link_pre.targets == [human, mammal]
         link_new = inheritance_docs[inheritance[human][mammal]].copy()
-        link_new["strength"] = 1.0
-        db.add_link(link_new)
+        custom_attributes = CustomAttributesT(floats={"strength": 1.0})
+        link_new["custom_attributes"] = custom_attributes
+        db.add_link(dict_to_link_params(link_new))
         db.add_link(
-            {
+            dict_to_link_params({
                 "type": "Inheritance",
                 "targets": [
                     {"type": "Concept", "name": "dog"},
                     {"type": "Concept", "name": "mammal"},
                 ],
-            }
+            })
         )
         db.commit()
         assert db.count_atoms({"precise": True}) == {
@@ -184,19 +186,21 @@ class TestRedisMongo:
             "link_count": 27,
         }
         link_pos = db.get_atom(inheritance[human][mammal])
-        assert link_pos["named_type"] == "Inheritance"
-        assert link_pos["targets"] == [human, mammal]
-        assert "strength" in link_pos
-        assert link_pos["strength"] == 1.0
+        assert link_pos.named_type == "Inheritance"
+        assert link_pos.targets == [human, mammal]
+        assert isinstance(link_pos.custom_attributes, CustomAttributesT)
+        assert isinstance(link_pos.custom_attributes.floats, dict)
+        assert "strength" in link_pos.custom_attributes.floats
+        assert link_pos.custom_attributes.floats["strength"] == 1.0
         dog = db.node_handle("Concept", "dog")
         assert db.get_node_name(dog) == "dog"
         new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
         new_link = db.get_atom(new_link_handle)
-        assert db.get_link_targets(new_link_handle) == new_link["targets"]
+        assert db.get_link_targets(new_link_handle) == new_link.targets
         answers = db.get_matched_links(
             "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
         )
-        assert sorted([db.get_atom(answer)["targets"][0] for answer in answers]) == sorted(
+        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
             [human, monkey, chimp, rhino, dog]
         )
 
@@ -212,28 +216,28 @@ class TestRedisMongo:
     def test_delete_atom(self, _cleanup, _db: RedisMongoDB):
         def _add_all_links():
             db.add_link(
-                {
+                dict_to_link_params({
                     "type": "Inheritance",
                     "targets": [
                         {"type": "Concept", "name": "cat"},
                         {"type": "Concept", "name": "mammal"},
                     ],
-                }
+                })
             )
             db.add_link(
-                {
+                dict_to_link_params({
                     "type": "Inheritance",
                     "targets": [
                         {"type": "Concept", "name": "dog"},
                         {"type": "Concept", "name": "mammal"},
                     ],
-                }
+                })
             )
             db.commit()
 
         def _add_nested_links():
             db.add_link(
-                {
+                dict_to_link_params({
                     "type": "Inheritance",
                     "targets": [
                         {
@@ -251,7 +255,7 @@ class TestRedisMongo:
                         },
                         {"type": "Concept", "name": "mammal"},
                     ],
-                }
+                })
             )
             db.commit()
 
@@ -297,9 +301,9 @@ class TestRedisMongo:
                 for template in db.default_pattern_index_templates:
                     key = db._apply_index_template(
                         template,
-                        link["named_type_hash"],
-                        link["targets"],
-                        len(link["targets"]),
+                        link.named_type_hash,
+                        link.targets,
+                        len(link.targets),
                     )
                     keys.add(key)
             assert set([p for p in db.redis.keys("patterns:*")]) == keys
@@ -711,13 +715,13 @@ class TestRedisMongo:
         _check_asserts_4()
 
         db.add_link(
-            {
+            dict_to_link_params({
                 "type": "Inheritance",
                 "targets": [
                     {"type": "Concept", "name": "cat"},
                     {"type": "Concept", "name": "mammal"},
                 ],
-            }
+            })
         )
         db.commit()
 

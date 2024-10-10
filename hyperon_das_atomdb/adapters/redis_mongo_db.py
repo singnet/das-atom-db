@@ -33,7 +33,7 @@ from hyperon_das_atomdb.database import (
     LinkParamsT,
     LinkT,
     NodeParamsT,
-    NodeT,
+    NodeT, CustomAttributesT,
 )
 from hyperon_das_atomdb.exceptions import (
     AtomDoesNotExist,
@@ -717,6 +717,10 @@ class RedisMongoDB(AtomDB):
         document = self._retrieve_document(handle)
         if not document:
             return None
+        custom_attributes = None
+        custom_params = document.get(FieldNames.CUSTOM_ATTRIBUTES, None)
+        if isinstance(custom_params, dict):
+            custom_attributes = CustomAttributesT(**custom_params)
         if "targets" in document:
             link = LinkT(
                 handle=handle,
@@ -727,7 +731,7 @@ class RedisMongoDB(AtomDB):
                 is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
                 named_type_hash=document[FieldNames.TYPE_NAME_HASH],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, None),
+                custom_attributes=custom_attributes,
             )
             return link
         else:
@@ -737,7 +741,7 @@ class RedisMongoDB(AtomDB):
                 named_type=document[FieldNames.TYPE_NAME],
                 name=document[FieldNames.NODE_NAME],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, None),
+                custom_attributes=custom_attributes,
             )
             return node
 

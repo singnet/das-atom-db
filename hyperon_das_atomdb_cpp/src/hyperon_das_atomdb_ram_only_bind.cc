@@ -250,7 +250,9 @@ NB_MODULE(ext, m) {
     // adapters submodule --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
     nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
-        .def(nb::init<const string&>(), "database_name"_a = "das");
+        .def(nb::init<const string&>(), "database_name"_a = "das")
+        .def("__repr__", [](const InMemoryDB& self) -> string { return "<Atom database InMemory>"; })
+        .def("__str__", [](const InMemoryDB& self) -> string { return "<Atom database InMemory>"; });
     // ---------------------------------------------------------------------------------------------
     // exceptions submodule ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");

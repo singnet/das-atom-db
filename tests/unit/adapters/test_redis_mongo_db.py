@@ -415,6 +415,20 @@ class TestRedisMongoDB:
                     "targets": [
                         {"type": "Concept", "name": "lion"},
                         {"type": "Concept", "name": "cat"},
+                        {
+                            "type": "Dumminity",
+                            "targets": [
+                                {"type": "Dummy", "name": "dummy1"},
+                                {"type": "Dummy", "name": "dummy2"},
+                                {
+                                    "type": "Anidity",
+                                    "targets": [
+                                        {"type": "Any", "name": "any1"},
+                                        {"type": "Any", "name": "any2"},
+                                    ],
+                                },
+                            ]
+                        },
                     ],
                 }
             )
@@ -430,9 +444,9 @@ class TestRedisMongoDB:
         assert len(all_links_before) == 28
         assert len(all_links_after) == 29
         assert {
-            "atom_count": 45,
-            "node_count": 16,
-            "link_count": 29,
+            "atom_count": 48,
+            "node_count": 18,
+            "link_count": 30,
         } == database.count_atoms({"precise": True})
 
         new_node_handle = database.get_node_handle("Concept", "lion")
