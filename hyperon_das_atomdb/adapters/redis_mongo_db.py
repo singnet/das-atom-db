@@ -727,7 +727,7 @@ class RedisMongoDB(AtomDB):
                 is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
                 named_type_hash=document[FieldNames.TYPE_NAME_HASH],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, {}),
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, None),
             )
             return link
         else:
@@ -737,7 +737,7 @@ class RedisMongoDB(AtomDB):
                 named_type=document[FieldNames.TYPE_NAME],
                 name=document[FieldNames.NODE_NAME],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, {}),
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, None),
             )
             return node
 

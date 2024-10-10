@@ -9,9 +9,11 @@ from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
-from hyperon_das_atomdb.database import FieldIndexType, FieldNames
+from hyperon_das_atomdb.database import FieldIndexType, FieldNames, LinkT
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
+from ..helpers import dict_to_link_params, dict_to_node_params
 
 
 def loader(file_name):
@@ -328,7 +330,7 @@ class TestRedisMongoDB:
                 result, [{"field": "name", "value": "mammal"}]
             )
         assert cursor == 0
-        assert expected[0] == actual[0]["handle"]
+        assert expected[0] == actual[0].handle
 
     def test_get_node_by_text_field(self, database: RedisMongoDB):
         expected = [
@@ -379,12 +381,7 @@ class TestRedisMongoDB:
     def test_add_node(self, database: RedisMongoDB):
         assert {"atom_count": 42} == database.count_atoms()
         all_nodes_before = database.get_all_nodes("Concept")
-        database.add_node(
-            {
-                "type": "Concept",
-                "name": "lion",
-            }
-        )
+        database.add_node(dict_to_node_params({"type": "Concept", "name": "lion"}))
         database.commit()
         all_nodes_after = database.get_all_nodes("Concept")
         assert len(all_nodes_before) == 14
@@ -399,9 +396,9 @@ class TestRedisMongoDB:
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
         new_node = database.get_atom(new_node_handle)
-        assert new_node["handle"] == new_node_handle
-        assert new_node["named_type"] == "Concept"
-        assert new_node["name"] == "lion"
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "lion"
 
     def test_add_link(self, database: RedisMongoDB):
         assert {"atom_count": 42} == database.count_atoms()
@@ -412,13 +409,15 @@ class TestRedisMongoDB:
         evaluation = database.get_all_links("Evaluation")
         all_links_before = similarity.union(inheritance).union(evaluation)
         database.add_link(
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "lion"},
-                    {"type": "Concept", "name": "cat"},
-                ],
-            }
+            dict_to_link_params(
+                {
+                    "type": "Similarity",
+                    "targets": [
+                        {"type": "Concept", "name": "lion"},
+                        {"type": "Concept", "name": "cat"},
+                    ],
+                }
+            )
         )
         database.commit()
         all_nodes_after = database.get_all_nodes("Concept")
@@ -441,51 +440,49 @@ class TestRedisMongoDB:
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
         new_node = database.get_atom(new_node_handle)
-        assert new_node["handle"] == new_node_handle
-        assert new_node["named_type"] == "Concept"
-        assert new_node["name"] == "lion"
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "lion"
 
         new_node_handle = database.get_node_handle("Concept", "cat")
         assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "cat")
         assert new_node_handle not in all_nodes_before
         assert new_node_handle in all_nodes_after
         new_node = database.get_atom(new_node_handle)
-        assert new_node["handle"] == new_node_handle
-        assert new_node["named_type"] == "Concept"
-        assert new_node["name"] == "cat"
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "cat"
 
     def test_get_incoming_links(self, database: RedisMongoDB):
         h = database.get_node_handle("Concept", "human")
         m = database.get_node_handle("Concept", "monkey")
         s = database.get_link_handle("Similarity", [h, m])
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=False)
+        links = database.get_incoming_links_atoms(atom_handle=h)
         atom = database.get_atom(handle=s)
-        assert atom in links
+        assert atom.handle in [link.handle for link in links]
 
-        links = database.get_incoming_links(
-            atom_handle=h, handles_only=False, targets_document=True
-        )
+        links = database.get_incoming_links_atoms(atom_handle=h, targets_document=True)
         assert len(links) > 0
-        assert all(isinstance(link, dict) for link in links)
+        assert all(isinstance(link, LinkT) for link in links)
         for link in links:
-            for a, b in zip(link["targets"], link["targets_document"]):
-                assert a == b["handle"]
+            for a, b in zip(link.targets, link.targets_documents):
+                assert a == b.handle
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=True)
+        links = database.get_incoming_links_handles(atom_handle=h)
         assert len(links) > 0
         assert all(isinstance(link, str) for link in links)
         answer = database.redis.smembers(f"incoming_set:{h}")
         assert sorted(links) == sorted(answer)
         assert s in links
 
-        links = database.get_incoming_links(atom_handle=m, handles_only=True)
+        links = database.get_incoming_links_handles(atom_handle=m)
         assert len(links) > 0
         assert all(isinstance(link, str) for link in links)
         answer = database.redis.smembers(f"incoming_set:{m}")
         assert sorted(links) == sorted(answer)
 
-        links = database.get_incoming_links(atom_handle=s, handles_only=True)
+        links = database.get_incoming_links_handles(atom_handle=s)
         assert len(links) == 0
         assert links == []
 
