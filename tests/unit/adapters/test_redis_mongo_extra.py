@@ -5,7 +5,7 @@ import pytest
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoDBIndex, RedisMongoDB, _HashableDocument
 from tests.unit.fixtures import redis_mongo_db  # noqa: F401
 
-from ..helpers import dict_to_node_params
+from tests.helpers import dict_to_node_params
 
 
 class TestRedisMongoExtra:

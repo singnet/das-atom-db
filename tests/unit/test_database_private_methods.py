@@ -3,7 +3,7 @@ import pytest
 from hyperon_das_atomdb.database import AtomDB, LinkParamsT, LinkT, NodeParamsT, NodeT
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
-from .helpers import add_link, add_node, atom_to_params, check_handle
+from tests.helpers import add_link, add_node, atom_to_params, check_handle
 
 
 class TestDatabasePrivateMethods:

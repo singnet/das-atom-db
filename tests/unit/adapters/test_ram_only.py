@@ -6,7 +6,7 @@ from hyperon_das_atomdb.database import LinkParamsT, LinkT, NodeParamsT, NodeT
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 
-from ..helpers import dict_to_link_params, dict_to_node_params
+from tests.helpers import dict_to_link_params, dict_to_node_params
 
 
 class TestInMemoryDB:
