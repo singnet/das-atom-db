@@ -415,7 +415,7 @@ class AtomDB {
      * @param is_toplevel A boolean indicating whether the link is a top-level link.
      * @return An optional Link object representing the constructed link.
      */
-    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true);
+    virtual shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true);
 
     /**
      * @brief Retrieves an atom from the database using its handle.
@@ -424,4 +424,5 @@ class AtomDB {
      */
     virtual const shared_ptr<const Atom> _get_atom(const string& handle) const = 0;
 };
+
 }  // namespace atomdb

@@ -1,4 +1,5 @@
 #include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
@@ -277,7 +278,8 @@ NB_MODULE(ext, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
-        .def("to_dict", &helpers::atom_to_dict);
+        .def("to_dict", &helpers::atom_to_dict)
+        .def(nb::self == nb::self);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
         .def(nb::init<const string&,  // _id,
                       const string&,  // handle,
@@ -294,7 +296,8 @@ NB_MODULE(ext, m) {
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__", &helpers::atom_type_to_tuple)
         .def("__setstate__", &helpers::tuple_to_atom_type)
-        .def("to_dict", &helpers::atom_type_to_dict);
+        .def("to_dict", &helpers::atom_type_to_dict)
+        .def(nb::self == nb::self);
     nb::class_<Node, Atom>(document_types, "Node")
         .def(nb::init<const string&,  // _id,
                       const string&,  // handle,
@@ -311,7 +314,8 @@ NB_MODULE(ext, m) {
         .def_ro("name", &Node::name)
         .def("__getstate__", &helpers::node_to_tuple)
         .def("__setstate__", &helpers::tuple_to_node)
-        .def("to_dict", &helpers::node_to_dict);
+        .def("to_dict", &helpers::node_to_dict)
+        .def(nb::self == nb::self);
     nb::class_<Link, Atom>(document_types, "Link")
         .def("__init__",
              &helpers::init_link,
@@ -335,7 +339,8 @@ NB_MODULE(ext, m) {
         .def_rw("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)
         .def("__setstate__", &helpers::tuple_to_link)
-        .def("to_dict", &helpers::link_to_dict);
+        .def("to_dict", &helpers::link_to_dict)
+        .def(nb::self == nb::self);
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
@@ -361,7 +366,10 @@ NB_MODULE(ext, m) {
              "custom_attributes"_a = nullopt)
         .def_rw("type", &NodeParams::type)
         .def_rw("name", &NodeParams::name)
-        .def_rw("custom_attributes", &NodeParams::custom_attributes);
+        .def_rw("custom_attributes", &NodeParams::custom_attributes)
+        .def("to_string", &NodeParams::to_string)
+        .def("__str__", &NodeParams::to_string)
+        .def("__repr__", &NodeParams::to_string);
     nb::class_<LinkParams>(database, "LinkParams")
         .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
              "type"_a,
@@ -373,6 +381,9 @@ NB_MODULE(ext, m) {
         .def(
             "add_target",
             [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
-            "target"_a);
+            "target"_a)
+        .def("to_string", &LinkParams::to_string)
+        .def("__str__", &LinkParams::to_string)
+        .def("__repr__", &LinkParams::to_string);
     // ---------------------------------------------------------------------------------------------
 }

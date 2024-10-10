@@ -21,6 +21,11 @@ struct CustomAttributes {
     IntUnorderedMap integers = {};
     FloatUnorderedMap floats = {};
     BoolUnorderedMap booleans = {};
+
+    bool operator==(const CustomAttributes& other) const noexcept {
+        return this->strings == other.strings and this->integers == other.integers and
+               this->floats == other.floats and this->booleans == other.booleans;
+    }
 };
 
 struct NodeParams {

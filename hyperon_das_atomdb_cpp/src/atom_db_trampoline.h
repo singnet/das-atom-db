@@ -19,7 +19,7 @@ namespace nb = nanobind;
  * allowing for custom behavior and additional functionality.
  */
 struct AtomDBTrampoline : AtomDB {
-    NB_TRAMPOLINE(AtomDB, 30);
+    NB_TRAMPOLINE(AtomDB, 31);
 
     const string get_node_handle(const string& node_type, const string& node_name) const override {
         NB_OVERRIDE_PURE(get_node_handle, node_type, node_name);
@@ -153,5 +153,9 @@ struct AtomDBTrampoline : AtomDB {
 
     const shared_ptr<const Atom> _get_atom(const string& handle) const override {
         NB_OVERRIDE_PURE(_get_atom, handle);
+    }
+
+    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true) override {
+        NB_OVERRIDE(_build_link, link_params, is_toplevel);
     }
 };

@@ -11,7 +11,6 @@ namespace atomdb {
 
 /**
  * @brief Buffer to store the exception message.
- *
  * nanobind makes a lazy access to std::exception::what(), which can result in the
  * underlying C-string being lost or invalidated. To work around this issue, we
  * create a static buffer (what_buffer) to store the exception message. This ensures

@@ -12,7 +12,6 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames, LinkT
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-
 from tests.helpers import dict_to_link_params, dict_to_node_params
 
 
@@ -427,7 +426,7 @@ class TestRedisMongoDB:
                                         {"type": "Any", "name": "any2"},
                                     ],
                                 },
-                            ]
+                            ],
                         },
                     ],
                 }
@@ -444,9 +443,9 @@ class TestRedisMongoDB:
         assert len(all_links_before) == 28
         assert len(all_links_after) == 29
         assert {
-            "atom_count": 48,
-            "node_count": 18,
-            "link_count": 30,
+            "atom_count": 51,
+            "node_count": 20,
+            "link_count": 31,
         } == database.count_atoms({"precise": True})
 
         new_node_handle = database.get_node_handle("Concept", "lion")
