@@ -51,8 +51,15 @@ class Atom {
 
     virtual ~Atom() = default;
 
+    bool operator==(const Atom& other) const noexcept {
+        return this->_id == other._id and this->handle == other.handle and
+               this->composite_type_hash == other.composite_type_hash and
+               this->named_type == other.named_type and
+               this->custom_attributes == other.custom_attributes;
+    }
+
     virtual const string to_string() const noexcept {
-        string result = "id: '" + this->_id + "'";
+        string result = "_id: '" + this->_id + "'";
         result += ", handle: '" + this->handle + "'";
         result += ", composite_type_hash: '" + this->composite_type_hash + "'";
         result += ", named_type: '" + this->named_type + "'";
@@ -130,6 +137,10 @@ class AtomType : public Atom {
         }
     }
 
+    bool operator==(const AtomType& other) const {
+        return Atom::operator==(other) and this->named_type_hash == other.named_type_hash;
+    }
+
     const string to_string() const noexcept override {
         string result = "AtomType(" + Atom::to_string();
         result += ", named_type_hash: '" + this->named_type_hash + "')";
@@ -158,6 +169,10 @@ class Node : public Atom {
         if (name.empty()) {
             throw invalid_argument("Node name cannot be empty.");
         }
+    }
+
+    bool operator==(const Node& other) const {
+        return Atom::operator==(other) and this->name == other.name;
     }
 
     const string to_string() const noexcept override {
@@ -231,9 +246,9 @@ class Link : public Atom {
         if (named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
-        // if (targets.empty()) {  TODO: check if targets can be empty
-        //     throw invalid_argument("Link targets cannot be empty.");
-        // }
+        if (targets.empty()) {
+            throw invalid_argument("Link targets cannot be empty.");
+        }
         if (targets_documents.has_value()) {
             this->targets_documents = TargetsDocuments();
             this->targets_documents->reserve(targets_documents->size());
@@ -245,6 +260,15 @@ class Link : public Atom {
                 }
             }
         }
+    }
+
+    bool operator==(const Link& other) const {
+        bool composite_type_are_equal = this->composite_type_list_to_string(this->composite_type) ==
+                                        this->composite_type_list_to_string(other.composite_type);
+        return composite_type_are_equal and Atom::operator==(other) and
+               this->named_type_hash == other.named_type_hash and this->targets == other.targets and
+               this->is_toplevel == other.is_toplevel and
+               this->targets_documents == other.targets_documents;
     }
 
     const string to_string() const noexcept override {

@@ -12,6 +12,13 @@ bool AtomDB::node_exists(const string& node_type, const string& node_name) const
         return true;
     } catch (const AtomDoesNotExist& e) {
         return false;
+    } catch (const exception& e) {
+        string what = e.what();
+        if (what.find("Nonexistent atom") != string::npos) {
+            return false;
+        } else {
+            throw;
+        }
     }
 }
 
@@ -22,6 +29,13 @@ bool AtomDB::link_exists(const string& link_type, const StringList& target_handl
         return true;
     } catch (const AtomDoesNotExist& e) {
         return false;
+    } catch (const exception& e) {
+        string what = e.what();
+        if (what.find("Nonexistent atom") != string::npos) {
+            return false;
+        } else {
+            throw;
+        }
     }
 }
 
@@ -37,15 +51,13 @@ const shared_ptr<const Atom> AtomDB::get_atom(const string& handle, const KwArgs
     return move(document);
 }
 
-// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
-
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const Atom>& document,
                                                         const KwArgs& kwargs) const {
     if (const auto& link = dynamic_pointer_cast<const Link>(document)) {
-        auto targets_documents = kwargs.targets_documents;
+        auto targets_document = kwargs.targets_document;
         auto deep_representation = kwargs.deep_representation;
-        if (targets_documents or deep_representation) {
+        if (targets_document or deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents = Link::TargetsDocuments();
             link_copy->targets_documents->reserve(link->targets.size());
@@ -62,13 +74,16 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
     return document;
 }
 
+// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
+
 //------------------------------------------------------------------------------
 shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     const auto& node_type = node_params.type;
     const auto& node_name = node_params.name;
     if (node_type.empty() or node_name.empty()) {
         // TODO: log error ???
-        throw invalid_argument("'type' and 'name' are required.");
+        throw AddNodeException("'type' and 'name' are required.",
+                               "node_params: " + node_params.to_string());
     }
     string handle = this->build_node_handle(node_type, node_name);
     string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
@@ -84,9 +99,11 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
 shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_toplevel) {
     const auto& link_type = link_params.type;
     const auto& targets = link_params.targets;
-    if (link_type.empty()) {  // or targets.empty()) {  TODO: check if targets can be empty
+    if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
-        throw invalid_argument("'type' and 'targets' are required.");
+        throw AddLinkException("'type' and 'targets' are required.",
+                               "link_params: " + link_params.to_string() +
+                                   ", is_toplevel: " + (is_toplevel ? "true" : "false"));
     }
     string link_type_hash = ExpressionHasher::named_type_hash(link_type);
     StringList target_handles = {};

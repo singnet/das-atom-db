@@ -7,13 +7,26 @@ using namespace std;
 
 namespace atomdb {
 
+#define BUFFER_SIZE 4096
+
+/**
+ * @brief Buffer to store the exception message.
+ * nanobind makes a lazy access to std::exception::what(), which can result in the
+ * underlying C-string being lost or invalidated. To work around this issue, we
+ * create a static buffer (what_buffer) to store the exception message. This ensures
+ * that the message remains valid and accessible even after the original C-string
+ * has been invalidated.
+ */
+static char what_buffer[BUFFER_SIZE];
+
 class AtomDbBaseException : public exception {
    public:
     AtomDbBaseException(const string& message, const string& details)
         : message(message), details(details) {}
 
     virtual const char* what() const noexcept override {
-        return (this->message + ": " + this->details).c_str();
+        sprintf(what_buffer, "%s", (this->message + ": " + this->details).c_str());
+        return what_buffer;
     }
 
    protected:
@@ -27,8 +40,6 @@ class AtomDbBaseException : public exception {
 class AtomDoesNotExist : public AtomDbBaseException {
    public:
     using AtomDbBaseException::AtomDbBaseException;
-    // virtual const char* what() const noexcept override { return string("WTF!!!").c_str(); }
-    const string get_info() const noexcept { return (this->message + ": " + this->details); }
 };
 
 /**
