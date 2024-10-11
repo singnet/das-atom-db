@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 
-project(hyperon_das_atomdb_ram_only LANGUAGES CXX)
+project(hyperon_das_atomdb_cpp LANGUAGES CXX)
 set(EXTENSION_NAME "ext")
 
 # Set C++ standard and optimization flags

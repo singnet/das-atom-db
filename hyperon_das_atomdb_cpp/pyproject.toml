@@ -1,7 +1,7 @@
 [project]
-name = "hyperon_das_atomdb_ram_only"
+name = "hyperon_das_atomdb_cpp"
 version = "0.0.1"
-description = "InMemory Atom Space DB for Hyperon DAS"
+description = "Atom Space DB for Hyperon DAS"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
