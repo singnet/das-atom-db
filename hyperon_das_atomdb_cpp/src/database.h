@@ -1,3 +1,33 @@
+/**
+ * @file database.h
+ * @brief Abstract base class for the AtomDB database interface.
+ *
+ * This header file defines the AtomDB class, which serves as an abstract base class for
+ * interacting with the AtomDB database. The AtomDB class provides a comprehensive interface
+ * for querying, adding, and managing atoms, nodes, and links within the database. Derived
+ * classes must implement the pure virtual methods to provide concrete functionality.
+ *
+ * The AtomDB interface supports various operations, including:
+ * - Retrieving atoms by different criteria (e.g., field, index, text field).
+ * - Managing nodes and links, including adding, deleting, and querying them.
+ * - Reindexing the database and creating field indexes.
+ * - Bulk inserting atoms and committing changes.
+ *
+ * The class is designed to be extended by specific database implementations, allowing for
+ * flexible and customizable database interactions. It includes static methods for building
+ * node and link handles, as well as methods for checking the existence of nodes and links,
+ * retrieving atoms, and reformatting documents.
+ *
+ * The AtomDB class also defines several pure virtual methods that must be implemented by
+ * derived classes. These methods cover a wide range of database operations, such as
+ * retrieving node handles, querying the database by field or text, managing links,
+ * reindexing, and more.
+ *
+ * @note This class uses several custom types and utility classes, such as StringList,
+ *       ExpressionHasher, NodeParams, LinkParams, and KwArgs, which are defined elsewhere
+ *       in the project.
+ */
+
 #pragma once
 
 #include "constants.h"
@@ -11,6 +41,23 @@ using namespace std;
 
 namespace atomdb {
 
+/**
+ * @brief Abstract base class for the AtomDB database interface.
+ *
+ * The AtomDB class defines the interface for interacting with the AtomDB database.
+ * It provides various pure virtual methods for querying, adding, and managing atoms,
+ * nodes, and links within the database. Derived classes must implement these methods
+ * to provide concrete functionality.
+ *
+ * The AtomDB interface supports operations such as:
+ * - Retrieving atoms by various criteria (e.g., field, index, text field).
+ * - Managing nodes and links, including adding, deleting, and querying them.
+ * - Reindexing the database and creating field indexes.
+ * - Bulk inserting atoms and committing changes.
+ *
+ * This class is designed to be extended by specific database implementations,
+ * allowing for flexible and customizable database interactions.
+ */
 class AtomDB {
    public:
     AtomDB() = default;
@@ -69,14 +116,14 @@ class AtomDB {
     /**
      * @brief Retrieves an atom from the database using its handle and optional params.
      * @param handle A string representing the handle of the atom to be retrieved.
-     * @param params An optional Params object containing additional retrieval options, as follows:
+     * @param kwargs An optional Kwargs object containing additional retrieval options, as follows:
      *               `no_target_format` (`bool`, optional): If True, return the document without
      *                   transforming it to the target format. Defaults to False.
      *               `targets_document` (`bool`, optional): If True, include the `targets_document`
      *                   in the response. Defaults to False.
      *               `deep_representation` (`bool`, optional): If True, include a deep
-     * representation of the targets. Defaults to False.
-     * @return An Atom object representing the retrieved atom.
+     *                   representation of the targets. Defaults to False.
+     * @return A const shared pointer to an Atom object.
      */
     const shared_ptr<const Atom> get_atom(const string& handle, const KwArgs& kwargs = {}) const;
 
@@ -105,7 +152,7 @@ class AtomDB {
     virtual const string get_node_type(const string& node_handle) const = 0;
 
     /**
-     * @brief Get the name of (a) node(s) of the specified type containing the given substring.
+     * @brief Get the handles of (a) node(s) of the specified type containing the given substring.
      * @param node_type The node type.
      * @param substring The substring to search for in node names.
      * @return List of handles of nodes whose names matched the criteria.
@@ -115,8 +162,8 @@ class AtomDB {
 
     /**
      * @brief Query the database by field and value.
-     * @param query List of dicts containing 'field' and 'value' keys.
-     * @return List of node IDs.
+     * @param query List of maps containing 'field' and 'value' keys.
+     * @return List of node handles.
      */
     virtual const StringList get_atoms_by_field(
         const vector<unordered_map<string, string>>& query) const = 0;
@@ -124,17 +171,16 @@ class AtomDB {
     /**
      * @brief Retrieves atoms from the database using the specified index.
      * @param index_id The ID of the index to use for retrieving atoms from the database.
-     * @param query A vector of unordered maps representing the query parameters.
+     * @param query A vector of ordered maps representing the query parameters.
      * @param cursor An integer representing the cursor position for pagination (default is 0).
      * @param chunk_size An integer representing the number of atoms to retrieve in one chunk
      *                   (default is 500).
-     * @return A pair containing an optional cursor and a list of atoms. The optional cursor is
-     *         used for pagination or further retrieval operations, and the list contains the
-     *         retrieved atoms.
+     * @return A pair containing an cursor and a list of atoms. The cursor is used for pagination
+     *         or further retrieval operations, and the list contains the retrieved atoms.
      */
     virtual const pair<const int, const AtomList> get_atoms_by_index(
         const string& index_id,
-        const vector<unordered_map<string, string>>& query,
+        const vector<map<string, string>>& query,
         int cursor = 0,
         int chunk_size = 500) const = 0;
 
@@ -142,18 +188,19 @@ class AtomDB {
      * @brief Query the database by a text field.
      * @param text_value Value to search for.
      * @param field Field to be used to search.
-     * @param text_index_id TOKEN_INVERTED_LIST index id to search for.
-     * @return List of node IDs ordered by the closest match.
+     * @param text_index_id Index id to search for.
+     * @return List of node handles ordered by the closest match.
      */
-    virtual const StringList get_atoms_by_text_field(const string& text_value,
-                                                     const string& field = "",
-                                                     const string& text_index_id = "") const = 0;
+    virtual const StringList get_atoms_by_text_field(
+        const string& text_value,
+        const opt<string>& field = nullopt,
+        const opt<string>& text_index_id = nullopt) const = 0;
 
     /**
      * @brief Query the database by node name starting with 'startswith' value.
      * @param node_type The node type.
      * @param startswith The starting substring to search for.
-     * @return List of node IDs.
+     * @return List of node handles.
      */
     virtual const StringList get_node_by_name_starting_with(const string& node_type,
                                                             const string& startswith) const = 0;
@@ -162,15 +209,14 @@ class AtomDB {
      * @brief Get all nodes of a specific type.
      * @param node_type The node type.
      * @param names If True, return node names instead of handles. Default is False.
-     * @return A list of node handles or names, depending on the value of 'names'.
+     * @return A list of node handles or names, depending on the value of `names`.
      */
     virtual const StringList get_all_nodes(const string& node_type, bool names = false) const = 0;
 
     /**
      * @brief Retrieves all links of the specified type from the database.
      * @param link_type A string representing the type of the links to retrieve.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return Set of strings representing the links.
+     * @return A set of handles representing the links.
      */
     virtual const StringUnorderedSet get_all_links(const string& link_type) const = 0;
 
@@ -193,16 +239,15 @@ class AtomDB {
     /**
      * @brief Get the target handles of a link specified by its handle.
      * @param link_handle The link handle.
-     * @return A list of target identifiers of the link.
+     * @return A list of target handles of the link.
      */
     virtual const StringList get_link_targets(const string& link_handle) const = 0;
 
     /**
      * @brief Retrieves incoming link handles for the specified atom.
      * @param atom_handle A string representing the handle of the atom.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of strings representing the incoming
-     *         link handles.
+     * @param kwargs An const reference to a Kwargs object containing additional retrieval options.
+     * @return A list of strings representing the incoming link handles.
      */
     virtual const StringList get_incoming_links_handles(const string& atom_handle,
                                                         const KwArgs& kwargs = {}) const = 0;
@@ -210,9 +255,8 @@ class AtomDB {
     /**
      * @brief Retrieves incoming link atoms for the specified atom.
      * @param atom_handle A string representing the handle of the atom.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of Atom objects representing the
-     *         incoming links.
+     * @param kwargs An const reference to a Kwargs object containing additional retrieval options.
+     * @return A list of Atom objects representing the incoming links.
      */
     virtual const vector<shared_ptr<const Atom>> get_incoming_links_atoms(
         const string& atom_handle, const KwArgs& kwargs = {}) const = 0;
@@ -221,9 +265,8 @@ class AtomDB {
      * @brief Retrieves matched links of the specified type and target handles.
      * @param link_type A string representing the type of the links to retrieve.
      * @param target_handles A list of strings representing the target handles.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of patterns or templates representing
-     *         the matched links.
+     * @param kwargs An const reference to a Kwargs object containing additional retrieval options.
+     * @return A set of handles that matched.
      */
     virtual const StringUnorderedSet get_matched_links(const string& link_type,
                                                        const StringList& target_handles,
@@ -231,10 +274,10 @@ class AtomDB {
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
-     * @param _template A vector of elements of type any representing the template.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of patterns or templates representing
-     *         the matched type templates.
+     * @param _template A list of elements representing the template, which can be a list of strings
+     *                  or a list of lists of strings or another level of nesting.
+     * @param kwargs An const reference to a Kwargs object containing additional retrieval options.
+     * @return A set of handles that matched.
      */
     virtual const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
                                                                const KwArgs& kwargs = {}) const = 0;
@@ -242,9 +285,8 @@ class AtomDB {
     /**
      * @brief Retrieves matched types based on the specified link type.
      * @param link_type A string representing the type of the links to retrieve.
-     * @param params An optional Params object containing additional retrieval options.
-     * @return A pair containing an optional cursor and a list of patterns or templates representing
-     *         the matched types.
+     * @param kwargs A const reference to a Kwargs object containing additional retrieval options.
+     * @return A set of handles that matched.
      */
     virtual const StringUnorderedSet get_matched_type(const string& link_type,
                                                       const KwArgs& kwargs = {}) const = 0;
@@ -255,15 +297,6 @@ class AtomDB {
      * @return An optional string containing the type of the atom if found, otherwise nullopt.
      */
     virtual const opt<const string> get_atom_type(const string& handle) const = 0;
-
-    /**
-     * @brief Retrieves an atom as a dictionary representation.
-     * @param handle The atom handle.
-     * @param arity The arity of the atom. Defaults to 0.
-     * @return A dictionary representation of the atom.
-     */
-    // virtual const unordered_map<string, anything> get_atom_as_dict(const string& handle,
-    //                                                           int arity = 0) const = 0;
 
     /**
      * @brief Count the total number of atoms in the database.
@@ -279,7 +312,7 @@ class AtomDB {
     /**
      * @brief Adds a node to the database.
      * @param node_params A NodeParams object containing the parameters for the node.
-     * @return Node object representing the created node.
+     * @return A const shared pointer to a Node object.
      */
     virtual const shared_ptr<const Node> add_node(const NodeParams& node_params) = 0;
 
@@ -287,8 +320,7 @@ class AtomDB {
      * @brief Adds a link to the database.
      * @param link_params A LinkParams object containing the parameters for the link.
      * @param toplevel A boolean indicating whether the link is a top-level link (default is true).
-     * @return An optional Link object representing the created link. If the link could not be
-     * created, the optional will contain nullopt.
+     * @return A const shared pointer to a Link object.
      */
     virtual const shared_ptr<const Link> add_link(const LinkParams& link_params,
                                                   bool toplevel = true) = 0;
@@ -375,7 +407,7 @@ class AtomDB {
 
     /**
      * @brief Insert multiple documents into the database.
-     * @param documents A list of atoms, each representing a document to be inserted into the db.
+     * @param documents A list of Atom objects, each representing a document to be inserted into the db.
      */
     virtual void bulk_insert(const vector<shared_ptr<const Atom>>& documents) = 0;
 
@@ -392,9 +424,9 @@ class AtomDB {
 
     /**
      * @brief Reformats a document based on the provided params.
-     * @param document A reference to the Atom object representing the document to be reformatted.
-     * @param params A reference to a Params object containing the reformatting options.
-     * @return A reference to the reformatted Atom object.
+     * @param document A shared pointer to the Atom object to be reformatted.
+     * @param kwargs A const reference to a Kwargs object containing the reformatting options.
+     * @return A shared pointer with a copy of the reference object but with the new format.
      */
     const shared_ptr<const Atom> _reformat_document(const shared_ptr<const Atom>& document,
                                                     const KwArgs& kwargs = {}) const;
@@ -405,7 +437,7 @@ class AtomDB {
     /**
      * @brief Builds a node with the specified parameters.
      * @param node_params A NodeParams object containing the parameters for the node.
-     * @return Node object representing the created node.
+     * @return A shared pointer to a Node object.
      */
     shared_ptr<Node> _build_node(const NodeParams& node_params);
 
@@ -413,7 +445,7 @@ class AtomDB {
      * @brief Builds a link with the specified parameters.
      * @param link_params A LinkParams object containing the parameters for the link.
      * @param is_toplevel A boolean indicating whether the link is a top-level link.
-     * @return An optional Link object representing the constructed link.
+     * @return A shared pointer to a Link object.
      */
     virtual shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true);
 

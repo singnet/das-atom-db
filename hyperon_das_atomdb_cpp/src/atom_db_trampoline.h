@@ -42,17 +42,16 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(get_atoms_by_field, query);
     }
 
-    const pair<const int, const AtomList> get_atoms_by_index(
-        const string& index_id,
-        const vector<unordered_map<string, string>>& query,
-        int cursor = 0,
-        int chunk_size = 500) const override {
+    const pair<const int, const AtomList> get_atoms_by_index(const string& index_id,
+                                                             const vector<map<string, string>>& query,
+                                                             int cursor = 0,
+                                                             int chunk_size = 500) const override {
         NB_OVERRIDE_PURE(get_atoms_by_index, index_id, query, cursor, chunk_size);
     }
 
     const StringList get_atoms_by_text_field(const string& text_value,
-                                             const string& field = "",
-                                             const string& text_index_id = "") const override {
+                                             const opt<string>& field = nullopt,
+                                             const opt<string>& text_index_id = nullopt) const override {
         NB_OVERRIDE_PURE(get_atoms_by_text_field, text_value, field, text_index_id);
     }
 

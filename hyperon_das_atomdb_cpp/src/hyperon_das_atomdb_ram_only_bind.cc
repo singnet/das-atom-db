@@ -29,8 +29,6 @@ namespace helpers = bind_helpers;
 namespace nb = nanobind;
 using namespace nb::literals;
 
-#include <iostream>
-
 NB_MODULE(ext, m) {
     // root module ---------------------------------------------------------------------------------
     m.attr("WILDCARD") = WILDCARD;

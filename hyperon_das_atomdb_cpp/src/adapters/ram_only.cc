@@ -58,17 +58,14 @@ const StringList InMemoryDB::get_atoms_by_field(
 
 //------------------------------------------------------------------------------
 const pair<const int, const AtomList> InMemoryDB::get_atoms_by_index(
-    const string& index_id,
-    const vector<unordered_map<string, string>>& query,
-    int cursor,
-    int chunk_size) const {
+    const string& index_id, const vector<map<string, string>>& query, int cursor, int chunk_size) const {
     throw runtime_error("Not implemented");
 }
 
 //------------------------------------------------------------------------------
 const StringList InMemoryDB::get_atoms_by_text_field(const string& text_value,
-                                                     const string& field,
-                                                     const string& text_index_id) const {
+                                                     const opt<string>& field,
+                                                     const opt<string>& text_index_id) const {
     throw runtime_error("Not implemented");
 }
 

@@ -1,3 +1,25 @@
+/**
+ * @file document_types.h
+ * @brief Defines various classes representing atomic entities and their relationships in the atom
+ * database.
+ *
+ * This header file contains the definitions of several classes that represent different types of
+ * atomic entities and their relationships within the atom database. The classes include:
+ * - Atom: Represents a basic atomic entity with attributes such as ID, handle, composite type hash,
+ *   named type, and optional custom attributes.
+ * - AtomType: Extends the Atom class by adding a named type hash attribute.
+ * - Node: Represents a node in the atom database, extending the Atom class by adding a name
+ *   attribute.
+ * - Link: Represents a link in the atom database, encapsulating a composite type, named type hash,
+ *   and a list of target hashes. It supports nested composite types and validates their structure.
+ *
+ * Each class provides constructors for initialization, comparison operators for equality checks,
+ * and methods to convert the objects to string representations. The classes also include validation
+ * mechanisms to ensure the integrity of the attributes.
+ *
+ * The file also defines several type aliases for vectors of these atomic entities, facilitating
+ * their usage in collections.
+ */
 #pragma once
 
 #include <map>
@@ -11,10 +33,13 @@ using namespace std;
 namespace atomdb {
 
 /**
- * @brief Represents a basic unit of data in the system.
+ * @class Atom
+ * @brief Represents an atomic entity with various attributes.
  *
- * The Atom class serves as a fundamental building block within the system,
- * encapsulating the essential properties and behaviors of a data unit.
+ * The Atom class encapsulates the properties of an atomic entity, including its ID, handle,
+ * composite type hash, named type, and optional custom attributes. It provides constructors
+ * for initialization, comparison operators, and a method to convert the object to a string
+ * representation.
  */
 class Atom {
    public:
@@ -24,7 +49,20 @@ class Atom {
     string named_type;
     opt<CustomAttributes> custom_attributes;
 
+    /**
+     * @brief Default constructor for the Atom class.
+     */
     Atom() = default;
+
+    /**
+     * @brief Constructs an Atom object with the given parameters.
+     * @param id The unique identifier for the atom.
+     * @param handle The handle for the atom.
+     * @param composite_type_hash The hash representing the composite type of the atom.
+     * @param named_type The named type of the atom.
+     * @param custom_attributes Optional custom attributes for the atom.
+     * @throws invalid_argument if any of the required parameters are empty.
+     */
     Atom(const string& id,
          const string& handle,
          const string& composite_type_hash,
@@ -51,6 +89,11 @@ class Atom {
 
     virtual ~Atom() = default;
 
+    /**
+     * @brief Compares this Atom with another for equality.
+     * @param other The Atom to compare with.
+     * @return True if both Atoms are equal, otherwise false.
+     */
     bool operator==(const Atom& other) const noexcept {
         return this->_id == other._id and this->handle == other.handle and
                this->composite_type_hash == other.composite_type_hash and
@@ -58,6 +101,11 @@ class Atom {
                this->custom_attributes == other.custom_attributes;
     }
 
+    /**
+     * @brief Converts the object to a string representation.
+     * @return A string representing the object, including its ID, handle, composite type hash,
+     *         named type, and custom attributes.
+     */
     virtual const string to_string() const noexcept {
         string result = "_id: '" + this->_id + "'";
         result += ", handle: '" + this->handle + "'";
@@ -113,17 +161,32 @@ class Atom {
 };
 
 /**
- * @brief Represents a specific type of atom in the system.
+ * @class AtomType
+ * @brief Represents a specialized type of Atom with an additional named type hash.
  *
- * The AtomType class inherits from the Atom class and encapsulates additional properties
- * and behaviors specific to a particular type of atom. This class is used to define
- * and manage different types of atoms within the system.
+ * The AtomType class extends the Atom class by adding a named type hash attribute.
+ * It provides constructors for initialization, an equality operator, and a string
+ * representation method.
  */
 class AtomType : public Atom {
    public:
     string named_type_hash;
 
+    /**
+     * @brief Default constructor for the AtomType class.
+     */
     AtomType() = default;
+
+    /**
+     * @brief Constructs an AtomType object with the specified parameters.
+     * @param id The identifier for the atom type.
+     * @param handle The handle for the atom type.
+     * @param composite_type_hash The hash of the composite type.
+     * @param named_type The named type of the atom.
+     * @param named_type_hash The hash of the named type.
+     * @param custom_attributes Optional custom attributes for the atom type.
+     * @throws invalid_argument if named_type_hash is empty.
+     */
     AtomType(const string& id,
              const string& handle,
              const string& composite_type_hash,
@@ -137,10 +200,19 @@ class AtomType : public Atom {
         }
     }
 
+    /**
+     * @brief Compares this AtomType with another for equality.
+     * @param other The AtomType to compare with.
+     * @return True if both AtomType objects are equal, false otherwise.
+     */
     bool operator==(const AtomType& other) const {
         return Atom::operator==(other) and this->named_type_hash == other.named_type_hash;
     }
 
+    /**
+     * @brief Converts the AtomType object to a string representation.
+     * @return A string representing the AtomType object.
+     */
     const string to_string() const noexcept override {
         string result = "AtomType(" + Atom::to_string();
         result += ", named_type_hash: '" + this->named_type_hash + "')";
@@ -149,16 +221,31 @@ class AtomType : public Atom {
 };
 
 /**
- * @brief Represents a node in the system.
+ * @class Node
+ * @brief Represents a node in the atom database, inheriting from Atom.
  *
- * The Node class inherits from the Atom class and represents a node within the system.
- * It encapsulates additional properties and behaviors specific to nodes.
+ * The Node class extends the Atom class by adding a name attribute. It includes constructors,
+ * equality operators, and a string representation method. The name attribute must not be empty.
  */
 class Node : public Atom {
    public:
     string name;
 
+    /**
+     * @brief Default constructor for the Node class.
+     */
     Node() = default;
+
+    /**
+     * @brief Constructs a Node object with the given parameters.
+     * @param id The identifier for the Node.
+     * @param handle The handle for the Node.
+     * @param composite_type_hash The hash representing the composite type.
+     * @param named_type The named type of the Node.
+     * @param name The name of the Node.
+     * @param custom_attributes Optional custom attributes for the Node.
+     * @throws invalid_argument if the name is empty.
+     */
     Node(const string& id,
          const string& handle,
          const string& composite_type_hash,
@@ -171,10 +258,19 @@ class Node : public Atom {
         }
     }
 
+    /**
+     * @brief Compares this Node with another Node for equality.
+     * @param other The Node to compare with.
+     * @return True if both Nodes are equal, false otherwise.
+     */
     bool operator==(const Node& other) const {
         return Atom::operator==(other) and this->name == other.name;
     }
 
+    /**
+     * @brief Converts the Node object to a string representation.
+     * @return A string representing the Node object.
+     */
     const string to_string() const noexcept override {
         string result = "Node(" + Atom::to_string();
         result += ", name: '" + this->name + "')";
@@ -183,14 +279,17 @@ class Node : public Atom {
 };
 
 /**
- * @brief Represents a link in the system.
+ * @class Link
+ * @brief Represents a link in the atom database, inheriting from Atom.
  *
- * The Link class inherits from the Atom class and represents a link within the system.
- * It encapsulates additional properties and behaviors specific to links, such as connections
- * between different atoms.
+ * The Link class encapsulates a composite type, a named type hash, and a list of target hashes.
+ * It supports nested composite types and validates their structure. The class also provides
+ * functionality to compare links, convert them to string representations, and manage target
+ * documents.
  */
 class Link : public Atom {
    public:
+    /// @brief Alias for a vector of shared pointers to constant Atom objects.
     using TargetsDocuments = vector<shared_ptr<const Atom>>;
 
     /**
@@ -219,7 +318,26 @@ class Link : public Atom {
     bool is_toplevel = true;
     opt<TargetsDocuments> targets_documents = nullopt;
 
+    /**
+     * @brief Default constructor for the Link class.
+     */
     Link() = default;
+
+    /**
+     * @brief Constructs a Link object with the specified parameters.
+     * @param id The identifier for the link.
+     * @param handle The handle for the link.
+     * @param composite_type_hash The hash of the composite type.
+     * @param named_type The named type of the link.
+     * @param composite_type The composite type list.
+     * @param named_type_hash The hash of the named type.
+     * @param targets The vector of target strings.
+     * @param is_toplevel Boolean indicating if the link is top-level.
+     * @param targets_documents Optional targets documents.
+     * @param custom_attributes Optional custom attributes.
+     * @throws invalid_argument if composite_type is empty, composite_type is invalid, named_type_hash
+     * is empty, or targets is empty.
+     */
     Link(const string& id,
          const string& handle,
          const string& composite_type_hash,
@@ -262,6 +380,11 @@ class Link : public Atom {
         }
     }
 
+    /**
+     * @brief Compares this Link object with another for equality.
+     * @param other The Link object to compare with.
+     * @return True if the objects are equal, false otherwise.
+     */
     bool operator==(const Link& other) const {
         bool composite_type_are_equal = this->composite_type_list_to_string(this->composite_type) ==
                                         this->composite_type_list_to_string(other.composite_type);
@@ -271,6 +394,11 @@ class Link : public Atom {
                this->targets_documents == other.targets_documents;
     }
 
+    /**
+     * @brief Converts the Link object to a string representation.
+     * @return A string representing the Link object, including its composite type, named type hash,
+     *         targets, top-level status, and target documents.
+     */
     const string to_string() const noexcept override {
         string result = "Link(" + Atom::to_string();
         result += ", composite_type: " + composite_type_list_to_string(this->composite_type);
@@ -308,6 +436,11 @@ class Link : public Atom {
         return move(result);
     }
 
+    /**
+     * @brief Converts a composite type list to a string representation.
+     * @param composite_type The list of any type elements to be converted.
+     * @return A string representation of the composite type list.
+     */
     const string composite_type_list_to_string(const ListOfAny& composite_type) const noexcept {
         string result = "[";
         if (not composite_type.empty()) {
@@ -326,6 +459,13 @@ class Link : public Atom {
     }
 
    private:
+    /**
+     * @struct Validator
+     * @brief Provides validation functions for composite types.
+     *
+     * The Validator struct contains static methods to validate the structure of composite types,
+     * ensuring that elements are either strings or nested lists of the same type.
+     */
     struct Validator {
         /**
          * @brief Validates the structure of a composite type.

@@ -1,3 +1,17 @@
+/**
+ * @file patterns.h
+ * @brief Utility functions for generating and manipulating binary matrices and pattern keys.
+ *
+ * This header file contains utility functions for generating binary matrices, multiplying
+ * binary matrices by string matrices, and building pattern keys from a list of hash strings.
+ * These functions are part of the atomdb namespace and are used for various operations
+ * involving pattern generation and manipulation in the context of the das-atom-db project.
+ *
+ * The main functionalities provided by this module include:
+ * - Generating a binary matrix of a specified size.
+ * - Multiplying a binary matrix by a string matrix to produce a resulting matrix.
+ * - Building pattern keys using a list of hash strings.
+ */
 #pragma once
 
 #include <string>

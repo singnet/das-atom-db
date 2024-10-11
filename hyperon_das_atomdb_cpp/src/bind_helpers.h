@@ -1,3 +1,17 @@
+/**
+ * @file bind_helpers.h
+ * @brief This header file contains helper functions and type definitions for binding C++
+ *        classes and structures to Python using the `nanobind` library. The primary purpose
+ *        of these helpers is to facilitate the conversion of C++ objects to Python objects
+ *        and vice versa, enabling seamless interoperability between the two languages.
+ *
+ * The file includes:
+ * - Type definitions for tuples representing various C++ structures.
+ * - Functions for converting between C++ and Python representations of these structures.
+ * - Functions for converting composite types between C++ lists and Python lists.
+ * - Functions for converting C++ objects to Python dictionaries.
+ * - Functions for initializing and updating C++ objects from Python representations.
+ */
 #pragma once
 
 #include <nanobind/nanobind.h>

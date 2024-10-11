@@ -1,3 +1,30 @@
+
+/**
+ * @file exceptions.h
+ * @brief Defines custom exception classes for the Atom Database (atomdb) library.
+ *
+ * This header file contains the definitions of various exception classes used in the Atom
+ * Database (atomdb) library. These exceptions are designed to handle specific error conditions
+ * that may arise during the operation of the database. Each exception class inherits from
+ * AtomDbBaseException, which in turn inherits from the standard std::exception class.
+ *
+ * The AtomDbBaseException class provides a mechanism to store and retrieve detailed error
+ * messages. It uses a static buffer (`what_buffer`) to ensure that the exception message remains
+ * valid and accessible even after the original C-string has been invalidated. This is
+ * particularly useful when interfacing with libraries like `nanobind` that may lazily access
+ * std::exception::what().
+ *
+ * The following custom exception classes are defined:
+ * - AtomDoesNotExist: Thrown when an atom does not exist in the database.
+ * - AddNodeException: Thrown when adding a node to the database fails.
+ * - AddLinkException: Thrown when adding a link to the database fails.
+ * - InvalidOperationException: Thrown when an invalid operation is performed on the database.
+ * - RetryException: Raised for retryable errors.
+ * - InvalidAtomDB: Raised for invalid Atom DB operations.
+ *
+ * Each of these exception classes inherits from AtomDbBaseException and can be used to provide
+ * detailed error messages specific to the context in which the error occurred.
+ */
 #pragma once
 
 #include <exception>
