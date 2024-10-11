@@ -1,5 +1,3 @@
-NPROC := $(shell nproc)
-
 format:
 	@find ./src \
 		-iname "*.hpp" -o \
@@ -10,21 +8,9 @@ format:
 		-iname "*.c" \
 		| xargs clang-format -verbose -style=file -i
 
-build-make: clean
-	@mkdir -p build && cd build && cmake .. && make -j ${NPROC}
+wheel:
+	@./scripts/build_wheel.sh
 
-build-ninja: clean
-	@mkdir -p build && cd build && cmake -G Ninja .. && ninja -j ${NPROC}
-
-wheel: clean
-	@pip wheel .
-
-make pipinstall: clean
-	@pip install .
-
-clean:
-	@rm -rf build/* *whl
-	@mkdir -p build
-
-
+make install: wheel
+	@pip install hyperon_das_atomdb_cpp*.whl --force-reinstall --no-cache-dir
 
