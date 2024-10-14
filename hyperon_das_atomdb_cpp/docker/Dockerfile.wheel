@@ -1,14 +1,6 @@
 # See https://github.com/pypa/manylinux for more information
 FROM quay.io/pypa/manylinux_2_28_x86_64
 
-RUN yes | dnf update -y \
-    && yes | dnf config-manager --set-enabled powertools \
-    && yes | dnf install -y epel-release \
-    && yes | dnf update -y \
-    && yes | dnf groupinstall -y "Development Tools" \
-    && yes | dnf install -y openssl-devel bzip2-devel libffi-devel zlib-devel wget \
-    && dnf clean all
-
 # Install mbedtls-2.28 from source
 # (there is no pre-built package available in the AlmaLinux repos)
 WORKDIR /tmp
@@ -32,4 +24,4 @@ RUN ${PYTHON_EXECUTABLE} -m pip install -r /tmp/requirements.txt
 
 WORKDIR /hyperon_das_atomdb_cpp
 
-CMD ["python3.10", "-m", "pip", "wheel", "."]
+CMD ["bash", "-x", "./scripts/_build_wheel.sh"]

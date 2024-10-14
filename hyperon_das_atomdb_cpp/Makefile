@@ -9,8 +9,8 @@ format:
 		| xargs clang-format -verbose -style=file -i
 
 wheel:
-	@./scripts/build_wheel.sh
+	@./scripts/run_wheeler.sh
 
 make install: wheel
-	@pip install hyperon_das_atomdb_cpp*.whl --force-reinstall --no-cache-dir
+	@pip install ./dist/hyperon_das_atomdb_cpp*.whl --force-reinstall --no-cache-dir
 
