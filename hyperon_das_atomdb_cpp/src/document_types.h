@@ -5,6 +5,8 @@
  *
  * This header file contains the definitions of several classes that represent different types of
  * atomic entities and their relationships within the atom database. The classes include:
+ * - CustomAttributes: A type alias for `std::unordered_map<string, variant<string, long, double, bool>`.
+ * - KwArgs: A structure (POD type) containing boolean flags for various configuration options.
  * - Atom: Represents a basic atomic entity with attributes such as ID, handle, composite type hash,
  *   named type, and optional custom attributes.
  * - AtomType: Extends the Atom class by adding a named type hash attribute.
@@ -12,13 +14,6 @@
  *   attribute.
  * - Link: Represents a link in the atom database, encapsulating a composite type, named type hash,
  *   and a list of target hashes. It supports nested composite types and validates their structure.
- *
- * Each class provides constructors for initialization, comparison operators for equality checks,
- * and methods to convert the objects to string representations. The classes also include validation
- * mechanisms to ensure the integrity of the attributes.
- *
- * The file also defines several type aliases for vectors of these atomic entities, facilitating
- * their usage in collections.
  */
 #pragma once
 
