@@ -25,3 +25,4 @@ integration-tests:
 	@py.test -sx -vv ./tests/integration
 
 pre-commit: lint unit-tests-coverage unit-tests integration-tests
+
