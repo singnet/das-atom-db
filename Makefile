@@ -1,3 +1,4 @@
+
 isort:
 	@isort --settings-path .isort.cfg ./hyperon_das_atomdb ./tests
 
