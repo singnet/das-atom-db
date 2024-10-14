@@ -19,7 +19,6 @@
 #include "database.h"
 #include "document_types.h"
 #include "exceptions.h"
-#include "params.h"
 #include "type_aliases.h"
 
 using namespace std;
@@ -297,11 +296,23 @@ NB_MODULE(ext, m) {
         .def("to_dict", &helpers::atom_type_to_dict)
         .def(nb::self == nb::self);
     nb::class_<Node, Atom>(document_types, "Node")
-        .def(nb::init<const string&,  // _id,
-                      const string&,  // handle,
-                      const string&,  // composite_type_hash,
-                      const string&,  // named_type,
-                      const string&,  // name,
+        .def(
+            /**
+             * @note This constructor is intended to be used only when passing in the basic building
+             *       parameters to other functions. For creating complete new Node objects, use the
+             *       constructor with all parameters.
+             */
+            nb::init<const string&,  // type
+                     const string&,  // name
+                     const opt<const CustomAttributes>&>(),
+            "type"_a,
+            "name"_a,
+            "custom_attributes"_a = nullopt)
+        .def(nb::init<const string&,  // _id
+                      const string&,  // handle
+                      const string&,  // composite_type_hash
+                      const string&,  // named_type
+                      const string&,  // name
                       const opt<const CustomAttributes>&>(),
              "_id"_a,
              "handle"_a,
@@ -315,6 +326,18 @@ NB_MODULE(ext, m) {
         .def("to_dict", &helpers::node_to_dict)
         .def(nb::self == nb::self);
     nb::class_<Link, Atom>(document_types, "Link")
+        .def(
+            /**
+             * @note This constructor is intended to be used only when passing in the basic building
+             *       parameters to other functions. For creating complete new Link objects, use the
+             *       constructor with all parameters.
+             */
+            nb::init<const string&,                  // type
+                     const Link::TargetsDocuments&,  // targets_documents
+                     const opt<const CustomAttributes>&>(),
+            "type"_a,
+            "targets_documents"_a,
+            "custom_attributes"_a = nullopt)
         .def("__init__",
              &helpers::init_link,
              "_id"_a,
@@ -339,34 +362,5 @@ NB_MODULE(ext, m) {
         .def("__setstate__", &helpers::tuple_to_link)
         .def("to_dict", &helpers::link_to_dict)
         .def(nb::self == nb::self);
-    // ---------------------------------------------------------------------------------------------
-    // database submodule --------------------------------------------------------------------------
-    nb::module_ database = m.def_submodule("database");
-    nb::class_<NodeParams>(database, "NodeParams")
-        .def(nb::init<const string&, const string&, const opt<CustomAttributes>&>(),
-             "type"_a,
-             "name"_a,
-             "custom_attributes"_a = nullopt)
-        .def_rw("type", &NodeParams::type)
-        .def_rw("name", &NodeParams::name)
-        .def_rw("custom_attributes", &NodeParams::custom_attributes)
-        .def("to_string", &NodeParams::to_string)
-        .def("__str__", &NodeParams::to_string)
-        .def("__repr__", &NodeParams::to_string);
-    nb::class_<LinkParams>(database, "LinkParams")
-        .def(nb::init<const string&, const LinkParams::Targets&, const opt<CustomAttributes>&>(),
-             "type"_a,
-             "targets"_a,
-             "custom_attributes"_a = nullopt)
-        .def_rw("type", &LinkParams::type)
-        .def_rw("targets", &LinkParams::targets)
-        .def_rw("custom_attributes", &LinkParams::custom_attributes)
-        .def(
-            "add_target",
-            [](LinkParams& self, const LinkParams::Target& target) { self.targets.push_back(target); },
-            "target"_a)
-        .def("to_string", &LinkParams::to_string)
-        .def("__str__", &LinkParams::to_string)
-        .def("__repr__", &LinkParams::to_string);
     // ---------------------------------------------------------------------------------------------
 }

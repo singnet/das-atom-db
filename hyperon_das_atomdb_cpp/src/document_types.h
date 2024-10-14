@@ -25,12 +25,76 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
-#include "params.h"
+#include "type_aliases.h"
 
 using namespace std;
 
 namespace atomdb {
+
+using CustomAttributesKey = string;
+using CustomAttributesValue = variant<string, long, double, bool>;
+using CustomAttributes = unordered_map<CustomAttributesKey, CustomAttributesValue>;
+
+/**
+ * @brief Retrieves a custom attribute from the given custom attributes.
+ * @param custom_attributes The custom attributes map.
+ * @param key The key for the custom attribute to retrieve.
+ * @return An optional value of type T if the custom attribute exists.
+ */
+template <typename T>
+static const opt<T> get_custom_attribute(const CustomAttributes& custom_attributes,
+                                         const CustomAttributesKey& key) {
+    if (custom_attributes.find(key) != custom_attributes.end()) {
+        return std::get<T>(custom_attributes.at(key));
+    }
+    return nullopt;
+}
+
+/**
+ * @brief Converts custom attributes to a string representation.
+ * @param custom_attributes The custom attributes to be converted.
+ * @return A string representation of the custom attributes.
+ */
+static string custom_attributes_to_string(const CustomAttributes& custom_attributes) {
+    if (custom_attributes.empty()) {
+        return "{}";
+    }
+    string result = "{";
+    for (const auto& [key, value] : custom_attributes) {
+        result += key + ": ";
+        if (auto str = std::get_if<string>(&value)) {
+            result += "'" + *str + "'";
+        } else if (auto integer = std::get_if<long>(&value)) {
+            result += std::to_string(*integer);
+        } else if (auto floating = std::get_if<double>(&value)) {
+            result += std::to_string(*floating);
+        } else if (auto boolean = std::get_if<bool>(&value)) {
+            result += *boolean ? "true" : "false";
+        }
+        result += ", ";
+    }
+    result.pop_back();
+    result.pop_back();
+    result += "}";
+    return move(result);
+}
+
+/**
+ * @brief A Plain Old Data (POD) type representing various boolean flags for configuration options.
+ *
+ * This structure contains several boolean flags that control different aspects of the
+ * configuration, such as target formatting, document handling, representation depth,
+ * and scope of operation.
+ */
+struct KwArgs {
+    bool no_target_format = false;
+    bool targets_document = false;
+    bool deep_representation = false;
+    bool toplevel_only = false;
+    bool handles_only = false;
+};
 
 /**
  * @class Atom
@@ -47,12 +111,18 @@ class Atom {
     string handle;
     string composite_type_hash;
     string named_type;
-    opt<CustomAttributes> custom_attributes;
+    opt<CustomAttributes> custom_attributes = nullopt;
 
     /**
-     * @brief Default constructor for the Atom class.
+     * @brief Constructs an Atom with a named type and optional custom attributes.
+     * @param named_type The named type of the Atom.
+     * @param custom_attributes Optional custom attributes for the Atom.
+     * @note This constructor is intended to be used only when passing in the basic building
+     *       parameters to other functions. For creating complete new Atom objects, use the
+     *       constructor with all parameters.
      */
-    Atom() = default;
+    Atom(const string& named_type, const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : named_type(named_type), custom_attributes(custom_attributes) {}
 
     /**
      * @brief Constructs an Atom object with the given parameters.
@@ -72,17 +142,19 @@ class Atom {
           handle(handle),
           composite_type_hash(composite_type_hash),
           named_type(named_type),
-          custom_attributes(custom_attributes) {
-        if (id.empty()) {
+          custom_attributes(custom_attributes) {}
+
+    virtual void validate() const {
+        if (this->_id.empty()) {
             throw invalid_argument("Atom ID cannot be empty.");
         }
-        if (handle.empty()) {
+        if (this->handle.empty()) {
             throw invalid_argument("Atom handle cannot be empty.");
         }
-        if (composite_type_hash.empty()) {
+        if (this->composite_type_hash.empty()) {
             throw invalid_argument("Composite type hash cannot be empty.");
         }
-        if (named_type.empty()) {
+        if (this->named_type.empty()) {
             throw invalid_argument("Named type cannot be empty.");
         }
     }
@@ -132,11 +204,6 @@ class AtomType : public Atom {
     string named_type_hash;
 
     /**
-     * @brief Default constructor for the AtomType class.
-     */
-    AtomType() = default;
-
-    /**
      * @brief Constructs an AtomType object with the specified parameters.
      * @param id The identifier for the atom type.
      * @param handle The handle for the atom type.
@@ -153,8 +220,11 @@ class AtomType : public Atom {
              const string& named_type_hash,
              const opt<const CustomAttributes>& custom_attributes = nullopt)
         : named_type_hash(named_type_hash),
-          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
-        if (named_type_hash.empty()) {
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
+
+    void validate() const override {
+        Atom::validate();
+        if (this->named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
     }
@@ -191,9 +261,18 @@ class Node : public Atom {
     string name;
 
     /**
-     * @brief Default constructor for the Node class.
+     * @brief Constructs a Node with a type, name, and optional custom attributes.
+     * @param type The type of the Node.
+     * @param name The name of the Node.
+     * @param custom_attributes Optional custom attributes for the Node.
+     * @note This constructor is intended to be used only when passing in the basic building
+     *       parameters to other functions. For creating complete new Node objects, use the
+     *       constructor with all parameters.
      */
-    Node() = default;
+    Node(const string& type,
+         const string& name,
+         const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : name(name), Atom(type, custom_attributes) {}
 
     /**
      * @brief Constructs a Node object with the given parameters.
@@ -211,8 +290,11 @@ class Node : public Atom {
          const string& named_type,
          const string& name,
          const opt<const CustomAttributes>& custom_attributes = nullopt)
-        : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
-        if (name.empty()) {
+        : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
+
+    void validate() const override {
+        Atom::validate();
+        if (this->name.empty()) {
             throw invalid_argument("Node name cannot be empty.");
         }
     }
@@ -278,9 +360,20 @@ class Link : public Atom {
     opt<TargetsDocuments> targets_documents = nullopt;
 
     /**
-     * @brief Default constructor for the Link class.
+     * @brief Constructs a Link with a type, targets documents, and optional custom attributes.
+     * @param type The type of the Link.
+     * @param targets_documents The targets documents associated with the Link.
+     * @param custom_attributes Optional custom attributes for the Link.
+     * @note This constructor is intended to be used only when passing in the basic building
+     *       parameters to other functions. For creating complete new Link objects, use the
+     *       constructor with all parameters.
      */
-    Link() = default;
+    Link(const string& type,
+         const TargetsDocuments& targets_documents,
+         const opt<const CustomAttributes>& custom_attributes = nullopt)
+        : Atom(type, custom_attributes) {
+        this->copy_targets_documents(targets_documents);
+    }
 
     /**
      * @brief Constructs a Link object with the specified parameters.
@@ -313,29 +406,25 @@ class Link : public Atom {
           is_toplevel(is_toplevel),
           targets_documents(nullopt),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
-        if (composite_type.empty()) {
+        if (targets_documents.has_value()) {
+            this->copy_targets_documents(targets_documents.value());
+        }
+    }
+
+    void validate() const override {
+        Atom::validate();
+        if (this->composite_type.empty()) {
             throw invalid_argument("Composite type cannot be empty.");
         }
-        if (not Validator::validate_composite_type(composite_type)) {
+        if (not this->validate_composite_type(this->composite_type)) {
             throw invalid_argument(
                 "Invalid composite type. All elements must be strings or lists of strings.");
         }
-        if (named_type_hash.empty()) {
+        if (this->named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
-        if (targets.empty()) {
+        if (this->targets.empty()) {
             throw invalid_argument("Link targets cannot be empty.");
-        }
-        if (targets_documents.has_value()) {
-            this->targets_documents = TargetsDocuments();
-            this->targets_documents->reserve(targets_documents->size());
-            for (const auto& target : *(targets_documents)) {
-                if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
-                    this->targets_documents->push_back(make_shared<Node>(*node));
-                } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
-                    this->targets_documents->push_back(make_shared<Link>(*link));
-                }
-            }
         }
     }
 
@@ -419,40 +508,47 @@ class Link : public Atom {
 
    private:
     /**
-     * @struct Validator
-     * @brief Provides validation functions for composite types.
-     *
-     * The Validator struct contains static methods to validate the structure of composite types,
-     * ensuring that elements are either strings or nested lists of the same type.
+     * @brief Copies the targets documents.
+     * @param targets_documents The targets documents to be copied.
      */
-    struct Validator {
-        /**
-         * @brief Validates the structure of a composite type.
-         *
-         * This function checks whether the given composite type adheres to the expected structure.
-         * A composite type is a list where each element can be either a string or another list of
-         * the same type. The function ensures that all elements in the composite type meet these
-         * criteria.
-         *
-         * @param composite_type A list of elements of type std::any representing the composite type
-         *                       to be validated.
-         * @return true if the composite type is valid, false otherwise.
-         */
-        static bool validate_composite_type(const ListOfAny& composite_type) {
-            for (const auto& element : composite_type) {
-                if (auto str = any_cast<string>(&element)) {
-                    continue;
-                } else if (auto list = any_cast<ListOfAny>(&element)) {
-                    if (not Validator::validate_composite_type(*list)) {
-                        return false;
-                    }
-                } else {
+    void copy_targets_documents(const TargetsDocuments& targets_documents) {
+        this->targets_documents = TargetsDocuments();
+        this->targets_documents->reserve(targets_documents.size());
+        for (const auto& target : targets_documents) {
+            if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+                this->targets_documents->push_back(make_shared<Node>(*node));
+            } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+                this->targets_documents->push_back(make_shared<Link>(*link));
+            }
+        }
+    }
+
+    /**
+     * @brief Validates the structure of a composite type.
+     *
+     * This function checks whether the given composite type adheres to the expected structure.
+     * A composite type is a list where each element can be either a string or another list of
+     * the same type. The function ensures that all elements in the composite type meet these
+     * criteria.
+     *
+     * @param composite_type A list of elements of type std::any representing the composite type
+     *                       to be validated.
+     * @return true if the composite type is valid, false otherwise.
+     */
+    static bool validate_composite_type(const ListOfAny& composite_type) {
+        for (const auto& element : composite_type) {
+            if (auto str = any_cast<string>(&element)) {
+                continue;
+            } else if (auto list = any_cast<ListOfAny>(&element)) {
+                if (not Link::validate_composite_type(*list)) {
                     return false;
                 }
+            } else {
+                return false;
             }
-            return true;
         }
-    };
+        return true;
+    }
 };
 
 using AtomList = vector<Atom>;

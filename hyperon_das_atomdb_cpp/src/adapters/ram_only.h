@@ -156,9 +156,9 @@ class InMemoryDB : public AtomDB {
 
     void clear_database() override;
 
-    const shared_ptr<const Node> add_node(const NodeParams& node_params) override;
+    const shared_ptr<const Node> add_node(const Node& node_params) override;
 
-    const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
+    const shared_ptr<const Link> add_link(const Link& link_params, bool toplevel = true) override;
 
     void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
                      pattern_index_templates) override;

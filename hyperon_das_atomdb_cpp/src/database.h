@@ -33,7 +33,6 @@
 #include "constants.h"
 #include "document_types.h"
 #include "exceptions.h"
-#include "params.h"
 #include "type_aliases.h"
 #include "utils/expression_hasher.h"
 
@@ -314,7 +313,7 @@ class AtomDB {
      * @param node_params A NodeParams object containing the parameters for the node.
      * @return A const shared pointer to a Node object.
      */
-    virtual const shared_ptr<const Node> add_node(const NodeParams& node_params) = 0;
+    virtual const shared_ptr<const Node> add_node(const Node& node_params) = 0;
 
     /**
      * @brief Adds a link to the database.
@@ -322,8 +321,7 @@ class AtomDB {
      * @param toplevel A boolean indicating whether the link is a top-level link (default is true).
      * @return A const shared pointer to a Link object.
      */
-    virtual const shared_ptr<const Link> add_link(const LinkParams& link_params,
-                                                  bool toplevel = true) = 0;
+    virtual const shared_ptr<const Link> add_link(const Link& link_params, bool toplevel = true) = 0;
 
     /**
      * @brief Reindexes the inverted pattern index according to the passed templates.
@@ -439,7 +437,7 @@ class AtomDB {
      * @param node_params A NodeParams object containing the parameters for the node.
      * @return A shared pointer to a Node object.
      */
-    shared_ptr<Node> _build_node(const NodeParams& node_params);
+    shared_ptr<Node> _build_node(const Node& node_params);
 
     /**
      * @brief Builds a link with the specified parameters.
@@ -447,7 +445,7 @@ class AtomDB {
      * @param is_toplevel A boolean indicating whether the link is a top-level link.
      * @return A shared pointer to a Link object.
      */
-    virtual shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true);
+    virtual shared_ptr<Link> _build_link(const Link& link_params, bool is_toplevel = true);
 
     /**
      * @brief Retrieves an atom from the database using its handle.

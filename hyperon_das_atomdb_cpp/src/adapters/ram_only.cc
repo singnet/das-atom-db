@@ -274,7 +274,7 @@ void InMemoryDB::clear_database() {
 }
 
 //------------------------------------------------------------------------------
-const shared_ptr<const Node> InMemoryDB::add_node(const NodeParams& node_params) {
+const shared_ptr<const Node> InMemoryDB::add_node(const Node& node_params) {
     auto node = this->_build_node(node_params);
     this->db.node[node->handle] = node;
     this->_update_index(*node);
@@ -282,7 +282,7 @@ const shared_ptr<const Node> InMemoryDB::add_node(const NodeParams& node_params)
 }
 
 //------------------------------------------------------------------------------
-const shared_ptr<const Link> InMemoryDB::add_link(const LinkParams& link_params, bool toplevel) {
+const shared_ptr<const Link> InMemoryDB::add_link(const Link& link_params, bool toplevel) {
     auto link = this->_build_link(link_params, toplevel);
     this->db.link[link->handle] = link;
     this->_update_index(*link);

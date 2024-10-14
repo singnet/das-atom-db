@@ -115,11 +115,11 @@ struct AtomDBTrampoline : AtomDB {
 
     void clear_database() override { NB_OVERRIDE_PURE(clear_database); }
 
-    const shared_ptr<const Node> add_node(const NodeParams& node_params) override {
+    const shared_ptr<const Node> add_node(const Node& node_params) override {
         NB_OVERRIDE_PURE(add_node, node_params);
     }
 
-    const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override {
+    const shared_ptr<const Link> add_link(const Link& link_params, bool toplevel = true) override {
         NB_OVERRIDE_PURE(add_link, link_params, toplevel);
     }
 
@@ -154,7 +154,7 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(_get_atom, handle);
     }
 
-    shared_ptr<Link> _build_link(const LinkParams& link_params, bool is_toplevel = true) override {
+    shared_ptr<Link> _build_link(const Link& link_params, bool is_toplevel = true) override {
         NB_OVERRIDE(_build_link, link_params, is_toplevel);
     }
 };

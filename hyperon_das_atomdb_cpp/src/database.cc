@@ -77,8 +77,8 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
 // PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
-    const auto& node_type = node_params.type;
+shared_ptr<Node> AtomDB::_build_node(const Node& node_params) {
+    const auto& node_type = node_params.named_type;
     const auto& node_name = node_params.name;
     if (node_type.empty() or node_name.empty()) {
         // TODO: log error ???
@@ -87,18 +87,25 @@ shared_ptr<Node> AtomDB::_build_node(const NodeParams& node_params) {
     }
     string handle = this->build_node_handle(node_type, node_name);
     string composite_type_hash = ExpressionHasher::named_type_hash(node_type);
-    return make_shared<Node>(handle,               // id
-                             handle,               // handle
-                             composite_type_hash,  // composite_type_hash
-                             node_type,            // named_type
-                             node_name,            // name
-                             node_params.custom_attributes);
+    auto node = make_shared<Node>(handle,               // id
+                                  handle,               // handle
+                                  composite_type_hash,  // composite_type_hash
+                                  node_type,            // named_type
+                                  node_name,            // name
+                                  node_params.custom_attributes);
+    node->validate();
+    return move(node);
 }
 
 //------------------------------------------------------------------------------
-shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_toplevel) {
-    const auto& link_type = link_params.type;
-    const auto& targets = link_params.targets;
+shared_ptr<Link> AtomDB::_build_link(const Link& link_params, bool is_toplevel) {
+    if (not link_params.targets_documents.has_value()) {
+        throw AddLinkException("targets_documents is required.",
+                               "link_params: " + link_params.to_string() +
+                                   ", is_toplevel: " + (is_toplevel ? "true" : "false"));
+    }
+    const auto& link_type = link_params.named_type;
+    const auto& targets = link_params.targets_documents.value();
     if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
         throw AddLinkException("'type' and 'targets' are required.",
@@ -112,12 +119,12 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_topl
     string atom_hash;
     string atom_handle;
     for (const auto& target : targets) {
-        if (auto node_params = get_if<NodeParams>(&target)) {
+        if (const auto& node_params = dynamic_pointer_cast<const Node>(target)) {
             auto node = this->add_node(*node_params);
             atom_handle = node->_id;
             atom_hash = node->composite_type_hash;
             composite_type_list.push_back(atom_hash);
-        } else if (auto link_params = get_if<LinkParams>(&target)) {
+        } else if (const auto& link_params = dynamic_pointer_cast<const Link>(target)) {
             auto link = this->add_link(*link_params, false);
             atom_handle = link->_id;
             atom_hash = link->composite_type_hash;
@@ -142,6 +149,6 @@ shared_ptr<Link> AtomDB::_build_link(const LinkParams& link_params, bool is_topl
                                   is_toplevel,          // is_toplevel
                                   nullopt,              // targets_documents
                                   link_params.custom_attributes);
-
+    link->validate();
     return move(link);
 }
