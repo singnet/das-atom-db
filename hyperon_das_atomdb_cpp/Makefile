@@ -11,6 +11,6 @@ format:
 wheel:
 	@./scripts/run_wheeler.sh
 
-make install: wheel
+install: wheel
 	@pip install ./dist/hyperon_das_atomdb_cpp*.whl --force-reinstall --no-cache-dir
 
