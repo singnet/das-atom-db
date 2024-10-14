@@ -278,18 +278,18 @@ NB_MODULE(ext, m) {
         .def("to_dict", &helpers::atom_to_dict)
         .def(nb::self == nb::self);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
-        .def(nb::init<const string&,  // _id,
-                      const string&,  // handle,
-                      const string&,  // composite_type_hash,
-                      const string&,  // named_type,
-                      const string&,  // named_type_hash,
-                      const opt<const CustomAttributes>&>(),
+        .def(nb::init<const string&,  // _id
+                      const string&,  // handle
+                      const string&,  // composite_type_hash
+                      const string&,  // named_type
+                      const string&,  // named_type_hash
+                      const CustomAttributes&>(),
              "_id"_a,
              "handle"_a,
              "composite_type_hash"_a,
              "named_type"_a,
              "named_type_hash"_a,
-             "custom_attributes"_a = nullopt)
+             "custom_attributes"_a = CustomAttributes{})
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__", &helpers::atom_type_to_tuple)
         .def("__setstate__", &helpers::tuple_to_atom_type)
@@ -304,22 +304,22 @@ NB_MODULE(ext, m) {
              */
             nb::init<const string&,  // type
                      const string&,  // name
-                     const opt<const CustomAttributes>&>(),
+                     const CustomAttributes&>(),
             "type"_a,
             "name"_a,
-            "custom_attributes"_a = nullopt)
+            "custom_attributes"_a = CustomAttributes{})
         .def(nb::init<const string&,  // _id
                       const string&,  // handle
                       const string&,  // composite_type_hash
                       const string&,  // named_type
                       const string&,  // name
-                      const opt<const CustomAttributes>&>(),
+                      const CustomAttributes&>(),
              "_id"_a,
              "handle"_a,
              "composite_type_hash"_a,
              "named_type"_a,
              "name"_a,
-             "custom_attributes"_a = nullopt)
+             "custom_attributes"_a = CustomAttributes{})
         .def_ro("name", &Node::name)
         .def("__getstate__", &helpers::node_to_tuple)
         .def("__setstate__", &helpers::tuple_to_node)
@@ -334,10 +334,10 @@ NB_MODULE(ext, m) {
              */
             nb::init<const string&,                  // type
                      const Link::TargetsDocuments&,  // targets_documents
-                     const opt<const CustomAttributes>&>(),
+                     const CustomAttributes&>(),     // custom_attributes
             "type"_a,
             "targets_documents"_a,
-            "custom_attributes"_a = nullopt)
+            "custom_attributes"_a = CustomAttributes{})
         .def("__init__",
              &helpers::init_link,
              "_id"_a,
@@ -348,8 +348,8 @@ NB_MODULE(ext, m) {
              "named_type_hash"_a,
              "targets"_a,
              "is_toplevel"_a,
-             "targets_documents"_a = nullopt,
-             "custom_attributes"_a = nullopt)
+             "custom_attributes"_a = CustomAttributes{},
+             "targets_documents"_a = nullopt)
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return helpers::composite_type_to_pylist(self.composite_type);

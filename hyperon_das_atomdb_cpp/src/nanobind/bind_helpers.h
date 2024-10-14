@@ -36,35 +36,35 @@ using CustomAttributesTuple =       // Tuple for CustomAttributes
                BoolUnorderedMap     // booleans
                >;
 
-using AtomTypeTuple =                 // Tuple for AtomType
-    std::tuple<string,                // _id
-               string,                // handle
-               string,                // composite_type_hash
-               string,                // named_type
-               string,                // named_type_hash
-               opt<CustomAttributes>  // custom_attributes
+using AtomTypeTuple =            // Tuple for AtomType
+    std::tuple<string,           // _id
+               string,           // handle
+               string,           // composite_type_hash
+               string,           // named_type
+               string,           // named_type_hash
+               CustomAttributes  // custom_attributes
                >;
 
-using NodeTuple =                     // Tuple for Node
-    std::tuple<string,                // _id
-               string,                // handle
-               string,                // composite_type_hash
-               string,                // named_type
-               string,                // name
-               opt<CustomAttributes>  // custom_attributes
+using NodeTuple =                // Tuple for Node
+    std::tuple<string,           // _id
+               string,           // handle
+               string,           // composite_type_hash
+               string,           // named_type
+               string,           // name
+               CustomAttributes  // custom_attributes
                >;
 
-using LinkTuple =                            // Tuple for Link
-    std::tuple<string,                       // _id
-               string,                       // handle
-               string,                       // composite_type_hash
-               string,                       // named_type
-               nb::list,                     // composite_type
-               string,                       // named_type_hash
-               vector<string>,               // targets
-               bool,                         // is_toplevel
-               opt<Link::TargetsDocuments>,  // targets_documents
-               opt<CustomAttributes>         // custom_attributes
+using LinkTuple =                           // Tuple for Link
+    std::tuple<string,                      // _id
+               string,                      // handle
+               string,                      // composite_type_hash
+               string,                      // named_type
+               nb::list,                    // composite_type
+               string,                      // named_type_hash
+               vector<string>,              // targets
+               bool,                        // is_toplevel
+               CustomAttributes,            // custom_attributes
+               opt<Link::TargetsDocuments>  // targets_documents
                >;
 
 /**
@@ -159,9 +159,9 @@ static nb::dict link_to_dict(const Link& self) {
     if (self.targets_documents.has_value()) {
         nb::list targets_documents;
         for (const auto& target : *self.targets_documents) {
-            if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+            if (auto node = std::get_if<Node>(&target)) {
                 targets_documents.append(node_to_dict(*node));
-            } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+            } else if (auto link = std::get_if<Link>(&target)) {
                 targets_documents.append(link_to_dict(*link));
             }
         }
@@ -244,8 +244,8 @@ static LinkTuple link_to_tuple(const Link& link) {
                            link.named_type_hash,
                            link.targets,
                            link.is_toplevel,
-                           link.targets_documents,
-                           link.custom_attributes);
+                           link.custom_attributes,
+                           link.targets_documents);
 }
 
 /**
@@ -290,8 +290,8 @@ static void init_link(Link& self,
                       const string& named_type_hash,
                       const vector<string>& targets,
                       bool is_toplevel,
-                      const opt<const Link::TargetsDocuments>& targets_documents = nullopt,
-                      const opt<const CustomAttributes>& custom_attributes = nullopt) {
+                      const CustomAttributes& custom_attributes = {},
+                      const opt<const Link::TargetsDocuments>& targets_documents = nullopt) {
     new (&self) Link(_id,
                      handle,
                      composite_type_hash,
@@ -300,8 +300,8 @@ static void init_link(Link& self,
                      named_type_hash,
                      targets,
                      is_toplevel,
-                     targets_documents,
-                     custom_attributes);
+                     custom_attributes,
+                     targets_documents);
 }
 
 }  // namespace bind_helpers

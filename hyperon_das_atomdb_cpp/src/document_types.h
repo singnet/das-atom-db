@@ -106,7 +106,9 @@ class Atom {
     string handle;
     string composite_type_hash;
     string named_type;
-    opt<CustomAttributes> custom_attributes = nullopt;
+    CustomAttributes custom_attributes = {};
+
+    Atom() = default;
 
     /**
      * @brief Constructs an Atom with a named type and optional custom attributes.
@@ -116,7 +118,7 @@ class Atom {
      *       parameters to other functions. For creating complete new Atom objects, use the
      *       constructor with all parameters.
      */
-    Atom(const string& named_type, const opt<const CustomAttributes>& custom_attributes = nullopt)
+    Atom(const string& named_type, const CustomAttributes& custom_attributes = {})
         : named_type(named_type), custom_attributes(custom_attributes) {}
 
     /**
@@ -132,7 +134,7 @@ class Atom {
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const opt<const CustomAttributes>& custom_attributes = nullopt)
+         const CustomAttributes& custom_attributes = {})
         : _id(id),
           handle(handle),
           composite_type_hash(composite_type_hash),
@@ -179,9 +181,7 @@ class Atom {
         result += ", composite_type_hash: '" + this->composite_type_hash + "'";
         result += ", named_type: '" + this->named_type + "'";
         result += ", custom_attributes: ";
-        result += (this->custom_attributes.has_value()
-                       ? custom_attributes_to_string(this->custom_attributes.value())
-                       : "NULL");
+        result += custom_attributes_to_string(this->custom_attributes);
         return move(result);
     }
 };
@@ -198,6 +198,8 @@ class AtomType : public Atom {
    public:
     string named_type_hash;
 
+    AtomType() = default;
+
     /**
      * @brief Constructs an AtomType object with the specified parameters.
      * @param id The identifier for the atom type.
@@ -213,7 +215,7 @@ class AtomType : public Atom {
              const string& composite_type_hash,
              const string& named_type,
              const string& named_type_hash,
-             const opt<const CustomAttributes>& custom_attributes = nullopt)
+             const CustomAttributes& custom_attributes = {})
         : named_type_hash(named_type_hash),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
 
@@ -255,6 +257,8 @@ class Node : public Atom {
    public:
     string name;
 
+    Node() = default;
+
     /**
      * @brief Constructs a Node with a type, name, and optional custom attributes.
      * @param type The type of the Node.
@@ -263,10 +267,25 @@ class Node : public Atom {
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Node objects, use the
      *       constructor with all parameters.
+     *
+     * Usage:
+     * ```
+     * auto db = AtomDB();
+     * shared_ptr<Node> node1 = db.add_node(Node("Concept", "monkey"));
+     * shared_ptr<Node> node2 = db.add_node(
+     *     Node(
+     *         "Concept",                                 // type
+     *         "human",                                   // name
+     *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes (optional)
+     *     )
+     * );
+     * bool node2_is_immutable = (
+     *      node2->custom_attributes.has_value() and
+     *      get_custom_attribute<bool>(node2->custom_attributes.value(), "immutable").value_or(false)
+     * );
+     * ```
      */
-    Node(const string& type,
-         const string& name,
-         const opt<const CustomAttributes>& custom_attributes = nullopt)
+    Node(const string& type, const string& name, const CustomAttributes& custom_attributes = {})
         : name(name), Atom(type, custom_attributes) {}
 
     /**
@@ -284,7 +303,7 @@ class Node : public Atom {
          const string& composite_type_hash,
          const string& named_type,
          const string& name,
-         const opt<const CustomAttributes>& custom_attributes = nullopt)
+         const CustomAttributes& custom_attributes = {})
         : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
 
     void validate() const override {
@@ -325,8 +344,7 @@ class Node : public Atom {
  */
 class Link : public Atom {
    public:
-    /// @brief Alias for a vector of shared pointers to constant Atom objects.
-    using TargetsDocuments = vector<shared_ptr<const Atom>>;
+    using TargetsDocuments = vector<variant<Node, Link>>;
 
     /**
      * `composite_type` is designed to hold a list of elements, where each element can either be a
@@ -354,6 +372,8 @@ class Link : public Atom {
     bool is_toplevel = true;
     opt<TargetsDocuments> targets_documents = nullopt;
 
+    Link() = default;
+
     /**
      * @brief Constructs a Link with a type, targets documents, and optional custom attributes.
      * @param type The type of the Link.
@@ -362,13 +382,31 @@ class Link : public Atom {
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Link objects, use the
      *       constructor with all parameters.
+     *
+     * Usage:
+     * ```
+     * auto db = AtomDB();
+     * auto link = db.add_link(
+     *     Link(
+     *         "Similarity",                       // type
+     *         {                                   // targets
+     *             {Node("Concept", "monkey")},    // a node as a target of Similarity link
+     *             {Node("Concept", "human")},     // another node as a target of Similarity link
+     *             {                               // a link as a target of Similarity link
+     *                 Link("Dummicity",  // type
+     *                      { {Node("Concept", "dummy1")}, {Node("Concept", "dummy2")}  // targets
+     *                 )
+     *             }
+     *         },
+     *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes (optional)
+     *     )
+     * );
+     * ```
      */
     Link(const string& type,
          const TargetsDocuments& targets_documents,
-         const opt<const CustomAttributes>& custom_attributes = nullopt)
-        : Atom(type, custom_attributes) {
-        this->copy_targets_documents(targets_documents);
-    }
+         const CustomAttributes& custom_attributes = {})
+        : targets_documents(targets_documents), Atom(type, custom_attributes) {}
 
     /**
      * @brief Constructs a Link object with the specified parameters.
@@ -382,8 +420,6 @@ class Link : public Atom {
      * @param is_toplevel Boolean indicating if the link is top-level.
      * @param targets_documents Optional targets documents.
      * @param custom_attributes Optional custom attributes.
-     * @throws invalid_argument if composite_type is empty, composite_type is invalid, named_type_hash
-     * is empty, or targets is empty.
      */
     Link(const string& id,
          const string& handle,
@@ -393,19 +429,19 @@ class Link : public Atom {
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_toplevel,
-         const opt<const TargetsDocuments>& targets_documents = nullopt,
-         const opt<const CustomAttributes>& custom_attributes = nullopt)
+         const CustomAttributes& custom_attributes = {},
+         const opt<const TargetsDocuments>& targets_documents = nullopt)
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
           is_toplevel(is_toplevel),
-          targets_documents(nullopt),
-          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {
-        if (targets_documents.has_value()) {
-            this->copy_targets_documents(targets_documents.value());
-        }
-    }
+          targets_documents(targets_documents),
+          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
 
+    /**
+     * @brief Validates the attributes of the object.
+     * @throws std::invalid_argument if any attribute is invalid.
+     */
     void validate() const override {
         Atom::validate();
         if (this->composite_type.empty()) {
@@ -462,9 +498,9 @@ class Link : public Atom {
             result += "[";
             if (not this->targets_documents->empty()) {
                 for (const auto& target : *(this->targets_documents)) {
-                    if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
+                    if (auto node = std::get_if<Node>(&target)) {
                         result += string(node->to_string()) + ", ";
-                    } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
+                    } else if (auto link = std::get_if<Link>(&target)) {
                         result += string(link->to_string()) + ", ";
                     }
                 }
@@ -502,22 +538,6 @@ class Link : public Atom {
     }
 
    private:
-    /**
-     * @brief Copies the targets documents.
-     * @param targets_documents The targets documents to be copied.
-     */
-    void copy_targets_documents(const TargetsDocuments& targets_documents) {
-        this->targets_documents = TargetsDocuments();
-        this->targets_documents->reserve(targets_documents.size());
-        for (const auto& target : targets_documents) {
-            if (const auto& node = dynamic_pointer_cast<const Node>(target)) {
-                this->targets_documents->push_back(make_shared<Node>(*node));
-            } else if (const auto& link = dynamic_pointer_cast<const Link>(target)) {
-                this->targets_documents->push_back(make_shared<Link>(*link));
-            }
-        }
-    }
-
     /**
      * @brief Validates the structure of a composite type.
      *
