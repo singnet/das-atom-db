@@ -152,9 +152,6 @@ class InMemoryDB : public AtomDB {
 
     const opt<const string> get_atom_type(const string& handle) const override;
 
-    // const unordered_map<string, anything> get_atom_as_dict(const string& handle,
-    //                                                   int arity = 0) const override;
-
     const unordered_map<string, int> count_atoms() const override;
 
     void clear_database() override;
