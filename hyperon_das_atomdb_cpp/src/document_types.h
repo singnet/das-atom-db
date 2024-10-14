@@ -112,50 +112,9 @@ class Atom {
         result += ", composite_type_hash: '" + this->composite_type_hash + "'";
         result += ", named_type: '" + this->named_type + "'";
         result += ", custom_attributes: ";
-        if (this->custom_attributes.has_value()) {
-            result += "CustomAttributes(";
-            if (not this->custom_attributes->strings.empty()) {
-                result += "strings: {";
-                for (const auto& [key, value] : this->custom_attributes->strings) {
-                    result += key + ": '" + value + "', ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->integers.empty()) {
-                result += "integers: {";
-                for (const auto& [key, value] : this->custom_attributes->integers) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->floats.empty()) {
-                result += "floats: {";
-                for (const auto& [key, value] : this->custom_attributes->floats) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->booleans.empty()) {
-                result += "booleans: {";
-                for (const auto& [key, value] : this->custom_attributes->booleans) {
-                    result += key + ": " + (value ? "true" : "false") + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            result.pop_back();
-            result.pop_back();
-            result += ")";
-        } else {
-            result += "NULL";
-        }
+        result += (this->custom_attributes.has_value()
+                       ? custom_attributes_to_string(this->custom_attributes.value())
+                       : "NULL");
         return move(result);
     }
 };

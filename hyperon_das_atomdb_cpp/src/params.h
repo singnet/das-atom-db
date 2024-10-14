@@ -29,6 +29,54 @@ using namespace std;
 
 namespace atomdb {
 
+using CustomAttributesKey = string;
+using CustomAttributesValue = variant<string, long, double, bool>;
+using CustomAttributes = unordered_map<CustomAttributesKey, CustomAttributesValue>;
+
+/**
+ * @brief Retrieves a custom attribute from the given custom attributes.
+ * @param custom_attributes The custom attributes map.
+ * @param key The key for the custom attribute to retrieve.
+ * @return An optional value of type T if the custom attribute exists.
+ */
+template <typename T>
+static const opt<T> get_custom_attribute(const CustomAttributes& custom_attributes,
+                                         const CustomAttributesKey& key) {
+    if (custom_attributes.find(key) != custom_attributes.end()) {
+        return std::get<T>(custom_attributes.at(key));
+    }
+    return nullopt;
+}
+
+/**
+ * @brief Converts custom attributes to a string representation.
+ * @param custom_attributes The custom attributes to be converted.
+ * @return A string representation of the custom attributes.
+ */
+static string custom_attributes_to_string(const CustomAttributes& custom_attributes) {
+    if (custom_attributes.empty()) {
+        return "{}";
+    }
+    string result = "{";
+    for (const auto& [key, value] : custom_attributes) {
+        result += key + ": ";
+        if (auto str = std::get_if<string>(&value)) {
+            result += "'" + *str + "'";
+        } else if (auto integer = std::get_if<long>(&value)) {
+            result += std::to_string(*integer);
+        } else if (auto floating = std::get_if<double>(&value)) {
+            result += std::to_string(*floating);
+        } else if (auto boolean = std::get_if<bool>(&value)) {
+            result += *boolean ? "true" : "false";
+        }
+        result += ", ";
+    }
+    result.pop_back();
+    result.pop_back();
+    result += "}";
+    return move(result);
+}
+
 /**
  * @brief A Plain Old Data (POD) type representing various boolean flags for configuration options.
  *
@@ -42,29 +90,6 @@ struct KwArgs {
     bool deep_representation = false;
     bool toplevel_only = false;
     bool handles_only = false;
-};
-
-/**
- * @brief A Plain Old Data (POD) type which holds custom attributes categorized by type.
- *
- * This structure contains unordered maps for storing string, integer, float, and boolean attributes.
- * It also provides an equality operator to compare two CustomAttributes objects.
- */
-struct CustomAttributes {
-    StringUnorderedMap strings = {};
-    IntUnorderedMap integers = {};
-    FloatUnorderedMap floats = {};
-    BoolUnorderedMap booleans = {};
-
-    /**
-     * @brief Compares this CustomAttributes object with another for equality.
-     * @param other The CustomAttributes object to compare against.
-     * @return true if all attributes (strings, integers, floats, booleans) are equal, false otherwise.
-     */
-    bool operator==(const CustomAttributes& other) const noexcept {
-        return this->strings == other.strings and this->integers == other.integers and
-               this->floats == other.floats and this->booleans == other.booleans;
-    }
 };
 
 /**
@@ -88,52 +113,11 @@ struct NodeParams {
         result += "type: '" + this->type + "'";
         result += ", name: '" + this->name + "'";
         result += ", custom_attributes: ";
-        if (this->custom_attributes.has_value()) {
-            result += "CustomAttributes(";
-            if (not this->custom_attributes->strings.empty()) {
-                result += "strings: {";
-                for (const auto& [key, value] : this->custom_attributes->strings) {
-                    result += key + ": '" + value + "', ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->integers.empty()) {
-                result += "integers: {";
-                for (const auto& [key, value] : this->custom_attributes->integers) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->floats.empty()) {
-                result += "floats: {";
-                for (const auto& [key, value] : this->custom_attributes->floats) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->booleans.empty()) {
-                result += "booleans: {";
-                for (const auto& [key, value] : this->custom_attributes->booleans) {
-                    result += key + ": " + (value ? "true" : "false") + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            result.pop_back();
-            result.pop_back();
-            result += ")";
-        } else {
-            result += "None";
-        }
+        result += (this->custom_attributes.has_value()
+                       ? custom_attributes_to_string(this->custom_attributes.value())
+                       : "NULL");
         result += ")";
-        return result;
+        return move(result);
     }
 };
 
@@ -158,9 +142,9 @@ struct LinkParams {
         result += "[";
         if (not this->targets.empty()) {
             for (const auto& target : this->targets) {
-                if (auto node_params = get_if<NodeParams>(&target)) {
+                if (auto node_params = std::get_if<NodeParams>(&target)) {
                     result += node_params->to_string() + ", ";
-                } else if (auto link_params = get_if<LinkParams>(&target)) {
+                } else if (auto link_params = std::get_if<LinkParams>(&target)) {
                     result += link_params->to_string() + ", ";
                 }
             }
@@ -168,54 +152,12 @@ struct LinkParams {
             result.pop_back();
         }
         result += "]";
-
         result += ", custom_attributes: ";
-        if (this->custom_attributes.has_value()) {
-            result += "CustomAttributes(";
-            if (not this->custom_attributes->strings.empty()) {
-                result += "strings: {";
-                for (const auto& [key, value] : this->custom_attributes->strings) {
-                    result += key + ": '" + value + "', ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->integers.empty()) {
-                result += "integers: {";
-                for (const auto& [key, value] : this->custom_attributes->integers) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->floats.empty()) {
-                result += "floats: {";
-                for (const auto& [key, value] : this->custom_attributes->floats) {
-                    result += key + ": " + std::to_string(value) + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            if (not this->custom_attributes->booleans.empty()) {
-                result += "booleans: {";
-                for (const auto& [key, value] : this->custom_attributes->booleans) {
-                    result += key + ": " + (value ? "true" : "false") + ", ";
-                }
-                result.pop_back();
-                result.pop_back();
-                result += "}, ";
-            }
-            result.pop_back();
-            result.pop_back();
-            result += ")";
-        } else {
-            result += "None";
-        }
+        result += (this->custom_attributes.has_value()
+                       ? custom_attributes_to_string(this->custom_attributes.value())
+                       : "NULL");
         result += ")";
-        return result;
+        return move(result);
     }
 };
 

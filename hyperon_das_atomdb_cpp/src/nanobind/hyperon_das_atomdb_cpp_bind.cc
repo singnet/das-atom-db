@@ -342,21 +342,6 @@ NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
     // database submodule --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
-    nb::class_<CustomAttributes>(database, "CustomAttributes")
-        .def(nb::init<const StringUnorderedMap&,
-                      const IntUnorderedMap&,
-                      const FloatUnorderedMap&,
-                      const BoolUnorderedMap&>(),
-             "strings"_a = StringUnorderedMap(),
-             "integers"_a = IntUnorderedMap(),
-             "floats"_a = FloatUnorderedMap(),
-             "booleans"_a = BoolUnorderedMap())
-        .def_rw("strings", &CustomAttributes::strings)
-        .def_rw("integers", &CustomAttributes::integers)
-        .def_rw("floats", &CustomAttributes::floats)
-        .def_rw("booleans", &CustomAttributes::booleans)
-        .def("__getstate__", &helpers::custom_attributes_to_tuple)
-        .def("__setstate__", &helpers::tuple_to_custom_attributes);
     nb::class_<NodeParams>(database, "NodeParams")
         .def(nb::init<const string&, const string&, const opt<CustomAttributes>&>(),
              "type"_a,

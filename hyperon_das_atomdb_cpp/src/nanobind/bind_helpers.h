@@ -119,16 +119,7 @@ static nb::dict atom_to_dict(const Atom& self) {
     dict["handle"] = self.handle;
     dict["composite_type_hash"] = self.composite_type_hash;
     dict["named_type"] = self.named_type;
-    if (self.custom_attributes.has_value()) {
-        nb::dict custom_attributes;
-        custom_attributes["strings"] = self.custom_attributes->strings;
-        custom_attributes["integers"] = self.custom_attributes->integers;
-        custom_attributes["floats"] = self.custom_attributes->floats;
-        custom_attributes["booleans"] = self.custom_attributes->booleans;
-        dict["custom_attributes"] = move(custom_attributes);
-    } else {
-        dict["custom_attributes"] = nullptr;
-    }
+    dict["custom_attributes"] = self.custom_attributes;
     return move(dict);
 };
 
@@ -180,33 +171,6 @@ static nb::dict link_to_dict(const Link& self) {
     }
     return move(dict);
 };
-
-/**
- * @brief Converts CustomAttributes to a CustomAttributesTuple.
- * @param custom_attributes The CustomAttributes to be converted.
- * @return A CustomAttributesTuple containing the attributes of the CustomAttributes.
- */
-static CustomAttributesTuple custom_attributes_to_tuple(const CustomAttributes& custom_attributes) {
-    return make_tuple(custom_attributes.strings,
-                      custom_attributes.integers,
-                      custom_attributes.floats,
-                      custom_attributes.booleans);
-}
-
-/**
- * @brief Converts a CustomAttributesTuple to CustomAttributes.
- * @param custom_attributes The CustomAttributes object to be updated.
- * @param state The CustomAttributesTuple containing the new state.
- */
-static void tuple_to_custom_attributes(CustomAttributes& custom_attributes,
-                                       const CustomAttributesTuple& state) {
-    new (&custom_attributes) CustomAttributes({
-        strings : std::get<0>(state),
-        integers : std::get<1>(state),
-        floats : std::get<2>(state),
-        booleans : std::get<3>(state)
-    });
-}
 
 /**
  * @brief Converts an AtomType object to an AtomTypeTuple.
