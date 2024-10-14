@@ -349,7 +349,7 @@ NB_MODULE(ext, m) {
              "targets"_a,
              "is_toplevel"_a,
              "custom_attributes"_a = CustomAttributes{},
-             "targets_documents"_a = nullopt)
+             "targets_documents"_a = Link::TargetsDocuments{})
         .def_prop_ro("composite_type",
                      [](const Link& self) -> const nb::list {
                          return helpers::composite_type_to_pylist(self.composite_type);

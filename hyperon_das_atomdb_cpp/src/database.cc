@@ -59,13 +59,13 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
         auto deep_representation = kwargs.deep_representation;
         if (targets_document or deep_representation) {
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
-            link_copy->targets_documents = Link::TargetsDocuments();
-            link_copy->targets_documents->reserve(link->targets.size());
+            link_copy->targets_documents.clear();
+            link_copy->targets_documents.reserve(link->targets.size());
             auto push_atom = [&](const Atom* atom) {
                 if (auto node = dynamic_cast<const Node*>(atom)) {
-                    link_copy->targets_documents->push_back(Node(*node));
+                    link_copy->targets_documents.push_back(Node(*node));
                 } else if (auto link = dynamic_cast<const Link*>(atom)) {
-                    link_copy->targets_documents->push_back(Link(*link));
+                    link_copy->targets_documents.push_back(Link(*link));
                 }
             };
             for (const auto& target : link->targets) {
@@ -109,16 +109,11 @@ shared_ptr<Node> AtomDB::_build_node(const Node& node_params) {
 
 //------------------------------------------------------------------------------
 shared_ptr<Link> AtomDB::_build_link(const Link& link_params, bool is_toplevel) {
-    if (not link_params.targets_documents.has_value()) {
-        throw AddLinkException("targets_documents is required.",
-                               "link_params: " + link_params.to_string() +
-                                   ", is_toplevel: " + (is_toplevel ? "true" : "false"));
-    }
     const auto& link_type = link_params.named_type;
-    const auto& targets = link_params.targets_documents.value();
+    const auto& targets = link_params.targets_documents;
     if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
-        throw AddLinkException("'type' and 'targets' are required.",
+        throw AddLinkException("'type' and 'targets_documents' are required.",
                                "link_params: " + link_params.to_string() +
                                    ", is_toplevel: " + (is_toplevel ? "true" : "false"));
     }
@@ -158,7 +153,7 @@ shared_ptr<Link> AtomDB::_build_link(const Link& link_params, bool is_toplevel) 
                                   target_handles,                 // targets
                                   is_toplevel,                    // is_toplevel
                                   link_params.custom_attributes,  // custom_attributes
-                                  nullopt                         // targets_documents
+                                  Link::TargetsDocuments{}        // targets_documents
     );
     link->validate();
     return move(link);

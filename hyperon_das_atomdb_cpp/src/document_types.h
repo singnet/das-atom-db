@@ -106,19 +106,19 @@ class Atom {
     string handle;
     string composite_type_hash;
     string named_type;
-    CustomAttributes custom_attributes = {};
+    CustomAttributes custom_attributes;
 
     Atom() = default;
 
     /**
      * @brief Constructs an Atom with a named type and optional custom attributes.
      * @param named_type The named type of the Atom.
-     * @param custom_attributes Optional custom attributes for the Atom.
+     * @param custom_attributes Optional custom attributes for the Atom. Defaults to an empty map.
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Atom objects, use the
      *       constructor with all parameters.
      */
-    Atom(const string& named_type, const CustomAttributes& custom_attributes = {})
+    Atom(const string& named_type, const CustomAttributes& custom_attributes = CustomAttributes{})
         : named_type(named_type), custom_attributes(custom_attributes) {}
 
     /**
@@ -127,20 +127,23 @@ class Atom {
      * @param handle The handle for the atom.
      * @param composite_type_hash The hash representing the composite type of the atom.
      * @param named_type The named type of the atom.
-     * @param custom_attributes Optional custom attributes for the atom.
-     * @throws invalid_argument if any of the required parameters are empty.
+     * @param custom_attributes Optional custom attributes for the atom. Defaults to an empty map.
      */
     Atom(const string& id,
          const string& handle,
          const string& composite_type_hash,
          const string& named_type,
-         const CustomAttributes& custom_attributes = {})
+         const CustomAttributes& custom_attributes = CustomAttributes{})
         : _id(id),
           handle(handle),
           composite_type_hash(composite_type_hash),
           named_type(named_type),
           custom_attributes(custom_attributes) {}
 
+    /**
+     * @brief Validates the attributes of the object.
+     * @throws std::invalid_argument if any attribute is invalid.
+     */
     virtual void validate() const {
         if (this->_id.empty()) {
             throw invalid_argument("Atom ID cannot be empty.");
@@ -207,18 +210,21 @@ class AtomType : public Atom {
      * @param composite_type_hash The hash of the composite type.
      * @param named_type The named type of the atom.
      * @param named_type_hash The hash of the named type.
-     * @param custom_attributes Optional custom attributes for the atom type.
-     * @throws invalid_argument if named_type_hash is empty.
+     * @param custom_attributes Optional custom attributes for the atom type. Defaults to an empty map.
      */
     AtomType(const string& id,
              const string& handle,
              const string& composite_type_hash,
              const string& named_type,
              const string& named_type_hash,
-             const CustomAttributes& custom_attributes = {})
+             const CustomAttributes& custom_attributes = CustomAttributes{})
         : named_type_hash(named_type_hash),
           Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
 
+    /**
+     * @brief Validates the attributes of the object.
+     * @throws std::invalid_argument if any attribute is invalid.
+     */
     void validate() const override {
         Atom::validate();
         if (this->named_type_hash.empty()) {
@@ -263,7 +269,7 @@ class Node : public Atom {
      * @brief Constructs a Node with a type, name, and optional custom attributes.
      * @param type The type of the Node.
      * @param name The name of the Node.
-     * @param custom_attributes Optional custom attributes for the Node.
+     * @param custom_attributes Optional custom attributes for the Node. Defaults to an empty map.
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Node objects, use the
      *       constructor with all parameters.
@@ -285,7 +291,9 @@ class Node : public Atom {
      * );
      * ```
      */
-    Node(const string& type, const string& name, const CustomAttributes& custom_attributes = {})
+    Node(const string& type,
+         const string& name,
+         const CustomAttributes& custom_attributes = CustomAttributes{})
         : name(name), Atom(type, custom_attributes) {}
 
     /**
@@ -295,7 +303,7 @@ class Node : public Atom {
      * @param composite_type_hash The hash representing the composite type.
      * @param named_type The named type of the Node.
      * @param name The name of the Node.
-     * @param custom_attributes Optional custom attributes for the Node.
+     * @param custom_attributes Optional custom attributes for the Node. Defaults to an empty map.
      * @throws invalid_argument if the name is empty.
      */
     Node(const string& id,
@@ -303,9 +311,13 @@ class Node : public Atom {
          const string& composite_type_hash,
          const string& named_type,
          const string& name,
-         const CustomAttributes& custom_attributes = {})
+         const CustomAttributes& custom_attributes = CustomAttributes{})
         : name(name), Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
 
+    /**
+     * @brief Validates the attributes of the object.
+     * @throws std::invalid_argument if any attribute is invalid.
+     */
     void validate() const override {
         Atom::validate();
         if (this->name.empty()) {
@@ -370,7 +382,7 @@ class Link : public Atom {
     string named_type_hash;
     vector<string> targets;
     bool is_toplevel = true;
-    opt<TargetsDocuments> targets_documents = nullopt;
+    TargetsDocuments targets_documents;
 
     Link() = default;
 
@@ -378,7 +390,7 @@ class Link : public Atom {
      * @brief Constructs a Link with a type, targets documents, and optional custom attributes.
      * @param type The type of the Link.
      * @param targets_documents The targets documents associated with the Link.
-     * @param custom_attributes Optional custom attributes for the Link.
+     * @param custom_attributes Optional custom attributes for the Link. Defaults to an empty map.
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Link objects, use the
      *       constructor with all parameters.
@@ -405,7 +417,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          const TargetsDocuments& targets_documents,
-         const CustomAttributes& custom_attributes = {})
+         const CustomAttributes& custom_attributes = CustomAttributes{})
         : targets_documents(targets_documents), Atom(type, custom_attributes) {}
 
     /**
@@ -418,8 +430,8 @@ class Link : public Atom {
      * @param named_type_hash The hash of the named type.
      * @param targets The vector of target strings.
      * @param is_toplevel Boolean indicating if the link is top-level.
-     * @param targets_documents Optional targets documents.
-     * @param custom_attributes Optional custom attributes.
+     * @param custom_attributes Optional custom attributes. Defaults to an empty map.
+     * @param targets_documents Optional targets documents. Defaults to an empty vector.
      */
     Link(const string& id,
          const string& handle,
@@ -429,8 +441,8 @@ class Link : public Atom {
          const string& named_type_hash,
          const vector<string>& targets,
          bool is_toplevel,
-         const CustomAttributes& custom_attributes = {},
-         const opt<const TargetsDocuments>& targets_documents = nullopt)
+         const CustomAttributes& custom_attributes = CustomAttributes{},
+         const TargetsDocuments& targets_documents = TargetsDocuments{})
         : composite_type(composite_type),
           named_type_hash(named_type_hash),
           targets(targets),
@@ -490,28 +502,23 @@ class Link : public Atom {
             result.pop_back();
             result.pop_back();
         }
-        result += "]";
+        result += "]";  // end of targets
         result += ", is_toplevel: ";
         result += this->is_toplevel ? "true" : "false";
-        result += ", targets_documents: ";
-        if (this->targets_documents.has_value()) {
-            result += "[";
-            if (not this->targets_documents->empty()) {
-                for (const auto& target : *(this->targets_documents)) {
-                    if (auto node = std::get_if<Node>(&target)) {
-                        result += string(node->to_string()) + ", ";
-                    } else if (auto link = std::get_if<Link>(&target)) {
-                        result += string(link->to_string()) + ", ";
-                    }
+        result += ", targets_documents: [";
+        if (not this->targets_documents.empty()) {
+            for (const auto& target : this->targets_documents) {
+                if (auto node = std::get_if<Node>(&target)) {
+                    result += string(node->to_string()) + ", ";
+                } else if (auto link = std::get_if<Link>(&target)) {
+                    result += string(link->to_string()) + ", ";
                 }
-                result.pop_back();
-                result.pop_back();
             }
-            result += "]";
-        } else {
-            result += "NULL";
+            result.pop_back();
+            result.pop_back();
         }
-        result += ")";
+        result += "]";  // end of targets_documents
+        result += ")";  // end of Link
         return move(result);
     }
 

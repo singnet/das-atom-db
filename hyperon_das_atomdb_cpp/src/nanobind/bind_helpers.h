@@ -29,13 +29,6 @@ namespace bind_helpers {
 // Tuples for `pickle` conversion between C++ and Python
 // See `__getstate__` and `__setstate__` in the bindings.
 
-using CustomAttributesTuple =       // Tuple for CustomAttributes
-    std::tuple<StringUnorderedMap,  // strings
-               IntUnorderedMap,     // integers
-               FloatUnorderedMap,   // floats
-               BoolUnorderedMap     // booleans
-               >;
-
 using AtomTypeTuple =            // Tuple for AtomType
     std::tuple<string,           // _id
                string,           // handle
@@ -54,17 +47,17 @@ using NodeTuple =                // Tuple for Node
                CustomAttributes  // custom_attributes
                >;
 
-using LinkTuple =                           // Tuple for Link
-    std::tuple<string,                      // _id
-               string,                      // handle
-               string,                      // composite_type_hash
-               string,                      // named_type
-               nb::list,                    // composite_type
-               string,                      // named_type_hash
-               vector<string>,              // targets
-               bool,                        // is_toplevel
-               CustomAttributes,            // custom_attributes
-               opt<Link::TargetsDocuments>  // targets_documents
+using LinkTuple =                      // Tuple for Link
+    std::tuple<string,                 // _id
+               string,                 // handle
+               string,                 // composite_type_hash
+               string,                 // named_type
+               nb::list,               // composite_type
+               string,                 // named_type_hash
+               vector<string>,         // targets
+               bool,                   // is_toplevel
+               CustomAttributes,       // custom_attributes
+               Link::TargetsDocuments  // targets_documents
                >;
 
 /**
@@ -156,19 +149,15 @@ static nb::dict link_to_dict(const Link& self) {
     dict["named_type_hash"] = self.named_type_hash;
     dict["targets"] = self.targets;
     dict["is_toplevel"] = self.is_toplevel;
-    if (self.targets_documents.has_value()) {
-        nb::list targets_documents;
-        for (const auto& target : *self.targets_documents) {
-            if (auto node = std::get_if<Node>(&target)) {
-                targets_documents.append(node_to_dict(*node));
-            } else if (auto link = std::get_if<Link>(&target)) {
-                targets_documents.append(link_to_dict(*link));
-            }
+    nb::list targets_documents;
+    for (const auto& target : self.targets_documents) {
+        if (auto node = std::get_if<Node>(&target)) {
+            targets_documents.append(node_to_dict(*node));
+        } else if (auto link = std::get_if<Link>(&target)) {
+            targets_documents.append(link_to_dict(*link));
         }
-        dict["targets_documents"] = move(targets_documents);
-    } else {
-        dict["targets_documents"] = nullptr;
     }
+    dict["targets_documents"] = move(targets_documents);
     return move(dict);
 };
 
@@ -262,8 +251,8 @@ static void tuple_to_link(Link& link, const LinkTuple& state) {
                      std::get<5>(state),  // named_type_hash
                      std::get<6>(state),  // targets
                      std::get<7>(state),  // is_toplevel
-                     std::get<8>(state),  // targets_documents
-                     std::get<9>(state)   // custom_attributes
+                     std::get<8>(state),  // custom_attributes
+                     std::get<9>(state)   // targets_documents
     );
 }
 
@@ -290,8 +279,8 @@ static void init_link(Link& self,
                       const string& named_type_hash,
                       const vector<string>& targets,
                       bool is_toplevel,
-                      const CustomAttributes& custom_attributes = {},
-                      const opt<const Link::TargetsDocuments>& targets_documents = nullopt) {
+                      const CustomAttributes& custom_attributes = CustomAttributes{},
+                      const Link::TargetsDocuments& targets_documents = Link::TargetsDocuments{}) {
     new (&self) Link(_id,
                      handle,
                      composite_type_hash,
