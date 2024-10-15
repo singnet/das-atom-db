@@ -6,7 +6,6 @@
  * This header file contains the definitions of several classes that represent different types of
  * atomic entities and their relationships within the atom database. The classes include:
  * - CustomAttributes: A type alias for `std::unordered_map<string, variant<string, long, double, bool>`.
- * - KwArgs: A structure (POD type) containing boolean flags for various configuration options.
  * - Atom: Represents a basic atomic entity with attributes such as ID, handle, composite type hash,
  *   named type, and optional custom attributes.
  * - AtomType: Extends the Atom class by adding a named type hash attribute.
@@ -75,21 +74,6 @@ static string custom_attributes_to_string(const CustomAttributes& custom_attribu
     result += "}";
     return move(result);
 }
-
-/**
- * @brief A Plain Old Data (POD) type representing various boolean flags for configuration options.
- *
- * This structure contains several boolean flags that control different aspects of the
- * configuration, such as target formatting, document handling, representation depth,
- * and scope of operation.
- */
-struct KwArgs {
-    bool no_target_format = false;
-    bool targets_document = false;
-    bool deep_representation = false;
-    bool toplevel_only = false;
-    bool handles_only = false;
-};
 
 /**
  * @class Atom

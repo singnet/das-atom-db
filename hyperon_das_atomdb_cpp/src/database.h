@@ -41,6 +41,21 @@ using namespace std;
 namespace atomdb {
 
 /**
+ * @brief A Plain Old Data (POD) type representing various boolean flags for configuration options.
+ *
+ * This structure contains several boolean flags that control different aspects of the
+ * configuration, such as target formatting, document handling, representation depth,
+ * and scope of operation.
+ */
+struct KwArgs {
+    bool no_target_format = false;
+    bool targets_document = false;
+    bool deep_representation = false;
+    bool toplevel_only = false;
+    bool handles_only = false;
+};
+
+/**
  * @brief Abstract base class for the AtomDB database interface.
  *
  * The AtomDB class defines the interface for interacting with the AtomDB database.
