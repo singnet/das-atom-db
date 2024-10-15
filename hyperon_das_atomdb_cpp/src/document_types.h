@@ -285,10 +285,19 @@ class Node : public Atom {
      *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes (optional)
      *     )
      * );
+     *
      * bool node2_is_immutable = (
-     *      node2->custom_attributes.has_value() and
-     *      get_custom_attribute<bool>(node2->custom_attributes.value(), "immutable").value_or(false)
+     *     get_custom_attribute<bool>(node2->custom_attributes, "immutable").value_or(false)
      * );
+     * cout << node2_is_immutable << endl;
+     * // Output:
+     * 0
+     *
+     * cout << node2.to_string() << endl;
+     * // Output:
+     * Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle: 'af12f10f9ae2002a1607ba0b47ba8407',
+     * composite_type_hash: 'd99a604c79ce3c2e76a2f43488d5d4c3', named_type: 'Concept', custom_attributes:
+     * {immutable: false, weight: 0.800000}, name: 'human')
      * ```
      */
     Node(const string& type,
@@ -400,19 +409,41 @@ class Link : public Atom {
      * auto db = AtomDB();
      * auto link = db.add_link(
      *     Link(
-     *         "Similarity",                       // type
-     *         {                                   // targets
-     *             {Node("Concept", "monkey")},    // a node as a target of Similarity link
-     *             {Node("Concept", "human")},     // another node as a target of Similarity link
-     *             {                               // a link as a target of Similarity link
-     *                 Link("Dummicity",  // type
-     *                      { {Node("Concept", "dummy1")}, {Node("Concept", "dummy2")}  // targets
+     *         "Similarity",                                 // type
+     *         {                                             // targets of Similarity link
+     *             {Node("Concept", "monkey")},              // a node as a target of Similarity link
+     *             {Node("Concept", "human")},               // another node as a target
+     *             {                                         // a link as a target of Similarity link
+     *                 Link("Dummicity",                     // type
+     *                      {                                // targets of Dummicity link
+     *                          {Node("Concept", "dummy1")},
+     *                          {Node("Concept", "dummy2")}
+     *                      }
      *                 )
      *             }
      *         },
-     *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes (optional)
+     *         { {"weight": 0.8}, {"immutable": false} }     // custom_attributes (optional)
      *     )
      * );
+     *
+     * double link_weight = (
+     *     get_custom_attribute<double>(link->custom_attributes, "weight").value_or(0.0)
+     * );
+     * cout << link_weight << endl;
+     * // Output:
+     * 0.800000
+     *
+     * cout << link.to_string() << endl;
+     * // Output:
+     * Link(_id: '8ef9c2093150a022204fa6c9f0bc94f8', handle: '8ef9c2093150a022204fa6c9f0bc94f8',
+     * composite_type_hash: '8dd4c9ab591dbbd1e6eb511e71ef5aa9', named_type: 'Similarity',
+     * custom_attributes: {immutable: false, weight: 0.800000}, composite_type:
+     * ['a9dea78180588431ec64d6bc4872fdbc', 'd99a604c79ce3c2e76a2f43488d5d4c3',
+     * 'd99a604c79ce3c2e76a2f43488d5d4c3', ['44d25cf84a95f144d6e603ca28caadba',
+     * 'd99a604c79ce3c2e76a2f43488d5d4c3', 'd99a604c79ce3c2e76a2f43488d5d4c3']], named_type_hash:
+     * 'a9dea78180588431ec64d6bc4872fdbc', targets: ['1cdffc6b0b89ff41d68bec237481d1e1',
+     * 'af12f10f9ae2002a1607ba0b47ba8407', '087091095a266df1bfcc1ee01e79811c'], is_toplevel: true,
+     * targets_documents: [])
      * ```
      */
     Link(const string& type,
