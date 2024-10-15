@@ -98,7 +98,7 @@ class ExpressionHasher {
             throw invalid_argument("Invalid (too large) terminal name");
         }
         string hashable_string = type + JOINING_CHAR + name;
-        return compute_hash(hashable_string);
+        return move(compute_hash(hashable_string));
     }
 
     /**
@@ -120,7 +120,7 @@ class ExpressionHasher {
             hashable_string.pop_back();  // remove the last joining character
         }
 
-        return compute_hash(hashable_string);
+        return move(compute_hash(hashable_string));
     }
 
     /**
@@ -142,7 +142,7 @@ class ExpressionHasher {
                 throw invalid_argument("Invalid composite type element.");
             }
         }
-        return composite_hash(hashable_elements);
+        return move(composite_hash(hashable_elements));
     }
 
     /**
@@ -166,7 +166,7 @@ class ExpressionHasher {
     static const string expression_hash(const string& type_hash, const StringList& elements) {
         StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
-        return composite_hash(composite);
+        return move(composite_hash(composite));
     }
 };
 
