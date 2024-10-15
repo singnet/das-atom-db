@@ -46,11 +46,11 @@ IntMatrix generate_binary_matrix(int numbers) {
     for (const auto& matrix : smaller_matrix) {
         vector<int> row_with_zero = matrix;
         row_with_zero.push_back(0);
-        new_matrix.push_back(row_with_zero);
+        new_matrix.push_back(move(row_with_zero));
 
         vector<int> row_with_one = matrix;
         row_with_one.push_back(1);
-        new_matrix.push_back(row_with_one);
+        new_matrix.push_back(move(row_with_one));
     }
     return move(new_matrix);
 }
@@ -74,9 +74,9 @@ StringMatrix multiply_binary_matrix_by_string_matrix(const IntMatrix& binary_mat
     for (const auto& binary_row : binary_matrix) {
         StringList result_row;
         for (size_t i = 0; i < binary_row.size(); ++i) {
-            result_row.push_back(binary_row[i] == 1 ? string_matrix[i] : WILDCARD);
+            result_row.emplace_back(binary_row[i] == 1 ? string_matrix[i] : WILDCARD);
         }
-        result_matrix.push_back(result_row);
+        result_matrix.push_back(move(result_row));
     }
 
     // Remove the last row from the result matrix
@@ -104,7 +104,7 @@ StringList build_pattern_keys(const StringList& hash_list) {
     for (const auto& matrix_item : result_matrix) {
         string type_hash = matrix_item[0];
         StringList elements(matrix_item.begin() + 1, matrix_item.end());
-        keys.push_back(ExpressionHasher::expression_hash(type_hash, elements));
+        keys.push_back(move(ExpressionHasher::expression_hash(type_hash, elements)));
     }
 
     return move(keys);

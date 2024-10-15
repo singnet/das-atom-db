@@ -44,7 +44,7 @@ const StringList InMemoryDB::get_node_by_name(const string& node_type, const str
     StringList node_handles;
     for (const auto& [key, node] : this->db.node) {
         if (node->name.find(substring) != string::npos and node_type_hash == node->composite_type_hash) {
-            node_handles.push_back(key);
+            node_handles.emplace_back(key);
         }
     }
     return move(node_handles);
@@ -82,13 +82,13 @@ const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) 
     if (names) {
         for (const auto& [_, node] : this->db.node) {
             if (node->composite_type_hash == node_type_hash) {
-                node_handles.push_back(node->name);
+                node_handles.emplace_back(node->name);
             }
         }
     } else {
         for (const auto& [handle, node] : this->db.node) {
             if (node->composite_type_hash == node_type_hash) {
-                node_handles.push_back(handle);
+                node_handles.emplace_back(handle);
             }
         }
     }
@@ -171,7 +171,7 @@ const vector<shared_ptr<const Atom>> InMemoryDB::get_incoming_links_atoms(const 
         vector<shared_ptr<const Atom>> atoms;
         atoms.reserve(it->second.size());
         for (const auto& link_handle : it->second) {
-            atoms.push_back(this->get_atom(link_handle, kwargs));
+            atoms.emplace_back(this->get_atom(link_handle, kwargs));
         }
         return move(atoms);
     }
@@ -350,10 +350,10 @@ const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
         vector<shared_ptr<const Atom>> atoms;
         atoms.reserve(this->db.node.size() + this->db.link.size());
         for (const auto& [_, node] : this->db.node) {
-            atoms.push_back(node);
+            atoms.emplace_back(node);
         }
         for (const auto& [_, link] : this->db.link) {
-            atoms.push_back(link);
+            atoms.emplace_back(link);
         }
         return move(atoms);
     } catch (const exception& e) {
@@ -413,9 +413,9 @@ const ListOfAny InMemoryDB::_build_named_type_hash_template(const ListOfAny& _te
     hash_template.reserve(_template.size());
     for (const auto& element : _template) {
         if (auto str = any_cast<string>(&element)) {
-            hash_template.push_back(this->_build_named_type_hash_template(*str));
+            hash_template.push_back(move(this->_build_named_type_hash_template(*str)));
         } else if (auto list = any_cast<ListOfAny>(&element)) {
-            hash_template.push_back(this->_build_named_type_hash_template(*list));
+            hash_template.push_back(move(this->_build_named_type_hash_template(*list)));
         } else {
             throw invalid_argument("Invalid composite type element.");
         }

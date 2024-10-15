@@ -122,17 +122,17 @@ shared_ptr<Link> AtomDB::_build_link(const Link& link_params, bool is_toplevel) 
             auto node = this->add_node(*node_params);
             atom_handle = node->_id;
             atom_hash = node->composite_type_hash;
-            composite_type_list.push_back(atom_hash);
+            composite_type_list.emplace_back(atom_hash);
         } else if (auto link_params = std::get_if<Link>(&target)) {
             auto link = this->add_link(*link_params, false);
             atom_handle = link->_id;
             atom_hash = link->composite_type_hash;
-            composite_type_list.push_back(link->composite_type);
+            composite_type_list.emplace_back(link->composite_type);
         } else {
             throw invalid_argument("Invalid target type. Must be Node or Link.");
         }
-        composite_type_elements.push_back(atom_hash);
-        target_handles.push_back(atom_handle);
+        composite_type_elements.emplace_back(atom_hash);
+        target_handles.emplace_back(atom_handle);
     }
 
     string handle = ExpressionHasher::expression_hash(link_type_hash, target_handles);

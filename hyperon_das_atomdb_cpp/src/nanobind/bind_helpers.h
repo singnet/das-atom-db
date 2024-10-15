@@ -91,9 +91,9 @@ static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
         auto e_type = element.type();
         auto type_name = string(nb::type_name(e_type).c_str());
         if (type_name == "str") {
-            ct_list.push_back(nb::cast<string>(element));
+            ct_list.push_back(move(nb::cast<string>(element)));
         } else if (type_name == "list") {
-            ct_list.push_back(pylist_to_composite_type(nb::cast<nb::list>(element)));
+            ct_list.push_back(move(pylist_to_composite_type(nb::cast<nb::list>(element))));
         } else {
             throw invalid_argument("Invalid composite type element.");
         }

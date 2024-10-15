@@ -137,7 +137,7 @@ class ExpressionHasher {
         StringList hashable_elements;
         for (const auto& element : elements) {
             if (auto str = any_cast<string>(&element)) {
-                hashable_elements.push_back(*str);
+                hashable_elements.emplace_back(*str);
             } else {
                 throw invalid_argument("Invalid composite type element.");
             }
