@@ -26,7 +26,7 @@ Type Aliases:
 from enum import Enum
 from typing import TypeAlias
 
-from hyperon_das_atomdb_ram_only import (
+from hyperon_das_atomdb_cpp import (
     TYPE_HASH,
     TYPEDEF_MARK_HASH,
     WILDCARD,
@@ -34,13 +34,9 @@ from hyperon_das_atomdb_ram_only import (
     AtomDB,
     FieldIndexType,
 )
-from hyperon_das_atomdb_ram_only.database import CustomAttributes as cppCustomAttributes
-from hyperon_das_atomdb_ram_only.database import LinkParams as cppLinkParams
-from hyperon_das_atomdb_ram_only.database import NodeParams as cppNodeParams
-from hyperon_das_atomdb_ram_only.document_types import Atom as cppAtom
-from hyperon_das_atomdb_ram_only.document_types import AtomType as cppAtomType
-from hyperon_das_atomdb_ram_only.document_types import Link as cppLink
-from hyperon_das_atomdb_ram_only.document_types import Node as cppNode
+from hyperon_das_atomdb_cpp.document_types import Atom as cppAtom
+from hyperon_das_atomdb_cpp.document_types import Link as cppLink
+from hyperon_das_atomdb_cpp.document_types import Node as cppNode
 
 # from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 # from hyperon_das_atomdb.logger import logger
@@ -48,14 +44,12 @@ from hyperon_das_atomdb_ram_only.document_types import Node as cppNode
 
 # pylint: disable=invalid-name
 
-CustomAttributesT: TypeAlias = cppCustomAttributes
 AtomT: TypeAlias = cppAtom
 NodeT: TypeAlias = cppNode
 LinkT: TypeAlias = cppLink
-AtomTypeT: TypeAlias = cppAtomType
 
-NodeParamsT: TypeAlias = cppNodeParams
-LinkParamsT: TypeAlias = cppLinkParams
+NodeParamsT: TypeAlias = NodeT
+LinkParamsT: TypeAlias = LinkT
 
 HandleT: TypeAlias = str
 
@@ -918,15 +912,13 @@ __all__ = [
     "WILDCARD_HASH",
     "TYPE_HASH",
     "TYPEDEF_MARK_HASH",
-    "CustomAttributesT",
     "AtomT",
     "NodeT",
     "LinkT",
-    "AtomTypeT",
-    "NodeParamsT",
-    "LinkParamsT",
     "HandleT",
     "HandleListT",
     "HandleSetT",
     "IncomingLinksT",
+    "NodeParamsT",
+    "LinkParamsT",
 ]

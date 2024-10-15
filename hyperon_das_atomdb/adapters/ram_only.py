@@ -9,7 +9,7 @@ Classes:
     InMemoryDB: A concrete implementation of the AtomDB interface using hashtables.
 """
 
-from hyperon_das_atomdb_ram_only.adapters import InMemoryDB
+from hyperon_das_atomdb_cpp.adapters import InMemoryDB
 
 __all__ = ["InMemoryDB"]
 

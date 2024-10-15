@@ -1,6 +1,6 @@
 """Custom exceptions for Atom DB"""
 
-from hyperon_das_atomdb_ram_only.exceptions import (
+from hyperon_das_atomdb_cpp.exceptions import (
     AddLinkException,
     AddNodeException,
     AtomDbBaseException,

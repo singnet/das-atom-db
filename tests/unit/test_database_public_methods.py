@@ -7,13 +7,12 @@ import pytest
 from hyperon_das_atomdb.database import (
     AtomDB,
     AtomT,
-    CustomAttributesT,
     LinkParamsT,
     LinkT,
     NodeParamsT,
     NodeT,
 )
-from tests.helpers import add_link, add_node, atom_to_params, check_handle, dict_to_node_params
+from tests.helpers import add_link, add_node, check_handle, dict_to_node_params
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
@@ -103,7 +102,7 @@ class TestDatabase:
     def test_link_exists(self, database, targets, request):
         db: AtomDB = request.getfixturevalue(database)
         targets_params = [NodeParamsT(type="Test", name="test")]
-        link = LinkParamsT(type="Test", targets=targets_params)
+        link = LinkParamsT("Test", targets_params)
         db.add_link(link)
         if database != "in_memory_db":
             db.commit()
@@ -192,7 +191,7 @@ class TestDatabase:
         expected_link = add_link(
             db,
             "Ac",
-            [atom_to_params(expected_node)],
+            [expected_node],
             database,
         )
         nodes = db.get_atoms_by_field([{"field": "name", "value": "Ac"}])

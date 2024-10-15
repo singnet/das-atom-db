@@ -26,7 +26,6 @@ from hyperon_das_atomdb.database import (
     WILDCARD,
     AtomDB,
     AtomT,
-    CustomAttributesT,
     FieldIndexType,
     FieldNames,
     HandleListT,
@@ -710,10 +709,7 @@ class RedisMongoDB(AtomDB):
         document = self._retrieve_document(handle)
         if not document:
             return None
-        custom_attributes = None
-        custom_params = document.get(FieldNames.CUSTOM_ATTRIBUTES, None)
-        if isinstance(custom_params, dict):
-            custom_attributes = CustomAttributesT(**custom_params)
+        custom_attributes = document.get(FieldNames.CUSTOM_ATTRIBUTES, dict())
         if "targets" in document:
             link = LinkT(
                 handle=handle,
