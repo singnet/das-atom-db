@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 
-project(hyperon_das_atomdb_ram_only LANGUAGES CXX)
+project(hyperon_das_atomdb_cpp LANGUAGES CXX)
 set(EXTENSION_NAME "ext")
 
 # Set C++ standard and optimization flags
@@ -56,11 +56,18 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 # Include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src /usr/local/include)
 
 add_library(libmbedcrypto STATIC IMPORTED)
+if(EXISTS "/usr/lib/x86_64-linux-gnu/libmbedcrypto.a")
+# localion on Ubuntu 22.04 - installed package libmbedtls-dev
 set_target_properties(
   libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libmbedcrypto.a)
+else()
+# localion on AlmaLinux 8 - compiled and installed from source
+set_target_properties(
+  libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/local/lib64/libmbedcrypto.a)
+endif()
 
 # Collect header and source files
 file(GLOB_RECURSE headers

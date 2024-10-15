@@ -1,3 +1,37 @@
+/**
+ * @file ram_only.h
+ * @brief Defines in-memory database classes for managing atoms, nodes, and links.
+ *
+ * This header file contains the definitions for the `Database` and `InMemoryDB` classes,
+ * which provide in-memory storage and management of various data types, including atoms,
+ * nodes, and links. These classes are designed to facilitate efficient in-memory operations
+ * without the overhead of persistent storage, making them suitable for applications that
+ * require fast data access and manipulation.
+ *
+ * The `Database` class serves as a container for different types of data, using unordered
+ * maps to store atom types, nodes, links, and sets for managing relationships between them.
+ * It provides basic functionalities such as initialization and cleanup of the stored data.
+ *
+ * The `InMemoryDB` class extends the `AtomDB` class and offers a comprehensive set of
+ * methods for adding, retrieving, and managing atoms, nodes, links, and their relationships.
+ * It includes functionalities for querying data, managing indexes, and handling complex
+ * data structures in memory. This class is intended for use in scenarios where data does
+ * not need to be persisted across sessions or can be reconstructed from other sources if
+ * needed.
+ *
+ * Key functionalities provided by the `InMemoryDB` class include:
+ * - Adding and retrieving nodes and links.
+ * - Querying atoms by various criteria.
+ * - Managing incoming and outgoing links.
+ * - Handling patterns and templates for complex data structures.
+ * - Indexing and reindexing data for efficient lookups.
+ * - Bulk insertion and retrieval of atoms.
+ * - Committing changes to the database.
+ *
+ * The classes in this module are designed to be flexible and efficient, providing a robust
+ * solution for managing in-memory data structures in applications that require high
+ * performance and low latency.
+ */
 #pragma once
 
 #include "database.h"
@@ -13,7 +47,6 @@ namespace atomdb {
  */
 class Database {
    public:
-    unordered_map<string, shared_ptr<AtomType>> atom_type;
     unordered_map<string, shared_ptr<Node>> node;
     unordered_map<string, shared_ptr<Link>> link;
     unordered_map<string, StringList> outgoing_set;
@@ -21,17 +54,9 @@ class Database {
     unordered_map<string, StringUnorderedSet> patterns;
     unordered_map<string, StringUnorderedSet> templates;
 
-    Database()
-        : atom_type({}),
-          node({}),
-          link({}),
-          outgoing_set({}),
-          incoming_set({}),
-          patterns({}),
-          templates({}) {}
+    Database() : node({}), link({}), outgoing_set({}), incoming_set({}), patterns({}), templates({}) {}
 
     ~Database() {
-        atom_type.clear();
         node.clear();
         link.clear();
         outgoing_set.clear();
@@ -61,10 +86,7 @@ class Database {
 class InMemoryDB : public AtomDB {
    public:
     InMemoryDB(const string& database_name = "das") : database_name(database_name) {};
-    ~InMemoryDB() {
-        this->all_named_types.clear();
-        this->named_type_table.clear();
-    };
+    ~InMemoryDB() {};
 
     const string get_node_handle(const string& node_type, const string& node_name) const override;
 
@@ -77,20 +99,22 @@ class InMemoryDB : public AtomDB {
     const StringList get_atoms_by_field(
         const vector<unordered_map<string, string>>& query) const override;
 
-    const pair<const int, const AtomList> get_atoms_by_index(
-        const string& index_id,
-        const vector<unordered_map<string, string>>& query,
-        int cursor = 0,
-        int chunk_size = 500) const override;
+    const pair<const int, const AtomList> get_atoms_by_index(const string& index_id,
+                                                             const vector<map<string, string>>& query,
+                                                             int cursor = 0,
+                                                             int chunk_size = 500) const override;
 
-    const StringList get_atoms_by_text_field(const string& text_value,
-                                             const string& field = "",
-                                             const string& text_index_id = "") const override;
+    const StringList get_atoms_by_text_field(
+        const string& text_value,
+        const optional<string>& field = nullopt,
+        const optional<string>& text_index_id = nullopt) const override;
 
     const StringList get_node_by_name_starting_with(const string& node_type,
                                                     const string& startswith) const override;
 
-    const StringList get_all_nodes(const string& node_type, bool names = false) const override;
+    const StringList get_all_nodes_handles(const string& node_type) const override;
+
+    const StringList get_all_nodes_names(const string& node_type) const override;
 
     const StringUnorderedSet get_all_links(const string& link_type) const override;
 
@@ -111,24 +135,21 @@ class InMemoryDB : public AtomDB {
                                                const StringList& target_handles,
                                                const KwArgs& kwargs = {}) const override;
 
-    const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+    const StringUnorderedSet get_matched_type_template(const StringList& _template,
                                                        const KwArgs& kwargs = {}) const override;
 
     const StringUnorderedSet get_matched_type(const string& link_type,
                                               const KwArgs& kwargs = {}) const override;
 
-    const opt<const string> get_atom_type(const string& handle) const override;
-
-    // const unordered_map<string, anything> get_atom_as_dict(const string& handle,
-    //                                                   int arity = 0) const override;
+    const optional<const string> get_atom_type(const string& handle) const override;
 
     const unordered_map<string, int> count_atoms() const override;
 
     void clear_database() override;
 
-    const shared_ptr<const Node> add_node(const NodeParams& node_params) override;
+    const shared_ptr<const Node> add_node(const Node& node_params) override;
 
-    const shared_ptr<const Link> add_link(const LinkParams& link_params, bool toplevel = true) override;
+    const shared_ptr<const Link> add_link(const Link& link_params, bool toplevel = true) override;
 
     void reindex(const unordered_map<string, vector<unordered_map<string, any>>>&
                      pattern_index_templates) override;
@@ -138,20 +159,18 @@ class InMemoryDB : public AtomDB {
     const string create_field_index(const string& atom_type,
                                     const StringList& fields,
                                     const string& named_type = "",
-                                    const opt<const StringList>& composite_type = nullopt,
+                                    const optional<const StringList>& composite_type = nullopt,
                                     FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
     void bulk_insert(const vector<shared_ptr<const Atom>>& documents) override;
 
     const vector<shared_ptr<const Atom>> retrieve_all_atoms() const override;
 
-    void commit(const opt<const vector<Atom>>& buffer = nullopt) override;
+    void commit(const optional<const vector<Atom>>& buffer = nullopt) override;
 
    protected:
     string database_name;
     Database db;
-    set<string> all_named_types;
-    unordered_map<string, string> named_type_table;
 
     const shared_ptr<const Atom> _get_atom(const string& handle) const override;
 
@@ -163,78 +182,113 @@ class InMemoryDB : public AtomDB {
 
     /**
      * @brief Builds a named type hash template from the given template.
-     * @param _template A vector of elements of type any representing the template.
-     * @return A vector of elements of type any representing the named type hash template.
-     *
-     * Both `_template` and the returned vector are expected to contain elements of type
-     * `string` or `vector<string>`, allowing multiple levels of nesting.
-     * Example:
-     *
-     * @code
-     * ```
-     * {
-     *     "986a251e2a3e4c19a856a279dab2495f",
-     *     "3399d0d460c849c892f223b97d79635a",
-     *     {
-     *         "81ab7b04e75642a2a8acfdbb7033dc23",
-     *         "4aac2093cb6040e7acf09af2f58e2e22"
-     *     },
-     *     "fc16eec8ae914f818a3342534632de33",
-     *     {
-     *         "5c7e4ba338ef47abb41a1f497c35ea57",
-     *         {
-     *             "9cf28d0712fc4759adcde1ec4801b53a",
-     *             "b1b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3"
-     *         }
-     *     }
-     * }
-     * ```
-     * @endcode
+     * @param _template A list of strings representing the template.
+     * @return A list of strings representing the named type hash template.
      */
-    const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
+    const StringList _build_named_type_hash_template(const StringList& _template) const;
 
+    /**
+     * @brief Builds a hash for a named type template.
+     *
+     * This method takes a string representing a named type template and generates
+     * a hash for it. The hash can be used to uniquely identify the template within
+     * the database, ensuring efficient lookups and comparisons.
+     *
+     * @param _template The string representation of the named type template.
+     * @return A string containing the hash of the named type template.
+     */
     const string _build_named_type_hash_template(const string& _template) const;
 
-    const string _build_atom_type_key_hash(const string& name) const;
-
-    void _add_atom_type(const string& atom_type_name, const string& atom_type = "Type");
-
-    void _delete_atom_type(const string& name);
-
+    /**
+     * @brief Adds a set of outgoing links to the database.
+     * @param key The key associated with the outgoing links.
+     * @param targets_hash The list of target hashes for the outgoing links.
+     */
     void _add_outgoing_set(const string& key, const StringList& targets_hash);
 
-    const opt<const StringList> _get_and_delete_outgoing_set(const string& handle);
+    /**
+     * @brief Retrieves and deletes the outgoing set associated with a handle.
+     * @param handle The handle for which the outgoing set is to be retrieved and deleted.
+     * @return An optional StringList containing the outgoing set if it exists.
+     */
+    const optional<const StringList> _get_and_delete_outgoing_set(const string& handle);
 
+    /**
+     * @brief Adds a set of incoming links to the database.
+     * @param key The key associated with the incoming links.
+     * @param targets_hash The list of target hashes for the incoming links.
+     */
     void _add_incoming_set(const string& key, const StringList& targets_hash);
 
+    /**
+     * @brief Deletes a set of incoming atoms associated with a given link handle.
+     * @param link_handle A string representing the handle of the link.
+     * @param atoms_handles A list of strings representing the handles of the atoms to be deleted.
+     */
     void _delete_incoming_set(const string& link_handle, const StringList& atoms_handles);
 
+    /**
+     * @brief Adds templates to the internal storage.
+     * @param composite_type_hash The hash of the composite type.
+     * @param named_type_hash The hash of the named type.
+     * @param key The key associated with the template.
+     */
     void _add_templates(const string& composite_type_hash,
                         const string& named_type_hash,
                         const string& key);
 
+    /**
+     * @brief Deletes templates associated with the given document link.
+     * @param link_document The link to the document whose templates are to be deleted.
+     */
     void _delete_templates(const Link& link_document);
 
+    /**
+     * @brief Adds patterns to the internal storage.
+     * @param named_type_hash A string representing the hash of the named type.
+     * @param key A string representing the key associated with the patterns.
+     * @param targets_hash A list of strings representing the target hashes.
+     */
     void _add_patterns(const string& named_type_hash, const string& key, const StringList& targets_hash);
 
+    /**
+     * @brief Deletes patterns from the specified document.
+     * @param link_document The link to the document from which patterns will be deleted.
+     * @param targets_hash A list of hashes representing the patterns to be deleted.
+     */
     void _delete_patterns(const Link& link_document, const StringList& targets_hash);
 
+    /**
+     * @brief Deletes a link and updates the index accordingly.
+     * @param link_handle The handle of the link to be deleted.
+     */
     void _delete_link_and_update_index(const string& link_handle);
 
+    /**
+     * @brief Filters out non-top-level elements from the given set of matches.
+     * @param matches The set of matches to be filtered.
+     * @return A set containing only the top-level elements from the input matches.
+     */
     const StringUnorderedSet _filter_non_toplevel(const StringUnorderedSet& matches) const;
 
+    /**
+     * @brief Deletes the index of the specified atom.
+     * @param atom The atom whose index is to be deleted.
+     */
     void _delete_atom_index(const Atom& atom);
 
+    /**
+     * @brief Adds an atom to the index.
+     * @param atom The atom to be added.
+     */
     void _add_atom_index(const Atom& atom);
 
+    /**
+     * @brief Updates the index for the given atom.
+     * @param atom The atom to update the index for.
+     * @param delete_atom Flag indicating whether to delete the atom from the index.
+     */
     void _update_index(const Atom& atom, bool delete_atom = false);
-
-    // TODO: not used anywhere in the code - remove?
-    // void _update_atom_indexes(const vector<Atom>& documents, const KwArgs& kwargs = {}) {
-    //     for (const auto& document : documents) {
-    //         this->_update_index(document, params);
-    //     }
-    // }
 };
 
 }  // namespace atomdb

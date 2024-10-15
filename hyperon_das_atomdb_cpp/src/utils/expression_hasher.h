@@ -1,3 +1,26 @@
+/**
+ * @file expression_hasher.h
+ * @brief Header file for the ExpressionHasher class, providing utilities for generating MD5 hashes
+ *        for various types of expressions.
+ *
+ * This file contains the definition of the ExpressionHasher class, which offers static methods to
+ * compute MD5 hashes for different types of expressions, including named types, terminal expressions,
+ * composite expressions, and general expressions. The class leverages the mbedtls library for MD5
+ * hashing operations.
+ *
+ * The ExpressionHasher class is designed to handle strings and lists of strings as input for hashing.
+ * It ensures that the generated hashes are consistent and unique for different expressions, making it
+ * useful for scenarios where expression uniqueness and integrity are critical.
+ *
+ * @note The class uses a maximum hashable string size of 100,000 characters and a joining character
+ *       of a single space (' ') for concatenating elements before hashing.
+ *
+ * @remark The class throws exceptions in cases where hashing operations fail or input constraints
+ *         are violated, ensuring robust error handling.
+ *
+ * Dependencies:
+ * - mbedtls/md5.h: For MD5 hashing functions.
+ */
 #pragma once
 
 #include <mbedtls/md5.h>
@@ -14,6 +37,20 @@ namespace atomdb {
 #define MAX_HASHABLE_STRING_SIZE ((size_t) 100000)
 #define MD5_BUFFER_SIZE ((size_t) 16)
 
+/**
+ * @class ExpressionHasher
+ * @brief A utility class for generating various types of hashes for expressions.
+ *
+ * The ExpressionHasher class provides static methods to compute MD5 hashes for different types of
+ * expressions, including named types, terminal expressions, composite expressions, and general
+ * expressions. It uses the mbedtls library for MD5 hashing.
+ *
+ * @note This class is designed to handle strings and lists of strings as input for hashing.
+ *
+ * @remark The class ensures that the generated hashes are consistent and unique for different
+ *         expressions, making it useful for scenarios where expression uniqueness and integrity
+ *         are critical.
+ */
 class ExpressionHasher {
    public:
     /**
@@ -61,7 +98,7 @@ class ExpressionHasher {
             throw invalid_argument("Invalid (too large) terminal name");
         }
         string hashable_string = type + JOINING_CHAR + name;
-        return compute_hash(hashable_string);
+        return move(compute_hash(hashable_string));
     }
 
     /**
@@ -83,30 +120,30 @@ class ExpressionHasher {
             hashable_string.pop_back();  // remove the last joining character
         }
 
-        return compute_hash(hashable_string);
+        return move(compute_hash(hashable_string));
     }
 
-    /**
-     * @brief Generates a composite hash from a list of elements.
-     *
-     * This function takes a vector of elements, each of which can be of any type,
-     * and generates a composite hash representing the combined hash of all elements.
-     *
-     * @param elements A vector of elements of type std::any, representing the components to be
-     * hashed.
-     * @return A string representing the composite hash generated from the elements.
-     */
-    static std::string composite_hash(const ListOfAny& elements) {
-        StringList hashable_elements;
-        for (const auto& element : elements) {
-            if (auto str = any_cast<string>(&element)) {
-                hashable_elements.push_back(*str);
-            } else {
-                throw invalid_argument("Invalid composite type element.");
-            }
-        }
-        return composite_hash(hashable_elements);
-    }
+    // /**
+    //  * @brief Generates a composite hash from a list of elements.
+    //  *
+    //  * This function takes a vector of elements, each of which can be of any type,
+    //  * and generates a composite hash representing the combined hash of all elements.
+    //  *
+    //  * @param elements A vector of elements of type std::any, representing the components to be
+    //  * hashed.
+    //  * @return A string representing the composite hash generated from the elements.
+    //  */
+    // static std::string composite_hash(const ListOfAny& elements) {
+    //     StringList hashable_elements;
+    //     for (const auto& element : elements) {
+    //         if (auto str = any_cast<string>(&element)) {
+    //             hashable_elements.emplace_back(*str);
+    //         } else {
+    //             throw invalid_argument("Invalid composite type element.");
+    //         }
+    //     }
+    //     return move(composite_hash(hashable_elements));
+    // }
 
     /**
      * @brief Generates a composite hash from a base hash.
@@ -129,7 +166,7 @@ class ExpressionHasher {
     static const string expression_hash(const string& type_hash, const StringList& elements) {
         StringList composite({type_hash});
         composite.insert(composite.end(), elements.begin(), elements.end());
-        return composite_hash(composite);
+        return move(composite_hash(composite));
     }
 };
 
