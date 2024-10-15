@@ -207,8 +207,8 @@ class AtomDB {
      */
     virtual const StringList get_atoms_by_text_field(
         const string& text_value,
-        const opt<string>& field = nullopt,
-        const opt<string>& text_index_id = nullopt) const = 0;
+        const optional<string>& field = nullopt,
+        const optional<string>& text_index_id = nullopt) const = 0;
 
     /**
      * @brief Query the database by node name starting with 'startswith' value.
@@ -316,7 +316,7 @@ class AtomDB {
      * @param handle A string representing the handle of the atom.
      * @return An optional string containing the type of the atom if found, otherwise nullopt.
      */
-    virtual const opt<const string> get_atom_type(const string& handle) const = 0;
+    virtual const optional<const string> get_atom_type(const string& handle) const = 0;
 
     /**
      * @brief Count the total number of atoms in the database.
@@ -421,7 +421,7 @@ class AtomDB {
     virtual const string create_field_index(const string& atom_type,
                                             const StringList& fields,
                                             const string& named_type = "",
-                                            const opt<const StringList>& composite_type = nullopt,
+                                            const optional<const StringList>& composite_type = nullopt,
                                             FieldIndexType index_type = FieldIndexType::BINARY_TREE) = 0;
 
     /**
@@ -439,7 +439,7 @@ class AtomDB {
     /**
      * @brief Commit the current state of the database.
      */
-    virtual void commit(const opt<const vector<Atom>>& buffer = nullopt) = 0;
+    virtual void commit(const optional<const vector<Atom>>& buffer = nullopt) = 0;
 
     /**
      * @brief Reformats a document based on the provided params.

@@ -64,8 +64,8 @@ const pair<const int, const AtomList> InMemoryDB::get_atoms_by_index(
 
 //------------------------------------------------------------------------------
 const StringList InMemoryDB::get_atoms_by_text_field(const string& text_value,
-                                                     const opt<string>& field,
-                                                     const opt<string>& text_index_id) const {
+                                                     const optional<string>& field,
+                                                     const optional<string>& text_index_id) const {
     throw runtime_error("Not implemented");
 }
 
@@ -254,7 +254,7 @@ const StringUnorderedSet InMemoryDB::get_matched_type(const string& link_type,
 }
 
 //------------------------------------------------------------------------------
-const opt<const string> InMemoryDB::get_atom_type(const string& handle) const {
+const optional<const string> InMemoryDB::get_atom_type(const string& handle) const {
     auto atom = this->_get_atom(handle);
     if (atom) {
         return atom->named_type;
@@ -326,7 +326,7 @@ void InMemoryDB::delete_atom(const string& handle) {
 const string InMemoryDB::create_field_index(const string& atom_type,
                                             const StringList& fields,
                                             const string& named_type,
-                                            const opt<const StringList>& composite_type,
+                                            const optional<const StringList>& composite_type,
                                             FieldIndexType index_type) {
     throw runtime_error("Not implemented");
 }
@@ -367,7 +367,7 @@ const vector<shared_ptr<const Atom>> InMemoryDB::retrieve_all_atoms() const {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::commit(const opt<const vector<Atom>>& buffer) {
+void InMemoryDB::commit(const optional<const vector<Atom>>& buffer) {
     throw runtime_error("Not implemented");
 }
 
@@ -475,7 +475,7 @@ void InMemoryDB::_add_outgoing_set(const string& key, const StringList& targets_
 }
 
 //------------------------------------------------------------------------------
-const opt<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
+const optional<const StringList> InMemoryDB::_get_and_delete_outgoing_set(const string& handle) {
     auto it = this->db.outgoing_set.find(handle);
     if (it != this->db.outgoing_set.end()) {
         auto handles = move(it->second);

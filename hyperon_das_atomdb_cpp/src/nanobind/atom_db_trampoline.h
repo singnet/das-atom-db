@@ -49,9 +49,10 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(get_atoms_by_index, index_id, query, cursor, chunk_size);
     }
 
-    const StringList get_atoms_by_text_field(const string& text_value,
-                                             const opt<string>& field = nullopt,
-                                             const opt<string>& text_index_id = nullopt) const override {
+    const StringList get_atoms_by_text_field(
+        const string& text_value,
+        const optional<string>& field = nullopt,
+        const optional<string>& text_index_id = nullopt) const override {
         NB_OVERRIDE_PURE(get_atoms_by_text_field, text_value, field, text_index_id);
     }
 
@@ -111,7 +112,7 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(get_matched_type, link_type, kwargs);
     }
 
-    const opt<const string> get_atom_type(const string& handle) const override {
+    const optional<const string> get_atom_type(const string& handle) const override {
         NB_OVERRIDE_PURE(get_atom_type, handle);
     }
 
@@ -137,7 +138,7 @@ struct AtomDBTrampoline : AtomDB {
     const string create_field_index(const string& atom_type,
                                     const StringList& fields,
                                     const string& named_type = "",
-                                    const opt<const StringList>& composite_type = nullopt,
+                                    const optional<const StringList>& composite_type = nullopt,
                                     FieldIndexType index_type = FieldIndexType::BINARY_TREE) override {
         NB_OVERRIDE_PURE(create_field_index, atom_type, fields, named_type, composite_type, index_type);
     }
@@ -150,7 +151,7 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(retrieve_all_atoms);
     }
 
-    void commit(const opt<const vector<Atom>>& buffer = nullopt) override {
+    void commit(const optional<const vector<Atom>>& buffer = nullopt) override {
         NB_OVERRIDE_PURE(commit, buffer);
     }
 

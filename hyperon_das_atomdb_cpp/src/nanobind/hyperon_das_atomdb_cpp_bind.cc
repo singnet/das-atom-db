@@ -204,7 +204,7 @@ NB_MODULE(ext, m) {
         .def("get_atom_type", &AtomDB::get_atom_type, "handle"_a)
         .def(
             "count_atoms",
-            [](const AtomDB& self, const opt<const nb::dict>& parameters = nullopt)
+            [](const AtomDB& self, const optional<const nb::dict>& parameters = nullopt)
                 -> const unordered_map<string, int> { return self.count_atoms(); },
             "parameters"_a = nullopt)
         .def("clear_database", &AtomDB::clear_database)

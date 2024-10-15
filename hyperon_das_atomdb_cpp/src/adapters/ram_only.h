@@ -116,9 +116,10 @@ class InMemoryDB : public AtomDB {
                                                              int cursor = 0,
                                                              int chunk_size = 500) const override;
 
-    const StringList get_atoms_by_text_field(const string& text_value,
-                                             const opt<string>& field = nullopt,
-                                             const opt<string>& text_index_id = nullopt) const override;
+    const StringList get_atoms_by_text_field(
+        const string& text_value,
+        const optional<string>& field = nullopt,
+        const optional<string>& text_index_id = nullopt) const override;
 
     const StringList get_node_by_name_starting_with(const string& node_type,
                                                     const string& startswith) const override;
@@ -152,7 +153,7 @@ class InMemoryDB : public AtomDB {
     const StringUnorderedSet get_matched_type(const string& link_type,
                                               const KwArgs& kwargs = {}) const override;
 
-    const opt<const string> get_atom_type(const string& handle) const override;
+    const optional<const string> get_atom_type(const string& handle) const override;
 
     const unordered_map<string, int> count_atoms() const override;
 
@@ -170,14 +171,14 @@ class InMemoryDB : public AtomDB {
     const string create_field_index(const string& atom_type,
                                     const StringList& fields,
                                     const string& named_type = "",
-                                    const opt<const StringList>& composite_type = nullopt,
+                                    const optional<const StringList>& composite_type = nullopt,
                                     FieldIndexType index_type = FieldIndexType::BINARY_TREE) override;
 
     void bulk_insert(const vector<shared_ptr<const Atom>>& documents) override;
 
     const vector<shared_ptr<const Atom>> retrieve_all_atoms() const override;
 
-    void commit(const opt<const vector<Atom>>& buffer = nullopt) override;
+    void commit(const optional<const vector<Atom>>& buffer = nullopt) override;
 
    protected:
     string database_name;
@@ -269,7 +270,7 @@ class InMemoryDB : public AtomDB {
      * @param handle The handle for which the outgoing set is to be retrieved and deleted.
      * @return An optional StringList containing the outgoing set if it exists.
      */
-    const opt<const StringList> _get_and_delete_outgoing_set(const string& handle);
+    const optional<const StringList> _get_and_delete_outgoing_set(const string& handle);
 
     /**
      * @brief Adds a set of incoming links to the database.

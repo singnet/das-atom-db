@@ -38,8 +38,8 @@ using CustomAttributes = unordered_map<CustomAttributesKey, CustomAttributesValu
  * @return An optional value of type T if the custom attribute exists.
  */
 template <typename T>
-static const opt<T> get_custom_attribute(const CustomAttributes& custom_attributes,
-                                         const CustomAttributesKey& key) {
+static const optional<T> get_custom_attribute(const CustomAttributes& custom_attributes,
+                                              const CustomAttributesKey& key) {
     if (custom_attributes.find(key) != custom_attributes.end()) {
         return std::get<T>(custom_attributes.at(key));
     }
