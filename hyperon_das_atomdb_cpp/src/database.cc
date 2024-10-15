@@ -14,11 +14,8 @@ bool AtomDB::node_exists(const string& node_type, const string& node_name) const
         return false;
     } catch (const exception& e) {
         string what = e.what();
-        if (what.find("Nonexistent atom") != string::npos) {
-            return false;
-        } else {
-            throw;
-        }
+        if (what.find("Nonexistent atom") != string::npos) return false;
+        throw;
     }
 }
 
@@ -31,11 +28,8 @@ bool AtomDB::link_exists(const string& link_type, const StringList& target_handl
         return false;
     } catch (const exception& e) {
         string what = e.what();
-        if (what.find("Nonexistent atom") != string::npos) {
-            return false;
-        } else {
-            throw;
-        }
+        if (what.find("Nonexistent atom") != string::npos) return false;
+        throw;
     }
 }
 
@@ -63,7 +57,7 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
             link_copy->targets_documents.reserve(link->targets.size());
             for (const auto& target : link->targets) {
                 const auto& atom =
-                    deep_representation ? this->get_atom(target, kwargs) : this->_get_atom(target);
+                    deep_representation ? this->get_atom(target, kwargs) : this->get_atom(target);
                 if (not atom) continue;
                 if (const auto& node = dynamic_pointer_cast<const Node>(atom)) {
                     link_copy->targets_documents.emplace_back(*node);
