@@ -135,7 +135,7 @@ class InMemoryDB : public AtomDB {
                                                const StringList& target_handles,
                                                const KwArgs& kwargs = {}) const override;
 
-    const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+    const StringUnorderedSet get_matched_type_template(const StringList& _template,
                                                        const KwArgs& kwargs = {}) const override;
 
     const StringUnorderedSet get_matched_type(const string& link_type,
@@ -182,35 +182,10 @@ class InMemoryDB : public AtomDB {
 
     /**
      * @brief Builds a named type hash template from the given template.
-     * @param _template A vector of elements of type any representing the template.
-     * @return A vector of elements of type any representing the named type hash template.
-     *
-     * Both `_template` and the returned vector are expected to contain elements of type
-     * `string` or `vector<string>`, allowing multiple levels of nesting.
-     * Example:
-     *
-     * @code
-     * ```
-     * {
-     *     "986a251e2a3e4c19a856a279dab2495f",
-     *     "3399d0d460c849c892f223b97d79635a",
-     *     {
-     *         "81ab7b04e75642a2a8acfdbb7033dc23",
-     *         "4aac2093cb6040e7acf09af2f58e2e22"
-     *     },
-     *     "fc16eec8ae914f818a3342534632de33",
-     *     {
-     *         "5c7e4ba338ef47abb41a1f497c35ea57",
-     *         {
-     *             "9cf28d0712fc4759adcde1ec4801b53a",
-     *             "b1b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3"
-     *         }
-     *     }
-     * }
-     * ```
-     * @endcode
+     * @param _template A list of strings representing the template.
+     * @return A list of strings representing the named type hash template.
      */
-    const ListOfAny _build_named_type_hash_template(const ListOfAny& _template) const;
+    const StringList _build_named_type_hash_template(const StringList& _template) const;
 
     /**
      * @brief Builds a hash for a named type template.

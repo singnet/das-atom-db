@@ -179,11 +179,10 @@ NB_MODULE(ext, m) {
         .def(
             "get_matched_type_template",
             [](AtomDB& self,
-               const nb::list& _template,
+               const StringList& _template,
                bool toplevel_only = false,
                const nb::kwargs& _ = {}) -> const StringUnorderedSet {
-                return self.get_matched_type_template(helpers::pylist_to_composite_type(_template),
-                                                      {toplevel_only : toplevel_only});
+                return self.get_matched_type_template(_template, {toplevel_only : toplevel_only});
             },
             "_template"_a,
             nb::kw_only(),

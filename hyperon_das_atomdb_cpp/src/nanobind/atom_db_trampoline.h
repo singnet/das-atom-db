@@ -102,7 +102,7 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(get_matched_links, link_type, target_handles, kwargs);
     }
 
-    const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+    const StringUnorderedSet get_matched_type_template(const StringList& _template,
                                                        const KwArgs& kwargs = {}) const override {
         NB_OVERRIDE_PURE(get_matched_type_template, _template, kwargs);
     }

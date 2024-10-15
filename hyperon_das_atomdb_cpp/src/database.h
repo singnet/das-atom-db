@@ -294,12 +294,11 @@ class AtomDB {
 
     /**
      * @brief Retrieves matched type templates based on the specified template.
-     * @param _template A list of elements representing the template, which can be a list of strings
-     *                  or a list of lists of strings or another level of nesting.
+     * @param _template A list of strings representing the template.
      * @param kwargs An const reference to a Kwargs object containing additional retrieval options.
      * @return A set of handles that matched.
      */
-    virtual const StringUnorderedSet get_matched_type_template(const ListOfAny& _template,
+    virtual const StringUnorderedSet get_matched_type_template(const StringList& _template,
                                                                const KwArgs& kwargs = {}) const = 0;
 
     /**
