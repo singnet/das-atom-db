@@ -276,8 +276,7 @@ NB_MODULE(ext, m) {
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
-        .def("to_dict", &helpers::atom_to_dict)
-        .def(nb::self == nb::self);
+        .def("to_dict", &helpers::atom_to_dict);
     nb::class_<AtomType, Atom>(document_types, "AtomType")
         .def(nb::init<const string&,  // _id
                       const string&,  // handle
@@ -294,8 +293,7 @@ NB_MODULE(ext, m) {
         .def_ro("named_type_hash", &AtomType::named_type_hash)
         .def("__getstate__", &helpers::atom_type_to_tuple)
         .def("__setstate__", &helpers::tuple_to_atom_type)
-        .def("to_dict", &helpers::atom_type_to_dict)
-        .def(nb::self == nb::self);
+        .def("to_dict", &helpers::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
         .def(
             /**
@@ -324,8 +322,7 @@ NB_MODULE(ext, m) {
         .def_ro("name", &Node::name)
         .def("__getstate__", &helpers::node_to_tuple)
         .def("__setstate__", &helpers::tuple_to_node)
-        .def("to_dict", &helpers::node_to_dict)
-        .def(nb::self == nb::self);
+        .def("to_dict", &helpers::node_to_dict);
     nb::class_<Link, Atom>(document_types, "Link")
         .def(
             /**
@@ -361,7 +358,6 @@ NB_MODULE(ext, m) {
         .def_rw("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)
         .def("__setstate__", &helpers::tuple_to_link)
-        .def("to_dict", &helpers::link_to_dict)
-        .def(nb::self == nb::self);
+        .def("to_dict", &helpers::link_to_dict);
     // ---------------------------------------------------------------------------------------------
 }

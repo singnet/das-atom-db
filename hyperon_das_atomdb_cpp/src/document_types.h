@@ -162,18 +162,6 @@ class Atom {
     virtual ~Atom() = default;
 
     /**
-     * @brief Compares this Atom with another for equality.
-     * @param other The Atom to compare with.
-     * @return True if both Atoms are equal, otherwise false.
-     */
-    bool operator==(const Atom& other) const noexcept {
-        return this->_id == other._id and this->handle == other.handle and
-               this->composite_type_hash == other.composite_type_hash and
-               this->named_type == other.named_type and
-               this->custom_attributes == other.custom_attributes;
-    }
-
-    /**
      * @brief Converts the object to a string representation.
      * @return A string representing the object, including its ID, handle, composite type hash,
      *         named type, and custom attributes.
@@ -230,15 +218,6 @@ class AtomType : public Atom {
         if (this->named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
         }
-    }
-
-    /**
-     * @brief Compares this AtomType with another for equality.
-     * @param other The AtomType to compare with.
-     * @return True if both AtomType objects are equal, false otherwise.
-     */
-    bool operator==(const AtomType& other) const {
-        return Atom::operator==(other) and this->named_type_hash == other.named_type_hash;
     }
 
     /**
@@ -332,15 +311,6 @@ class Node : public Atom {
         if (this->name.empty()) {
             throw invalid_argument("Node name cannot be empty.");
         }
-    }
-
-    /**
-     * @brief Compares this Node with another Node for equality.
-     * @param other The Node to compare with.
-     * @return True if both Nodes are equal, false otherwise.
-     */
-    bool operator==(const Node& other) const {
-        return Atom::operator==(other) and this->name == other.name;
     }
 
     /**
@@ -500,20 +470,6 @@ class Link : public Atom {
         if (this->targets.empty()) {
             throw invalid_argument("Link targets cannot be empty.");
         }
-    }
-
-    /**
-     * @brief Compares this Link object with another for equality.
-     * @param other The Link object to compare with.
-     * @return True if the objects are equal, false otherwise.
-     */
-    bool operator==(const Link& other) const {
-        bool composite_type_are_equal = this->composite_type_list_to_string(this->composite_type) ==
-                                        this->composite_type_list_to_string(other.composite_type);
-        return composite_type_are_equal and Atom::operator==(other) and
-               this->named_type_hash == other.named_type_hash and this->targets == other.targets and
-               this->is_toplevel == other.is_toplevel and
-               this->targets_documents == other.targets_documents;
     }
 
     /**
