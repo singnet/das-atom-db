@@ -100,7 +100,7 @@ const StringUnorderedSet InMemoryDB::get_all_links(const string& link_type) cons
     StringUnorderedSet link_handles;
     for (const auto& [_, link] : this->db.link) {
         if (link->named_type == link_type) {
-            link_handles.insert(link->_id);
+            link_handles.emplace(link->_id);
         }
     }
     return move(link_handles);
@@ -440,7 +440,7 @@ void InMemoryDB::_add_atom_type(const string& atom_type_name, const string& atom
         return;
     }
 
-    this->all_named_types.insert(atom_type_name);
+    this->all_named_types.emplace(atom_type_name);
     string name_hash = ExpressionHasher::named_type_hash(atom_type_name);
     string type_hash = atom_type == "Type" ? TYPE_HASH : ExpressionHasher::named_type_hash(atom_type);
 
@@ -488,7 +488,7 @@ void InMemoryDB::_add_incoming_set(const string& key, const StringList& targets_
         if (it == this->db.incoming_set.end()) {
             this->db.incoming_set[target_hash] = StringUnorderedSet({key});
         } else {
-            it->second.insert(key);
+            it->second.emplace(key);
         }
     }
 }
@@ -509,14 +509,14 @@ void InMemoryDB::_add_templates(const string& composite_type_hash,
                                 const string& key) {
     auto it = this->db.templates.find(composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(key);
+        it->second.emplace(key);
     } else {
         this->db.templates[composite_type_hash] = StringUnorderedSet({key});
     }
 
     it = this->db.templates.find(named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.insert(key);
+        it->second.emplace(key);
     } else {
         this->db.templates[named_type_hash] = StringUnorderedSet({key});
     }
@@ -551,7 +551,7 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
         if (it == this->db.patterns.end()) {
             this->db.patterns[pattern_key] = StringUnorderedSet({key});
         } else {
-            it->second.insert(key);
+            it->second.emplace(key);
         }
     }
 }
@@ -589,7 +589,7 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
         auto it = this->db.link.find(link_handle);
         if (it != this->db.link.end()) {
             if (it->second->is_toplevel) {
-                filtered_matched_targets.insert(link_handle);
+                filtered_matched_targets.emplace(link_handle);
             }
         }
     }
