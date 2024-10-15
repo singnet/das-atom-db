@@ -102,7 +102,7 @@ StringList build_pattern_keys(const StringList& hash_list) {
 
     StringList keys;
     for (const auto& matrix_item : result_matrix) {
-        string type_hash = matrix_item[0];
+        const string& type_hash = matrix_item[0];
         StringList elements(matrix_item.begin() + 1, matrix_item.end());
         keys.push_back(move(ExpressionHasher::expression_hash(type_hash, elements)));
     }

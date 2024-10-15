@@ -47,7 +47,6 @@ namespace atomdb {
  */
 class Database {
    public:
-    unordered_map<string, shared_ptr<AtomType>> atom_type;
     unordered_map<string, shared_ptr<Node>> node;
     unordered_map<string, shared_ptr<Link>> link;
     unordered_map<string, StringList> outgoing_set;
@@ -55,17 +54,9 @@ class Database {
     unordered_map<string, StringUnorderedSet> patterns;
     unordered_map<string, StringUnorderedSet> templates;
 
-    Database()
-        : atom_type({}),
-          node({}),
-          link({}),
-          outgoing_set({}),
-          incoming_set({}),
-          patterns({}),
-          templates({}) {}
+    Database() : node({}), link({}), outgoing_set({}), incoming_set({}), patterns({}), templates({}) {}
 
     ~Database() {
-        atom_type.clear();
         node.clear();
         link.clear();
         outgoing_set.clear();
@@ -95,10 +86,7 @@ class Database {
 class InMemoryDB : public AtomDB {
    public:
     InMemoryDB(const string& database_name = "das") : database_name(database_name) {};
-    ~InMemoryDB() {
-        this->all_named_types.clear();
-        this->named_type_table.clear();
-    };
+    ~InMemoryDB() {};
 
     const string get_node_handle(const string& node_type, const string& node_name) const override;
 
@@ -183,8 +171,6 @@ class InMemoryDB : public AtomDB {
    protected:
     string database_name;
     Database db;
-    set<string> all_named_types;
-    unordered_map<string, string> named_type_table;
 
     const shared_ptr<const Atom> _get_atom(const string& handle) const override;
 
@@ -237,26 +223,6 @@ class InMemoryDB : public AtomDB {
      * @return A string containing the hash of the named type template.
      */
     const string _build_named_type_hash_template(const string& _template) const;
-
-    /**
-     * @brief Generates a hash for an atom type key.
-     * @param name The name of the atom type key to be hashed.
-     * @return A string containing the hash of the atom type key.
-     */
-    const string _build_atom_type_key_hash(const string& name) const;
-
-    /**
-     * @brief Adds a new atom type to the database.
-     * @param atom_type_name The name of the atom type to be added.
-     * @param atom_type The type of the atom, default is "Type".
-     */
-    void _add_atom_type(const string& atom_type_name, const string& atom_type = "Type");
-
-    /**
-     * @brief Deletes an atom type from the database.
-     * @param name The name of the atom type to be deleted.
-     */
-    void _delete_atom_type(const string& name);
 
     /**
      * @brief Adds a set of outgoing links to the database.

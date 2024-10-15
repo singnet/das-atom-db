@@ -200,10 +200,9 @@ const StringUnorderedSet InMemoryDB::get_matched_links(const string& link_type,
 
     auto handles = StringList({link_type_hash});
     handles.insert(handles.end(), target_handles.begin(), target_handles.end());
-    auto pattern_hash = ExpressionHasher::composite_hash(handles);
 
     StringUnorderedSet patterns_matched;
-    auto it = this->db.patterns.find(pattern_hash);
+    auto it = this->db.patterns.find(ExpressionHasher::composite_hash(handles));
     if (it != this->db.patterns.end()) {
         patterns_matched.reserve(it->second.size());
         patterns_matched.insert(it->second.begin(), it->second.end());
@@ -242,8 +241,7 @@ const StringUnorderedSet InMemoryDB::get_matched_type_template(const ListOfAny& 
 //------------------------------------------------------------------------------
 const StringUnorderedSet InMemoryDB::get_matched_type(const string& link_type,
                                                       const KwArgs& kwargs) const {
-    auto link_type_hash = ExpressionHasher::named_type_hash(link_type);
-    auto it = this->db.templates.find(link_type_hash);
+    auto it = this->db.templates.find(ExpressionHasher::named_type_hash(link_type));
     if (it != this->db.templates.end()) {
         if (kwargs.toplevel_only) {
             return this->_filter_non_toplevel(it->second);
@@ -271,11 +269,7 @@ const unordered_map<string, int> InMemoryDB::count_atoms() const {
 }
 
 //------------------------------------------------------------------------------
-void InMemoryDB::clear_database() {
-    this->db = Database();
-    this->all_named_types.clear();
-    this->named_type_table.clear();
-}
+void InMemoryDB::clear_database() { this->db = Database(); }
 
 //------------------------------------------------------------------------------
 const shared_ptr<const Node> InMemoryDB::add_node(const Node& node_params) {
@@ -335,11 +329,10 @@ const string InMemoryDB::create_field_index(const string& atom_type,
 void InMemoryDB::bulk_insert(const vector<shared_ptr<const Atom>>& documents) {
     try {
         for (const auto& document : documents) {
-            auto handle = document->_id;
             if (auto node = dynamic_cast<const Node*>(document.get())) {
-                this->db.node[handle] = make_shared<Node>(*node);
+                this->db.node[document->_id] = make_shared<Node>(*node);
             } else if (auto link = dynamic_cast<const Link*>(document.get())) {
-                this->db.link[handle] = make_shared<Link>(*link);
+                this->db.link[document->_id] = make_shared<Link>(*link);
             }
             this->_update_index(*document);
         }
@@ -433,43 +426,6 @@ const string InMemoryDB::_build_named_type_hash_template(const string& _template
 }
 
 //------------------------------------------------------------------------------
-const string InMemoryDB::_build_atom_type_key_hash(const string& name) const {
-    string name_hash = ExpressionHasher::named_type_hash(name);
-    return ExpressionHasher::expression_hash(TYPEDEF_MARK_HASH, {name_hash, TYPE_HASH});
-}
-
-//------------------------------------------------------------------------------
-void InMemoryDB::_add_atom_type(const string& atom_type_name, const string& atom_type) {
-    if (this->all_named_types.find(atom_type_name) != this->all_named_types.end()) {
-        return;
-    }
-
-    this->all_named_types.emplace(atom_type_name);
-    string name_hash = ExpressionHasher::named_type_hash(atom_type_name);
-    string type_hash = atom_type == "Type" ? TYPE_HASH : ExpressionHasher::named_type_hash(atom_type);
-
-    string key = ExpressionHasher::expression_hash(TYPEDEF_MARK_HASH, {name_hash, type_hash});
-
-    if (this->db.atom_type.find(key) != this->db.atom_type.end()) {
-        return;
-    }
-
-    string base_type_hash = ExpressionHasher::named_type_hash("Type");
-    StringList composite_type = {TYPEDEF_MARK_HASH, type_hash, base_type_hash};
-    string composite_type_hash = ExpressionHasher::composite_hash(composite_type);
-    auto new_atom_type = make_shared<AtomType>(key, key, composite_type_hash, atom_type_name, name_hash);
-    this->db.atom_type[key] = move(new_atom_type);
-    this->named_type_table[name_hash] = atom_type_name;
-}
-
-//------------------------------------------------------------------------------
-void InMemoryDB::_delete_atom_type(const string& name) {
-    string key = this->_build_atom_type_key_hash(name);
-    this->db.atom_type.erase(key);
-    this->all_named_types.erase(name);
-}
-
-//------------------------------------------------------------------------------
 void InMemoryDB::_add_outgoing_set(const string& key, const StringList& targets_hash) {
     this->db.outgoing_set[key] = targets_hash;
 }
@@ -528,18 +484,14 @@ void InMemoryDB::_add_templates(const string& composite_type_hash,
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_templates(const Link& link_document) {
-    string composite_type_hash = link_document.composite_type_hash;
-    string named_type_hash = link_document.named_type_hash;
-    string key = link_document._id;
-
-    auto it = this->db.templates.find(composite_type_hash);
+    auto it = this->db.templates.find(link_document.composite_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(key);
+        it->second.erase(link_document._id);
     }
 
-    it = this->db.templates.find(named_type_hash);
+    it = this->db.templates.find(link_document.named_type_hash);
     if (it != this->db.templates.end()) {
-        it->second.erase(key);
+        it->second.erase(link_document._id);
     }
 }
 
@@ -562,15 +514,13 @@ void InMemoryDB::_add_patterns(const string& named_type_hash,
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_patterns(const Link& link_document, const StringList& targets_hash) {
-    string named_type_hash = link_document.named_type_hash;
-    string key = link_document._id;
-    auto hash_list = StringList({named_type_hash});
+    auto hash_list = StringList({link_document.named_type_hash});
     hash_list.insert(hash_list.end(), targets_hash.begin(), targets_hash.end());
     StringList pattern_keys = build_pattern_keys(hash_list);
     for (const auto& pattern_key : pattern_keys) {
         auto it = this->db.patterns.find(pattern_key);
         if (it != this->db.patterns.end()) {
-            it->second.erase(key);
+            it->second.erase(link_document._id);
         }
     }
 }
@@ -602,7 +552,7 @@ const StringUnorderedSet InMemoryDB::_filter_non_toplevel(const StringUnorderedS
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_delete_atom_index(const Atom& atom) {
-    auto atom_handle = atom._id;
+    const string& atom_handle = atom._id;
     auto it = this->db.incoming_set.find(atom_handle);
     if (it != this->db.incoming_set.end()) {
         auto handles = move(it->second);
@@ -625,10 +575,8 @@ void InMemoryDB::_delete_atom_index(const Atom& atom) {
 
 //------------------------------------------------------------------------------
 void InMemoryDB::_add_atom_index(const Atom& atom) {
-    auto atom_type_name = atom.named_type;
-    this->_add_atom_type(atom_type_name);
     if (auto link = dynamic_cast<const Link*>(&atom)) {
-        auto handle = link->_id;
+        const string& handle = link->_id;
         this->_add_outgoing_set(handle, link->targets);
         this->_add_incoming_set(handle, link->targets);
         this->_add_templates(link->composite_type_hash, link->named_type_hash, handle);

@@ -29,15 +29,6 @@ namespace bind_helpers {
 // Tuples for `pickle` conversion between C++ and Python
 // See `__getstate__` and `__setstate__` in the bindings.
 
-using AtomTypeTuple =            // Tuple for AtomType
-    std::tuple<string,           // _id
-               string,           // handle
-               string,           // composite_type_hash
-               string,           // named_type
-               string,           // named_type_hash
-               CustomAttributes  // custom_attributes
-               >;
-
 using NodeTuple =                // Tuple for Node
     std::tuple<string,           // _id
                string,           // handle
@@ -88,7 +79,7 @@ static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
     ListOfAny ct_list;
     ct_list.reserve(py_list.size());
     for (const auto& element : py_list) {
-        auto e_type = element.type();
+        const auto& e_type = element.type();
         auto type_name = string(nb::type_name(e_type).c_str());
         if (type_name == "str") {
             ct_list.push_back(move(nb::cast<string>(element)));
@@ -113,17 +104,6 @@ static nb::dict atom_to_dict(const Atom& self) {
     dict["composite_type_hash"] = self.composite_type_hash;
     dict["named_type"] = self.named_type;
     dict["custom_attributes"] = self.custom_attributes;
-    return move(dict);
-};
-
-/**
- * @brief Converts an AtomType object to a Python dictionary.
- * @param self The AtomType object to be converted.
- * @return A Python dictionary (`nb::dict`) containing the attributes of the AtomType.
- */
-static nb::dict atom_type_to_dict(const AtomType& self) {
-    nb::dict dict = atom_to_dict(self);
-    dict["named_type_hash"] = self.named_type_hash;
     return move(dict);
 };
 
@@ -160,35 +140,6 @@ static nb::dict link_to_dict(const Link& self) {
     dict["targets_documents"] = move(targets_documents);
     return move(dict);
 };
-
-/**
- * @brief Converts an AtomType object to an AtomTypeTuple.
- * @param atom_type The AtomType object to be converted.
- * @return An AtomTypeTuple containing the attributes of the AtomType.
- */
-static AtomTypeTuple atom_type_to_tuple(const AtomType& atom_type) {
-    return make_tuple(atom_type._id,
-                      atom_type.handle,
-                      atom_type.composite_type_hash,
-                      atom_type.named_type,
-                      atom_type.named_type_hash,
-                      atom_type.custom_attributes);
-}
-
-/**
- * @brief Converts an AtomTypeTuple to an AtomType object.
- * @param atom_type The AtomType object to be updated.
- * @param state The AtomTypeTuple containing the new state.
- */
-static void tuple_to_atom_type(AtomType& atom_type, const AtomTypeTuple& state) {
-    new (&atom_type) AtomType(std::get<0>(state),  // id
-                              std::get<1>(state),  // handle
-                              std::get<2>(state),  // composite_type_hash
-                              std::get<3>(state),  // named_type
-                              std::get<4>(state),  // named_type_hash
-                              std::get<5>(state)   // custom_attributes
-    );
-}
 
 /**
  * @brief Converts a Node object to a NodeTuple.

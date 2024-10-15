@@ -94,10 +94,10 @@ class AtomDB {
      * @return The link handle.
      */
     static const string build_link_handle(const string& link_type, const string& target_handle) {
-        string link_type_hash = ExpressionHasher::named_type_hash(link_type.c_str());
-        return ExpressionHasher::composite_hash(target_handle.empty()
-                                                    ? StringList{{link_type_hash}}
-                                                    : StringList{{link_type_hash}, {target_handle}});
+        string link_type_hash = ExpressionHasher::named_type_hash(link_type);
+        return ExpressionHasher::composite_hash(
+            target_handle.empty() ? StringList{{move(link_type_hash)}}
+                                  : StringList{{move(link_type_hash)}, {target_handle}});
     }
 
     /**
@@ -107,7 +107,7 @@ class AtomDB {
      * @return The link handle.
      */
     static const string build_link_handle(const string& link_type, const StringList& target_handles) {
-        string link_type_hash = ExpressionHasher::named_type_hash(link_type.c_str());
+        string link_type_hash = ExpressionHasher::named_type_hash(link_type);
         return ExpressionHasher::expression_hash(link_type_hash, target_handles);
     }
 

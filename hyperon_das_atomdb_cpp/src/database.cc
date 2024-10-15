@@ -61,13 +61,13 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
             shared_ptr<Link> link_copy = make_shared<Link>(*link);
             link_copy->targets_documents.clear();
             link_copy->targets_documents.reserve(link->targets.size());
-            shared_ptr<const Atom> atom;
             for (const auto& target : link->targets) {
-                atom = deep_representation ? this->get_atom(target, kwargs) : this->_get_atom(target);
+                const auto& atom =
+                    deep_representation ? this->get_atom(target, kwargs) : this->_get_atom(target);
                 if (not atom) continue;
-                if (auto node = dynamic_pointer_cast<const Node>(atom)) {
+                if (const auto& node = dynamic_pointer_cast<const Node>(atom)) {
                     link_copy->targets_documents.emplace_back(*node);
-                } else if (auto link = dynamic_pointer_cast<const Link>(atom)) {
+                } else if (const auto& link = dynamic_pointer_cast<const Link>(atom)) {
                     link_copy->targets_documents.emplace_back(*link);
                 }
             }

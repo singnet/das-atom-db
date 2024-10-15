@@ -277,23 +277,6 @@ NB_MODULE(ext, m) {
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
         .def("to_dict", &helpers::atom_to_dict);
-    nb::class_<AtomType, Atom>(document_types, "AtomType")
-        .def(nb::init<const string&,  // _id
-                      const string&,  // handle
-                      const string&,  // composite_type_hash
-                      const string&,  // named_type
-                      const string&,  // named_type_hash
-                      const CustomAttributes&>(),
-             "_id"_a,
-             "handle"_a,
-             "composite_type_hash"_a,
-             "named_type"_a,
-             "named_type_hash"_a,
-             "custom_attributes"_a = CustomAttributes{})
-        .def_ro("named_type_hash", &AtomType::named_type_hash)
-        .def("__getstate__", &helpers::atom_type_to_tuple)
-        .def("__setstate__", &helpers::tuple_to_atom_type)
-        .def("to_dict", &helpers::atom_type_to_dict);
     nb::class_<Node, Atom>(document_types, "Node")
         .def(
             /**

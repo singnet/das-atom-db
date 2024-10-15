@@ -8,7 +8,6 @@
  * - CustomAttributes: A type alias for `std::unordered_map<string, variant<string, long, double, bool>`.
  * - Atom: Represents a basic atomic entity with attributes such as ID, handle, composite type hash,
  *   named type, and optional custom attributes.
- * - AtomType: Extends the Atom class by adding a named type hash attribute.
  * - Node: Represents a node in the atom database, extending the Atom class by adding a name
  *   attribute.
  * - Link: Represents a link in the atom database, encapsulating a composite type, named type hash,
@@ -157,60 +156,6 @@ class Atom {
         result += ", named_type: '" + this->named_type + "'";
         result += ", custom_attributes: ";
         result += custom_attributes_to_string(this->custom_attributes);
-        return move(result);
-    }
-};
-
-/**
- * @class AtomType
- * @brief Represents a specialized type of Atom with an additional named type hash.
- *
- * The AtomType class extends the Atom class by adding a named type hash attribute.
- * It provides constructors for initialization, an equality operator, and a string
- * representation method.
- */
-class AtomType : public Atom {
-   public:
-    string named_type_hash;
-
-    AtomType() = default;
-
-    /**
-     * @brief Constructs an AtomType object with the specified parameters.
-     * @param id The identifier for the atom type.
-     * @param handle The handle for the atom type.
-     * @param composite_type_hash The hash of the composite type.
-     * @param named_type The named type of the atom.
-     * @param named_type_hash The hash of the named type.
-     * @param custom_attributes Optional custom attributes for the atom type. Defaults to an empty map.
-     */
-    AtomType(const string& id,
-             const string& handle,
-             const string& composite_type_hash,
-             const string& named_type,
-             const string& named_type_hash,
-             const CustomAttributes& custom_attributes = CustomAttributes{})
-        : named_type_hash(named_type_hash),
-          Atom(id, handle, composite_type_hash, named_type, custom_attributes) {}
-
-    /**
-     * @brief Validates the attributes of the object.
-     * @throws std::invalid_argument if any attribute is invalid.
-     */
-    void validate() const override {
-        Atom::validate();
-        if (this->named_type_hash.empty()) {
-            throw invalid_argument("Named type hash cannot be empty.");
-        }
-    }
-
-    /**
-     * @brief Converts the AtomType object to a string representation.
-     * @return A string representing the AtomType object.
-     */
-    const string to_string() const noexcept override {
-        string result = "AtomType(" + Atom::to_string();
-        result += ", named_type_hash: '" + this->named_type_hash + "')";
         return move(result);
     }
 };
@@ -545,7 +490,6 @@ class Link : public Atom {
 };
 
 using AtomList = vector<Atom>;
-using AtomTypeList = vector<AtomType>;
 using NodeList = vector<Node>;
 using LinkList = vector<Link>;
 
