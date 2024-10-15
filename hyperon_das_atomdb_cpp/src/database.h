@@ -205,12 +205,18 @@ class AtomDB {
                                                             const string& startswith) const = 0;
 
     /**
-     * @brief Get all nodes of a specific type.
+     * @brief Get all nodes handles of a specific type.
      * @param node_type The node type.
-     * @param names If True, return node names instead of handles. Default is False.
-     * @return A list of node handles or names, depending on the value of `names`.
+     * @return A list of node handles.
      */
-    virtual const StringList get_all_nodes(const string& node_type, bool names = false) const = 0;
+    virtual const StringList get_all_nodes_handles(const string& node_type) const = 0;
+
+    /**
+     * @brief Get all nodes names of a specific type.
+     * @param node_type The node type.
+     * @return A list of names.
+     */
+    virtual const StringList get_all_nodes_names(const string& node_type) const = 0;
 
     /**
      * @brief Retrieves all links of the specified type from the database.

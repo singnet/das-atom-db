@@ -19,7 +19,7 @@ namespace nb = nanobind;
  * allowing for custom behavior and additional functionality.
  */
 struct AtomDBTrampoline : AtomDB {
-    NB_TRAMPOLINE(AtomDB, 31);
+    NB_TRAMPOLINE(AtomDB, 32);
 
     const string get_node_handle(const string& node_type, const string& node_name) const override {
         NB_OVERRIDE_PURE(get_node_handle, node_type, node_name);
@@ -60,8 +60,12 @@ struct AtomDBTrampoline : AtomDB {
         NB_OVERRIDE_PURE(get_node_by_name_starting_with, node_type, startswith);
     }
 
-    const StringList get_all_nodes(const string& node_type, bool names = false) const override {
-        NB_OVERRIDE_PURE(get_all_nodes, node_type, names);
+    const StringList get_all_nodes_handles(const string& node_type) const override {
+        NB_OVERRIDE_PURE(get_all_nodes_handles, node_type);
+    }
+
+    const StringList get_all_nodes_names(const string& node_type) const override {
+        NB_OVERRIDE_PURE(get_all_nodes_names, node_type);
     }
 
     const StringUnorderedSet get_all_links(const string& link_type) const override {

@@ -123,7 +123,9 @@ class InMemoryDB : public AtomDB {
     const StringList get_node_by_name_starting_with(const string& node_type,
                                                     const string& startswith) const override;
 
-    const StringList get_all_nodes(const string& node_type, bool names = false) const override;
+    const StringList get_all_nodes_handles(const string& node_type) const override;
+
+    const StringList get_all_nodes_names(const string& node_type) const override;
 
     const StringUnorderedSet get_all_links(const string& link_type) const override;
 

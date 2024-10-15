@@ -76,23 +76,27 @@ const StringList InMemoryDB::get_node_by_name_starting_with(const string& node_t
 }
 
 //------------------------------------------------------------------------------
-const StringList InMemoryDB::get_all_nodes(const string& node_type, bool names) const {
+const StringList InMemoryDB::get_all_nodes_handles(const string& node_type) const {
     auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
     StringList node_handles;
-    if (names) {
-        for (const auto& [_, node] : this->db.node) {
-            if (node->composite_type_hash == node_type_hash) {
-                node_handles.emplace_back(node->name);
-            }
-        }
-    } else {
-        for (const auto& [handle, node] : this->db.node) {
-            if (node->composite_type_hash == node_type_hash) {
-                node_handles.emplace_back(handle);
-            }
+    for (const auto& [handle, node] : this->db.node) {
+        if (node->composite_type_hash == node_type_hash) {
+            node_handles.emplace_back(handle);
         }
     }
     return move(node_handles);
+}
+
+//------------------------------------------------------------------------------
+const StringList InMemoryDB::get_all_nodes_names(const string& node_type) const {
+    auto node_type_hash = ExpressionHasher::named_type_hash(node_type);
+    StringList node_names;
+    for (const auto& [_, node] : this->db.node) {
+        if (node->composite_type_hash == node_type_hash) {
+            node_names.emplace_back(node->name);
+        }
+    }
+    return move(node_names);
 }
 
 //------------------------------------------------------------------------------

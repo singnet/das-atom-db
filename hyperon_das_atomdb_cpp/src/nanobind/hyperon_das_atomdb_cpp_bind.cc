@@ -115,7 +115,8 @@ NB_MODULE(ext, m) {
              &AtomDB::get_node_by_name_starting_with,
              "node_type"_a,
              "startswith"_a)
-        .def("get_all_nodes", &AtomDB::get_all_nodes, "node_type"_a, "names"_a = false)
+        .def("get_all_nodes_handles", &AtomDB::get_all_nodes_handles, "node_type"_a)
+        .def("get_all_nodes_names", &AtomDB::get_all_nodes_names, "node_type"_a)
         .def(
             "get_all_links",
             [](AtomDB& self, const string& link_type, const nb::kwargs& _ = {})
