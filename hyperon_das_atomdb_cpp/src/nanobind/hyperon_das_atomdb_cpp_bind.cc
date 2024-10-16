@@ -266,7 +266,7 @@ NB_MODULE(ext, m) {
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
         .def_ro("_id", &Atom::_id)
-        .def_prop_ro("id",  // RO property for having access to `_id` as `id`
+        .def_prop_ro("id",  // read-only property for having access to `_id` as `id`
                      [](const Atom& self) -> string { return self._id; })
         .def_ro("handle", &Atom::handle)
         .def_ro("composite_type_hash", &Atom::composite_type_hash)
@@ -313,10 +313,10 @@ NB_MODULE(ext, m) {
              *       constructor with all parameters.
              */
             nb::init<const string&,                  // type
-                     const Link::TargetsDocuments&,  // targets_documents
+                     const Link::TargetsDocuments&,  // targets
                      const CustomAttributes&>(),     // custom_attributes
             "type"_a,
-            "targets_documents"_a,
+            "targets"_a,
             "custom_attributes"_a = CustomAttributes{})
         .def("__init__",
              &helpers::init_link,
