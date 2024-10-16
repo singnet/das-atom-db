@@ -1,11 +1,7 @@
 from copy import deepcopy
-from typing import TypeAlias, cast
+from typing import TypeAlias
 
-from hyperon_das_atomdb.database import (
-    AtomDB,
-    LinkT,
-    NodeT,
-)
+from hyperon_das_atomdb.database import AtomDB, LinkT, NodeT
 
 CustomAttributesT: TypeAlias = dict[str, str | int | float | bool]
 
@@ -14,9 +10,7 @@ def check_handle(handle):
     return all((isinstance(handle, str), len(handle) == 32, int(handle, 16)))
 
 
-def add_node(
-    db: AtomDB, node_name, node_type, adapter, custom_attributes: CustomAttributesT = {}
-):
+def add_node(db: AtomDB, node_name, node_type, adapter, custom_attributes: CustomAttributesT = {}):
     node_params = NodeT(node_type, node_name, custom_attributes)
     node = db.add_node(node_params)
     if adapter != "in_memory_db":
@@ -24,9 +18,7 @@ def add_node(
     return node
 
 
-def add_link(
-    db: AtomDB, link_type, targets: list[NodeT | LinkT], adapter, is_toplevel=True
-):
+def add_link(db: AtomDB, link_type, targets: list[NodeT | LinkT], adapter, is_toplevel=True):
     link = db.add_link(LinkT(link_type, targets), toplevel=is_toplevel)
     if adapter != "in_memory_db":
         db.commit()

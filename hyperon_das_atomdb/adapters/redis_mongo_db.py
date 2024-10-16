@@ -616,7 +616,7 @@ class RedisMongoDB(AtomDB):
             document[FieldNames.ID_HASH]
             for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
         ]
-    
+
     def get_all_nodes_names(self, node_type: str) -> list[str]:
         return [
             document[FieldNames.NODE_NAME]

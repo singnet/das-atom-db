@@ -1,7 +1,7 @@
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, LinkParamsT, LinkT, NodeParamsT, NodeT
-from tests.helpers import add_link, add_node, atom_to_params, check_handle
+from tests.helpers import add_link, add_node, check_handle
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
@@ -11,7 +11,7 @@ class TestDatabasePrivateMethods:
     def test__get_atom(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Aa", [atom_to_params(node_a)], database)
+        link_a = add_link(db, "Aa", [node_a], database)
         node = db._get_atom(node_a.handle)
         link = db._get_atom(link_a.handle)
         assert node, link

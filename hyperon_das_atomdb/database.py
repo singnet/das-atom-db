@@ -26,7 +26,7 @@ Type Aliases:
 from enum import Enum
 from typing import TypeAlias
 
-from hyperon_das_atomdb_cpp import (
+from hyperon_das_atomdb_cpp import (  # type: ignore[attr-defined]
     TYPE_HASH,
     TYPEDEF_MARK_HASH,
     WILDCARD,

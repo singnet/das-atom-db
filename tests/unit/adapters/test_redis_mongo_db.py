@@ -222,11 +222,11 @@ class TestRedisMongoDB:
         assert len(actual) == 1
 
     def test_get_all_nodes(self, database: RedisMongoDB):
-        ret = database.get_all_nodes("Concept")
+        ret = database.get_all_nodes_handles("Concept")
         assert len(ret) == 14
-        ret = database.get_all_nodes("Concept", True)
+        ret = database.get_all_nodes_names("Concept")
         assert len(ret) == 14
-        ret = database.get_all_nodes("ConceptFake")
+        ret = database.get_all_nodes_handles("ConceptFake")
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: RedisMongoDB):
@@ -379,10 +379,10 @@ class TestRedisMongoDB:
 
     def test_add_node(self, database: RedisMongoDB):
         assert {"atom_count": 42} == database.count_atoms()
-        all_nodes_before = database.get_all_nodes("Concept")
+        all_nodes_before = database.get_all_nodes_handles("Concept")
         database.add_node(dict_to_node_params({"type": "Concept", "name": "lion"}))
         database.commit()
-        all_nodes_after = database.get_all_nodes("Concept")
+        all_nodes_after = database.get_all_nodes_handles("Concept")
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 15
         assert {
@@ -402,7 +402,7 @@ class TestRedisMongoDB:
     def test_add_link(self, database: RedisMongoDB):
         assert {"atom_count": 42} == database.count_atoms()
 
-        all_nodes_before = database.get_all_nodes("Concept")
+        all_nodes_before = database.get_all_nodes_handles("Concept")
         similarity = database.get_all_links("Similarity")
         inheritance = database.get_all_links("Inheritance")
         evaluation = database.get_all_links("Evaluation")
@@ -433,7 +433,7 @@ class TestRedisMongoDB:
             )
         )
         database.commit()
-        all_nodes_after = database.get_all_nodes("Concept")
+        all_nodes_after = database.get_all_nodes_handles("Concept")
         similarity = database.get_all_links("Similarity")
         inheritance = database.get_all_links("Inheritance")
         evaluation = database.get_all_links("Evaluation")

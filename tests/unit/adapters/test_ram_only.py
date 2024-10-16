@@ -456,11 +456,11 @@ class TestInMemoryDB:
         assert len(links) == 1
 
     def test_get_all_nodes(self, database):
-        ret = database.get_all_nodes("Concept")
+        ret = database.get_all_nodes_handles("Concept")
         assert len(ret) == 14
-        ret = database.get_all_nodes("Concept", True)
+        ret = database.get_all_nodes_names("Concept")
         assert len(ret) == 14
-        ret = database.get_all_nodes("ConceptFake")
+        ret = database.get_all_nodes_handles("ConceptFake")
         assert len(ret) == 0
 
     def test_get_matched_type_template(self, database: InMemoryDB):
@@ -591,9 +591,9 @@ class TestInMemoryDB:
             database.add_node(dict_to_node_params({"type": "Concept", "name": ""}))
 
     def test_add_node(self, database: InMemoryDB):
-        assert len(database.get_all_nodes("Concept")) == 14
+        assert len(database.get_all_nodes_handles("Concept")) == 14
         database.add_node(dict_to_node_params({"type": "Concept", "name": "car"}))
-        assert len(database.get_all_nodes("Concept")) == 15
+        assert len(database.get_all_nodes_handles("Concept")) == 15
         node_handle = database.get_node_handle("Concept", "car")
         node_name = database.get_node_name(node_handle)
         assert node_name == "car"

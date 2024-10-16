@@ -4,14 +4,7 @@ from unittest import mock
 
 import pytest
 
-from hyperon_das_atomdb.database import (
-    AtomDB,
-    AtomT,
-    LinkParamsT,
-    LinkT,
-    NodeParamsT,
-    NodeT,
-)
+from hyperon_das_atomdb.database import AtomDB, AtomT, LinkParamsT, LinkT, NodeParamsT, NodeT
 from tests.helpers import add_link, add_node, check_handle, dict_to_node_params
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
@@ -212,7 +205,7 @@ class TestDatabase:
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        add_node(db, "A", "Test", database, CustomAttributesT(integers={"age": 30}))
+        add_node(db, "A", "Test", database, {"age": 30})
         index_id = db.create_field_index(atom_type="node", fields=["age"], named_type="Test")
         cursor, atoms = db.get_atoms_by_index(index_id, [{"field": "age", "value": 30}])
         assert isinstance(cursor, int)
@@ -303,7 +296,7 @@ class TestDatabase:
         assert all(check_handle(n) for n in handles)
         assert all(isinstance(n, str) for n in handles)
         assert len(handles) == 3
-    
+
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_all_nodes_names(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
@@ -399,10 +392,9 @@ class TestDatabase:
     def test_get_incoming_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        node_params = atom_to_params(node_a)
-        add_link(db, "Aa", [node_params], database)
-        add_link(db, "Ab", [node_params], database)
-        add_link(db, "Ac", [node_params], database)
+        add_link(db, "Aa", [node_a], database)
+        add_link(db, "Ab", [node_a], database)
+        add_link(db, "Ac", [node_a], database)
         get_incoming_links_func: Callable = (
             db.get_incoming_links_handles
             if params.get("handles_only")
@@ -439,10 +431,9 @@ class TestDatabase:
     def test_get_matched_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        node_a_params = atom_to_params(node_a)
-        link_a = add_link(db, "Aa", [node_a_params], database)
-        _ = add_link(db, "NoTopLevel", [node_a_params], database, is_toplevel=False)
-        _ = add_link(db, "Ac", [node_a_params], database)
+        link_a = add_link(db, "Aa", [node_a], database)
+        _ = add_link(db, "NoTopLevel", [node_a], database, is_toplevel=False)
+        _ = add_link(db, "Ac", [node_a], database)
         params["link_type"] = (
             link_a.named_type if not params.get("link_type") else params["link_type"]
         )
@@ -490,11 +481,7 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)
-        node_a_params = atom_to_params(node_a)
-        node_b_params = atom_to_params(node_b)
-        link_a = add_link(
-            db, "Aa", [node_a_params, node_b_params], database, is_toplevel=is_toplevel
-        )
+        link_a = add_link(db, "Aa", [node_a, node_b], database, is_toplevel=is_toplevel)
         links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
         assert len(links) == links_len
         if len(links) > 0:
@@ -571,7 +558,7 @@ class TestDatabase:
     def test_get_atom_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Test", [atom_to_params(node_a)], database)
+        link_a = add_link(db, "Test", [node_a], database)
         atom_type_node = db.get_atom_type(node_a.handle)
         atom_type_link = db.get_atom_type(link_a.handle)
         assert isinstance(atom_type_node, str)
@@ -590,7 +577,7 @@ class TestDatabase:
     def test_get_atom_as_dict(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Test", [atom_to_params(node_a)], database)
+        link_a = add_link(db, "Test", [node_a], database)
         atom_node = db.get_atom_as_dict(node_a.handle)
         atom_link = db.get_atom_as_dict(link_a.handle)
         assert isinstance(atom_node, dict)
@@ -631,7 +618,7 @@ class TestDatabase:
     def test_count_atoms(self, database, params, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        add_link(db, "Test", [atom_to_params(node_a)], database)
+        add_link(db, "Test", [node_a], database)
         atoms_count = db.count_atoms(params)  # InMemoryDB ignores params
         assert atoms_count
         assert isinstance(atoms_count, dict)
@@ -647,7 +634,7 @@ class TestDatabase:
     def test_clear_database(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        add_link(db, "Test", [atom_to_params(node_a)], database)
+        add_link(db, "Test", [node_a], database)
         assert db.count_atoms()["atom_count"] == 2
         db.clear_database()
         assert db.count_atoms()["atom_count"] == 0
@@ -738,7 +725,7 @@ class TestDatabase:
             )
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        add_link(db, "Test", [atom_to_params(node_a)], database)
+        add_link(db, "Test", [node_a], database)
         db.reindex()
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -751,7 +738,7 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)
-        link_a = add_link(db, "Test", [atom_to_params(node_b)], database)
+        link_a = add_link(db, "Test", [node_b], database)
         count = db.count_atoms({"precise": True})
         assert count["atom_count"] == 3
         assert count["node_count"] == 2
@@ -992,7 +979,7 @@ class TestDatabase:
             )
         db: AtomDB = request.getfixturevalue(database)
         node_a = db.add_node(NodeParamsT(name="A", type="Test"))
-        db.add_link(LinkParamsT(type="Test", targets=[atom_to_params(node_a)]))
+        db.add_link(LinkParamsT(type="Test", targets=[node_a]))
         count = db.count_atoms({"precise": True})
         assert count["atom_count"] == 0
         db.commit()
