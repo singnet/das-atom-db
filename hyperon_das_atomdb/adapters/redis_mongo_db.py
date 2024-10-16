@@ -611,17 +611,17 @@ class RedisMongoDB(AtomDB):
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
-    def get_all_nodes(self, node_type: str, names: bool = False) -> list[str]:
-        if names:
-            return [
-                document[FieldNames.NODE_NAME]
-                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
-            ]
-        else:
-            return [
-                document[FieldNames.ID_HASH]
-                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
-            ]
+    def get_all_nodes_handles(self, node_type: str) -> list[str]:
+        return [
+            document[FieldNames.ID_HASH]
+            for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
+        ]
+    
+    def get_all_nodes_names(self, node_type: str) -> list[str]:
+        return [
+            document[FieldNames.NODE_NAME]
+            for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
+        ]
 
     def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})

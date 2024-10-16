@@ -293,16 +293,30 @@ class TestDatabase:
         assert len(nodes) == 2
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_all_nodes(self, database, request):
+    def test_get_all_nodes_handles(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         add_node(db, "Aaa", "Test", database)
         add_node(db, "Abb", "Test", database)
         add_node(db, "Bbb", "Test", database)
-        nodes = db.get_all_nodes("Test")
-        assert isinstance(nodes, list)
-        assert all(check_handle(n) for n in nodes)
-        assert all(isinstance(n, str) for n in nodes)
-        assert len(nodes) == 3
+        handles = db.get_all_nodes_handles("Test")
+        assert isinstance(handles, list)
+        assert all(check_handle(n) for n in handles)
+        assert all(isinstance(n, str) for n in handles)
+        assert len(handles) == 3
+    
+    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
+    def test_get_all_nodes_names(self, database, request):
+        db: AtomDB = request.getfixturevalue(database)
+        expected_names = [
+            add_node(db, "Aaa", "Test", database).name,
+            add_node(db, "Abb", "Test", database).name,
+            add_node(db, "Bbb", "Test", database).name,
+        ]
+        names = db.get_all_nodes_names("Test")
+        assert isinstance(names, list)
+        assert all(isinstance(n, str) for n in names)
+        assert len(names) == len(expected_names)
+        assert set(names) == set(expected_names)
 
     @pytest.mark.parametrize(
         "database,params,links_len",
