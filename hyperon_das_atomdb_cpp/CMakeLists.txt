@@ -59,15 +59,8 @@ find_package(nanobind CONFIG REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src /usr/local/include)
 
 add_library(libmbedcrypto STATIC IMPORTED)
-if(EXISTS "/usr/lib/x86_64-linux-gnu/libmbedcrypto.a")
-# localion on Ubuntu 22.04 - installed package libmbedtls-dev
-set_target_properties(
-  libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libmbedcrypto.a)
-else()
-# localion on AlmaLinux 8 - compiled and installed from source
 set_target_properties(
   libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/local/lib64/libmbedcrypto.a)
-endif()
 
 # Collect header and source files
 file(GLOB_RECURSE headers
