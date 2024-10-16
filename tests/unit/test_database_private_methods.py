@@ -1,6 +1,6 @@
 import pytest
 
-from hyperon_das_atomdb.database import AtomDB, LinkParamsT, LinkT, NodeParamsT, NodeT
+from hyperon_das_atomdb.database import AtomDB, LinkT, NodeT
 from tests.helpers import add_link, add_node, check_handle
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
@@ -32,11 +32,11 @@ class TestDatabasePrivateMethods:
     def test__reformat_document(self, database, kwlist, request):
         db: AtomDB = request.getfixturevalue(database)
         link = db.add_link(
-            LinkParamsT(
+            LinkT(
                 type="Relation",
                 targets=[
-                    NodeParamsT(name="A", type="Test"),
-                    NodeParamsT(name="B", type="Test"),
+                    NodeT(name="A", type="Test"),
+                    NodeT(name="B", type="Test"),
                 ],
             ),
         )
@@ -92,7 +92,7 @@ class TestDatabasePrivateMethods:
     )
     def test__build_node(self, database, expected_fields, expected_handle, request):
         db: AtomDB = request.getfixturevalue(database)
-        node = db._build_node(NodeParamsT(type="Test", name="test"))
+        node = db._build_node(NodeT(type="Test", name="test"))
         assert node
         assert node.handle == expected_handle
         assert all([k in node.to_dict() for k in expected_fields])
@@ -101,7 +101,7 @@ class TestDatabasePrivateMethods:
 
         # Test exception
         with pytest.raises(Exception, match="'type' and 'name' are required."):
-            db._build_node(NodeParamsT(type="", name=""))
+            db._build_node(NodeT(type="", name=""))
 
     @pytest.mark.parametrize(
         "database,expected_fields, expected_handle,is_toplevel",
@@ -167,10 +167,10 @@ class TestDatabasePrivateMethods:
     def test__build_link(self, database, expected_fields, expected_handle, is_toplevel, request):
         db: AtomDB = request.getfixturevalue(database)
         link = db._build_link(
-            LinkParamsT(
+            LinkT(
                 type="Test",
                 targets=[
-                    NodeParamsT(type="Test", name="test"),
+                    NodeT(type="Test", name="test"),
                 ],
             ),
             is_toplevel,
@@ -186,6 +186,6 @@ class TestDatabasePrivateMethods:
     def test__build_link_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="'type' and 'targets' are required."):
-            db._build_link(LinkParamsT(type="Test", targets=[]))
+            db._build_link(LinkT(type="Test", targets=[]))
         with pytest.raises(Exception, match="'type' and 'targets' are required."):
-            db._build_link(LinkParamsT(type="", targets=[NodeParamsT(type="Test", name="test")]))
+            db._build_link(LinkT(type="", targets=[NodeT(type="Test", name="test")]))

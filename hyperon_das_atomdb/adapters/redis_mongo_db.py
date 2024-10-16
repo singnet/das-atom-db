@@ -30,9 +30,7 @@ from hyperon_das_atomdb.database import (
     FieldNames,
     HandleListT,
     HandleSetT,
-    LinkParamsT,
     LinkT,
-    NodeParamsT,
     NodeT,
 )
 from hyperon_das_atomdb.exceptions import (
@@ -812,7 +810,7 @@ class RedisMongoDB(AtomDB):
 
                 buffer.clear()
 
-    def add_node(self, node_params: NodeParamsT) -> NodeT | None:
+    def add_node(self, node_params: NodeT) -> NodeT | None:
         node: NodeT = self._build_node(node_params)
         if sys.getsizeof(node_params.name) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
@@ -824,14 +822,14 @@ class RedisMongoDB(AtomDB):
             logger().warning("Discarding atom whose name is too large: {node_name}")
             return None
 
-    def _build_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+    def _build_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
         # This is necessary because `_build_link` in the parent class (implemented in C++)
         # calls back to `add_link`. Without this, `nanobind` is not able to find `add_link`
         # implementation in the child class, and raises a `RuntimeError` with the message that
         # it is trying to call an abstract method (virtual pure).
         return super()._build_link(link_params, toplevel)
 
-    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
+    def add_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
         try:
             link: LinkT | None = self._build_link(link_params, toplevel)
         except RuntimeError as ex:

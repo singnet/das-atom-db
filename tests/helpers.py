@@ -11,7 +11,7 @@ def check_handle(handle):
 
 
 def add_node(db: AtomDB, node_name, node_type, adapter, custom_attributes: CustomAttributesT = {}):
-    node_params = NodeT(node_type, node_name, custom_attributes)
+    node_params = NodeT(type=node_type, name=node_name, custom_attributes=custom_attributes)
     node = db.add_node(node_params)
     if adapter != "in_memory_db":
         db.commit()
@@ -19,7 +19,7 @@ def add_node(db: AtomDB, node_name, node_type, adapter, custom_attributes: Custo
 
 
 def add_link(db: AtomDB, link_type, targets: list[NodeT | LinkT], adapter, is_toplevel=True):
-    link = db.add_link(LinkT(link_type, targets), toplevel=is_toplevel)
+    link = db.add_link(LinkT(type=link_type, targets=targets), toplevel=is_toplevel)
     if adapter != "in_memory_db":
         db.commit()
     return link

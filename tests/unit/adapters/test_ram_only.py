@@ -2,7 +2,7 @@ import pytest
 
 from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters import InMemoryDB
-from hyperon_das_atomdb.database import LinkParamsT, LinkT, NodeParamsT, NodeT
+from hyperon_das_atomdb.database import LinkT, NodeT
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from tests.helpers import dict_to_link_params, dict_to_node_params
@@ -34,186 +34,186 @@ class TestInMemoryDB:
     @pytest.fixture()
     def all_links(self):
         return [
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="human"),
-                    NodeParamsT(type="Concept", name="monkey"),
+                    NodeT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="monkey"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="human"),
-                    NodeParamsT(type="Concept", name="chimp"),
+                    NodeT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="chimp"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="chimp"),
-                    NodeParamsT(type="Concept", name="monkey"),
+                    NodeT(type="Concept", name="chimp"),
+                    NodeT(type="Concept", name="monkey"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="snake"),
-                    NodeParamsT(type="Concept", name="earthworm"),
+                    NodeT(type="Concept", name="snake"),
+                    NodeT(type="Concept", name="earthworm"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="rhino"),
-                    NodeParamsT(type="Concept", name="triceratops"),
+                    NodeT(type="Concept", name="rhino"),
+                    NodeT(type="Concept", name="triceratops"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="snake"),
-                    NodeParamsT(type="Concept", name="vine"),
+                    NodeT(type="Concept", name="snake"),
+                    NodeT(type="Concept", name="vine"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="human"),
-                    NodeParamsT(type="Concept", name="ent"),
+                    NodeT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="ent"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="human"),
-                    NodeParamsT(type="Concept", name="mammal"),
+                    NodeT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="mammal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="monkey"),
-                    NodeParamsT(type="Concept", name="mammal"),
+                    NodeT(type="Concept", name="monkey"),
+                    NodeT(type="Concept", name="mammal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="chimp"),
-                    NodeParamsT(type="Concept", name="mammal"),
+                    NodeT(type="Concept", name="chimp"),
+                    NodeT(type="Concept", name="mammal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="mammal"),
-                    NodeParamsT(type="Concept", name="animal"),
+                    NodeT(type="Concept", name="mammal"),
+                    NodeT(type="Concept", name="animal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="reptile"),
-                    NodeParamsT(type="Concept", name="animal"),
+                    NodeT(type="Concept", name="reptile"),
+                    NodeT(type="Concept", name="animal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="snake"),
-                    NodeParamsT(type="Concept", name="reptile"),
+                    NodeT(type="Concept", name="snake"),
+                    NodeT(type="Concept", name="reptile"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="dinosaur"),
-                    NodeParamsT(type="Concept", name="reptile"),
+                    NodeT(type="Concept", name="dinosaur"),
+                    NodeT(type="Concept", name="reptile"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="triceratops"),
-                    NodeParamsT(type="Concept", name="dinosaur"),
+                    NodeT(type="Concept", name="triceratops"),
+                    NodeT(type="Concept", name="dinosaur"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="earthworm"),
-                    NodeParamsT(type="Concept", name="animal"),
+                    NodeT(type="Concept", name="earthworm"),
+                    NodeT(type="Concept", name="animal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="rhino"),
-                    NodeParamsT(type="Concept", name="mammal"),
+                    NodeT(type="Concept", name="rhino"),
+                    NodeT(type="Concept", name="mammal"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="vine"),
-                    NodeParamsT(type="Concept", name="plant"),
+                    NodeT(type="Concept", name="vine"),
+                    NodeT(type="Concept", name="plant"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Inheritance",
                 targets=[
-                    NodeParamsT(type="Concept", name="ent"),
-                    NodeParamsT(type="Concept", name="plant"),
+                    NodeT(type="Concept", name="ent"),
+                    NodeT(type="Concept", name="plant"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="monkey"),
-                    NodeParamsT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="monkey"),
+                    NodeT(type="Concept", name="human"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="chimp"),
-                    NodeParamsT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="chimp"),
+                    NodeT(type="Concept", name="human"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="monkey"),
-                    NodeParamsT(type="Concept", name="chimp"),
+                    NodeT(type="Concept", name="monkey"),
+                    NodeT(type="Concept", name="chimp"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="earthworm"),
-                    NodeParamsT(type="Concept", name="snake"),
+                    NodeT(type="Concept", name="earthworm"),
+                    NodeT(type="Concept", name="snake"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="triceratops"),
-                    NodeParamsT(type="Concept", name="rhino"),
+                    NodeT(type="Concept", name="triceratops"),
+                    NodeT(type="Concept", name="rhino"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="vine"),
-                    NodeParamsT(type="Concept", name="snake"),
+                    NodeT(type="Concept", name="vine"),
+                    NodeT(type="Concept", name="snake"),
                 ],
             ),
-            LinkParamsT(
+            LinkT(
                 type="Similarity",
                 targets=[
-                    NodeParamsT(type="Concept", name="ent"),
-                    NodeParamsT(type="Concept", name="human"),
+                    NodeT(type="Concept", name="ent"),
+                    NodeT(type="Concept", name="human"),
                 ],
             ),
         ]
@@ -308,24 +308,24 @@ class TestInMemoryDB:
         assert database.get_matched_links(link_type, [chimp, chimp]) == set()
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
-        # LinkParamsT(
+        # LinkT(
         #     type="Evaluation",
         #     targets=[
-        #         NodeParamsT(type="Predicate", name="Predicate:has_name"),
-        #         LinkParamsT(
+        #         NodeT(type="Predicate", name="Predicate:has_name"),
+        #         LinkT(
         #             type="Evaluation",
         #             targets=[
-        #                 NodeParamsT(
+        #                 NodeT(
         #                     type="Predicate",
         #                     name="Predicate:has_name",
         #                 ),
-        #                 LinkParamsT(
+        #                 LinkT(
         #                     targets=[
-        #                         NodeParamsT(
+        #                         NodeT(
         #                             type="Reactome",
         #                             name="Reactome:R-HSA-164843",
         #                         ),
-        #                         NodeParamsT(
+        #                         NodeT(
         #                             type="Concept",
         #                             name="Concept:2-LTR circle formation",
         #                         ),
