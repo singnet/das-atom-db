@@ -221,7 +221,6 @@ class Node : public Atom {
      * @param named_type The named type of the Node.
      * @param name The name of the Node.
      * @param custom_attributes Optional custom attributes for the Node. Defaults to an empty map.
-     * @throws invalid_argument if the name is empty.
      */
     Node(const string& id,
          const string& handle,
@@ -297,7 +296,7 @@ class Link : public Atom {
     /**
      * @brief Constructs a Link with a type, targets documents, and optional custom attributes.
      * @param type The type of the Link.
-     * @param targets_documents The targets documents associated with the Link.
+     * @param targets The targets documents associated with the Link.
      * @param custom_attributes Optional custom attributes for the Link. Defaults to an empty map.
      * @note This constructor is intended to be used only when passing in the basic building
      *       parameters to other functions. For creating complete new Link objects, use the
@@ -346,9 +345,9 @@ class Link : public Atom {
      * ```
      */
     Link(const string& type,
-         const TargetsDocuments& targets_documents,
+         const TargetsDocuments& targets,
          const CustomAttributes& custom_attributes = CustomAttributes{})
-        : targets_documents(targets_documents), Atom(type, custom_attributes) {}
+        : targets_documents(targets), Atom(type, custom_attributes) {}
 
     /**
      * @brief Constructs a Link object with the specified parameters.
