@@ -64,9 +64,9 @@ class ExpressionHasher {
             new mbedtls_md5_context(), &mbedtls_md5_free);
         mbedtls_md5_init(ctx.get());
         uchar md5_buffer[MD5_BUFFER_SIZE];
-        if (mbedtls_md5_starts_ret(ctx.get()) != 0 or
-            mbedtls_md5_update_ret(ctx.get(), (const uchar*) input.c_str(), input.length()) != 0 or
-            mbedtls_md5_finish_ret(ctx.get(), md5_buffer) != 0) {
+        if (mbedtls_md5_starts(ctx.get()) != 0 or
+            mbedtls_md5_update(ctx.get(), (const uchar*) input.c_str(), input.length()) != 0 or
+            mbedtls_md5_finish(ctx.get(), md5_buffer) != 0) {
             throw runtime_error("Failed to compute MD5 hash");
         }
         char hash[2 * MD5_BUFFER_SIZE + 1];
