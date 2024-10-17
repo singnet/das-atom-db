@@ -29,16 +29,35 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 NB_MODULE(ext, m) {
-    // root module ---------------------------------------------------------------------------------
-    m.attr("WILDCARD") = WILDCARD;
-    m.attr("WILDCARD_HASH") = WILDCARD_HASH;
-    m.attr("TYPE_HASH") = TYPE_HASH;
-    m.attr("TYPEDEF_MARK_HASH") = TYPEDEF_MARK_HASH;
-    nb::enum_<FieldIndexType>(m, "FieldIndexType", nb::is_arithmetic())
+    // ---------------------------------------------------------------------------------------------
+    // constants submodule -------------------------------------------------------------------------
+    nb::module_ constants = m.def_submodule("constants");
+    constants.attr("WILDCARD") = WILDCARD;
+    constants.attr("WILDCARD_HASH") = WILDCARD_HASH;
+    constants.attr("TYPE_HASH") = TYPE_HASH;
+    constants.attr("TYPEDEF_MARK_HASH") = TYPEDEF_MARK_HASH;
+    nb::enum_<FieldIndexType>(constants, "FieldIndexType", nb::is_arithmetic())
         .value("BINARY_TREE", FieldIndexType::BINARY_TREE)
         .value("TOKEN_INVERTED_LIST", FieldIndexType::TOKEN_INVERTED_LIST)
         .export_values();
-    nb::class_<AtomDB, AtomDBTrampoline>(m, "AtomDB")
+    nb::class_<FieldNames>(constants, "FieldNames")
+        .def_ro_static("ID_HASH", &FieldNames::ID_HASH)
+        .def_ro_static("HANDLE", &FieldNames::HANDLE)
+        .def_ro_static("COMPOSITE_TYPE", &FieldNames::COMPOSITE_TYPE)
+        .def_ro_static("COMPOSITE_TYPE_HASH", &FieldNames::COMPOSITE_TYPE_HASH)
+        .def_ro_static("NODE_NAME", &FieldNames::NODE_NAME)
+        .def_ro_static("TYPE_NAME", &FieldNames::TYPE_NAME)
+        .def_ro_static("TYPE_NAME_HASH", &FieldNames::TYPE_NAME_HASH)
+        .def_ro_static("KEY_PREFIX", &FieldNames::KEY_PREFIX)
+        .def_ro_static("KEYS", &FieldNames::KEYS)
+        .def_ro_static("IS_TOPLEVEL", &FieldNames::IS_TOPLEVEL)
+        .def_ro_static("TARGETS", &FieldNames::TARGETS)
+        .def_ro_static("TARGETS_DOCUMENTS", &FieldNames::TARGETS_DOCUMENTS)
+        .def_ro_static("CUSTOM_ATTRIBUTES", &FieldNames::CUSTOM_ATTRIBUTES);
+    // ---------------------------------------------------------------------------------------------
+    // database submodule --------------------------------------------------------------------------
+    nb::module_ database = m.def_submodule("database");
+    nb::class_<AtomDB, AtomDBTrampoline>(database, "AtomDB")
         .def(nb::init<>())
         .def_static("build_node_handle", &AtomDB::build_node_handle, "node_type"_a, "node_name"_a)
         .def_static("node_handle",  // retrocompatibility

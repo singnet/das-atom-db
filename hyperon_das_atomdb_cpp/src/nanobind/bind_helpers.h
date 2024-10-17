@@ -99,11 +99,11 @@ static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
  */
 static nb::dict atom_to_dict(const Atom& self) {
     nb::dict dict;
-    dict["_id"] = self._id;
-    dict["handle"] = self.handle;
-    dict["composite_type_hash"] = self.composite_type_hash;
-    dict["named_type"] = self.named_type;
-    dict["custom_attributes"] = self.custom_attributes;
+    dict[FieldNames::ID_HASH] = self._id;
+    dict[FieldNames::HANDLE] = self.handle;
+    dict[FieldNames::COMPOSITE_TYPE_HASH] = self.composite_type_hash;
+    dict[FieldNames::TYPE_NAME] = self.named_type;
+    dict[FieldNames::CUSTOM_ATTRIBUTES] = self.custom_attributes;
     return move(dict);
 };
 
@@ -114,7 +114,7 @@ static nb::dict atom_to_dict(const Atom& self) {
  */
 static nb::dict node_to_dict(const Node& self) {
     nb::dict dict = atom_to_dict(self);
-    dict["name"] = self.name;
+    dict[FieldNames::NODE_NAME] = self.name;
     return move(dict);
 };
 
@@ -125,10 +125,10 @@ static nb::dict node_to_dict(const Node& self) {
  */
 static nb::dict link_to_dict(const Link& self) {
     nb::dict dict = atom_to_dict(self);
-    dict["composite_type"] = composite_type_to_pylist(self.composite_type);
-    dict["named_type_hash"] = self.named_type_hash;
-    dict["targets"] = self.targets;
-    dict["is_toplevel"] = self.is_toplevel;
+    dict[FieldNames::COMPOSITE_TYPE] = composite_type_to_pylist(self.composite_type);
+    dict[FieldNames::TYPE_NAME_HASH] = self.named_type_hash;
+    dict[FieldNames::TARGETS] = self.targets;
+    dict[FieldNames::IS_TOPLEVEL] = self.is_toplevel;
     nb::list targets_documents;
     for (const auto& target : self.targets_documents) {
         if (auto node = std::get_if<Node>(&target)) {
@@ -137,7 +137,7 @@ static nb::dict link_to_dict(const Link& self) {
             targets_documents.append(link_to_dict(*link));
         }
     }
-    dict["targets_documents"] = move(targets_documents);
+    dict[FieldNames::TARGETS_DOCUMENTS] = move(targets_documents);
     return move(dict);
 };
 

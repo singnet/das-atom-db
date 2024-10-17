@@ -101,7 +101,7 @@ shared_ptr<Link> AtomDB::_build_link(const Link& link_params, bool is_toplevel) 
     const auto& targets = link_params.targets_documents;
     if (link_type.empty() or targets.empty()) {
         // TODO: log error ???
-        throw AddLinkException("'type' and 'targets_documents' are required.",
+        throw AddLinkException("'type' and 'targets' are required.",
                                "link_params: " + link_params.to_string() +
                                    ", is_toplevel: " + (is_toplevel ? "true" : "false"));
     }
