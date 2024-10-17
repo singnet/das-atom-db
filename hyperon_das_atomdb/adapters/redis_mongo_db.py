@@ -92,7 +92,7 @@ class MongoIndexType(str, Enum):
 class _HashableDocument:
     """Class for making documents hashable."""
 
-    def __init__(self, base: dict[str, Any]):
+    def __init__(self, base: DocumentT):
         self.base = base
 
     def __hash__(self) -> int:
@@ -188,7 +188,7 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
-        self.pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+        self.pattern_index_templates: dict[str, list[DocumentT]] | None = None
         self.mongo_das_config_collection: Collection | None = None
         if MongoCollectionNames.DAS_CONFIG in self.mongo_db.list_collection_names():
             self.mongo_das_config_collection = self.mongo_db.get_collection(
@@ -466,7 +466,7 @@ class RedisMongoDB(AtomDB):
             return [self._build_named_type_hash_template(element) for element in template]
 
     @staticmethod
-    def _get_document_keys(document: dict[str, Any]) -> HandleListT:
+    def _get_document_keys(document: DocumentT) -> HandleListT:
         """
         Retrieve the keys from the given document.
 
@@ -475,7 +475,7 @@ class RedisMongoDB(AtomDB):
         a specific prefix pattern.
 
         Args:
-            document (dict[str, Any]): The document from which to retrieve the keys.
+            document (DocumentT): The document from which to retrieve the keys.
 
         Returns:
             HandleListT: A list of keys extracted from the document.
@@ -738,7 +738,7 @@ class RedisMongoDB(AtomDB):
             return None
         return atom[FieldNames.TYPE_NAME]
 
-    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> dict[str, Any]:
+    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> DocumentT:
         document = self._retrieve_document(handle)
         if document:
             document["handle"] = document[FieldNames.ID_HASH]
@@ -844,7 +844,7 @@ class RedisMongoDB(AtomDB):
             self.commit()
         return link
 
-    def _get_and_delete_links_by_handles(self, handles: HandleListT) -> list[dict[str, Any]]:
+    def _get_and_delete_links_by_handles(self, handles: HandleListT) -> list[DocumentT]:
         documents = []
         for handle in handles:
             if document := self.mongo_atoms_collection.find_one_and_delete(
@@ -1194,7 +1194,7 @@ class RedisMongoDB(AtomDB):
                 self.redis.sadd(key, *incoming_buffer[handle])
 
     @staticmethod
-    def _is_document_link(document: dict[str, Any]) -> bool:
+    def _is_document_link(document: DocumentT) -> bool:
         """
         Determine if the given document is a link.
 
@@ -1202,7 +1202,7 @@ class RedisMongoDB(AtomDB):
         indicates that the document is a link.
 
         Args:
-            document (dict[str, Any]): The document to be checked.
+            document (DocumentT): The document to be checked.
 
         Returns:
             bool: True if the document is a link, False otherwise.
@@ -1295,7 +1295,7 @@ class RedisMongoDB(AtomDB):
             raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
 
     def reindex(
-        self, pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+        self, pattern_index_templates: dict[str, list[DocumentT]] | None = None
     ) -> None:
         if pattern_index_templates is not None:
             self.pattern_index_templates = deepcopy(pattern_index_templates)
@@ -1307,7 +1307,7 @@ class RedisMongoDB(AtomDB):
 
         mongo_filter: dict[str, str] = {FieldNames.ID_HASH: handle}
 
-        document: dict[str, Any] | None = self.mongo_atoms_collection.find_one_and_delete(
+        document: DocumentT | None = self.mongo_atoms_collection.find_one_and_delete(
             mongo_filter
         )
 
@@ -1432,7 +1432,7 @@ class RedisMongoDB(AtomDB):
         Additional keyword arguments can be used to customize the insertion behavior.
 
         Args:
-            documents (list[dict[str, Any]]): A list of documents to be inserted into the collection.
+            documents (list[AtomT]): A list of atoms to be inserted into the collection.
 
         Raises:
             pymongo.errors.BulkWriteError: If there is an error during the bulk write operation.
