@@ -488,7 +488,7 @@ class RedisMongoDB(AtomDB):
 
         answer = []
         index = 0
-        while (key := document.get(f"{FieldNames.KEY_PREFIX.value}_{index}", None)) is not None:
+        while (key := document.get(f"{FieldNames.KEY_PREFIX}_{index}", None)) is not None:
             answer.append(key)
             index += 1
         return answer

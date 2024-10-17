@@ -5,13 +5,12 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import (
     WILDCARD,
     AtomDB,
-    CustomAttributesT,
     FieldIndexType,
     LinkT,
     NodeT,
 )
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from tests.helpers import atom_to_params, dict_to_link_params, dict_to_node_params
+from tests.helpers import dict_to_link_params, dict_to_node_params
 
 from .animals_kb import (
     animal,
@@ -170,11 +169,11 @@ class TestRedisMongo:
         )
         assert db.get_atom(human).name == node_docs[human]["name"]
         link_pre = db.get_atom(inheritance[human][mammal])
-        assert link_pre.custom_attributes is None
+        assert link_pre.custom_attributes == dict()
         assert link_pre.named_type == "Inheritance"
         assert link_pre.targets == [human, mammal]
         link_new = inheritance_docs[inheritance[human][mammal]].copy()
-        custom_attributes = CustomAttributesT(floats={"strength": 1.0})
+        custom_attributes = {"strength": 1.0}
         link_new["custom_attributes"] = custom_attributes
         db.add_link(dict_to_link_params(link_new))
         db.add_link(
@@ -197,10 +196,10 @@ class TestRedisMongo:
         link_pos = db.get_atom(inheritance[human][mammal])
         assert link_pos.named_type == "Inheritance"
         assert link_pos.targets == [human, mammal]
-        assert isinstance(link_pos.custom_attributes, CustomAttributesT)
-        assert isinstance(link_pos.custom_attributes.floats, dict)
-        assert "strength" in link_pos.custom_attributes.floats
-        assert link_pos.custom_attributes.floats["strength"] == 1.0
+        assert isinstance(link_pos.custom_attributes, dict)
+        assert "strength" in link_pos.custom_attributes
+        assert isinstance(link_pos.custom_attributes["strength"], float)
+        assert link_pos.custom_attributes["strength"] == 1.0
         dog = db.node_handle("Concept", "dog")
         assert db.get_node_name(dog) == "dog"
         new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
@@ -822,7 +821,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
+                    "custom_attributes": {"tag": "DAS"},
                 }
             )
         )
@@ -878,7 +877,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
+                    "custom_attributes": {"tag": "DAS"},
                 }
             )
         )
@@ -909,7 +908,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
+                    "custom_attributes": {"tag": "DAS"},
                 }
             )
         )
@@ -937,7 +936,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
+                    "custom_attributes": {"tag": "DAS"},
                 }
             )
         )
@@ -962,7 +961,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
+                    "custom_attributes": {"tag": "DAS"},
                 }
             )
         )
@@ -997,8 +996,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS"}),
-                }
+                    "custom_attributes": {"tag": "DAS"},                }
             )
         )
         db.add_link(
@@ -1009,7 +1007,7 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "mammal"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": CustomAttributesT(strings={"tag": "DAS2"}),
+                    "custom_attributes": {"tag": "DAS2"},
                 }
             )
         )
@@ -1129,7 +1127,7 @@ class TestRedisMongo:
         }
         similarity = db.get_all_links("Similarity")
         assert similarity == {db.link_handle("Similarity", ["node1", "node2"])}
-        assert db.get_all_nodes("Concept") == ["node1", "node2"]
+        assert db.get_all_nodes_handles("Concept") == ["node1", "node2"]
 
     def test_retrieve_all_atoms(self, _cleanup, _db: RedisMongoDB):
         db = _db
@@ -1139,7 +1137,7 @@ class TestRedisMongo:
         inheritance = db.get_all_links("Inheritance")
         similarity = db.get_all_links("Similarity")
         links = inheritance.union(similarity)
-        nodes = db.get_all_nodes("Concept")
+        nodes = db.get_all_nodes_handles("Concept")
         assert len(response) == len(links) + len(nodes)
 
     def test_add_fields_to_atoms(self, _cleanup, _db: RedisMongoDB):
@@ -1156,13 +1154,13 @@ class TestRedisMongo:
         assert node_human.name == "human"
         assert node_human.named_type == "Concept"
 
-        node_human_params = atom_to_params(node_human)
-        node_human_params.custom_attributes = CustomAttributesT(floats={"score": 0.5})
+        node_human_params = dict_to_node_params(node_human.to_dict())
+        node_human_params.custom_attributes = {"score": 0.5}
 
         db.add_node(node_human_params)
         db.commit()
 
-        assert db.get_atom(human).custom_attributes.floats["score"] == 0.5
+        assert db.get_atom(human).custom_attributes["score"] == 0.5
 
         link_similarity = db.get_atom(link_handle, deep_representation=True)
 
@@ -1170,13 +1168,13 @@ class TestRedisMongo:
         assert link_similarity.named_type == "Similarity"
         assert link_similarity.targets_documents == [db.get_atom(human), db.get_atom(monkey)]
 
-        link_params = atom_to_params(link_similarity)
-        link_params.custom_attributes = CustomAttributesT(floats={"score": 0.5})
+        link_params = dict_to_link_params(link_similarity.to_dict())
+        link_params.custom_attributes = {"score": 0.5}
 
         db.add_link(link_params)
         db.commit()
 
-        assert db.get_atom(link_handle).custom_attributes.floats["score"] == 0.5
+        assert db.get_atom(link_handle).custom_attributes["score"] == 0.5
 
     def test_commit_with_buffer(self, _cleanup, _db: RedisMongoDB):
         db = _db

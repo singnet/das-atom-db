@@ -1,14 +1,14 @@
-from enum import Enum
 from typing import TypeAlias
 
-from hyperon_das_atomdb_cpp import (  # type: ignore[attr-defined]
+from hyperon_das_atomdb_cpp.constants import (
     TYPE_HASH,
     TYPEDEF_MARK_HASH,
     WILDCARD,
     WILDCARD_HASH,
-    AtomDB,
     FieldIndexType,
+    FieldNames,
 )
+from hyperon_das_atomdb_cpp.database import AtomDB
 from hyperon_das_atomdb_cpp.document_types import Atom, Link, Node
 
 # pylint: disable=invalid-name
@@ -26,22 +26,6 @@ HandleSetT: TypeAlias = set[HandleT]
 IncomingLinksT: TypeAlias = HandleListT | list[AtomT]
 
 # pylint: enable=invalid-name
-
-
-class FieldNames(str, Enum):
-    """Enumeration of field names used in the AtomDB."""
-
-    ID_HASH = "_id"
-    COMPOSITE_TYPE = "composite_type"
-    COMPOSITE_TYPE_HASH = "composite_type_hash"
-    NODE_NAME = "name"
-    TYPE_NAME = "named_type"
-    TYPE_NAME_HASH = "named_type_hash"
-    KEY_PREFIX = "key"
-    KEYS = "keys"
-    IS_TOPLEVEL = "is_toplevel"
-    TARGETS = "targets"
-    CUSTOM_ATTRIBUTES = "custom_attributes"
 
 
 __all__ = [
