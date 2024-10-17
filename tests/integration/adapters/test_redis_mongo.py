@@ -2,13 +2,7 @@ import pytest
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
-from hyperon_das_atomdb.database import (
-    WILDCARD,
-    AtomDB,
-    FieldIndexType,
-    LinkT,
-    NodeT,
-)
+from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType, LinkT, NodeT
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from tests.helpers import dict_to_link_params, dict_to_node_params
 
@@ -996,7 +990,8 @@ class TestRedisMongo:
                         {"type": "Concept", "name": "human"},
                         {"type": "Concept", "name": "monkey"},
                     ],
-                    "custom_attributes": {"tag": "DAS"},                }
+                    "custom_attributes": {"tag": "DAS"},
+                }
             )
         )
         db.add_link(
@@ -1154,7 +1149,7 @@ class TestRedisMongo:
         assert node_human.name == "human"
         assert node_human.named_type == "Concept"
 
-        node_human_params = dict_to_node_params(node_human.to_dict())
+        node_human_params = node_human
         node_human_params.custom_attributes = {"score": 0.5}
 
         db.add_node(node_human_params)
@@ -1166,9 +1161,12 @@ class TestRedisMongo:
 
         assert link_similarity.handle == link_handle
         assert link_similarity.named_type == "Similarity"
-        assert link_similarity.targets_documents == [db.get_atom(human), db.get_atom(monkey)]
+        assert [target.to_dict() for target in link_similarity.targets_documents] == [
+            db.get_atom(human).to_dict(),
+            db.get_atom(monkey).to_dict(),
+        ]
 
-        link_params = dict_to_link_params(link_similarity.to_dict())
+        link_params = link_similarity
         link_params.custom_attributes = {"score": 0.5}
 
         db.add_link(link_params)
