@@ -198,7 +198,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_index(self, database, request):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
@@ -227,7 +227,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_regex(self, database, request):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
@@ -247,7 +247,7 @@ class TestDatabase:
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_text(self, database, request):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(

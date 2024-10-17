@@ -803,7 +803,7 @@ class TestRedisMongo:
         )
 
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         db = _db
         self._add_atoms(db)
         db.commit()
@@ -919,7 +919,7 @@ class TestRedisMongo:
         assert my_index in collection_index_names
 
     def test_get_atoms_by_field_no_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         db: RedisMongoDB = _db
         self._add_atoms(db)
         db.add_link(
@@ -944,7 +944,7 @@ class TestRedisMongo:
             assert explain[0]["executionStats"]["totalKeysExamined"] == 0
 
     def test_get_atoms_by_field_with_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         db: RedisMongoDB = _db
         self._add_atoms(db)
         db.add_link(
@@ -980,7 +980,7 @@ class TestRedisMongo:
             )
 
     def test_get_atoms_by_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip("Requires new implementation since CustomAttributesT was introduced.")
+        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         db: RedisMongoDB = _db
         db.add_link(
             dict_to_link_params(
