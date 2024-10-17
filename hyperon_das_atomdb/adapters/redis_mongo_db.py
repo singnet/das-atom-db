@@ -195,16 +195,9 @@ class RedisMongoDB(AtomDB):
                 MongoCollectionNames.DAS_CONFIG
             )
 
-        # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
-        self.wildcard_hash = ExpressionHasher._compute_hash(
-            WILDCARD
-        )  # pylint: disable=protected-access
-        self.typedef_mark_hash = ExpressionHasher._compute_hash(
-            ":"
-        )  # pylint: disable=protected-access
-        self.typedef_base_type_hash = ExpressionHasher._compute_hash(
-            "Type"
-        )  # pylint: disable=protected-access
+        self.wildcard_hash = ExpressionHasher.compute_hash(WILDCARD)
+        self.typedef_mark_hash = ExpressionHasher.compute_hash(":")
+        self.typedef_base_type_hash = ExpressionHasher.compute_hash("Type")
 
         self.named_type_hash: dict[str, str] = {}
         self.hash_length = len(self.typedef_base_type_hash)
@@ -703,34 +696,45 @@ class RedisMongoDB(AtomDB):
         document = self.get_atom(link_handle)
         return document.named_type if isinstance(document, LinkT) else None  # type: ignore
 
-    def _get_atom(self, handle: str) -> AtomT | None:
-        document = self._retrieve_document(handle)
-        if not document:
-            return None
-        custom_attributes = document.get(FieldNames.CUSTOM_ATTRIBUTES, dict())
+    def _build_atom_from_dict(self, document: DocumentT) -> AtomT:
+        """
+        Builds an Atom object from a dictionary.
+
+        Args:
+            document (DocumentT): The dictionary representing the atom.
+
+        Returns:
+            AtomT: The constructed Atom object.
+        """
         if "targets" in document:
             link = LinkT(
-                handle=handle,
-                _id=handle,
+                handle=document[FieldNames.ID_HASH],
+                _id=document[FieldNames.ID_HASH],
                 named_type=document[FieldNames.TYPE_NAME],
                 targets=document[FieldNames.TARGETS],
                 composite_type=document[FieldNames.COMPOSITE_TYPE],
                 is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
                 named_type_hash=document[FieldNames.TYPE_NAME_HASH],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=custom_attributes,
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
             )
             return link
         else:
             node = NodeT(
-                handle=handle,
-                _id=handle,
+                handle=document[FieldNames.ID_HASH],
+                _id=document[FieldNames.ID_HASH],
                 named_type=document[FieldNames.TYPE_NAME],
                 name=document[FieldNames.NODE_NAME],
                 composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
-                custom_attributes=custom_attributes,
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
             )
             return node
+
+    def _get_atom(self, handle: str) -> AtomT | None:
+        document = self._retrieve_document(handle)
+        if not document:
+            return None
+        return self._build_atom_from_dict(document)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
@@ -819,7 +823,7 @@ class RedisMongoDB(AtomDB):
                 self.commit()
             return node
         else:
-            logger().warning("Discarding atom whose name is too large: {node_name}")
+            logger().warning(f"Discarding atom whose name is too large: {node.name}")
             return None
 
     def _build_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
@@ -834,7 +838,7 @@ class RedisMongoDB(AtomDB):
             link: LinkT | None = self._build_link(link_params, toplevel)
         except RuntimeError as ex:
             raise AssertionError(
-                f'{type(self)} | {type(ex)} | {str(ex)} | {link_params=} | {toplevel=}'
+                f"{type(self)} | {type(ex)} | {str(ex)} | {link_params=} | {toplevel=}"
             )
         if link is None:
             return None
@@ -1227,9 +1231,11 @@ class RedisMongoDB(AtomDB):
 
         def calculate_composite_type_hashes(_composite_type: list[Any]) -> HandleListT:
             return [
-                ExpressionHasher.composite_hash(calculate_composite_type_hashes(t))
-                if isinstance(t, list)
-                else ExpressionHasher.named_type_hash(t)
+                (
+                    ExpressionHasher.composite_hash(calculate_composite_type_hashes(t))
+                    if isinstance(t, list)
+                    else ExpressionHasher.named_type_hash(t)
+                )
                 for t in _composite_type
             ]
 
@@ -1294,9 +1300,7 @@ class RedisMongoDB(AtomDB):
         else:
             raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
 
-    def reindex(
-        self, pattern_index_templates: dict[str, list[DocumentT]] | None = None
-    ) -> None:
+    def reindex(self, pattern_index_templates: dict[str, list[DocumentT]] | None = None) -> None:
         if pattern_index_templates is not None:
             self.pattern_index_templates = deepcopy(pattern_index_templates)
         self.redis.flushall()
@@ -1307,9 +1311,7 @@ class RedisMongoDB(AtomDB):
 
         mongo_filter: dict[str, str] = {FieldNames.ID_HASH: handle}
 
-        document: DocumentT | None = self.mongo_atoms_collection.find_one_and_delete(
-            mongo_filter
-        )
+        document: DocumentT | None = self.mongo_atoms_collection.find_one_and_delete(mongo_filter)
 
         if not document:
             logger().error(
@@ -1412,13 +1414,10 @@ class RedisMongoDB(AtomDB):
 
     def retrieve_all_atoms(self) -> list[AtomT]:
         try:
-            # TODO: improve this, it's too expensive
-            atom_list = []
-            for atom_dict in self.mongo_atoms_collection.find():
-                atom = self.get_atom(atom_dict[FieldNames.ID_HASH])
-                if atom:
-                    atom_list.append(atom)
-            return atom_list
+            return [
+                self._build_atom_from_dict(document)
+                for document in self.mongo_atoms_collection.find()
+            ]
         except Exception as e:
             logger().error(f"Error retrieving all atoms: {str(e)}")
             raise e
