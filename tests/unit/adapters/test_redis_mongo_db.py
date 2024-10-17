@@ -19,13 +19,6 @@ def loader(file_name):
         return json.load(f)
 
 
-outgoing_set_redis_mock_data = loader("outgoing_set_redis_data.json")
-incoming_set_redis_mock_data = loader("incoming_set_redis_data.json")
-patterns_redis_mock_data = loader("patterns_redis_data.json")
-templates_redis_mock_data = loader("templates_redis_data.json")
-names_redis_mock_data = loader("names_redis_data.json")
-
-
 class TestRedisMongoDB:
     @pytest.fixture
     def database(self, redis_mongo_db: RedisMongoDB):  # noqa: F811
