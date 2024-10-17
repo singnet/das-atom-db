@@ -284,13 +284,13 @@ NB_MODULE(ext, m) {
     // document_types submodule --------------------------------------------------------------------
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
-        .def_ro("_id", &Atom::_id)
+        .def_rw("_id", &Atom::_id)
         .def_prop_ro("id",  // read-only property for having access to `_id` as `id`
                      [](const Atom& self) -> string { return self._id; })
-        .def_ro("handle", &Atom::handle)
-        .def_ro("composite_type_hash", &Atom::composite_type_hash)
-        .def_ro("named_type", &Atom::named_type)
-        .def_ro("custom_attributes", &Atom::custom_attributes)
+        .def_rw("handle", &Atom::handle)
+        .def_rw("composite_type_hash", &Atom::composite_type_hash)
+        .def_rw("named_type", &Atom::named_type)
+        .def_rw("custom_attributes", &Atom::custom_attributes)
         .def("to_string", &Atom::to_string)
         .def("__str__", &Atom::to_string)
         .def("__repr__", &Atom::to_string)
@@ -320,7 +320,7 @@ NB_MODULE(ext, m) {
              "named_type"_a,
              "name"_a,
              "custom_attributes"_a = CustomAttributes{})
-        .def_ro("name", &Node::name)
+        .def_rw("name", &Node::name)
         .def("__getstate__", &helpers::node_to_tuple)
         .def("__setstate__", &helpers::tuple_to_node)
         .def("to_dict", &helpers::node_to_dict);
@@ -349,13 +349,17 @@ NB_MODULE(ext, m) {
              "is_toplevel"_a,
              "custom_attributes"_a = CustomAttributes{},
              "targets_documents"_a = Link::TargetsDocuments{})
-        .def_prop_ro("composite_type",
-                     [](const Link& self) -> const nb::list {
-                         return helpers::composite_type_to_pylist(self.composite_type);
-                     })
-        .def_ro("named_type_hash", &Link::named_type_hash)
-        .def_ro("targets", &Link::targets)
-        .def_ro("is_toplevel", &Link::is_toplevel)
+        .def_prop_rw(
+            "composite_type",
+            [](const Link& self) -> const nb::list {
+                return helpers::composite_type_to_pylist(self.composite_type);
+            },
+            [](Link& self, const nb::list& composite_type) {
+                self.composite_type = helpers::pylist_to_composite_type(composite_type);
+            })
+        .def_rw("named_type_hash", &Link::named_type_hash)
+        .def_rw("targets", &Link::targets)
+        .def_rw("is_toplevel", &Link::is_toplevel)
         .def_rw("targets_documents", &Link::targets_documents)
         .def("__getstate__", &helpers::link_to_tuple)
         .def("__setstate__", &helpers::tuple_to_link)
