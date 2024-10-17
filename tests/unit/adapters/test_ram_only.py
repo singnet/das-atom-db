@@ -4,245 +4,109 @@ from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from tests.unit.fixtures import in_memory_db  # noqa: F401
 
 
 class TestInMemoryDB:
     @pytest.fixture()
-    def all_nodes(self):
-        return [
-            {"type": "Concept", "name": "human"},
-            {"type": "Concept", "name": "monkey"},
-            {"type": "Concept", "name": "chimp"},
-            {"type": "Concept", "name": "snake"},
-            {"type": "Concept", "name": "earthworm"},
-            {"type": "Concept", "name": "rhino"},
-            {"type": "Concept", "name": "triceratops"},
-            {"type": "Concept", "name": "vine"},
-            {"type": "Concept", "name": "ent"},
-            {"type": "Concept", "name": "mammal"},
-            {"type": "Concept", "name": "animal"},
-            {"type": "Concept", "name": "reptile"},
-            {"type": "Concept", "name": "dinosaur"},
-            {"type": "Concept", "name": "plant"},
-        ]
+    def database(self, in_memory_db):  # noqa: F811
+        import json
+        import pathlib
 
-    @pytest.fixture()
-    def all_links(self):
-        return [
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "monkey"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "chimp"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "monkey"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "earthworm"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "rhino"},
-                    {"type": "Concept", "name": "triceratops"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "vine"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "ent"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "human"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "mammal"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "reptile"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "snake"},
-                    {"type": "Concept", "name": "reptile"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "dinosaur"},
-                    {"type": "Concept", "name": "reptile"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "triceratops"},
-                    {"type": "Concept", "name": "dinosaur"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "earthworm"},
-                    {"type": "Concept", "name": "animal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "rhino"},
-                    {"type": "Concept", "name": "mammal"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "vine"},
-                    {"type": "Concept", "name": "plant"},
-                ],
-            },
-            {
-                "type": "Inheritance",
-                "targets": [
-                    {"type": "Concept", "name": "ent"},
-                    {"type": "Concept", "name": "plant"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "chimp"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "monkey"},
-                    {"type": "Concept", "name": "chimp"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "earthworm"},
-                    {"type": "Concept", "name": "snake"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "triceratops"},
-                    {"type": "Concept", "name": "rhino"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "vine"},
-                    {"type": "Concept", "name": "snake"},
-                ],
-            },
-            {
-                "type": "Similarity",
-                "targets": [
-                    {"type": "Concept", "name": "ent"},
-                    {"type": "Concept", "name": "human"},
-                ],
-            },
-        ]
+        path = pathlib.Path(__file__).parent.resolve()
 
-    @pytest.fixture()
-    def database(self, all_nodes, all_links):
-        db = InMemoryDB()
+        db = in_memory_db
+        with open(f"{path}/data/ram_only_nodes.json") as f:
+            all_nodes = json.load(f)
+        with open(f"{path}/data/ram_only_links.json") as f:
+            all_links = json.load(f)
         for node in all_nodes:
             db.add_node(node)
         for link in all_links:
             db.add_link(link)
-        return db
+        yield db
 
-    def test_get_node_handle(self, database: InMemoryDB):
-        actual = database.get_node_handle(node_type="Concept", node_name="human")
-        expected = ExpressionHasher.terminal_hash("Concept", "human")
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            ("Concept", "human", "af12f10f9ae2002a1607ba0b47ba8407"),
+            ("Concept", "monkey", "1cdffc6b0b89ff41d68bec237481d1e1"),
+            ("Concept", "chimp", "5b34c54bee150c04f9fa584b899dc030"),
+            ("Concept", "snake", "c1db9b517073e51eb7ef6fed608ec204"),
+            ("Concept", "earthworm", "bb34ce95f161a6b37ff54b3d4c817857"),
+            ("Concept", "rhino", "99d18c702e813b07260baf577c60c455"),
+            ("Concept", "triceratops", "d03e59654221c1e8fcda404fd5c8d6cb"),
+            ("Concept", "vine", "b94941d8cd1c0ee4ad3dd3dcab52b964"),
+            ("Concept", "ent", "4e8e26e3276af8a5c2ac2cc2dc95c6d2"),
+            ("Concept", "mammal", "bdfe4e7a431f73386f37c6448afe5840"),
+            ("Concept", "animal", "0a32b476852eeb954979b87f5f6cb7af"),
+            ("Concept", "reptile", "b99ae727c787f1b13b452fd4c9ce1b9a"),
+            ("Concept", "dinosaur", "08126b066d32ee37743e255a2558cccd"),
+            ("Concept", "plant", "80aff30094874e75028033a38ce677bb"),
+        ],
+    )
+    def test_get_node_handle(self, node_type, node_name, expected, request):
+        db: InMemoryDB = request.getfixturevalue("database")
+        actual = db.get_node_handle(node_type=node_type, node_name=node_name)
         assert expected == actual
 
-    def test_get_node_handle_not_exist(self, database: InMemoryDB):
+    @pytest.mark.parametrize(
+        "node_type,node_name",
+        [
+            (
+                "Concept-Fake",
+                "fake",
+            ),
+            ("concept", "monkey"),
+            ("Concept", "Monkey"),
+            ("Concept", "mnkêy"),
+        ],
+    )
+    def test_get_node_handle_not_exist(self, node_type, node_name, database: InMemoryDB):
         with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_node_handle(node_type="Concept-Fake", node_name="fake")
+            database.get_node_handle(node_type=node_type, node_name=node_name)
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
-    def test_get_link_handle(self, database: InMemoryDB):
-        human = database.get_node_handle("Concept", "human")
-        chimp = database.get_node_handle("Concept", "chimp")
-        actual = database.get_link_handle(link_type="Similarity", target_handles=[human, chimp])
-        expected = "b5459e299a5c5e8662c427f7e01b3bf1"
+    @pytest.mark.parametrize(
+        "targets,link_type,expected",
+        [
+            (
+                [("Concept", "human"), ("Concept", "chimp")],
+                "Similarity",
+                "b5459e299a5c5e8662c427f7e01b3bf1",
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "plant")],
+                "Inheritance",
+                "ee1c03e6d1f104ccd811cfbba018451a",
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "human")],
+                "Similarity",
+                "a45af31b43ee5ea271214338a5a5bd61",
+            ),
+        ],
+    )
+    def test_get_link_handle(self, targets, link_type, expected, request):
+        db: InMemoryDB = request.getfixturevalue("database")
+        a = db.get_node_handle(*targets[0])
+        b = db.get_node_handle(*targets[1])
+        actual = db.get_link_handle(link_type=link_type, target_handles=[a, b])
         assert expected == actual
 
-    def test_get_link_handle_not_exist(self, database: InMemoryDB):
+    @pytest.mark.parametrize(
+        "link_type,target_handles",
+        [
+            ("Singularity-Fake", ["Fake-1", "Fake-2"]),
+            ("Singularity", ["Fake-1", "Fake-2"]),
+            ("singularity", ["monkey", "mammal"]),
+            ("Sing", ["mnkêy", "âêéôç"]),
+        ],
+    )
+    def test_get_link_handle_not_exist(self, link_type, target_handles, database: InMemoryDB):
         with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_link_handle(link_type="Singularity", target_handles=["Fake-1", "Fake-2"])
+            database.get_link_handle(link_type=link_type, target_handles=target_handles)
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
@@ -264,12 +128,20 @@ class TestInMemoryDB:
         ret = database.link_exists(link_type="Concept-Fake", target_handles=["Fake1, Fake2"])
         assert ret is False
 
-    def test_get_link_targets(self, database: InMemoryDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        handle = database.get_link_handle("Inheritance", [human, mammal])
+    @pytest.mark.parametrize(
+        "targets,link_type",
+        [
+            ([("Concept", "human"), ("Concept", "mammal")], "Inheritance"),
+            ([("Concept", "ent"), ("Concept", "plant")], "Inheritance"),
+            ([("Concept", "ent"), ("Concept", "human")], "Similarity"),
+        ],
+    )
+    def test_get_link_targets(self, targets, link_type, database: InMemoryDB):
+        target_handles = [database.get_node_handle(*t) for t in targets]
+        handle = database.get_link_handle(link_type, target_handles)
         ret = database.get_link_targets(handle)
         assert ret is not None
+        assert ret == target_handles
 
     def test_get_link_targets_invalid(self, database: InMemoryDB):
         with pytest.raises(AtomDoesNotExist) as exc_info:
@@ -277,29 +149,82 @@ class TestInMemoryDB:
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
-    def test_get_matched_links_without_wildcard(self, database):
-        link_type = "Similarity"
-        human = ExpressionHasher.terminal_hash("Concept", "human")
-        monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
-        link_handle = database.get_link_handle(link_type, [human, monkey])
-        expected = {link_handle}
-        actual = database.get_matched_links(link_type, [human, monkey])
-
+    @pytest.mark.parametrize(
+        "targets,link_type,expected",
+        [
+            (
+                [("Concept", "human"), ("Concept", "monkey")],
+                "Similarity",
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "mammal")],
+                "Inheritance",
+                {"c93e1e758c53912638438e2a7d7f7b7f"},
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "plant")],
+                "Inheritance",
+                {"ee1c03e6d1f104ccd811cfbba018451a"},
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "human")],
+                "Similarity",
+                {"a45af31b43ee5ea271214338a5a5bd61"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "monkey")],
+                "*",
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "mammal")],
+                "*",
+                {"c93e1e758c53912638438e2a7d7f7b7f"},
+            ),
+            ([("Concept", "ent"), ("Concept", "plant")], "*", {"ee1c03e6d1f104ccd811cfbba018451a"}),
+            ([("Concept", "ent"), ("Concept", "human")], "*", {"a45af31b43ee5ea271214338a5a5bd61"}),
+            (
+                [("Concept", "human"), ("Concept", "chimp")],
+                "*",
+                {"b5459e299a5c5e8662c427f7e01b3bf1"},
+            ),
+            (
+                ["*", ("Concept", "chimp")],
+                "Similarity",
+                {"b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"},
+            ),
+            (
+                ["*", ("Concept", "human")],
+                "*",
+                {
+                    "2c927fdc6c0f1272ee439ceb76a6d1a4",
+                    "2a8a69c01305563932b957de4b3a9ba6",
+                    "a45af31b43ee5ea271214338a5a5bd61",
+                },
+            ),
+            (
+                [("Concept", "chimp"), "*"],
+                "Similarity",
+                {"abe6ad743fc81bd1c55ece2e1307a178", "2c927fdc6c0f1272ee439ceb76a6d1a4"},
+            ),
+            (
+                [("Concept", "chimp"), "*"],
+                "*",
+                {
+                    "abe6ad743fc81bd1c55ece2e1307a178",
+                    "2c927fdc6c0f1272ee439ceb76a6d1a4",
+                    "75756335011dcedb71a0d9a7bd2da9e8",
+                },
+            ),
+        ],
+    )
+    def test_get_matched_links(self, targets, link_type, expected, database: InMemoryDB):
+        target_handles = [database.get_node_handle(*t) if t != "*" else t for t in targets]
+        actual = database.get_matched_links(link_type, target_handles)
+        assert actual
+        assert isinstance(actual, set)
         assert expected == actual
-
-    def test_get_matched_links_link_equal_wildcard(self, database: InMemoryDB):
-        human = ExpressionHasher.terminal_hash("Concept", "human")
-        chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        assert database.get_matched_links("*", [human, chimp]) == {
-            "b5459e299a5c5e8662c427f7e01b3bf1"
-        }
-
-    def test_get_matched_links_link_diff_wildcard(self, database: InMemoryDB):
-        link_type = "Similarity"
-        chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = ["b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"]
-        actual = database.get_matched_links(link_type, ["*", chimp])
-        assert sorted(expected) == sorted(actual)
 
     def test_get_matched_links_link_does_not_exist(self, database: InMemoryDB):
         link_type = "Similarity-Fake"
@@ -1142,8 +1067,7 @@ class TestInMemoryDB:
     def test_retrieve_all_atoms(self, database: InMemoryDB):
         expected = list(database.db.node.values()) + list(database.db.link.values())
         actual = database.retrieve_all_atoms()
+        database.clear_database()
+        atoms = database.retrieve_all_atoms()
+        assert len(atoms) == 0
         assert expected == actual
-
-        with pytest.raises(Exception):
-            database.db.node = None
-            database.retrieve_all_atoms()
