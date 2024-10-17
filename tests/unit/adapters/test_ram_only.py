@@ -308,35 +308,6 @@ class TestInMemoryDB:
         assert database.get_matched_links(link_type, [chimp, chimp]) == set()
 
     def test_get_matched_links_toplevel_only(self, database: InMemoryDB):
-        # LinkT(
-        #     type="Evaluation",
-        #     targets=[
-        #         NodeT(type="Predicate", name="Predicate:has_name"),
-        #         LinkT(
-        #             type="Evaluation",
-        #             targets=[
-        #                 NodeT(
-        #                     type="Predicate",
-        #                     name="Predicate:has_name",
-        #                 ),
-        #                 LinkT(
-        #                     targets=[
-        #                         NodeT(
-        #                             type="Reactome",
-        #                             name="Reactome:R-HSA-164843",
-        #                         ),
-        #                         NodeT(
-        #                             type="Concept",
-        #                             name="Concept:2-LTR circle formation",
-        #                         ),
-        #                     ],
-        #                     type="Set",
-        #                 ),
-        #             ],
-        #         ),
-        #     ],
-        # )
-
         database.add_link(
             dict_to_link_params(
                 {
@@ -789,93 +760,9 @@ class TestInMemoryDB:
 
         assert db.count_atoms() == {"atom_count": 5, "node_count": 3, "link_count": 2}
 
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     dog_handle: {inheritance_dog_mammal_handle},
-        #     cat_handle: {inheritance_cat_mammal_handle},
-        #     mammal_handle: {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        # }
-        # assert db.db.outgoing_set == {
-        #     inheritance_dog_mammal_handle: [dog_handle, mammal_handle],
-        #     inheritance_cat_mammal_handle: [cat_handle, mammal_handle],
-        # }
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "e40489cd1e7102e35469c937e05c8bba": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "5dd515aa7a451276feac4f8b9d84ae91": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "f29daafee640d91aa7091e44551fc74a": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "7ead6cfa03894c62761162b7603aa885": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "112002ff70ea491aad735f978e9d95f5": {
-        #         inheritance_cat_mammal_handle,
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "23dc149b3218d166a14730db55249126": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "399751d7319f9061d97cd1d75728b66b": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        # }
-
         db.delete_atom(inheritance_cat_mammal_handle)
         db.delete_atom(inheritance_dog_mammal_handle)
         assert db.count_atoms() == {"atom_count": 3, "node_count": 3, "link_count": 0}
-
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     dog_handle: set(),
-        #     cat_handle: set(),
-        #     mammal_handle: set(),
-        # }
-        # assert db.db.outgoing_set == {}
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": set(),
-        #     "e40489cd1e7102e35469c937e05c8bba": set(),
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": set(),
-        #     "5dd515aa7a451276feac4f8b9d84ae91": set(),
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": set(),
-        #     "f29daafee640d91aa7091e44551fc74a": set(),
-        #     "7ead6cfa03894c62761162b7603aa885": set(),
-        #     "112002ff70ea491aad735f978e9d95f5": set(),
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": set(),
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": set(),
-        #     "23dc149b3218d166a14730db55249126": set(),
-        #     "399751d7319f9061d97cd1d75728b66b": set(),
-        # }
 
         db.add_link(
             dict_to_link_params(
@@ -903,29 +790,6 @@ class TestInMemoryDB:
         db.delete_atom(mammal_handle)
         assert db.count_atoms() == {"atom_count": 2, "node_count": 2, "link_count": 0}
 
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     dog_handle: set(),
-        #     cat_handle: set(),
-        # }
-        # assert db.db.outgoing_set == {}
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": set(),
-        #     "e40489cd1e7102e35469c937e05c8bba": set(),
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": set(),
-        #     "5dd515aa7a451276feac4f8b9d84ae91": set(),
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": set(),
-        #     "f29daafee640d91aa7091e44551fc74a": set(),
-        #     "7ead6cfa03894c62761162b7603aa885": set(),
-        #     "112002ff70ea491aad735f978e9d95f5": set(),
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": set(),
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": set(),
-        #     "23dc149b3218d166a14730db55249126": set(),
-        #     "399751d7319f9061d97cd1d75728b66b": set(),
-        # }
-
         db.add_link(
             dict_to_link_params(
                 {
@@ -952,47 +816,6 @@ class TestInMemoryDB:
         db.delete_atom(cat_handle)
         assert db.count_atoms() == {"atom_count": 3, "node_count": 2, "link_count": 1}
 
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     dog_handle: {inheritance_dog_mammal_handle},
-        #     mammal_handle: {inheritance_dog_mammal_handle},
-        # }
-        # assert db.db.outgoing_set == {inheritance_dog_mammal_handle: [dog_handle, mammal_handle]}
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "e40489cd1e7102e35469c937e05c8bba": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "5dd515aa7a451276feac4f8b9d84ae91": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": set(),
-        #     "f29daafee640d91aa7091e44551fc74a": set(),
-        #     "7ead6cfa03894c62761162b7603aa885": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": set(),
-        #     "112002ff70ea491aad735f978e9d95f5": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "23dc149b3218d166a14730db55249126": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        #     "399751d7319f9061d97cd1d75728b66b": {
-        #         inheritance_dog_mammal_handle,
-        #     },
-        # }
-
         db.add_link(
             dict_to_link_params(
                 {
@@ -1007,47 +830,6 @@ class TestInMemoryDB:
 
         db.delete_atom(dog_handle)
         assert db.count_atoms() == {"atom_count": 3, "node_count": 2, "link_count": 1}
-
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     cat_handle: {inheritance_cat_mammal_handle},
-        #     mammal_handle: {inheritance_cat_mammal_handle},
-        # }
-        # assert db.db.outgoing_set == {inheritance_cat_mammal_handle: [cat_handle, mammal_handle]}
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "e40489cd1e7102e35469c937e05c8bba": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "5dd515aa7a451276feac4f8b9d84ae91": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "f29daafee640d91aa7091e44551fc74a": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "7ead6cfa03894c62761162b7603aa885": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "112002ff70ea491aad735f978e9d95f5": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": {
-        #         inheritance_cat_mammal_handle,
-        #     },
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": set(),
-        #     "23dc149b3218d166a14730db55249126": set(),
-        #     "399751d7319f9061d97cd1d75728b66b": set(),
-        # }
 
         db.clear_database()
 
@@ -1078,37 +860,6 @@ class TestInMemoryDB:
         db.delete_atom(inheritance_cat_mammal_handle)
         assert db.count_atoms() == {"atom_count": 3, "node_count": 3, "link_count": 0}
 
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set == {
-        #     dog_handle: set(),
-        #     cat_handle: set(),
-        #     mammal_handle: set(),
-        # }
-        # assert db.db.outgoing_set == {}
-        # assert db.db.templates == {
-        #     "41c082428b28d7e9ea96160f7fd614ad": set(),
-        #     "e40489cd1e7102e35469c937e05c8bba": set(),
-        #     "62bcbcec7fdc1bf896c0c9c99fe2f6b6": set(),
-        #     "451c57cb0a3d43eb9ca208aebe11cf9e": set(),
-        # }
-        # assert db.db.patterns == {
-        #     "6e644e70a9fe3145c88b5b6261af5754": set(),
-        #     "5dd515aa7a451276feac4f8b9d84ae91": set(),
-        #     "a11d7cbf62bc544f75702b5fb6a514ff": set(),
-        #     "f29daafee640d91aa7091e44551fc74a": set(),
-        #     "7ead6cfa03894c62761162b7603aa885": set(),
-        #     "112002ff70ea491aad735f978e9d95f5": set(),
-        #     "3ba42d45a50c89600d92fb3f1a46c1b5": set(),
-        #     "1515eec36602aa53aa58a132cad99564": set(),
-        #     "e55007a8477a4e6bf4fec76e4ffd7e10": set(),
-        #     "1a81db4866eb3cc14dae6fd5a732a0b5": set(),
-        #     "113b45c48122d22790870abb1152f218": set(),
-        #     "399751d7319f9061d97cd1d75728b66b": set(),
-        #     "3b23b5e8ecf01bb53c1e531018ee3b2a": set(),
-        #     "1a8d5143240997c7179d99c846812ee1": set(),
-        #     "1be2f1be6e8a65d5ddd8a9efbfb93233": set(),
-        # }
-
     def test_add_link_that_already_exists(self):
         db = InMemoryDB()
         db.add_link(
@@ -1122,6 +873,8 @@ class TestInMemoryDB:
                 }
             )
         )
+        assert db.count_atoms() == {"atom_count": 3, "node_count": 2, "link_count": 1}
+
         db.add_link(
             dict_to_link_params(
                 {
@@ -1133,43 +886,7 @@ class TestInMemoryDB:
                 }
             )
         )
-
-        # too intrusive for this test in python - should be tested in C++
-        # assert db.db.incoming_set["167a378d17b1eda5587292814c8d0769"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a"
-        # }
-        # assert db.db.incoming_set["e24c839b9ffaf295c5d9be05171cf5d1"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a"
-        # }
-        #
-        # assert db.db.patterns["6e644e70a9fe3145c88b5b6261af5754"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["dab80dcb22dc4b246e3f8642a4e99449"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["957e33112374129ee9a7afacc702fe33"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["7fc3951816751ca77e6e14efecff2529"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["c48b5236102ae75ba3e71729a6bfa2e5"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["699ac93da51eeb8d573f9a20d7e81010"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.patterns["7d277b5039fb500cbf51806d06dbdc78"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        #
-        # assert db.db.templates["4c201422342d157b2dded43181e7782d"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
-        # assert db.db.templates["a9dea78180588431ec64d6bc4872fdbc"] == {
-        #     "4a7f5140c0017fe270c8693605fd000a",
-        # }
+        assert db.count_atoms() == {"atom_count": 3, "node_count": 2, "link_count": 1}
 
     def test_bulk_insert(self):
         db = InMemoryDB()
