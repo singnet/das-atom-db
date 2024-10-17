@@ -9,15 +9,13 @@ from hyperon_das_atomdb_cpp import (  # type: ignore[attr-defined]
     AtomDB,
     FieldIndexType,
 )
-from hyperon_das_atomdb_cpp.document_types import Atom as cppAtom
-from hyperon_das_atomdb_cpp.document_types import Link as cppLink
-from hyperon_das_atomdb_cpp.document_types import Node as cppNode
+from hyperon_das_atomdb_cpp.document_types import Atom, Link, Node
 
 # pylint: disable=invalid-name
 
-AtomT: TypeAlias = cppAtom
-NodeT: TypeAlias = cppNode
-LinkT: TypeAlias = cppLink
+AtomT: TypeAlias = Atom
+NodeT: TypeAlias = Node
+LinkT: TypeAlias = Link
 
 HandleT: TypeAlias = str
 
