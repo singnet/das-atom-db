@@ -418,7 +418,6 @@ class TestDatabase:
     )
     def test_get_all_nodes(self, database, params, nodes_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        # load
         values = {"Test": ["Aaa", "Abb", "Bbb"], "Test2": ["Bcc", "Ccc"]}
         _ = [add_node(db, vv, k, database) for k, v in values.items() for vv in v]
         nodes = db.get_all_nodes(**params)
@@ -984,7 +983,7 @@ class TestDatabase:
         index_id = db.create_field_index(**params)
         assert index_id
         assert isinstance(index_id, str)
-        # check if creating a duplicated index breaks
+        # checking if creating a duplicated index breaks
         index_id2 = db.create_field_index(**params)
         assert isinstance(index_id2, str)
         assert index_id2 == index_id

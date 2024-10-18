@@ -36,7 +36,6 @@ class TestRedisMongoDB:
                 redis_mongo_db.add_link(atom, toplevel=atom["is_toplevel"])
         redis_mongo_db.commit()
         yield redis_mongo_db
-        # redis_mongo_db.clear_database()
 
     def test_node_exists(self, database: RedisMongoDB):
         node_type = "Concept"

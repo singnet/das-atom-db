@@ -29,7 +29,7 @@ class MockRedis:
         return None
 
     def hset(self, hash, key, value, *args, **kwargs):
-        if self.cache:
+        if isinstance(self.cache, dict):
             self.cache[hash][key] = value
             return 1
         return None
@@ -94,9 +94,6 @@ class MockRedis:
 
         return (new_cursor, elements[start:end])
 
-
-# mongo_db = mongomock.MongoClient().db
-# redis_db = MockRedis()
 @pytest.fixture()
 def redis_mongo_db():
     mongo_db = mongomock.MongoClient().db
