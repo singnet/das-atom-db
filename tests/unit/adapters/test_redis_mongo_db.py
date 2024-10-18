@@ -14,6 +14,7 @@ from tests.unit.fixtures import redis_mongo_db  # noqa: F401
 
 FILE_CACHE = {}
 
+
 def loader(file_name):
     global FILE_CACHE
     path = pathlib.Path(__file__).parent.resolve()
@@ -22,7 +23,6 @@ def loader(file_name):
         with open(filename) as f:
             FILE_CACHE[filename] = json.load(f)
     return FILE_CACHE[filename]
-
 
 
 class TestRedisMongoDB:
