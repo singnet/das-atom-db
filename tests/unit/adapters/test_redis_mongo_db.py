@@ -6,6 +6,7 @@ import pytest
 from pymongo.errors import OperationFailure
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
@@ -535,12 +536,12 @@ class TestRedisMongoDB:
 
     @pytest.mark.parametrize(
         "node,expected_count",
-        {
+        [
             (("Concept", "human"), 7),
             (("Concept", "monkey"), 5),
             (("Concept", "rhino"), 4),
             (("Concept", "reptile"), 3),
-        },
+        ],
     )
     def test_get_incoming_links_by_node(self, node, expected_count, database: RedisMongoDB):
         handle = database.get_node_handle(*node)
@@ -548,10 +549,18 @@ class TestRedisMongoDB:
         link_handles = database.get_incoming_links(atom_handle=handle, handles_only=True)
         assert len(links) > 0
         assert all(isinstance(link, str) for link in link_handles)
-        answer = database.redis.smembers(f"incoming_set:{handle}")
+        answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{handle}")
         assert len(links) == len(answer) == expected_count
         assert sorted(link_handles) == sorted(answer)
         assert all([handle in link["targets"] for link in links])
+
+    @pytest.mark.parametrize(
+        "key",
+        list(KeyPrefix),
+    )
+    def test_redis_keys(self, key, database: RedisMongoDB):
+        assert str(key) not in {k.split(":")[0] for k in database.redis.cache.keys()}
+        assert str(key.value) in {k.split(":")[0] for k in database.redis.cache.keys()}
 
     @pytest.mark.parametrize(
         "link_type,link_targets",
@@ -589,7 +598,7 @@ class TestRedisMongoDB:
             links = database.get_incoming_links(atom_handle=h, handles_only=True)
             assert len(links) > 0
             assert all(isinstance(link, str) for link in links)
-            answer = database.redis.smembers(f"incoming_set:{h}")
+            answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{h}")
             assert sorted(links) == sorted(answer)
             assert handle in links
             links = database.get_incoming_links(atom_handle=h, handles_only=False)
@@ -632,7 +641,7 @@ class TestRedisMongoDB:
         pattern_hash = ExpressionHasher.composite_hash(
             [ExpressionHasher.named_type_hash(link_type), *link_targets]
         )
-        answer = database.redis.smembers(f"patterns:{pattern_hash}")
+        answer = database.redis.smembers(f"{KeyPrefix.PATTERNS.value}:{pattern_hash}")
         assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
         assert len(links) == expected_count
@@ -655,7 +664,7 @@ class TestRedisMongoDB:
         links = database.get_matched_type_template(template_values)
         hash_base = database._build_named_type_hash_template(template_values)
         template_hash = ExpressionHasher.composite_hash(hash_base)
-        answer = database.redis.smembers(f"templates:{template_hash}")
+        answer = database.redis.smembers(f"{KeyPrefix.TEMPLATES.value}:{template_hash}")
         assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
         assert len(links) == expected_count
@@ -670,7 +679,9 @@ class TestRedisMongoDB:
     def test_redis_names(self, node_type, expected_count, database: RedisMongoDB):
         nodes = database.get_all_nodes(node_type)
         assert len(nodes) == expected_count
-        assert all([database.redis.smembers(f"names:{node}") for node in nodes])
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.NAMED_ENTITIES.value}:{node}") for node in nodes]
+        )
 
     @pytest.mark.parametrize(
         "link_type,expected_count",
@@ -683,7 +694,9 @@ class TestRedisMongoDB:
     def test_redis_outgoing_set(self, link_type, expected_count, database: RedisMongoDB):
         links = database.get_all_links(link_type)
         assert len(links) == expected_count
-        assert all([database.redis.smembers(f"outgoing_set:{link}") for link in links])
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.OUTGOING_SET.value}:{link}") for link in links]
+        )
 
     def test_get_atom_type(self, database: RedisMongoDB):
         h = database.get_node_handle("Concept", "human")
