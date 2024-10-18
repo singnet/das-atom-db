@@ -94,6 +94,7 @@ class MockRedis:
 
         return (new_cursor, elements[start:end])
 
+
 @pytest.fixture()
 def redis_mongo_db():
     mongo_db = mongomock.MongoClient().db
