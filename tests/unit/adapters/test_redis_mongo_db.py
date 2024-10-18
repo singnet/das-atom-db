@@ -12,12 +12,17 @@ from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from tests.unit.fixtures import redis_mongo_db  # noqa: F401
 
+FILE_CACHE = {}
 
 def loader(file_name):
+    global FILE_CACHE
     path = pathlib.Path(__file__).parent.resolve()
     filename = f"{path}/data/{file_name}"
-    with open(filename) as f:
-        return json.load(f)
+    if filename not in FILE_CACHE:
+        with open(filename) as f:
+            FILE_CACHE[filename] = json.load(f)
+    return FILE_CACHE[filename]
+
 
 
 class TestRedisMongoDB:
