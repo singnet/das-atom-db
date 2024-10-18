@@ -2,112 +2,45 @@ import json
 import pathlib
 from unittest import mock
 
-import mongomock
 import pytest
 from pymongo.errors import OperationFailure
-from redis import Redis
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames
+from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+from tests.unit.fixtures import redis_mongo_db  # noqa: F401
+
+FILE_CACHE = {}
 
 
 def loader(file_name):
+    global FILE_CACHE
     path = pathlib.Path(__file__).parent.resolve()
-    with open(f"{path}/data/{file_name}") as f:
-        return json.load(f)
-
-
-outgoing_set_redis_mock_data = loader("outgoing_set_redis_data.json")
-incoming_set_redis_mock_data = loader("incoming_set_redis_data.json")
-patterns_redis_mock_data = loader("patterns_redis_data.json")
-templates_redis_mock_data = loader("templates_redis_data.json")
-names_redis_mock_data = loader("names_redis_data.json")
+    filename = f"{path}/data/{file_name}"
+    if filename not in FILE_CACHE:
+        with open(filename) as f:
+            FILE_CACHE[filename] = json.load(f)
+    return FILE_CACHE[filename]
 
 
 class TestRedisMongoDB:
-    @pytest.fixture()
-    def mongo_db(self):
-        return mongomock.MongoClient().db
-
-    @pytest.fixture()
-    def redis_db(self):
-        redis_db = mock.MagicMock(spec=Redis)
-
-        def smembers(key: str):
-            if "incoming_set" in key:
-                for data in incoming_set_redis_mock_data:
-                    if list(data.keys())[0] == key:
-                        return list(data.values())[0]
-                return []
-            elif "patterns" in key:
-                return patterns_redis_mock_data.get(key, [])
-            elif "templates" in key:
-                return templates_redis_mock_data.get(key, [])
+    @pytest.fixture
+    def database(self, redis_mongo_db: RedisMongoDB):  # noqa: F811
+        atoms = loader("atom_mongo_redis.json")
+        for atom in atoms:
+            if "name" in atom:
+                redis_mongo_db.add_node(atom)
             else:
-                assert False
-
-        def lrange(key: str, start: int, end: int):
-            if "outgoing_set" in key:
-                for d in outgoing_set_redis_mock_data:
-                    if key in d:
-                        return d[key]
-                return []
-            else:
-                assert False
-
-        def get(key: str):
-            if "names" in key:
-                return names_redis_mock_data.get(key)
-            elif "outgoing_set" in key:
-                for d in outgoing_set_redis_mock_data:
-                    if key in d:
-                        return d[key]
-                return []
-            else:
-                assert False
-
-        def commit():
-            pass
-
-        redis_db.smembers = mock.Mock(side_effect=smembers)
-        redis_db.lrange = mock.Mock(side_effect=lrange)
-        redis_db.get = mock.Mock(side_effect=get)
-        redis_db.commit = mock.Mock(side_effect=commit)
-        return redis_db
-
-    @pytest.fixture(scope="function")
-    def database(self, mongo_db, redis_db):
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-            return_value=mongo_db,
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
-            return_value=redis_db,
-        ):
-            db = RedisMongoDB()
-            db.mongo_atoms_collection = mongo_db.collection
-            db.mongo_types_collection = mongo_db.collection
-
-            db.mongo_atoms_collection.insert_many(loader("atom_collection_data.json"))
-            db.all_mongo_collections = [
-                (MongoCollectionNames.ATOMS, db.mongo_atoms_collection),
-                (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection),
-            ]
-            db.mongo_bulk_insertion_buffer = {
-                MongoCollectionNames.ATOMS: tuple([db.mongo_atoms_collection, set()]),
-                MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
-            }
-        return db
+                redis_mongo_db.add_link(atom, toplevel=atom["is_toplevel"])
+        redis_mongo_db.commit()
+        yield redis_mongo_db
 
     def test_node_exists(self, database: RedisMongoDB):
         node_type = "Concept"
         node_name = "monkey"
-
         resp = database.node_exists(node_type, node_name)
-
         assert resp is True
 
     def test_node_exists_false(self, database: RedisMongoDB):
@@ -142,91 +75,161 @@ class TestRedisMongoDB:
 
         assert resp == ExpressionHasher.terminal_hash("Concept", "human")
 
-    def test_get_node_handle_node_does_not_exist(self, database: RedisMongoDB):
-        node_type = "Fake"
-        node_name = "Fake2"
-
+    @pytest.mark.parametrize(
+        "node_type,node_name",
+        [
+            ("Concept", ""),
+            ("Concept", "test"),
+            ("Similarity", ""),
+        ],
+    )
+    def test_get_node_handle_node_does_not_exist(
+        self, node_type, node_name, database: RedisMongoDB
+    ):
         with pytest.raises(AtomDoesNotExist) as exc_info:
             database.get_node_handle(node_type, node_name)
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
-    def test_get_link_handle(self, database: RedisMongoDB):
-        human = ExpressionHasher.terminal_hash("Concept", "human")
-        chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-
-        resp = database.get_link_handle(link_type="Similarity", target_handles=[human, chimp])
-
+    @pytest.mark.parametrize(
+        "link_type,targets,expected",
+        [
+            (
+                "Similarity",
+                [("Concept", "human"), ("Concept", "chimp")],
+                "b5459e299a5c5e8662c427f7e01b3bf1",
+            ),
+        ],
+    )
+    def test_get_link_handle(self, link_type, targets, expected, database: RedisMongoDB):
+        resp = database.get_link_handle(
+            link_type=link_type,
+            target_handles=[ExpressionHasher.terminal_hash(*t) for t in targets],
+        )
         assert resp is not None
+        assert isinstance(resp, str)
+        assert resp == expected
 
-    def test_get_link_handle_link_does_not_exist(self, database: RedisMongoDB):
-        brazil = ExpressionHasher.terminal_hash("Concept", "brazil")
-        travel = ExpressionHasher.terminal_hash("Concept", "travel")
-
+    @pytest.mark.parametrize(
+        "link_type,targets",
+        [
+            ("Similarity", [("Concept", "brazil"), ("Concept", "travel")]),
+            ("Similarity", [("Concept", "*"), ("Concept", "*")]),
+            ("Similarity", [("Concept", "$"), ("Concept", "*")]),
+            ("Concept", []),
+            ("$", []),
+        ],
+    )
+    def test_get_link_handle_link_does_not_exist(self, link_type, targets, database: RedisMongoDB):
         with pytest.raises(AtomDoesNotExist) as exc_info:
-            database.get_link_handle(link_type="Similarity", target_handles=[brazil, travel])
+            database.get_link_handle(
+                link_type=link_type,
+                target_handles=[ExpressionHasher.terminal_hash(*t) for t in targets],
+            )
         assert exc_info.type is AtomDoesNotExist
         assert exc_info.value.args[0] == "Nonexistent atom"
 
-    def test_get_link_targets(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        handle = database.get_link_handle("Inheritance", [human, mammal])
-        assert database.get_link_targets(handle)
+    @pytest.mark.parametrize(
+        "link_type,targets,expected_count",
+        [
+            ("Similarity", [("Concept", "human"), ("Concept", "chimp")], 2),
+            ("Inheritance", [("Concept", "human"), ("Concept", "mammal")], 2),
+            ("Evaluation", [("Concept", "triceratops"), ("Concept", "rhino")], 2),
+        ],
+    )
+    def test_get_link_targets(self, link_type, targets, expected_count, database: RedisMongoDB):
+        handle = database.get_link_handle(
+            link_type, [database.get_node_handle(*t) for t in targets]
+        )
+        targets = database.get_link_targets(handle)
+        assert isinstance(targets, list)
+        assert len(targets) == expected_count
 
-    def test_get_link_targets_invalid(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        mammal = database.get_node_handle("Concept", "mammal")
-        handle = database.get_link_handle("Inheritance", [human, mammal])
-
+    @pytest.mark.parametrize(
+        "handle", ["handle", "2a8a69c01305563932b957de4b3a9ba6", "2a8a69c0130556=z32b957de4b3a9ba6"]
+    )
+    def test_get_link_targets_invalid(self, handle, database: RedisMongoDB):
         with pytest.raises(ValueError) as exc_info:
             database.get_link_targets(f"{handle}-Fake")
         assert exc_info.type is ValueError
         assert exc_info.value.args[0] == f"Invalid handle: {handle}-Fake"
 
-    def test_get_matched_links_without_wildcard(self, database: RedisMongoDB):
-        link_type = "Similarity"
-        human = ExpressionHasher.terminal_hash("Concept", "human")
-        monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
-        link_handle = database.get_link_handle(link_type, [human, monkey])
-        expected = {link_handle}
-        actual = database.get_matched_links(link_type, [human, monkey])
-
+    @pytest.mark.parametrize(
+        "link_values,expected,expected_count",
+        [
+            (
+                {"link_type": "Evaluation", "target_handles": ["*", "*"], "toplevel_only": True},
+                {"bd2bb6c802a040b00659dfe7954e804d"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "*",
+                    "target_handles": [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "chimp"),
+                    ],
+                    "toplevel_only": False,
+                },
+                {"b5459e299a5c5e8662c427f7e01b3bf1"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "Similarity",
+                    "target_handles": [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "monkey"),
+                    ],
+                    "toplevel_only": False,
+                },
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "Similarity",
+                    "target_handles": ["*", ExpressionHasher.terminal_hash("Concept", "chimp")],
+                    "toplevel_only": False,
+                },
+                {
+                    "31535ddf214f5b239d3b517823cb8144",
+                    "b5459e299a5c5e8662c427f7e01b3bf1",
+                },
+                2,
+            ),
+        ],
+    )
+    def test_get_matched_links_toplevel_only(
+        self, link_values, expected, expected_count, database: RedisMongoDB
+    ):
+        actual = database.get_matched_links(**link_values)
         assert expected == actual
+        assert len(actual) == expected_count
 
-    def test_get_matched_links_link_equal_wildcard(self, database: RedisMongoDB):
-        link_type = "*"
-        human = ExpressionHasher.terminal_hash("Concept", "human")
-        chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = {"b5459e299a5c5e8662c427f7e01b3bf1"}
-        actual = database.get_matched_links(link_type, [human, chimp])
-
-        assert expected == actual
-
-    def test_get_matched_links_link_diff_wildcard(self, database: RedisMongoDB):
-        link_type = "Similarity"
-        chimp = ExpressionHasher.terminal_hash("Concept", "chimp")
-        expected = {
-            "31535ddf214f5b239d3b517823cb8144",
-            "b5459e299a5c5e8662c427f7e01b3bf1",
-        }
-        actual = database.get_matched_links(link_type, ["*", chimp])
-
-        assert expected == actual
-
-    def test_get_matched_links_toplevel_only(self, database: RedisMongoDB):
-        expected = {"d542caa94b57219f1e489e3b03be7126"}
-        actual = database.get_matched_links("Evaluation", ["*", "*"], toplevel_only=True)
-        assert expected == actual
-        assert len(actual) == 1
-
-    def test_get_all_nodes(self, database: RedisMongoDB):
-        ret = database.get_all_nodes("Concept")
-        assert len(ret) == 14
-        ret = database.get_all_nodes("Concept", True)
-        assert len(ret) == 14
-        ret = database.get_all_nodes("ConceptFake")
-        assert len(ret) == 0
+    @pytest.mark.parametrize(
+        "node_type,names,expected",
+        [
+            ("Concept", True, 14),
+            ("Concept", False, 14),
+            ("Test", True, 0),
+            ("Test", False, 0),
+            ("Inheritance", True, 0),
+            ("Inheritance", False, 0),
+            ("Evaluation", True, 0),
+            ("Evaluation", False, 0),
+            ("Similarity", True, 0),
+            ("Similarity", False, 0),
+        ],
+    )
+    def test_get_all_nodes(self, node_type, names, expected, database: RedisMongoDB):
+        if node_type in {"Inheritance", "Evaluation", "Similarity"}:
+            pytest.skip(
+                "Returning links, also break if it's a link and name is true"
+                "https://github.com/singnet/das-atom-db/issues/210"
+            )
+        ret = database.get_all_nodes(node_type, names=names)
+        assert len(ret) == expected
 
     def test_get_matched_type_template(self, database: RedisMongoDB):
         v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
@@ -242,67 +245,122 @@ class TestRedisMongoDB:
         assert v1 == v5
         assert v2 == v6
 
-    def test_get_matched_type_template_error(self, database: RedisMongoDB):
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._build_named_type_hash_template",
-            return_value=mock.MagicMock(side_effect=Exception("Test")),
-        ):
-            with pytest.raises(ValueError) as exc_info:
-                database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
-            assert exc_info.type is ValueError
+    @pytest.mark.parametrize(
+        "template",
+        [
+            ["Inheritance", "Concept", "Concept", {"aaa": "bbb"}],
+            ["Inheritance", "Concept", "Concept", ["aaa", "bbb"]],
+        ],
+    )
+    def test_get_matched_type_template_error(self, template, database: RedisMongoDB):
+        with pytest.raises(ValueError) as exc_info:
+            database.get_matched_type_template(template)
+        assert exc_info.type is ValueError
 
-    def test_get_matched_type(self, database: RedisMongoDB):
-        inheritance = database.get_matched_type("Inheritance")
-        similarity = database.get_matched_type("Similarity")
-        assert len(inheritance) == 12
-        assert len(similarity) == 14
+    @pytest.mark.parametrize(
+        "link_type,expected",
+        [
+            ("Evaluation", 2),
+            ("Inheritance", 12),
+            ("Similarity", 14),
+            ("Concept", 0),
+        ],
+    )
+    def test_get_matched_type(self, link_type, expected, database: RedisMongoDB):
+        links = database.get_matched_type(link_type)
+        assert len(links) == expected
+        assert isinstance(links, set)
 
-    def test_get_matched_type_toplevel_only(self, database: RedisMongoDB):
-        ret = database.get_matched_type("Evaluation")
-        assert len(ret) == 2
+    @pytest.mark.parametrize(
+        "link_type,top_level,expected",
+        [
+            ("Evaluation", True, 1),
+            ("Evaluation", False, 2),
+            ("Inheritance", True, 12),
+            ("Inheritance", False, 12),
+            ("Similarity", False, 14),
+            ("Similarity", False, 14),
+        ],
+    )
+    def test_get_matched_type_toplevel_only(
+        self, link_type, top_level, expected, database: RedisMongoDB
+    ):
+        ret = database.get_matched_type(link_type, toplevel_only=top_level)
+        assert len(ret) == expected
+        assert isinstance(ret, set)
 
-        ret = database.get_matched_type("Evaluation", toplevel_only=True)
-        assert len(ret) == 1
-
-    def test_get_node_name(self, database: RedisMongoDB):
-        node_type = "Concept"
-        node_name = "monkey"
-
+    @pytest.mark.parametrize(
+        "node_type,node_name",
+        [
+            ("Concept", "monkey"),
+            ("Concept", "human"),
+            ("Concept", "mammal"),
+        ],
+    )
+    def test_get_node_name(self, node_type, node_name, database: RedisMongoDB):
         handle = database.get_node_handle(node_type, node_name)
         db_name = database.get_node_name(handle)
-
         assert db_name == node_name
 
-    def test_get_node_name_value_error(self, database: RedisMongoDB):
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_name",
-            return_value=None,
-        ):
-            with pytest.raises(ValueError) as exc_info:
-                database.get_node_name("handle")
-            assert exc_info.type is ValueError
-            assert exc_info.value.args[0] == "Invalid handle: handle"
+    @pytest.mark.parametrize(
+        "handle,",
+        ["handle", "2a8a69c01305563932b957de4b3a9ba6", "2a8a69c0130556=z32b957de4b3a9ba6"],
+    )
+    def test_get_node_name_value_error(self, handle, database: RedisMongoDB):
+        with pytest.raises(ValueError) as exc_info:
+            database.get_node_name("handle")
+        assert exc_info.type is ValueError
+        assert exc_info.value.args[0] == "Invalid handle: handle"
 
-    def test_get_matched_node_name(self, database: RedisMongoDB):
-        expected = sorted(
-            [
-                database.get_node_handle("Concept", "human"),
-                database.get_node_handle("Concept", "mammal"),
-                database.get_node_handle("Concept", "animal"),
-            ]
-        )
-        actual = sorted(database.get_node_by_name("Concept", "ma"))
-
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            (
+                "Concept",
+                "ma",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "mammal"),
+                        ExpressionHasher.terminal_hash("Concept", "animal"),
+                    ]
+                ),
+            ),
+            ("blah", "Concept", []),
+            ("Concept", "blah", []),
+            ("Similarity", "ma", []),
+        ],
+    )
+    def test_get_matched_node_name(self, node_type, node_name, expected, database: RedisMongoDB):
+        actual = sorted(database.get_node_by_name(node_type, node_name))
         assert expected == actual
-        assert sorted(database.get_node_by_name("blah", "Concept")) == []
-        assert sorted(database.get_node_by_name("Concept", "blah")) == []
 
-    def test_get_startswith_node_name(self, database: RedisMongoDB):
-        expected = [
-            database.get_node_handle("Concept", "mammal"),
-        ]
-        actual = database.get_node_by_name_starting_with("Concept", "ma")
-
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            (
+                "Concept",
+                "ma",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "mammal"),
+                    ]
+                ),
+            ),
+            ("blah", "Concept", []),
+            (
+                "Concept",
+                "h",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                    ]
+                ),
+            ),
+        ],
+    )
+    def test_get_startswith_node_name(self, node_type, node_name, expected, database: RedisMongoDB):
+        actual = database.get_node_by_name_starting_with(node_type, node_name)
         assert expected == actual
 
     def test_get_node_by_field(self, database: RedisMongoDB):
@@ -313,53 +371,74 @@ class TestRedisMongoDB:
 
         assert expected == actual
 
-    def test_get_atoms_by_index(self, database: RedisMongoDB):
-        expected = [
-            database.get_node_handle("Concept", "mammal"),
-        ]
-
-        result = database.create_field_index("node", fields=["name"])
-
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._retrieve_custom_index",
-            return_value={"conditionals": {}},
-        ):
-            cursor, actual = database.get_atoms_by_index(
-                result, [{"field": "name", "value": "mammal"}]
-            )
+    @pytest.mark.parametrize(
+        "atom_type,fields,query,expected",
+        [
+            (
+                "node",
+                ["name"],
+                [{"field": "name", "value": "mammal"}],
+                [ExpressionHasher.terminal_hash("Concept", "mammal")],
+            ),
+            (
+                "link",
+                ["type"],
+                [{"field": "type", "value": "Evaluation"}],
+                ["bd2bb6c802a040b00659dfe7954e804d", "cadd63b3fd14e34819bca4803925bf2c"],
+            ),
+        ],
+    )
+    def test_get_atoms_by_index(self, atom_type, fields, query, expected, database: RedisMongoDB):
+        result = database.create_field_index(atom_type, fields=fields)
+        cursor, actual = database.get_atoms_by_index(result, query)
         assert cursor == 0
-        assert expected[0] == actual[0]["handle"]
+        assert isinstance(actual, list)
+        assert all([a["handle"] in expected for a in actual])
 
-    def test_get_node_by_text_field(self, database: RedisMongoDB):
-        expected = [
-            database.get_node_handle("Concept", "mammal"),
-        ]
-        actual = database.get_atoms_by_text_field("mammal", "name")
-
+    @pytest.mark.parametrize(
+        "text_value,field,expected",
+        [
+            ("mammal", "name", [ExpressionHasher.terminal_hash("Concept", "mammal")]),
+        ],
+    )
+    def test_get_node_by_text_field(self, text_value, field, expected, database: RedisMongoDB):
+        actual = database.get_atoms_by_text_field(text_value, field)
         assert expected == actual
 
-    def test_get_node_type(self, database: RedisMongoDB):
-        monkey = database.get_node_handle("Concept", "monkey")
-        resp_node = database.get_node_type(monkey)
-        assert "Concept" == resp_node
+    @pytest.mark.parametrize(
+        "handle,expected",
+        [
+            (ExpressionHasher.terminal_hash("Concept", "monkey"), "Concept"),
+            (ExpressionHasher.terminal_hash("Concept", "human"), "Concept"),
+            ("b5459e299a5c5e8662c427f7e01b3bf1", "Similarity"),  # NOTE: Should break?
+        ],
+    )
+    def test_get_node_type(self, handle, expected, database: RedisMongoDB):
+        resp_node = database.get_node_type(handle)
+        assert expected == resp_node
 
     def test_get_node_type_without_cache(self, database: RedisMongoDB):
-        from hyperon_das_atomdb.adapters import redis_mongo_db
+        from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
 
         redis_mongo_db.USE_CACHED_NODE_TYPES = False
         monkey = database.get_node_handle("Concept", "monkey")
         resp_node = database.get_node_type(monkey)
         assert "Concept" == resp_node
 
-    def test_get_link_type(self, database: RedisMongoDB):
-        human = database.get_node_handle("Concept", "human")
-        chimp = database.get_node_handle("Concept", "chimp")
-        link_handle = database.get_link_handle("Similarity", [human, chimp])
-        resp_link = database.get_link_type(link_handle)
-        assert "Similarity" == resp_link
+    @pytest.mark.parametrize(
+        "handle,expected",
+        [
+            (ExpressionHasher.terminal_hash("Concept", "monkey"), "Concept"),  # NOTE: Should break?
+            (ExpressionHasher.terminal_hash("Concept", "human"), "Concept"),  # NOTE: Should break?
+            ("b5459e299a5c5e8662c427f7e01b3bf1", "Similarity"),
+        ],
+    )
+    def test_get_link_type(self, handle, expected, database: RedisMongoDB):
+        resp_link = database.get_link_type(handle)
+        assert expected == resp_link
 
     def test_get_link_type_without_cache(self, database: RedisMongoDB):
-        from hyperon_das_atomdb.adapters import redis_mongo_db
+        from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
 
         redis_mongo_db.USE_CACHED_LINK_TYPES = False
         human = database.get_node_handle("Concept", "human")
@@ -454,40 +533,169 @@ class TestRedisMongoDB:
         assert new_node["named_type"] == "Concept"
         assert new_node["name"] == "cat"
 
-    def test_get_incoming_links(self, database: RedisMongoDB):
-        h = database.get_node_handle("Concept", "human")
-        m = database.get_node_handle("Concept", "monkey")
-        s = database.get_link_handle("Similarity", [h, m])
+    @pytest.mark.parametrize(
+        "node,expected_count",
+        [
+            (("Concept", "human"), 7),
+            (("Concept", "monkey"), 5),
+            (("Concept", "rhino"), 4),
+            (("Concept", "reptile"), 3),
+        ],
+    )
+    def test_get_incoming_links_by_node(self, node, expected_count, database: RedisMongoDB):
+        handle = database.get_node_handle(*node)
+        links = database.get_incoming_links(atom_handle=handle, handles_only=False)
+        link_handles = database.get_incoming_links(atom_handle=handle, handles_only=True)
+        assert len(links) > 0
+        assert all(isinstance(link, str) for link in link_handles)
+        answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{handle}")
+        assert len(links) == len(answer) == expected_count
+        assert sorted(link_handles) == sorted(answer)
+        assert all([handle in link["targets"] for link in links])
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=False)
-        atom = database.get_atom(handle=s)
-        assert atom in links
+    @pytest.mark.parametrize(
+        "key",
+        list(KeyPrefix),
+    )
+    def test_redis_keys(self, key, database: RedisMongoDB):
+        assert str(key) not in {k.split(":")[0] for k in database.redis.cache.keys()}
+        assert str(key.value) in {k.split(":")[0] for k in database.redis.cache.keys()}
 
-        links = database.get_incoming_links(
-            atom_handle=h, handles_only=False, targets_document=True
+    @pytest.mark.parametrize(
+        "link_type,link_targets",
+        [
+            ("Similarity", [("Concept", "human"), ("Concept", "monkey")]),
+            ("Inheritance", [("Concept", "snake"), ("Concept", "reptile")]),
+            ("Evaluation", [("Concept", "triceratops"), ("Concept", "rhino")]),
+            (
+                "Evaluation",
+                [
+                    ("Concept", "triceratops"),
+                    (
+                        "Evaluation",
+                        ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                    ),
+                ],
+            ),
+        ],
+    )
+    def test_get_incoming_links_by_links(self, link_type, link_targets, database: RedisMongoDB):
+        handle = database.get_link_handle(
+            link_type,
+            [
+                database.get_node_handle(*t)
+                if all([isinstance(tt, str) for tt in t])
+                else database.get_link_handle(*t)
+                for t in link_targets
+            ],
         )
-        assert len(links) > 0
-        assert all(isinstance(link, dict) for link in links)
-        for link in links:
-            for a, b in zip(link["targets"], link["targets_document"]):
-                assert a == b["handle"]
+        for target in link_targets:
+            if all([isinstance(t, str) for t in target]):
+                h = database.get_node_handle(*target)
+            else:
+                database.get_link_handle(*target)
+            links = database.get_incoming_links(atom_handle=h, handles_only=True)
+            assert len(links) > 0
+            assert all(isinstance(link, str) for link in links)
+            answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{h}")
+            assert sorted(links) == sorted(answer)
+            assert handle in links
+            links = database.get_incoming_links(atom_handle=h, handles_only=False)
+            atom = database.get_atom(handle=handle)
+            assert atom in links
+            links = database.get_incoming_links(
+                atom_handle=h, handles_only=False, targets_document=True
+            )
+            assert len(links) > 0
+            assert all(isinstance(link, dict) for link in links)
+            for link in links:
+                for a, b in zip(link["targets"], link["targets_document"]):
+                    assert a == b["handle"]
 
-        links = database.get_incoming_links(atom_handle=h, handles_only=True)
-        assert len(links) > 0
-        assert all(isinstance(link, str) for link in links)
-        answer = database.redis.smembers(f"incoming_set:{h}")
+    @pytest.mark.parametrize(
+        "link_type,link_targets,expected_count",
+        [
+            ("Similarity", ["*", "af12f10f9ae2002a1607ba0b47ba8407"], 3),
+            ("Similarity", ["af12f10f9ae2002a1607ba0b47ba8407", "*"], 3),
+            (
+                "Inheritance",
+                ["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"],
+                1,
+            ),
+            (
+                "Evaluation",
+                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                1,
+            ),
+            (
+                "Evaluation",
+                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                1,
+            ),
+            ("Evaluation", ["*", "99d18c702e813b07260baf577c60c455"], 1),
+        ],
+    )
+    def test_redis_patterns(self, link_type, link_targets, expected_count, database: RedisMongoDB):
+        links = database.get_matched_links(link_type, link_targets)
+        pattern_hash = ExpressionHasher.composite_hash(
+            [ExpressionHasher.named_type_hash(link_type), *link_targets]
+        )
+        answer = database.redis.smembers(f"{KeyPrefix.PATTERNS.value}:{pattern_hash}")
+        assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
-        assert s in links
+        assert len(links) == expected_count
 
-        links = database.get_incoming_links(atom_handle=m, handles_only=True)
-        assert len(links) > 0
-        assert all(isinstance(link, str) for link in links)
-        answer = database.redis.smembers(f"incoming_set:{m}")
+    @pytest.mark.parametrize(
+        "template_values,expected_count",
+        [
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Inheritance"], 12),
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Inheritance"], 12),
+            (["Similarity", "Concept", "Concept"], 14),
+            (["Similarity"], 14),
+            (["Evaluation", "Concept", "Concept"], 1),
+            (["Evaluation"], 2),
+            # (["Evaluation", "Concept", ["Evaluation", "Concept", ["Evaluation", "Concept", "Concept"]]], 1)
+        ],
+    )
+    def test_redis_templates(self, template_values, expected_count, database: RedisMongoDB):
+        links = database.get_matched_type_template(template_values)
+        hash_base = database._build_named_type_hash_template(template_values)
+        template_hash = ExpressionHasher.composite_hash(hash_base)
+        answer = database.redis.smembers(f"{KeyPrefix.TEMPLATES.value}:{template_hash}")
+        assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
+        assert len(links) == expected_count
 
-        links = database.get_incoming_links(atom_handle=s, handles_only=True)
-        assert len(links) == 0
-        assert links == []
+    @pytest.mark.parametrize(
+        "node_type,expected_count",
+        [
+            ("Concept", 14),
+            ("Empty", 0),
+        ],
+    )
+    def test_redis_names(self, node_type, expected_count, database: RedisMongoDB):
+        nodes = database.get_all_nodes(node_type)
+        assert len(nodes) == expected_count
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.NAMED_ENTITIES.value}:{node}") for node in nodes]
+        )
+
+    @pytest.mark.parametrize(
+        "link_type,expected_count",
+        [
+            ("Inheritance", 12),
+            ("Similarity", 14),
+            ("Evaluation", 2),
+        ],
+    )
+    def test_redis_outgoing_set(self, link_type, expected_count, database: RedisMongoDB):
+        links = database.get_all_links(link_type)
+        assert len(links) == expected_count
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.OUTGOING_SET.value}:{link}") for link in links]
+        )
 
     def test_get_atom_type(self, database: RedisMongoDB):
         h = database.get_node_handle("Concept", "human")
@@ -615,7 +823,7 @@ class TestRedisMongoDB:
             partialFilterExpression={FieldNames.TYPE_NAME: {"$eq": "Type"}},
         )
 
-    @pytest.mark.skip(reason="Maybe change the way to handle this test")
+    @pytest.mark.skip(reason="Change the way to handle this test")
     def test_create_field_index_invalid_collection(self, database: RedisMongoDB):
         with pytest.raises(ValueError):
             database.create_field_index("invalid_atom_type", ["field"], "type")
