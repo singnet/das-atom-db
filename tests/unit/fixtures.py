@@ -8,7 +8,8 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, Red
 
 
 class MockRedis:
-    cache = {}
+    def __init__(self):
+        self.cache = dict()
 
     def get(self, key):
         if key in self.cache:
@@ -16,7 +17,7 @@ class MockRedis:
         return None
 
     def set(self, key, value, *args, **kwargs):
-        if self.cache:
+        if isinstance(self.cache, dict):
             self.cache[key] = value
             return "OK"
         return None
@@ -94,7 +95,9 @@ class MockRedis:
         return (new_cursor, elements[start:end])
 
 
-@pytest.fixture
+# mongo_db = mongomock.MongoClient().db
+# redis_db = MockRedis()
+@pytest.fixture()
 def redis_mongo_db():
     mongo_db = mongomock.MongoClient().db
     redis_db = MockRedis()
@@ -108,6 +111,7 @@ def redis_mongo_db():
         db = RedisMongoDB()
         db.mongo_atoms_collection = mongo_db.collection
         db.mongo_types_collection = mongo_db.collection
+        db.redis = redis_db
 
         db.all_mongo_collections = [
             (MongoCollectionNames.ATOMS, db.mongo_atoms_collection),

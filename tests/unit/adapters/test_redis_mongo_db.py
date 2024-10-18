@@ -15,7 +15,8 @@ from tests.unit.fixtures import redis_mongo_db  # noqa: F401
 
 def loader(file_name):
     path = pathlib.Path(__file__).parent.resolve()
-    with open(f"{path}/data/{file_name}") as f:
+    filename = f"{path}/data/{file_name}"
+    with open(filename) as f:
         return json.load(f)
 
 
@@ -30,7 +31,7 @@ class TestRedisMongoDB:
                 redis_mongo_db.add_link(atom, toplevel=atom["is_toplevel"])
         redis_mongo_db.commit()
         yield redis_mongo_db
-        redis_mongo_db.clear_database()
+        # redis_mongo_db.clear_database()
 
     def test_node_exists(self, database: RedisMongoDB):
         node_type = "Concept"
@@ -663,7 +664,6 @@ class TestRedisMongoDB:
         ],
     )
     def test_redis_names(self, node_type, expected_count, database: RedisMongoDB):
-        pytest.skip("Unstable, sometimes fail")
         nodes = database.get_all_nodes(node_type)
         assert len(nodes) == expected_count
         assert all(
@@ -679,7 +679,6 @@ class TestRedisMongoDB:
         ],
     )
     def test_redis_outgoing_set(self, link_type, expected_count, database: RedisMongoDB):
-        pytest.skip("Unstable, sometimes fail")
         links = database.get_all_links(link_type)
         assert len(links) == expected_count
         assert all([database.redis.smembers(f"{KeyPrefix.OUTGOING_SET}:{link}") for link in links])

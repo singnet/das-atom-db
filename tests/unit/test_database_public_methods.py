@@ -4,8 +4,7 @@ import pytest
 
 from hyperon_das_atomdb.database import AtomDB
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
-
-from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
+from tests.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
 def check_handle(handle):
@@ -193,7 +192,7 @@ class TestDatabase:
     def test_get_node_handle_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="Nonexistent atom"):
-            db.get_node_handle("Test", "A")
+            db.get_node_handle("#$QQ!#", "A")
 
     def test_get_node_name(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
