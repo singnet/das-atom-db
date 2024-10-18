@@ -122,7 +122,7 @@ def redis_mongo_db():
             MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
         }
 
-        yield db
+    yield db
 
 
 @pytest.fixture
