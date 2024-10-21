@@ -22,6 +22,8 @@ RUN cd /tmp \
 
 RUN ${PYTHON_EXECUTABLE} -m pip install -r /tmp/deps/requirements.txt
 
+RUN ${PYTHON_EXECUTABLE} -m pip install scikit-build-core>=0.10
+
 RUN rm -rf /tmp/deps
 
 WORKDIR /hyperon_das_atomdb_cpp
