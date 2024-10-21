@@ -1,5 +1,5 @@
 # See https://github.com/pypa/manylinux for more information
-FROM quay.io/pypa/manylinux_2_28_x86_64
+FROM quay.io/pypa/manylinux_2_28_x86_64:2024.10.15-1
 
 ENV MBEDTLS_VERSION=3.6.2
 ENV PYTHON_PATH=/opt/python/cp310-cp310
