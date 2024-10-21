@@ -20,6 +20,12 @@ jobs:
         with:
           python-version: ~3.10
 
+      - name: Debug
+        run: |
+          python3 --version
+          lsb_release -a
+          echo $USER
+
       - name: Install requirements
         run: |-
           pip install twine
