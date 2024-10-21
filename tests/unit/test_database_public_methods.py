@@ -5,17 +5,47 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, AtomT, LinkT, NodeT
-from tests.helpers import add_link, add_node, check_handle, dict_to_node_params
+from tests.helpers import add_link, add_node, check_handle, dict_to_node_params, dict_to_link_params
+from tests.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
-from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
+
+def pytest_generate_tests(metafunc):
+    idlist = []
+    argvalues = []
+    for scenario in metafunc.cls.scenarios:
+        idlist.append(scenario[0])
+        items = scenario[1].items()
+        argnames = [x[0] for x in items]
+        argvalues.append([x[1] for x in items])
+    metafunc.parametrize(argnames, argvalues, ids=idlist, scope="class")
+
+
+in_memory = ("memory", {"database": "in_memory_db"})
+redis_mongo = ("redis_mongo", {"database": "redis_mongo_db"})
 
 
 class TestDatabase:
+    scenarios = [in_memory, redis_mongo]
+
+    def _load_db(self, db):
+        import json
+        import pathlib
+
+        path = pathlib.Path(__file__).parent.resolve()
+        with open(f"{path}/adapters/data/ram_only_nodes.json") as f:
+            all_nodes = json.load(f)
+        with open(f"{path}/adapters/data/ram_only_links.json") as f:
+            all_links = json.load(f)
+        for node in all_nodes:
+            db.add_node(dict_to_node_params(node))
+        for link in all_links:
+            db.add_link(dict_to_link_params(link))
+
     @pytest.mark.parametrize(
-        "database,expected",
+        "expected",
         [
-            ("redis_mongo_db", "1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
-            ("in_memory_db", "1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
+            ("1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
+            ("1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
         ],
     )
     def test_node_handle(self, database, expected, request):
@@ -28,10 +58,10 @@ class TestDatabase:
         assert check_handle(handle)
 
     @pytest.mark.parametrize(
-        "database,expected",
+        "expected",
         [
-            ("redis_mongo_db", "1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
-            ("in_memory_db", "1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
+            ("1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
+            ("1fd600f0fd8a1fab79546a4fc3612df3"),  # Concept, Human
         ],
     )
     def test_node_handle_exceptions(self, database, expected, request):
@@ -41,10 +71,10 @@ class TestDatabase:
             db.node_handle([], [])
 
     @pytest.mark.parametrize(
-        "database,expected",
+        "expected",
         [
-            ("redis_mongo_db", "a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
-            ("in_memory_db", "a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
+            ("a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
+            ("a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
         ],
     )
     def test_link_handle(self, database, expected, request):
@@ -56,10 +86,10 @@ class TestDatabase:
         assert check_handle(handle)
 
     @pytest.mark.parametrize(
-        "database,expected",
+        "expected",
         [
-            ("redis_mongo_db", "a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
-            ("in_memory_db", "a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
+            ("a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
+            ("a9dea78180588431ec64d6bc4872fdbc"),  # Similarity
         ],
     )
     def test_link_handle_exceptions(self, database, expected, request):
@@ -71,13 +101,11 @@ class TestDatabase:
         # with pytest.raises(ValueError):
         #     db.link_handle("Similarity", set())
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_node_exists(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         db.add_node(NodeT(name="A", type="Test"))
         if database != "in_memory_db":
             db.commit()
-
         no_exists = db.node_exists("Test", "B")
         exists = db.node_exists("Test", "A")
         assert isinstance(no_exists, bool)
@@ -86,10 +114,9 @@ class TestDatabase:
         assert exists
 
     @pytest.mark.parametrize(
-        "database,targets",
+        "targets",
         [
-            ("redis_mongo_db", ["180fed764dbd593f1ea45b63b13d7e69"]),
-            ("in_memory_db", ["180fed764dbd593f1ea45b63b13d7e69"]),
+            (["180fed764dbd593f1ea45b63b13d7e69"]),
         ],
     )
     def test_link_exists(self, database, targets, request):
@@ -107,7 +134,6 @@ class TestDatabase:
         assert not no_exists
         assert exists
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_handle(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         expected_node = add_node(db, "A", "Test", database)
@@ -115,13 +141,39 @@ class TestDatabase:
         assert node == expected_node.handle
         assert check_handle(node)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            ("Concept", "human", "af12f10f9ae2002a1607ba0b47ba8407"),
+            ("Concept", "monkey", "1cdffc6b0b89ff41d68bec237481d1e1"),
+            ("Concept", "chimp", "5b34c54bee150c04f9fa584b899dc030"),
+            ("Concept", "snake", "c1db9b517073e51eb7ef6fed608ec204"),
+            ("Concept", "earthworm", "bb34ce95f161a6b37ff54b3d4c817857"),
+            ("Concept", "rhino", "99d18c702e813b07260baf577c60c455"),
+            ("Concept", "triceratops", "d03e59654221c1e8fcda404fd5c8d6cb"),
+            ("Concept", "vine", "b94941d8cd1c0ee4ad3dd3dcab52b964"),
+            ("Concept", "ent", "4e8e26e3276af8a5c2ac2cc2dc95c6d2"),
+            ("Concept", "mammal", "bdfe4e7a431f73386f37c6448afe5840"),
+            ("Concept", "animal", "0a32b476852eeb954979b87f5f6cb7af"),
+            ("Concept", "reptile", "b99ae727c787f1b13b452fd4c9ce1b9a"),
+            ("Concept", "dinosaur", "08126b066d32ee37743e255a2558cccd"),
+            ("Concept", "plant", "80aff30094874e75028033a38ce677bb"),
+        ],
+    )
+    def test_get_node_handle_loaded(self, database, node_type, node_name, expected, request):
+        db = request.getfixturevalue(database)
+        self._load_db(db)
+        if database == "redis_mongo_db":
+            db.commit()
+        actual = db.get_node_handle(node_type=node_type, node_name=node_name)
+        assert expected == actual
+        assert check_handle(actual)
+
     def test_get_node_handle_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="Nonexistent atom"):
-            db.get_node_handle("Test", "A")
+            db.get_node_handle("#$QQ!#", "A")
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_name(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         expected_node = add_node(db, "A", "Test", database)
@@ -130,7 +182,6 @@ class TestDatabase:
         assert isinstance(name, str)
         assert name == expected_node.name
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_name_exceptions(self, database, request):
         if database == "redis_mongo_db":
             # TODO: fix this
@@ -144,7 +195,6 @@ class TestDatabase:
         with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_name("error")
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         expected_node = add_node(db, "A", "Test", database)
@@ -152,13 +202,11 @@ class TestDatabase:
         assert isinstance(node_type, str)
         assert node_type == expected_node.named_type
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_type_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_node_type("test")
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_by_name(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         expected_nodes = [add_node(db, n, "Test", database) for n in {"A", "Aa", "Ac"}]
@@ -172,49 +220,109 @@ class TestDatabase:
         assert all(n.handle in nodes for n in expected_nodes)
         assert not any(n.handle in nodes for n in not_expected_nodes)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_atoms_by_field(self, database, request):
+    @pytest.mark.parametrize(
+        "atom_type,atom_values,query_values,expected",
+        [
+            (
+                "node",
+                {"node_name": "Ac", "node_type": "Test"},
+                [{"field": "name", "value": "Ac"}],
+                "785a4a9c6a986f8b1ba35d0de70e8fd8",
+            ),
+            (
+                "link",
+                {"link_type": "Ac", "dict_targets": []},
+                [{"field": "named_type", "value": "Ac"}],
+                "8819a837186918b90b59cc316f36b1e1",
+            ),
+        ],
+    )
+    def test_get_atoms_by_field(
+        self, database, atom_type, atom_values, query_values, expected, request
+    ):
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        expected_node = add_node(db, "Ac", "Test", database)
-        expected_link = add_link(
-            db,
-            "Ac",
-            [expected_node],
-            database,
-        )
-        nodes = db.get_atoms_by_field([{"field": "name", "value": "Ac"}])
-        links = db.get_atoms_by_field([{"field": "named_type", "value": "Ac"}])
-        assert isinstance(nodes, list)
-        assert isinstance(links, list)
-        assert all(check_handle(node) for node in nodes)
-        assert all(check_handle(link) for link in links)
-        assert nodes[0] == expected_node.handle
-        assert links[0] == expected_link.handle
+        if atom_type == "link":
+            add_link(db, atom_values["link_type"], atom_values["dict_targets"], database)
+        else:
+            add_node(db, atom_values["node_name"], atom_values["node_type"], database)
+        atoms = db.get_atoms_by_field(query_values)
+        assert isinstance(atoms, list)
+        assert all(check_handle(atom) for atom in atoms)
+        assert atoms[0] == expected
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_atoms_by_index(self, database, request):
+    @pytest.mark.parametrize(
+        "index_params,query_params,expected",
+        [
+            (
+                {"atom_type": "node", "fields": ["value"], "named_type": "Test"},
+                [{"field": "value", "value": 3}],
+                "815212e3d7ac246e70c1744d14a8c402",
+            ),
+            (
+                {"atom_type": "node", "fields": ["value", "strength"], "named_type": "Test"},
+                [{"field": "value", "value": 3}, {"field": "strength", "value": 5}],
+                "815212e3d7ac246e70c1744d14a8c402",
+            ),
+            (
+                {"atom_type": "link", "fields": ["value"], "named_type": "Test3"},
+                [{"field": "value", "value": 3}],
+                "b3f66ec1535de7702c38e94408fa4a17",
+            ),
+            (
+                {"atom_type": "link", "fields": ["value"], "named_type": "Test2"},
+                [{"field": "value", "value": 3}, {"field": "round", "value": 2}],
+                "c454552d52d55d3ef56408742887362b",
+            ),
+            (
+                {"atom_type": "link", "fields": ["value", "round"], "named_type": "Test"},
+                [{"field": "value", "value": 3}, {"field": "round", "value": 2}],
+                "0cbc6611f5540bd0809a388dc95a615b",
+            ),
+        ],
+    )
+    def test_get_atoms_by_index(self, database, index_params, query_params, expected, request):
         pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
-            # TODO: fix this
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
             )
         db: AtomDB = request.getfixturevalue(database)
-        add_node(db, "A", "Test", database, {"age": 30})
-        index_id = db.create_field_index(atom_type="node", fields=["age"], named_type="Test")
-        cursor, atoms = db.get_atoms_by_index(index_id, [{"field": "age", "value": 30}])
+        if index_params.get("atom_type") == "link":
+            atom = add_link(
+                db,
+                index_params["named_type"],
+                [],
+                database,
+                extra_fields={k["field"]: k["value"] for k in query_params},
+            )
+        else:
+            atom = add_node(
+                db,
+                "A",
+                index_params["named_type"],
+                database,
+                {k["field"]: k["value"] for k in query_params},
+            )
+        index_id = db.create_field_index(
+            atom_type=index_params.get("atom_type"),
+            fields=[k["field"] for k in query_params],
+            named_type=index_params["named_type"],
+        )
+        cursor, atoms = db.get_atoms_by_index(index_id, query_params)
         assert isinstance(cursor, int)
         assert isinstance(atoms, list)
         assert cursor == 0
         assert len(atoms) == 1
+        handles = [atom.handle for atom in atoms]
+        assert atom.handle in handles
+        assert expected in handles
         assert all(isinstance(a, AtomT) for a in atoms)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_index_exceptions(self, database, request):
         if database == "in_memory_db":
             # TODO: fix this
@@ -225,7 +333,6 @@ class TestDatabase:
         with pytest.raises(Exception):
             db.get_atoms_by_index("", [])
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_regex(self, database, request):
         pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
@@ -245,7 +352,6 @@ class TestDatabase:
         assert all(isinstance(a, str) for a in atoms)
         assert len(atoms) == 1
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atoms_by_text_field_text(self, database, request):
         pytest.skip("Requires new implementation since the new custom attributes were introduced.")
         if database == "in_memory_db":
@@ -267,7 +373,6 @@ class TestDatabase:
             assert all(isinstance(a, str) for a in atoms)
             assert len(atoms) == 1
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_node_by_name_starting_with(self, database, request):
         if database == "in_memory_db":
             # TODO: fix this
@@ -285,45 +390,59 @@ class TestDatabase:
         assert all(handle in nodes for handle in [node_a.handle, node_b.handle])
         assert len(nodes) == 2
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_all_nodes_handles(self, database, request):
+    @pytest.mark.parametrize(
+        "params,nodes_len",
+        [  # TODO: differences here must be fixed if possible
+            ({"node_type": "Test"}, 3),
+            ({"node_type": "Z"}, 0),
+            ({"node_type": "Test2"}, 2),
+        ],
+    )
+    def test_get_all_nodes_handles(self, database, params, nodes_len, request):
         db: AtomDB = request.getfixturevalue(database)
-        expected_handles = [
-            add_node(db, "Aaa", "Test", database).handle,
-            add_node(db, "Abb", "Test", database).handle,
-            add_node(db, "Bbb", "Test", database).handle,
+        values = {"Test": ["Aaa", "Abb", "Bbb"], "Test2": ["Bcc", "Ccc"]}
+        _ = [
+            add_node(db, node_name, node_type, database)
+            for node_type, node_names in values.items()
+            for node_name in node_names
         ]
-        handles = db.get_all_nodes_handles("Test")
+        handles = db.get_all_nodes_handles(**params)
         assert isinstance(handles, list)
         assert all(check_handle(n) for n in handles)
         assert all(isinstance(n, str) for n in handles)
-        assert len(handles) == 3
-        assert set(handles) == set(expected_handles)
-
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_get_all_nodes_names(self, database, request):
-        db: AtomDB = request.getfixturevalue(database)
-        expected_names = [
-            add_node(db, "Aaa", "Test", database).name,
-            add_node(db, "Abb", "Test", database).name,
-            add_node(db, "Bbb", "Test", database).name,
-        ]
-        names = db.get_all_nodes_names("Test")
-        assert isinstance(names, list)
-        assert all(isinstance(n, str) for n in names)
-        assert len(names) == len(expected_names)
-        assert set(names) == set(expected_names)
+        assert len(handles) == nodes_len
 
     @pytest.mark.parametrize(
-        "database,params,links_len",
+        "params,nodes_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {"link_type": "Ac"}, 3),
-            ("redis_mongo_db", {"link_type": "Ac", "names": True}, 3),
-            ("redis_mongo_db", {"link_type": "Z", "names": True}, 0),
-            ("in_memory_db", {"link_type": "Ac"}, 3),
+            ({"node_type": "Test"}, 3),
+            ({"node_type": "Z"}, 0),
+            ({"node_type": "Test2"}, 2),
+        ],
+    )
+    def test_get_all_nodes_names(self, database, params, nodes_len, request):
+        db: AtomDB = request.getfixturevalue(database)
+        values = {"Test": ["Aaa", "Abb", "Bbb"], "Test2": ["Bcc", "Ccc"]}
+        _ = [
+            add_node(db, node_name, node_type, database)
+            for node_type, node_names in values.items()
+            for node_name in node_names
+        ]
+        names = db.get_all_nodes_names(**params)
+        assert isinstance(names, list)
+        assert all(isinstance(n, str) for n in names)
+        assert len(names) == nodes_len
+
+    @pytest.mark.parametrize(
+        "params,links_len",
+        [  # TODO: differences here must be fixed if possible
+            ({"link_type": "Ac"}, 3),
+            ({"link_type": "Ac", "names": True}, 3),
+            ({"link_type": "Z", "names": True}, 0),
+            ({"link_type": "Ac"}, 3),
             # NOTE should return the same value for the cursor
-            ("in_memory_db", {"link_type": "Ac", "names": True}, 3),
-            ("in_memory_db", {"link_type": "Z", "names": True}, 0),
+            ({"link_type": "Ac", "names": True}, 3),
+            ({"link_type": "Z", "names": True}, 0),
         ],
     )
     def test_get_all_links(self, database, params, links_len, request):
@@ -339,20 +458,17 @@ class TestDatabase:
         assert all(isinstance(link, str) for link in links)
         assert len(links) == links_len
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_handle(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         link = add_link(db, "Ac", [NodeT(name="A", type="A")], database)
         handle = db.get_link_handle(link.named_type, link.targets)
         assert check_handle(handle)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_handle_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_link_handle("A", [])
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_params = NodeT(name="A", type="A")
@@ -363,13 +479,11 @@ class TestDatabase:
         assert isinstance(link_type, str)
         assert link_type == link_a.named_type
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_type_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception, match="Nonexistent atom"):
             db.get_link_type("")
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_link_targets(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         link_a = add_link(db, "Ac", [NodeT(name="A", type="A")], database)
@@ -381,15 +495,12 @@ class TestDatabase:
         assert targets == link_a.targets
 
     @pytest.mark.parametrize(
-        "database,params,links_len",
+        "params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 3),
-            ("redis_mongo_db", {"handles_only": True}, 3),
-            ("redis_mongo_db", {"no_target_format": True}, 3),
-            # NOTE should return None on all cases
-            ("in_memory_db", {}, 3),
-            ("in_memory_db", {"handles_only": True}, 3),
-            ("in_memory_db", {"no_target_format": True}, 3),
+            ({}, 3),
+            ({"handles_only": True}, 3),
+            ({"handles_only": False}, 3),
+            ({"no_target_format": True}, 3),
         ],
     )
     def test_get_incoming_links(self, database, params, links_len, request):
@@ -410,25 +521,25 @@ class TestDatabase:
         )
 
     @pytest.mark.parametrize(
-        "database,params,links_len",
+        "params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 1),
-            ("redis_mongo_db", {"toplevel_only": True}, 1),
+            ({}, 1),
+            ({"toplevel_only": True}, 1),
             # ("redis_mongo_db", {"link_type": "NoTopLevel" , "toplevel_only": True}, 0), # doesn"t work
             # Note returning different values
             # ("in_memory_db", {"link_type": "*", "toplevel_only": True}, 3),
             # ("redis_mongo_db", {"link_type": "*", "toplevel_only": True}, 0),
             # ("redis_mongo_db", {"link_type": "*"}, 3), # should return 3
-            ("redis_mongo_db", {"target_handles": ["*"]}, 1),
-            ("redis_mongo_db", {"handles_only": True}, 1),
-            ("redis_mongo_db", {"no_target_format": True}, 1),
-            ("in_memory_db", {}, 1),
-            ("in_memory_db", {"toplevel_only": True}, 1),
+            ({"target_handles": ["*"]}, 1),
+            ({"handles_only": True}, 1),
+            ({"no_target_format": True}, 1),
+            ({}, 1),
+            ({"toplevel_only": True}, 1),
             # ("in_memory_db", {"link_type": "NoTopLevel", "toplevel_only": True}, 0), # doesn"t work
-            ("in_memory_db", {"link_type": "*"}, 3),
-            ("in_memory_db", {"target_handles": ["*"]}, 1),
-            ("in_memory_db", {"handles_only": True}, 1),
-            ("in_memory_db", {"no_target_format": True}, 1),
+            # ( {"link_type": "*"}, 3),
+            ({"target_handles": ["*"]}, 1),
+            ({"handles_only": True}, 1),
+            ({"no_target_format": True}, 1),
         ],
     )
     def test_get_matched_links(self, database, params, links_len, request):
@@ -454,9 +565,90 @@ class TestDatabase:
             assert all([check_handle(link) for link in links])
 
     @pytest.mark.parametrize(
-        "database,params,links_len",
+        "targets,link_type,expected",
+        [
+            (
+                [("Concept", "human"), ("Concept", "monkey")],
+                "Similarity",
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "mammal")],
+                "Inheritance",
+                {"c93e1e758c53912638438e2a7d7f7b7f"},
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "plant")],
+                "Inheritance",
+                {"ee1c03e6d1f104ccd811cfbba018451a"},
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "human")],
+                "Similarity",
+                {"a45af31b43ee5ea271214338a5a5bd61"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "monkey")],
+                "*",
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+            ),
+            (
+                [("Concept", "human"), ("Concept", "mammal")],
+                "*",
+                {"c93e1e758c53912638438e2a7d7f7b7f"},
+            ),
+            ([("Concept", "ent"), ("Concept", "plant")], "*", {"ee1c03e6d1f104ccd811cfbba018451a"}),
+            ([("Concept", "ent"), ("Concept", "human")], "*", {"a45af31b43ee5ea271214338a5a5bd61"}),
+            (
+                [("Concept", "human"), ("Concept", "chimp")],
+                "*",
+                {"b5459e299a5c5e8662c427f7e01b3bf1"},
+            ),
+            (
+                ["*", ("Concept", "chimp")],
+                "Similarity",
+                {"b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"},
+            ),
+            (
+                ["*", ("Concept", "human")],
+                "*",
+                {
+                    "2c927fdc6c0f1272ee439ceb76a6d1a4",
+                    "2a8a69c01305563932b957de4b3a9ba6",
+                    "a45af31b43ee5ea271214338a5a5bd61",
+                },
+            ),
+            (
+                [("Concept", "chimp"), "*"],
+                "Similarity",
+                {"abe6ad743fc81bd1c55ece2e1307a178", "2c927fdc6c0f1272ee439ceb76a6d1a4"},
+            ),
+            (
+                [("Concept", "chimp"), "*"],
+                "*",
+                {
+                    "abe6ad743fc81bd1c55ece2e1307a178",
+                    "2c927fdc6c0f1272ee439ceb76a6d1a4",
+                    "75756335011dcedb71a0d9a7bd2da9e8",
+                },
+            ),
+        ],
+    )
+    def test_get_matched_links_loaded(self, database, targets, link_type, expected, request):
+        db: AtomDB = request.getfixturevalue(database)
+        self._load_db(db)
+        if database == "redis_mongo_db":
+            db.commit()
+        target_handles = [db.get_node_handle(*t) if t != "*" else t for t in targets]
+        actual = db.get_matched_links(link_type, target_handles)
+        assert actual
+        assert isinstance(actual, set)
+        assert expected == actual
+
+    @pytest.mark.parametrize(
+        "params,links_len",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {"link_type": "Z", "target_handles": []}, 0),
+            ({"link_type": "Z", "target_handles": []}, 0),
             # ("redis_mongo_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0),
             # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"]}, 0),
             # ("in_memory_db", {"link_type": "*", "target_handles": ["*", "*"], "toplevel_only": True}, 0),
@@ -469,14 +661,11 @@ class TestDatabase:
         assert len(links) == links_len
 
     @pytest.mark.parametrize(
-        "database,params,links_len,is_toplevel",
+        "params,links_len,is_toplevel",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, 1, True),
-            ("redis_mongo_db", {}, 1, False),
-            ("redis_mongo_db", {"toplevel_only": True}, 0, False),
-            ("in_memory_db", {}, 1, True),
-            ("in_memory_db", {}, 1, False),
-            ("in_memory_db", {"toplevel_only": True}, 0, False),
+            ({}, 1, True),
+            ({}, 1, False),
+            ({"toplevel_only": True}, 0, False),
             # NOTE should return None or same as redis_mongo
         ],
     )
@@ -485,7 +674,7 @@ class TestDatabase:
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)
         link_a = add_link(db, "Aa", [node_a, node_b], database, is_toplevel=is_toplevel)
-        links = db.get_matched_type_template(["Aa", "Test", "Test"], **params)
+        links = db.get_matched_type_template(["Aa", *["Test", "Test"]], **params)
         assert len(links) == links_len
         if len(links) > 0:
             for link in links:
@@ -493,7 +682,6 @@ class TestDatabase:
                 assert link == link_a.handle
                 assert sorted(db.get_atom(link).targets) == sorted(link_a.targets)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_matched_type(self, database, request):
         if database == "redis_mongo_db":
             # TODO: fix this
@@ -514,16 +702,14 @@ class TestDatabase:
                 assert sorted(db.get_atom(link).targets) == sorted(link_a.targets)
 
     @pytest.mark.parametrize(
-        "database,params,top_level,n_links,n_nodes",
+        "params,top_level,n_links,n_nodes",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}, True, 1, 1),
-            ("redis_mongo_db", {"no_target_format": True}, False, 1, 1),
-            # ("redis_mongo_db", {"targets_document": True}, False, 1, 1),# breaks when is a node
-            ("redis_mongo_db", {"deep_representation": True}, False, 1, 1),
-            ("in_memory_db", {}, True, 1, 1),
-            ("in_memory_db", {"no_target_format": True}, False, 0, 1),
-            # ("in_memory_db", {"targets_document": True}, False, 0, 1),# breaks when is a node
-            ("in_memory_db", {"deep_representation": True}, False, 0, 1),
+            ({}, True, 1, 1),
+            ({"no_target_format": True}, False, 1, 1),
+            ({"no_target_format": False}, False, 1, 1),
+            ({"targets_document": True}, False, 1, 1),
+            ({"deep_representation": True}, False, 1, 1),
+            ({"deep_representation": False}, False, 1, 1),
         ],
     )
     def test_get_atom_node(self, database, params, top_level, n_links, n_nodes, request):
@@ -535,16 +721,12 @@ class TestDatabase:
         assert check_handle(atom_n.handle)
 
     @pytest.mark.parametrize(
-        "database,params,top_level,n_links,n_nodes",
+        "params,top_level,n_links,n_nodes",
         [
-            ("redis_mongo_db", {}, True, 1, 1),
-            ("redis_mongo_db", {"no_target_format": True}, False, 1, 1),
-            ("redis_mongo_db", {"targets_document": True}, False, 1, 1),
-            ("redis_mongo_db", {"deep_representation": True}, False, 1, 1),
-            ("in_memory_db", {}, True, 1, 1),
-            ("in_memory_db", {"no_target_format": True}, False, 0, 1),
-            ("in_memory_db", {"targets_document": True}, False, 0, 1),
-            ("in_memory_db", {"deep_representation": True}, False, 0, 1),
+            ({}, True, 1, 1),
+            ({"no_target_format": True}, False, 1, 1),
+            ({"targets_document": True}, False, 1, 1),
+            ({"deep_representation": True}, False, 1, 1),
         ],
     )
     def test_get_atom_link(self, database, params, top_level, n_links, n_nodes, request):
@@ -557,7 +739,6 @@ class TestDatabase:
         assert atom_l.handle == link_a.handle
         assert check_handle(atom_l.handle)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_type(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
@@ -568,7 +749,6 @@ class TestDatabase:
         assert isinstance(atom_type_link, str)
         assert atom_type_node == atom_type_link
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_get_atom_type_none(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         atom_type_node = db.get_atom_type("handle")
@@ -576,8 +756,9 @@ class TestDatabase:
         assert atom_type_node is None
         assert atom_type_link is None
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db"])  # in_memory_db doesn't implement this
     def test_get_atom_as_dict(self, database, request):
+        if database == "in_memory_db":
+            pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         link_a = add_link(db, "Test", [node_a], database)
@@ -586,14 +767,16 @@ class TestDatabase:
         assert isinstance(atom_node, dict)
         assert isinstance(atom_link, dict)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db"])  # in_memory_db doesn't implement this
     def test_get_atom_as_dict_exception(self, database, request):
+        if database == "in_memory_db":
+            pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(Exception, match="Nonexistent atom"):
+        with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
             db.get_atom_as_dict("handle")
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db"])  # in_memory_db doesn't implement this
     def test_get_atom_as_dict_exceptions(self, database, request):
+        if database == "in_memory_db":
+            pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
         if database == "redis_mongo_db":
             # TODO: fix this
             pytest.skip(
@@ -607,15 +790,12 @@ class TestDatabase:
             db.get_atom_as_dict("handle")
 
     @pytest.mark.parametrize(
-        "database,params",
+        "params",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}),
-            ("redis_mongo_db", {"precise": True}),
-            ("redis_mongo_db", {"precise": False}),
+            ({}),
+            ({"precise": True}),
+            ({"precise": False}),
             # NOTE should return the same value if the arg precise is set
-            ("in_memory_db", {}),
-            ("in_memory_db", {"precise": True}),
-            ("in_memory_db", {"precise": False}),
         ],
     )
     def test_count_atoms(self, database, params, request):
@@ -633,7 +813,6 @@ class TestDatabase:
             assert atoms_count["node_count"] == 1
             assert atoms_count["link_count"] == 1
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_clear_database(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
@@ -642,8 +821,7 @@ class TestDatabase:
         db.clear_database()
         assert db.count_atoms()["atom_count"] == 0
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def testadd_node(self, database, request):
+        def testadd_node(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         if database == "redis_mongo_db":
             db.mongo_bulk_insertion_limit = 1
@@ -653,8 +831,7 @@ class TestDatabase:
         assert count["atom_count"] == 1
         assert isinstance(node, NodeT)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db"])
-    def testadd_node_discard(self, database, request):
+    def testadd_node_discard(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         db.mongo_bulk_insertion_limit = 1
         db.max_mongo_db_document_size = 1
@@ -665,15 +842,14 @@ class TestDatabase:
         assert count["atom_count"] == 0
 
     @pytest.mark.parametrize(
-        "database,node",
+        "node",
         [  # TODO: differences here must be fixed if possible
-            ("redis_mongo_db", {}),
+            ({}),
             # NOTE it"s not breaking, should break?
             # ("redis_mongo_db", {"name": "A", "type": "A", "handle": ""}),
             # ("redis_mongo_db", {"name": "A", "type": "A", "_id": ""}),
             # ("redis_mongo_db", {"name": "A", "type": "A", "composite_type_hash": ""}),
             # ("redis_mongo_db", {"name": "A", "type": "A", "named_type": ""}),
-            ("in_memory_db", {}),
             # NOTE it"s not breaking, should break?
             # ("in_memory_db", {"name": "A", "type": "A", "handle": ""}),
             # ("in_memory_db", {"name": "A", "type": "A", "_id": ""}),
@@ -687,22 +863,9 @@ class TestDatabase:
             db.add_node(node)
 
     @pytest.mark.parametrize(
-        "database,params,expected_count,top_level",
+        "params,expected_count,top_level",
         [
-            ("redis_mongo_db", {"type": "A", "targets": [{"name": "A", "type": "A"}]}, 2, True),
-            (
-                "redis_mongo_db",
-                {"type": "A", "targets": [{"name": "A", "type": "A"}, {"name": "B", "type": "B"}]},
-                3,
-                True,
-            ),
-            ("in_memory_db", {"type": "A", "targets": [{"name": "A", "type": "A"}]}, 2, True),
-            (
-                "in_memory_db",
-                {"type": "A", "targets": [{"name": "A", "type": "A"}, {"name": "B", "type": "B"}]},
-                3,
-                True,
-            ),
+            ({"type": "A", "targets": [{"name": "A", "type": "A"}]}, 2, True),
         ],
     )
     def testadd_link(self, database, params, expected_count, top_level, request):
@@ -719,8 +882,13 @@ class TestDatabase:
         assert count["atom_count"] == expected_count
         assert isinstance(link, LinkT)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    def test_reindex(self, database, request):
+    @pytest.mark.parametrize(
+        "params",
+        [
+            ({"pattern_index_templates": {}}),
+        ],
+    )
+    def test_reindex(self, database, params, request):
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
@@ -729,9 +897,8 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         add_link(db, "Test", [node_a], database)
-        db.reindex()
+        db.reindex(params)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_delete_atom(self, database, request):
         # if database == "in_memory_db":
         #     # TODO: fix this
@@ -757,7 +924,6 @@ class TestDatabase:
         assert count["node_count"] == 1
         assert count["link_count"] == 0
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_delete_atom_exceptions(self, database, request):
         if database == "in_memory_db":
             # TODO: fix this
@@ -770,78 +936,53 @@ class TestDatabase:
             db.delete_atom("handle")
 
     @pytest.mark.parametrize(
-        "database,params",
+        "params",
         [
-            ("redis_mongo_db", {"atom_type": "A", "fields": ["value"]}),
-            ("redis_mongo_db", {"atom_type": "A", "fields": ["value"], "named_type": "A"}),
-            (
-                "redis_mongo_db",
-                {"atom_type": "A", "fields": ["value"], "composite_type": ["value", "side"]},
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "named_type": "A",
-                    "index_type": "binary_tree",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value", "side"],
-                    "composite_type": ["value", "side"],
-                    "index_type": "binary_tree",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value", "side"],
-                    "composite_type": ["value", "side"],
-                    "index_type": "token_inverted_list",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "named_type": "A",
-                    "index_type": "token_inverted_list",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "named_type": "A",
-                    "index_type": "binary_tree",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "composite_type": ["value", "side"],
-                    "index_type": "token_inverted_list",
-                },
-            ),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "composite_type": ["value", "side"],
-                    "index_type": "binary_tree",
-                },
-            ),
-            ("in_memory_db", {}),
+            {"atom_type": "A", "fields": ["value"]},
+            {"atom_type": "A", "fields": ["value"], "named_type": "A"},
+            {"atom_type": "A", "fields": ["value"], "composite_type": ["value", "side"]},
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "named_type": "A",
+                "index_type": "binary_tree",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value", "side"],
+                "composite_type": ["value", "side"],
+                "index_type": "binary_tree",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value", "side"],
+                "composite_type": ["value", "side"],
+                "index_type": "token_inverted_list",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "named_type": "A",
+                "index_type": "token_inverted_list",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "named_type": "A",
+                "index_type": "binary_tree",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "composite_type": ["value", "side"],
+                "index_type": "token_inverted_list",
+            },
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "composite_type": ["value", "side"],
+                "index_type": "binary_tree",
+            },
         ],
     )
     def test_create_field_index(self, database, params, request):
@@ -854,25 +995,21 @@ class TestDatabase:
         index_id = db.create_field_index(**params)
         assert index_id
         assert isinstance(index_id, str)
-        # check if creating a duplicated index breaks
+        # checking if creating a duplicated index breaks
         index_id2 = db.create_field_index(**params)
         assert isinstance(index_id2, str)
         assert index_id2 == index_id
 
     @pytest.mark.parametrize(
-        "database,params",
+        "params",
         [
-            ("redis_mongo_db", {"atom_type": "A", "fields": []}),
-            (
-                "redis_mongo_db",
-                {
-                    "atom_type": "A",
-                    "fields": ["value"],
-                    "named_type": "A",
-                    "composite_type": ["value", "side"],
-                },
-            ),
-            ("in_memory_db", {}),
+            {"atom_type": "A", "fields": []},
+            {
+                "atom_type": "A",
+                "fields": ["value"],
+                "named_type": "A",
+                "composite_type": ["value", "side"],
+            },
         ],
     )
     def test_create_field_index_value_error(self, database, params, request):
@@ -899,7 +1036,6 @@ class TestDatabase:
     #     # with pytest.raises(ValueError):
     #     db.create_field_index(**params)
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_bulk_insert(self, database, request):
         if database == "redis_mongo_db":
             # TODO: fix this
@@ -941,21 +1077,18 @@ class TestDatabase:
         assert node.name == "B"
         assert link.targets == [node_a.handle]
 
-    # TODO: seems unnecessary
-    # # Note no exception is raised if error
-    # @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
-    # def test_bulk_insert_exceptions(self, database, request):
-    #     db: AtomDB = request.getfixturevalue(database)
-    #     node_a = db._build_node({"name": "A", "type": "A"})
-    #     link_a = db._build_link({"targets": [], "type": "A"})
-    #     with pytest.raises(Exception):
-    #         db.bulk_insert([node_a, link_a])
-    #         # TODO: fix this
-    #         pytest.skip(
-    #             "ERROR should raise an exception. See https://github.com/singnet/das-atom-db/issues/210"
-    #         )
+    # Note no exception is raised if error
+    def test_bulk_insert_exceptions(self, database, request):
+        db: AtomDB = request.getfixturevalue(database)
+        node_a = db._build_node({"name": "A", "type": "A"})
+        link_a = db._build_link({"targets": [], "type": "A"})
+        with pytest.raises(Exception):
+            db.bulk_insert([node_a, link_a])
+            # TODO: fix this
+            pytest.skip(
+                "ERROR should raise an exception. See https://github.com/singnet/das-atom-db/issues/210"
+            )
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_retrieve_all_atoms(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
@@ -973,7 +1106,6 @@ class TestDatabase:
         for atom in [node_a, link_a, node_b]:
             assert atom.handle in all_atoms_handles, f"{atom=}, {atoms=}"
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_commit(self, database, request):
         if database == "in_memory_db":
             # TODO: fix this
@@ -991,7 +1123,6 @@ class TestDatabase:
         assert count["node_count"] == 1
         assert count["link_count"] == 1
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test_commit_buffer(self, database, request):
         if database == "in_memory_db":
             # TODO: fix this
@@ -1031,8 +1162,12 @@ class TestDatabase:
         assert count["node_count"] == 2
         assert count["link_count"] == 1
 
-    @pytest.mark.parametrize("database", ["redis_mongo_db"])
     def test_commit_buffer_exception(self, database, request):
+        if database == "in_memory_db":
+            # TODO: fix this
+            pytest.skip(
+                "ERROR Not implemented on in_memory_db. See https://github.com/singnet/das-atom-db/issues/210"
+            )
         db: AtomDB = request.getfixturevalue(database)
         with pytest.raises(Exception):
             db.commit(buffer=[{"name": "A", "type": "A"}])

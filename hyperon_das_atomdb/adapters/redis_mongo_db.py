@@ -1273,7 +1273,9 @@ class RedisMongoDB(AtomDB):
             try:
                 # Fallback to previous version
                 conditionals = self._retrieve_custom_index(index_id)
-                if isinstance(conditionals, dict) and (c := conditionals.get("conditionals")):
+                if isinstance(conditionals, dict) and (
+                    (c := conditionals.get("conditionals")) or c == {}
+                ):
                     conditionals = c
                 if conditionals:
                     kwargs.update(conditionals)
