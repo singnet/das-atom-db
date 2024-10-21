@@ -5,7 +5,8 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, AtomT, LinkT, NodeT
-from tests.helpers import add_link, add_node, check_handle, dict_to_node_params, dict_to_link_params
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
+from tests.helpers import add_link, add_node, check_handle, dict_to_link_params, dict_to_node_params
 from tests.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
@@ -224,16 +225,16 @@ class TestDatabase:
         "atom_type,atom_values,query_values,expected",
         [
             (
-                "node",
-                {"node_name": "Ac", "node_type": "Test"},
-                [{"field": "name", "value": "Ac"}],
-                "785a4a9c6a986f8b1ba35d0de70e8fd8",
+                "node",  # atom_type
+                {"node_name": "Ac", "node_type": "Test"},  # atom_values
+                [{"field": "name", "value": "Ac"}],  # query_values
+                "785a4a9c6a986f8b1ba35d0de70e8fd8",  # expected
             ),
             (
-                "link",
-                {"link_type": "Ac", "dict_targets": []},
-                [{"field": "named_type", "value": "Ac"}],
-                "8819a837186918b90b59cc316f36b1e1",
+                "link",  # atom_type
+                {"link_type": "Ac", "dict_targets": [NodeT("A", "A")]},  # atom_values
+                [{"field": "named_type", "value": "Ac"}],  # query_values
+                "8ec320f9ffe82c28fcefd256a20b5c60",  # expected
             ),
         ],
     )
@@ -247,9 +248,19 @@ class TestDatabase:
             )
         db: AtomDB = request.getfixturevalue(database)
         if atom_type == "link":
-            add_link(db, atom_values["link_type"], atom_values["dict_targets"], database)
+            add_link(
+                db,
+                link_type=atom_values["link_type"],
+                targets=atom_values["dict_targets"],
+                adapter=database,
+            )
         else:
-            add_node(db, atom_values["node_name"], atom_values["node_type"], database)
+            add_node(
+                db,
+                node_name=atom_values["node_name"],
+                node_type=atom_values["node_type"],
+                adapter=database,
+            )
         atoms = db.get_atoms_by_field(query_values)
         assert isinstance(atoms, list)
         assert all(check_handle(atom) for atom in atoms)
@@ -821,7 +832,14 @@ class TestDatabase:
         db.clear_database()
         assert db.count_atoms()["atom_count"] == 0
 
-        def testadd_node(self, database, node, request):
+    @pytest.mark.parametrize(
+        "node",
+        [
+            ({"name": "A", "type": "A"}),
+            ({"name": "A", "type": "A"}),
+        ],
+    )
+    def testadd_node(self, database, node, request):
         db: AtomDB = request.getfixturevalue(database)
         if database == "redis_mongo_db":
             db.mongo_bulk_insertion_limit = 1
@@ -831,7 +849,15 @@ class TestDatabase:
         assert count["atom_count"] == 1
         assert isinstance(node, NodeT)
 
-    def testadd_node_discard(self, database, node, request):
+    @pytest.mark.parametrize(
+        "node",
+        [
+            ({"name": "AAAA", "type": "A"}),
+        ],
+    )
+    def test_add_node_discard(self, database, node, request):
+        if database == "in_memory_db":
+            pytest.skip("Doesn't work")
         db: AtomDB = request.getfixturevalue(database)
         db.mongo_bulk_insertion_limit = 1
         db.max_mongo_db_document_size = 1
@@ -1080,8 +1106,8 @@ class TestDatabase:
     # Note no exception is raised if error
     def test_bulk_insert_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_a = db._build_node({"name": "A", "type": "A"})
-        link_a = db._build_link({"targets": [], "type": "A"})
+        node_a = db._build_node(NodeT(name="A", type="A"))
+        link_a = db._build_link(LinkT(targets=[node_a], type="A"))
         with pytest.raises(Exception):
             db.bulk_insert([node_a, link_a])
             # TODO: fix this

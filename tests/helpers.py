@@ -10,7 +10,13 @@ def check_handle(handle):
     return all((isinstance(handle, str), len(handle) == 32, int(handle, 16)))
 
 
-def add_node(db: AtomDB, node_name, node_type, adapter, custom_attributes: CustomAttributesT = {}):
+def add_node(
+    db: AtomDB,
+    node_name: str,
+    node_type: str,
+    adapter: str,
+    custom_attributes: CustomAttributesT = {},
+) -> NodeT:
     node_params = NodeT(type=node_type, name=node_name, custom_attributes=custom_attributes)
     node = db.add_node(node_params)
     if adapter != "in_memory_db":
@@ -18,8 +24,22 @@ def add_node(db: AtomDB, node_name, node_type, adapter, custom_attributes: Custo
     return node
 
 
-def add_link(db: AtomDB, link_type, targets: list[NodeT | LinkT], adapter, is_toplevel=True):
-    link = db.add_link(LinkT(type=link_type, targets=targets), toplevel=is_toplevel)
+def add_link(
+    db: AtomDB,
+    link_type: str,
+    targets: list[NodeT | LinkT],
+    adapter: str,
+    is_toplevel: bool = True,
+    custom_attributes: CustomAttributesT = {},
+) -> LinkT:
+    link = db.add_link(
+        LinkT(
+            type=link_type,
+            targets=targets,
+            custom_attributes=custom_attributes,
+        ),
+        toplevel=is_toplevel,
+    )
     if adapter != "in_memory_db":
         db.commit()
     return link
@@ -36,4 +56,7 @@ def dict_to_link_params(link_dict: dict) -> LinkT:
     ]
     params = deepcopy(link_dict)
     params.update({"targets": targets})
-    return LinkT(**params)
+    try:
+        return LinkT(**params)
+    except TypeError as ex:
+        raise AssertionError(f"{type(ex)}: {ex} - {params=}")

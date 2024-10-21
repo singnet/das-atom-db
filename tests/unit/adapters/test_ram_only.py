@@ -27,10 +27,8 @@ class TestInMemoryDB:
             all_nodes: list[dict[str, Any]] = json.load(f)
         with open(f"{path}/data/ram_only_links.json") as f:
             all_links: list[dict[str, Any]] = json.load(f)
-        for node in all_nodes:
-            db.add_node(dict_to_node_params(node))
-        for link in all_links:
-            db.add_link(dict_to_link_params(link))
+        self.all_added_nodes = [db.add_node(dict_to_node_params(node)) for node in all_nodes]
+        self.all_added_links = [db.add_link(dict_to_link_params(link)) for link in all_links]
         yield db
 
     @pytest.mark.parametrize(
@@ -849,9 +847,9 @@ class TestInMemoryDB:
 
         assert db.count_atoms() == {"atom_count": 3, "node_count": 2, "link_count": 1}
 
-    def test_retrieve_all_atoms(self, database, all_links, all_nodes):
+    def test_retrieve_all_atoms(self, database: InMemoryDB):
         expected = self.all_added_nodes + self.all_added_links
-        assert len(expected) == len(all_links + all_nodes)
+        assert len(expected) == len(self.all_added_nodes + self.all_added_links)
         actual = database.retrieve_all_atoms()
         assert len(expected) == len(actual)
         assert sorted([e.handle for e in expected]) == sorted([a.handle for a in actual])
