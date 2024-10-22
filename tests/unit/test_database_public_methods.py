@@ -1,11 +1,9 @@
 import functools
-from typing import Callable
 from unittest import mock
 
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, AtomT, LinkT, NodeT
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from tests.helpers import add_link, add_node, check_handle, dict_to_link_params, dict_to_node_params
 from tests.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
@@ -270,8 +268,11 @@ class TestDatabase:
         "index_params,query_params,expected",
         [
             (
+                # index_params
                 {"atom_type": "node", "fields": ["value"], "named_type": "Test"},
+                # query_params / custom attributes
                 [{"field": "value", "value": 3}],
+                # expected
                 "815212e3d7ac246e70c1744d14a8c402",
             ),
             (
@@ -405,11 +406,13 @@ class TestDatabase:
         "params,nodes_len",
         [  # TODO: differences here must be fixed if possible
             ({"node_type": "Test"}, 3),
-            ({"node_type": "Z"}, 0),
+            ({"node_type": "Test", "names": True}, 3),
+            ({"node_type": "Z", "names": True}, 0),
             ({"node_type": "Test2"}, 2),
+            ({"node_type": "Test2", "names": True}, 2),
         ],
     )
-    def test_get_all_nodes_handles(self, database, params, nodes_len, request):
+    def test_get_all_nodes(self, database, params, nodes_len, request):
         db: AtomDB = request.getfixturevalue(database)
         values = {"Test": ["Aaa", "Abb", "Bbb"], "Test2": ["Bcc", "Ccc"]}
         _ = [
@@ -417,32 +420,16 @@ class TestDatabase:
             for node_type, node_names in values.items()
             for node_name in node_names
         ]
-        handles = db.get_all_nodes_handles(**params)
-        assert isinstance(handles, list)
-        assert all(check_handle(n) for n in handles)
-        assert all(isinstance(n, str) for n in handles)
-        assert len(handles) == nodes_len
-
-    @pytest.mark.parametrize(
-        "params,nodes_len",
-        [  # TODO: differences here must be fixed if possible
-            ({"node_type": "Test"}, 3),
-            ({"node_type": "Z"}, 0),
-            ({"node_type": "Test2"}, 2),
-        ],
-    )
-    def test_get_all_nodes_names(self, database, params, nodes_len, request):
-        db: AtomDB = request.getfixturevalue(database)
-        values = {"Test": ["Aaa", "Abb", "Bbb"], "Test2": ["Bcc", "Ccc"]}
-        _ = [
-            add_node(db, node_name, node_type, database)
-            for node_type, node_names in values.items()
-            for node_name in node_names
-        ]
-        names = db.get_all_nodes_names(**params)
-        assert isinstance(names, list)
-        assert all(isinstance(n, str) for n in names)
-        assert len(names) == nodes_len
+        names: bool = params.pop("names", False)
+        if names:
+            nodes = db.get_all_nodes_names(**params)
+        else:
+            nodes = db.get_all_nodes_handles(**params)
+        assert isinstance(nodes, list)
+        if not names:
+            assert all(check_handle(n) for n in nodes)
+        assert all(isinstance(n, str) for n in nodes)
+        assert len(nodes) == nodes_len
 
     @pytest.mark.parametrize(
         "params,links_len",
@@ -459,10 +446,8 @@ class TestDatabase:
     def test_get_all_links(self, database, params, links_len, request):
         db: AtomDB = request.getfixturevalue(database)
         add_link_ = functools.partial(add_link, link_type="Ac", db=db, adapter=database)
-        [
-            add_link_(targets=[NodeT(name=nn, type=nt)])
-            for nn, nt in (("A", "A"), ("B", "B"), ("C", "C"))
-        ]
+        for node_name, node_type in (("A", "A"), ("B", "B"), ("C", "C")):
+            add_link_(targets=[NodeT(name=node_name, type=node_type)])
         links = db.get_all_links(**params)
         assert isinstance(links, set)
         assert all(check_handle(link) for link in links)
@@ -520,12 +505,10 @@ class TestDatabase:
         add_link(db, "Aa", [node_a], database)
         add_link(db, "Ab", [node_a], database)
         add_link(db, "Ac", [node_a], database)
-        get_incoming_links_func: Callable = (
-            db.get_incoming_links_handles
-            if params.get("handles_only")
-            else db.get_incoming_links_atoms
-        )
-        links = get_incoming_links_func(node_a.handle, **params)
+        if params.get("handles_only"):
+            links = db.get_incoming_links_handles(node_a.handle, **params)
+        else:
+            links = db.get_incoming_links_atoms(node_a.handle, **params)
         assert len(links) == links_len
         assert all(
             [check_handle(link if params.get("handles_only") else link.handle) for link in links]
@@ -557,14 +540,12 @@ class TestDatabase:
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         link_a = add_link(db, "Aa", [node_a], database)
-        _ = add_link(db, "NoTopLevel", [node_a], database, is_toplevel=False)
-        _ = add_link(db, "Ac", [node_a], database)
-        params["link_type"] = (
-            link_a.named_type if not params.get("link_type") else params["link_type"]
-        )
-        params["target_handles"] = (
-            link_a.targets if not params.get("target_handles") else params["target_handles"]
-        )
+        add_link(db, "NoTopLevel", [node_a], database, is_toplevel=False)
+        add_link(db, "Ac", [node_a], database)
+        if not params.get("link_type"):
+            params["link_type"] = link_a.named_type
+        if not params.get("target_handles"):
+            params["target_handles"] = link_a.targets
         links = db.get_matched_links(**params)
         assert len(links) == links_len
         if all(isinstance(link, tuple) for link in links):
@@ -928,11 +909,6 @@ class TestDatabase:
         db.reindex(params)
 
     def test_delete_atom(self, database, request):
-        # if database == "in_memory_db":
-        #     # TODO: fix this
-        #     pytest.skip(
-        #         "ERROR Atom not in incoming_set. See https://github.com/singnet/das-atom-db/issues/210"
-        #     )
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
         node_b = add_node(db, "Bbb", "Test", database)

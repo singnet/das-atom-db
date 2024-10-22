@@ -1,6 +1,7 @@
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, LinkT, NodeT
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
 from tests.helpers import add_link, add_node, check_handle
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
@@ -72,7 +73,7 @@ class TestDatabasePrivateMethods:
             targets=["dummy"],
         )
         for kw in kwlist:
-            with pytest.raises(Exception, match="Nonexistent atom"):
+            with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
                 db._reformat_document(link, **{kw: True})
 
     @pytest.mark.parametrize(
@@ -100,7 +101,7 @@ class TestDatabasePrivateMethods:
         assert check_handle(node.handle)
 
         # Test exception
-        with pytest.raises(Exception, match="'type' and 'name' are required."):
+        with pytest.raises(AddNodeException, match="'type' and 'name' are required."):
             db._build_node(NodeT(type="", name=""))
 
     @pytest.mark.parametrize(
@@ -185,7 +186,7 @@ class TestDatabasePrivateMethods:
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test__build_link_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(Exception, match="'type' and 'targets' are required."):
+        with pytest.raises(AddLinkException, match="'type' and 'targets' are required."):
             db._build_link(LinkT(type="Test", targets=[]))
-        with pytest.raises(Exception, match="'type' and 'targets' are required."):
+        with pytest.raises(AddLinkException, match="'type' and 'targets' are required."):
             db._build_link(LinkT(type="", targets=[NodeT(type="Test", name="test")]))

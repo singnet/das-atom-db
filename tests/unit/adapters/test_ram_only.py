@@ -616,13 +616,7 @@ class TestInMemoryDB:
                 assert a == b.handle
 
         links = database.get_incoming_links_handles(atom_handle=h)
-        # too intrusive for this test in python - should be tested in C++
-        # assert links == list(database.db.incoming_set.get(h))
         assert s in links
-
-        # too intrusive for this test in python - should be tested in C++
-        # links = database.get_incoming_links_handles(atom_handle=m)
-        # assert links == list(database.db.incoming_set.get(m))
 
         links = database.get_incoming_links_handles(atom_handle=s)
         assert links == []

@@ -415,12 +415,15 @@ class TestRedisMongoDB:
         [
             (ExpressionHasher.terminal_hash("Concept", "monkey"), "Concept"),
             (ExpressionHasher.terminal_hash("Concept", "human"), "Concept"),
-            # ("b5459e299a5c5e8662c427f7e01b3bf1", "Similarity"),  # NOTE: Should break? # NOTE(angelo): it breaks!
+            ("b5459e299a5c5e8662c427f7e01b3bf1", None),  # Similarity handle
         ],
     )
     def test_get_node_type(self, handle, expected, database: RedisMongoDB):
         resp_node = database.get_node_type(handle)
-        assert expected == resp_node
+        if expected is None:
+            assert resp_node is None
+        else:
+            assert expected == resp_node
 
     def test_get_node_type_without_cache(self, database: RedisMongoDB):
         from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
@@ -433,14 +436,17 @@ class TestRedisMongoDB:
     @pytest.mark.parametrize(
         "handle,expected",
         [
-            # (ExpressionHasher.terminal_hash("Concept", "monkey"), "Concept"),  # NOTE: Should break?  # NOTE(angelo): it breaks!
-            # (ExpressionHasher.terminal_hash("Concept", "human"), "Concept"),  # NOTE: Should break?  # NOTE(angelo): it breaks!
+            (ExpressionHasher.terminal_hash("Concept", "monkey"), None),
+            (ExpressionHasher.terminal_hash("Concept", "human"), None),
             ("b5459e299a5c5e8662c427f7e01b3bf1", "Similarity"),
         ],
     )
     def test_get_link_type(self, handle, expected, database: RedisMongoDB):
         resp_link = database.get_link_type(handle)
-        assert expected == resp_link
+        if expected is None:
+            assert resp_link is None
+        else:
+            assert expected == resp_link
 
     def test_get_link_type_without_cache(self, database: RedisMongoDB):
         from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
