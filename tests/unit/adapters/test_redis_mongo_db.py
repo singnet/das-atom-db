@@ -135,6 +135,16 @@ class TestRedisMongoDB:
             ("Similarity", [("Concept", "human"), ("Concept", "chimp")], 2),
             ("Inheritance", [("Concept", "human"), ("Concept", "mammal")], 2),
             ("Evaluation", [("Concept", "triceratops"), ("Concept", "rhino")], 2),
+            (
+                "LinkTest",
+                [
+                    ("Concept", "triceratops"),
+                    ("Concept", "rhino"),
+                    ("Concept", "ent"),
+                    ("Concept", "reptile"),
+                ],
+                4,
+            ),
         ],
     )
     def test_get_link_targets(self, link_type, targets, expected_count, database: RedisMongoDB):
@@ -231,30 +241,44 @@ class TestRedisMongoDB:
         ret = database.get_all_nodes(node_type, names=names)
         assert len(ret) == expected
 
-    def test_get_matched_type_template(self, database: RedisMongoDB):
-        v1 = database.get_matched_type_template(["Inheritance", "Concept", "Concept"])
-        v2 = database.get_matched_type_template(["Similarity", "Concept", "Concept"])
-        v3 = database.get_matched_type_template(["Inheritance", "Concept", "blah"])
-        v4 = database.get_matched_type_template(["Similarity", "blah", "Concept"])
-        v5 = database.get_matched_links("Inheritance", ["*", "*"])
-        v6 = database.get_matched_links("Similarity", ["*", "*"])
-        assert len(v1) == 12
-        assert len(v2) == 14
-        assert len(v3) == 0
-        assert len(v4) == 0
-        assert v1 == v5
-        assert v2 == v6
-
     @pytest.mark.parametrize(
-        "template",
+        "template,expected",
         [
-            ["Inheritance", "Concept", "Concept", {"aaa": "bbb"}],
-            ["Inheritance", "Concept", "Concept", ["aaa", "bbb"]],
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Similarity", "Concept", "Concept"], 14),
+            (["Inheritanc", "Concept", "blah"], 0),
         ],
     )
-    def test_get_matched_type_template_error(self, template, database: RedisMongoDB):
+    def test_get_matched_type_template(self, template, expected, database: RedisMongoDB):
+        matched = database.get_matched_type_template(template)
+        matched_links = database.get_matched_links(template[0], ["*", "*"])
+        assert len(matched) == expected
+        assert matched_links == matched
+
+    @pytest.mark.parametrize(
+        "template,template_equal,expected",
+        [
+            (["Inheritance", "Concept", "Concept"], ["Inheritance", ["*", "*"]], 12),
+            (["Similarity", "Concept", "Concept"], ["Similarity", ["*", "*"]], 14),
+        ],
+    )
+    def test_get_matched_type_template_equal(
+        self, template, template_equal, expected, database: RedisMongoDB
+    ):
+        matched = database.get_matched_type_template(template)
+        to_match = database.get_matched_links(*template_equal)
+        assert len(matched) == expected
+        assert to_match == matched
+
+    @pytest.mark.parametrize(
+        "template_list",
+        [
+            ["Inheritance", "Concept", "Concept", {"aaa": "bbb"}],
+        ],
+    )
+    def test_get_matched_type_template_error(self, template_list, database: RedisMongoDB):
         with pytest.raises(ValueError) as exc_info:
-            database.get_matched_type_template(template)
+            print(database.get_matched_type_template(template_list))
         assert exc_info.type is ValueError
 
     @pytest.mark.parametrize(
@@ -449,14 +473,14 @@ class TestRedisMongoDB:
 
     def test_atom_count(self, database: RedisMongoDB):
         response = database.count_atoms({"precise": True})
-        assert response == {"atom_count": 42, "node_count": 14, "link_count": 28}
+        assert response == {"atom_count": 43, "node_count": 14, "link_count": 29}
 
     def test_atom_count_fast(self, database: RedisMongoDB):
         response = database.count_atoms()
-        assert response == {"atom_count": 42}
+        assert response == {"atom_count": 43}
 
     def test_add_node(self, database: RedisMongoDB):
-        assert {"atom_count": 42} == database.count_atoms()
+        assert {"atom_count": 43} == database.count_atoms()
         all_nodes_before = database.get_all_nodes("Concept")
         database.add_node(
             {
@@ -469,9 +493,9 @@ class TestRedisMongoDB:
         assert len(all_nodes_before) == 14
         assert len(all_nodes_after) == 15
         assert {
-            "atom_count": 43,
+            "atom_count": 44,
             "node_count": 15,
-            "link_count": 28,
+            "link_count": 29,
         } == database.count_atoms({"precise": True})
         new_node_handle = database.get_node_handle("Concept", "lion")
         assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "lion")
@@ -483,7 +507,7 @@ class TestRedisMongoDB:
         assert new_node["name"] == "lion"
 
     def test_add_link(self, database: RedisMongoDB):
-        assert {"atom_count": 42} == database.count_atoms()
+        assert {"atom_count": 43} == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes("Concept")
         similarity = database.get_all_links("Similarity")
@@ -510,9 +534,9 @@ class TestRedisMongoDB:
         assert len(all_links_before) == 28
         assert len(all_links_after) == 29
         assert {
-            "atom_count": 45,
+            "atom_count": 46,
             "node_count": 16,
-            "link_count": 29,
+            "link_count": 30,
         } == database.count_atoms({"precise": True})
 
         new_node_handle = database.get_node_handle("Concept", "lion")
@@ -538,8 +562,8 @@ class TestRedisMongoDB:
         [
             (("Concept", "human"), 7),
             (("Concept", "monkey"), 5),
-            (("Concept", "rhino"), 4),
-            (("Concept", "reptile"), 3),
+            (("Concept", "rhino"), 5),
+            (("Concept", "reptile"), 4),
         ],
     )
     def test_get_incoming_links_by_node(self, node, expected_count, database: RedisMongoDB):
@@ -598,6 +622,7 @@ class TestRedisMongoDB:
             assert len(links) > 0
             assert all(isinstance(link, str) for link in links)
             answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{h}")
+            assert isinstance(answer, set)
             assert sorted(links) == sorted(answer)
             assert handle in links
             links = database.get_incoming_links(atom_handle=h, handles_only=False)
@@ -615,6 +640,8 @@ class TestRedisMongoDB:
     @pytest.mark.parametrize(
         "link_type,link_targets,expected_count",
         [
+            ("*", ["*", "*"], 28),
+            # ("LinkTest", ["*", "*", "*", "*"], 1),
             ("Similarity", ["*", "af12f10f9ae2002a1607ba0b47ba8407"], 3),
             ("Similarity", ["af12f10f9ae2002a1607ba0b47ba8407", "*"], 3),
             (
@@ -638,9 +665,13 @@ class TestRedisMongoDB:
     def test_redis_patterns(self, link_type, link_targets, expected_count, database: RedisMongoDB):
         links = database.get_matched_links(link_type, link_targets)
         pattern_hash = ExpressionHasher.composite_hash(
-            [ExpressionHasher.named_type_hash(link_type), *link_targets]
+            [
+                ExpressionHasher.named_type_hash(link_type) if link_type != "*" else "*",
+                *link_targets,
+            ]
         )
         answer = database.redis.smembers(f"{KeyPrefix.PATTERNS.value}:{pattern_hash}")
+        print(len(answer), len(links))
         assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
         assert len(links) == expected_count
@@ -656,7 +687,7 @@ class TestRedisMongoDB:
             (["Similarity"], 14),
             (["Evaluation", "Concept", "Concept"], 1),
             (["Evaluation"], 2),
-            # (["Evaluation", "Concept", ["Evaluation", "Concept", ["Evaluation", "Concept", "Concept"]]], 1)
+            (["Evaluation", "Concept", ["Evaluation", "Concept", "Concept"]], 1),
         ],
     )
     def test_redis_templates(self, template_values, expected_count, database: RedisMongoDB):
