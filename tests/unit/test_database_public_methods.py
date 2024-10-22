@@ -767,23 +767,25 @@ class TestDatabase:
         assert atom_type_node is None
         assert atom_type_link is None
 
-    def test_get_atom_as_dict(self, database, request):
-        if database == "in_memory_db":
-            pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
-        db: AtomDB = request.getfixturevalue(database)
-        node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Test", [node_a], database)
-        atom_node = db.get_atom_as_dict(node_a.handle)
-        atom_link = db.get_atom_as_dict(link_a.handle)
-        assert isinstance(atom_node, dict)
-        assert isinstance(atom_link, dict)
+    # NOTE: not needed - Atom class has a method to get the atom as a dict (`as_dict`)
+    # def test_get_atom_as_dict(self, database, request):
+    #     if database == "in_memory_db":
+    #         pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
+    #     db: AtomDB = request.getfixturevalue(database)
+    #     node_a = add_node(db, "Aaa", "Test", database)
+    #     link_a = add_link(db, "Test", [node_a], database)
+    #     atom_node = db.get_atom_as_dict(node_a.handle)
+    #     atom_link = db.get_atom_as_dict(link_a.handle)
+    #     assert isinstance(atom_node, dict)
+    #     assert isinstance(atom_link, dict)
 
-    def test_get_atom_as_dict_exception(self, database, request):
-        if database == "in_memory_db":
-            pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
-        db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
-            db.get_atom_as_dict("handle")
+    # NOTE: not needed - Atom class has a method to get the atom as a dict (`as_dict`)
+    # def test_get_atom_as_dict_exception(self, database, request):
+    #     if database == "in_memory_db":
+    #         pytest.skip("in_memory_db doesn't implement this `get_atom_as_dict`")
+    #     db: AtomDB = request.getfixturevalue(database)
+    #     with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
+    #         db.get_atom_as_dict("handle")
 
     def test_get_atom_as_dict_exceptions(self, database, request):
         if database == "in_memory_db":

@@ -742,19 +742,6 @@ class RedisMongoDB(AtomDB):
             return None
         return atom[FieldNames.TYPE_NAME]
 
-    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> DocumentT:
-        document = self._retrieve_document(handle)
-        if document:
-            document["handle"] = document[FieldNames.ID_HASH]
-            document["type"] = document[FieldNames.TYPE_NAME]
-            if "targets" in document:
-                document["targets"] = document["targets"]
-            else:
-                document["name"] = document["name"]
-            return document
-        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
-        raise AtomDoesNotExist("Nonexistent atom", f"handle: {handle}")
-
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()
         return_count = {"atom_count": atom_count}
@@ -834,12 +821,7 @@ class RedisMongoDB(AtomDB):
         return super()._build_link(link_params, toplevel)
 
     def add_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
-        try:
-            link: LinkT | None = self._build_link(link_params, toplevel)
-        except RuntimeError as ex:
-            raise AssertionError(
-                f"{type(self)} | {type(ex)} | {str(ex)} | {link_params=} | {toplevel=}"
-            )
+        link: LinkT | None = self._build_link(link_params, toplevel)
         if link is None:
             return None
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
