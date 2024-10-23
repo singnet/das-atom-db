@@ -6,7 +6,8 @@ TMP_DEST_DIR="tmp_dist"
 DEST_DIR="dist"
 
 # Remove existing/old wheel files
-rm -rf ${TMP_DEST_DIR} ${DEST_DIR}
+rm -rf ${TMP_DEST_DIR}
+rm -f ${DEST_DIR}/*manylinux*.whl
 
 # Create dirs
 mkdir -p ${TMP_DEST_DIR} ${DEST_DIR}

@@ -59,8 +59,17 @@ find_package(nanobind CONFIG REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src /usr/local/include)
 
 add_library(libmbedcrypto STATIC IMPORTED)
-set_target_properties(
-  libmbedcrypto PROPERTIES IMPORTED_LOCATION /usr/local/lib64/libmbedcrypto.a)
+set(ALMALINUX_LIBMBCRYPTO_PATH /usr/local/lib64/libmbedcrypto.a)
+set(ALPINE_LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
+if(EXISTS "${ALMALINUX_LIBMBCRYPTO_PATH}")
+  set_target_properties(
+    libmbedcrypto PROPERTIES IMPORTED_LOCATION ${ALMALINUX_LIBMBCRYPTO_PATH})
+elseif(EXISTS "${ALPINE_LIBMBCRYPTO_PATH}")
+  set_target_properties(
+    libmbedcrypto PROPERTIES IMPORTED_LOCATION ${ALPINE_LIBMBCRYPTO_PATH})
+else()
+  message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
+endif()
 
 # Collect header and source files
 file(GLOB_RECURSE headers
