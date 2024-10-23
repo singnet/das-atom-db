@@ -1,5 +1,5 @@
 # See https://github.com/pypa/manylinux for more information
-FROM quay.io/pypa/manylinux_2_28_x86_64
+FROM quay.io/pypa/musllinux_1_2_x86_64
 
 ENV MBEDTLS_VERSION=3.6.2
 ENV PYTHON_PATH=/opt/python/cp310-cp310
@@ -26,4 +26,4 @@ RUN rm -rf /tmp/deps
 
 WORKDIR /hyperon_das_atomdb_cpp
 
-CMD ["bash", "-x", "./scripts/_build_wheel.sh"]
+CMD ["bash", "-x", "./scripts/_build_musl_wheel.sh"]
