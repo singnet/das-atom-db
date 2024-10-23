@@ -61,16 +61,16 @@ jobs:
 
       - name: Install requirements
         run: |-
-           pip install twine
+          pip install twine
 
       - name: Update version
         working-directory: hyperon_das_atomdb_cpp
         run: sed -i 's/version = ".*"/version = "${{ github.event.inputs.version }}"/' pyproject.toml
 
-      - name: Build Wheel
+      - name: Build Wheels
         working-directory: hyperon_das_atomdb_cpp
-        run: make wheel
+        run: make wheels
 
-      - name: Publish Package
+      - name: Publish Packages
         working-directory: hyperon_das_atomdb_cpp/dist
-        run: twine upload $(find . -name *.whl | head -n 1) --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} --non-interactive
+        run: twine upload *.whl --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} --non-interactive

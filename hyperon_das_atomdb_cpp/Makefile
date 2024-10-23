@@ -8,12 +8,16 @@ format:
 		-iname "*.c" \
 		| xargs clang-format -verbose -style=file -i
 
-wheeler-image:
-	@./scripts/build_wheeler_docker_image.sh
+wheeler-images:
+	@./scripts/build_glibc_wheeler_docker_image.sh
+	@./scripts/build_musl_wheeler_docker_image.sh
 
-wheel: wheeler-image
-	@./scripts/run_wheeler.sh
+wheels: wheeler-images
+	@./scripts/run_glibc_wheeler.sh
+	@./scripts/run_musl_wheeler.sh
 
-install: wheel
-	@pip install ./dist/hyperon_das_atomdb_cpp*.whl --force-reinstall --no-cache-dir
+install:
+	@./scripts/build_glibc_wheeler_docker_image.sh
+	@./scripts/run_glibc_wheeler.sh
+	@pip install ./dist/hyperon_das_atomdb_cpp*manylinux*.whl --force-reinstall --no-cache-dir
 
