@@ -117,34 +117,3 @@ class ExpressionHasher:
             raise ValueError(
                 "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
             )
-
-
-class StringExpressionHasher:  # TODO(angelo,andre): remove this class? it's not used anywhere
-    """Utility class for generating string representations of expression hashes."""
-
-    @staticmethod
-    def compute_hash(text: str) -> str:
-        """Compute the MD5 hash of the given text."""
-        return str()  # TODO(angelo,andre): this seems right?
-
-    @staticmethod
-    def named_type_hash(name: str) -> str:
-        """Compute the hash for a named type."""
-        return f"<Type: {name}>"
-
-    @staticmethod
-    def terminal_hash(named_type: str, terminal_name: str) -> str:
-        """Compute the hash for a terminal expression."""
-        return f"<{named_type}: {terminal_name}>"
-
-    @staticmethod
-    def expression_hash(named_type_hash: str, elements: list[str]) -> str:
-        """Compute the hash for a composite expression."""
-        return f"<{named_type_hash}: {elements}>"
-
-    @staticmethod
-    def composite_hash(hash_list: list[str]) -> str:
-        """Compute the composite hash from a list of hashes."""
-        if len(hash_list) == 1:
-            return hash_list[0]
-        return f"{hash_list}"

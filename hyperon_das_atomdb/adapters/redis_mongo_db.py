@@ -426,7 +426,7 @@ class RedisMongoDB(AtomDB):
         mongo_filter = {FieldNames.ID_HASH: handle}
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
             if self._is_document_link(document):
-                document["targets"] = self._get_document_keys(document)
+                document[FieldNames.TARGETS] = self._get_document_keys(document)
             return document
         return None
 
