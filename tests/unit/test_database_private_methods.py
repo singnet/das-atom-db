@@ -1,9 +1,10 @@
 import pytest
 
-from hyperon_das_atomdb.database import AtomDB
+from hyperon_das_atomdb.database import AtomDB, LinkT, NodeT
+from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from tests.helpers import add_link, add_node, check_handle
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
-from .test_database_public_methods import add_link, add_node, check_handle
 
 
 class TestDatabasePrivateMethods:
@@ -11,9 +12,9 @@ class TestDatabasePrivateMethods:
     def test__get_atom(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
         node_a = add_node(db, "Aaa", "Test", database)
-        link_a = add_link(db, "Aa", [], database)
-        node = db._get_atom(node_a["handle"])
-        link = db._get_atom(link_a["handle"])
+        link_a = add_link(db, "Aa", [node_a], database)
+        node = db._get_atom(node_a.handle)
+        link = db._get_atom(link_a.handle)
         assert node, link
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
@@ -31,17 +32,26 @@ class TestDatabasePrivateMethods:
     )
     def test__reformat_document(self, database, kwlist, request):
         db: AtomDB = request.getfixturevalue(database)
-        node_handle = db.add_node({"name": "A", "type": "Test"}).get("handle")
+        link = db.add_link(
+            LinkT(
+                type="Relation",
+                targets=[
+                    NodeT(name="A", type="Test"),
+                    NodeT(name="B", type="Test"),
+                ],
+            ),
+        )
         if database != "in_memory_db":
             db.commit()
-        link = {"name": "A", "targets": [node_handle]}
         for kw in kwlist:
             answer = db._reformat_document(link, **{kw: True})
-            assert set(answer.keys()) == {"name", "targets", "targets_document"}
-            assert len(answer["targets"]) == 1
-            assert len(answer["targets_document"]) == 1
-            assert answer["name"] == "A"
-            assert isinstance(answer["targets"][0], (str if kw == "targets_document" else dict))
+            assert answer.targets_documents is not None
+            assert len(answer.targets) == 2
+            assert len(answer.targets_documents) == 2
+            assert answer.named_type == "Relation"
+            assert all(
+                isinstance(t, NodeT) for t in answer.targets_documents
+            ), answer.targets_documents
 
     @pytest.mark.parametrize(
         "database,kwlist",
@@ -52,9 +62,18 @@ class TestDatabasePrivateMethods:
     )
     def test__reformat_document_exceptions(self, database, kwlist, request):
         db: AtomDB = request.getfixturevalue(database)
-        link = {"name": "A", "targets": ["test"]}
+        link = LinkT(
+            _id="dummy",
+            handle="dummy",
+            composite_type_hash="dummy",
+            composite_type=["dummy"],
+            named_type="dummy",
+            named_type_hash="dummy",
+            is_toplevel=True,
+            targets=["dummy"],
+        )
         for kw in kwlist:
-            with pytest.raises(Exception, match="Nonexistent atom"):
+            with pytest.raises(AtomDoesNotExist, match="Nonexistent atom"):
                 db._reformat_document(link, **{kw: True})
 
     @pytest.mark.parametrize(
@@ -74,19 +93,19 @@ class TestDatabasePrivateMethods:
     )
     def test__build_node(self, database, expected_fields, expected_handle, request):
         db: AtomDB = request.getfixturevalue(database)
-        handle, node = db._build_node({"type": "Test", "name": "test"})
+        node = db._build_node(NodeT(type="Test", name="test"))
         assert node
-        assert handle == expected_handle
-        assert all([k in node for k in expected_fields])
-        assert isinstance(node, dict)
-        assert check_handle(handle)
+        assert node.handle == expected_handle
+        assert all([k in node.to_dict() for k in expected_fields])
+        assert isinstance(node, NodeT)
+        assert check_handle(node.handle)
 
         # Test exception
-        with pytest.raises(Exception, match="The \"name\" and \"type\" fields must be sent"):
-            db._build_node({})
+        with pytest.raises(AddNodeException, match="'type' and 'name' are required."):
+            db._build_node(NodeT(type="", name=""))
 
     @pytest.mark.parametrize(
-        "database,expected_fields, expected_handle,is_top_level",
+        "database,expected_fields, expected_handle,is_toplevel",
         [
             (
                 "redis_mongo_db",
@@ -146,24 +165,28 @@ class TestDatabasePrivateMethods:
             ),
         ],
     )
-    def test__build_link(self, database, expected_fields, expected_handle, is_top_level, request):
+    def test__build_link(self, database, expected_fields, expected_handle, is_toplevel, request):
         db: AtomDB = request.getfixturevalue(database)
-        handle, link, targets = db._build_link(
-            {"type": "Test", "targets": [{"type": "Test", "name": "test"}]}, is_top_level
+        link = db._build_link(
+            LinkT(
+                type="Test",
+                targets=[
+                    NodeT(type="Test", name="test"),
+                ],
+            ),
+            is_toplevel,
         )
-        assert expected_handle in targets
-        assert all([k in link for k in expected_fields])
-        assert link["is_toplevel"] == is_top_level
-        assert check_handle(handle)
-        assert isinstance(link, dict)
-        assert isinstance(targets, list)
+        assert expected_handle in link.targets
+        assert all([k in link.to_dict() for k in expected_fields])
+        assert link.is_toplevel == is_toplevel
+        assert check_handle(link.handle)
+        assert isinstance(link, LinkT)
+        assert isinstance(link.targets, list)
 
     @pytest.mark.parametrize("database", ["redis_mongo_db", "in_memory_db"])
     def test__build_link_exceptions(self, database, request):
         db: AtomDB = request.getfixturevalue(database)
-        with pytest.raises(ValueError, match="The target must be a dictionary"):
-            db._build_link({"type": "Test", "targets": [""]})
-        with pytest.raises(Exception, match="The \"type\" and \"targets\" fields must be sent"):
-            db._build_link({"type": "Test", "targets": None})
-        with pytest.raises(Exception, match="The \"type\" and \"targets\" fields must be sent"):
-            db._build_link({"type": None, "targets": []})
+        with pytest.raises(AddLinkException, match="'type' and 'targets' are required."):
+            db._build_link(LinkT(type="Test", targets=[]))
+        with pytest.raises(AddLinkException, match="'type' and 'targets' are required."):
+            db._build_link(LinkT(type="", targets=[NodeT(type="Test", name="test")]))

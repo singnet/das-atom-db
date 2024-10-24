@@ -10,4 +10,7 @@ fi
 
 echo "Destroying MongoDB container on port $PORT"
 
-docker stop mongo_$PORT && docker rm mongo_$PORT && docker volume rm mongodbdata_$PORT >& /dev/null
+docker stop mongo_$PORT && \
+  docker kill mongo_$PORT &&
+  docker rm mongo_$PORT && \
+  docker volume rm mongodbdata_$PORT >& /dev/null

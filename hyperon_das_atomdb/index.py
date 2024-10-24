@@ -20,10 +20,7 @@ class Index(ABC):
         Returns:
             str: The index ID.
         """
-        # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
-        return ExpressionHasher._compute_hash(  # pylint: disable=protected-access
-            f"{field}{conditionals}"
-        )
+        return ExpressionHasher.compute_hash(f"{field}{conditionals}")
 
     @abstractmethod
     def create(

@@ -3,13 +3,14 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoDBIndex, RedisMongoDB, _HashableDocument
+from tests.helpers import dict_to_node_params
 from tests.unit.fixtures import redis_mongo_db  # noqa: F401
 
 
 class TestRedisMongoExtra:
     def test_hashable_document_str(self, redis_mongo_db):  # noqa: F811
         db = redis_mongo_db
-        node = db._build_node({"type": "A", "name": "A"})
+        node = db._build_node(dict_to_node_params({"type": "A", "name": "A"}))
         hashable = _HashableDocument(node)
         str_hashable = str(hashable)
         assert isinstance(str_hashable, str)
