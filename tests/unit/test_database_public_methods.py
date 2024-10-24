@@ -298,7 +298,9 @@ class TestDatabase:
         ],
     )
     def test_get_atoms_by_index(self, database, index_params, query_params, expected, request):
-        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
+        pytest.skip(
+            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
+        )
         if database == "in_memory_db":
             pytest.skip(
                 "ERROR Not implemented. See https://github.com/singnet/das-atom-db/issues/210"
@@ -346,7 +348,9 @@ class TestDatabase:
             db.get_atoms_by_index("", [])
 
     def test_get_atoms_by_text_field_regex(self, database, request):
-        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
+        pytest.skip(
+            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
+        )
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
@@ -365,7 +369,9 @@ class TestDatabase:
         assert len(atoms) == 1
 
     def test_get_atoms_by_text_field_text(self, database, request):
-        pytest.skip("Requires new implementation since the new custom attributes were introduced.")
+        pytest.skip(
+            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
+        )
         if database == "in_memory_db":
             # TODO: fix this
             pytest.skip(
