@@ -425,7 +425,7 @@ class RedisMongoDB(AtomDB):
         """
         mongo_filter = {FieldNames.ID_HASH: handle}
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
-            if self._is_document_link(document):
+            if self._is_document_link(document) and FieldNames.TARGETS not in document:
                 document[FieldNames.TARGETS] = self._get_document_keys(document)
             return document
         return None
@@ -719,7 +719,7 @@ class RedisMongoDB(AtomDB):
                 custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
             )
             return link
-        else:
+        elif "name" in document:
             node = NodeT(
                 handle=document[FieldNames.ID_HASH],
                 _id=document[FieldNames.ID_HASH],
@@ -729,6 +729,8 @@ class RedisMongoDB(AtomDB):
                 custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
             )
             return node
+        else:
+            raise ValueError("Invalid atom type")
 
     def _get_atom(self, handle: str) -> AtomT | None:
         document = self._retrieve_document(handle)
@@ -1398,12 +1400,16 @@ class RedisMongoDB(AtomDB):
 
     def retrieve_all_atoms(self) -> list[AtomT]:
         try:
-            return [
-                self._build_atom_from_dict(document)
-                for document in self.mongo_atoms_collection.find()
-            ]
+            all_atoms: list[AtomT] = []
+            document: DocumentT = {}
+            for document in self.mongo_atoms_collection.find():
+                if self._is_document_link(document) and FieldNames.TARGETS not in document:
+                    document[FieldNames.TARGETS] = self._get_document_keys(document)
+                atom = self._build_atom_from_dict(document)
+                all_atoms.append(atom)
+            return all_atoms
         except Exception as e:
-            logger().error(f"Error retrieving all atoms: {str(e)}")
+            logger().error(f"Error retrieving all atoms: {type(e)}: {str(e)}, {document=}")
             raise e
 
     def bulk_insert(self, documents: list[AtomT]) -> None:
