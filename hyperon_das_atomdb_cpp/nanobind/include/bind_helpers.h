@@ -14,10 +14,9 @@
  */
 #pragma once
 
+#include <hyperon_das_atomdb_cpp/document_types.h>
+#include <hyperon_das_atomdb_cpp/type_aliases.h>
 #include <nanobind/nanobind.h>
-
-#include "document_types.h"
-#include "type_aliases.h"
 
 using namespace std;
 using namespace atomdb;

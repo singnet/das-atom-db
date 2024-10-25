@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...3.27)
+cmake_minimum_required(VERSION 3.15...3.30)
 
 project(hyperon_das_atomdb_cpp LANGUAGES CXX)
 set(EXTENSION_NAME "ext")
@@ -56,7 +56,10 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 # Include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src /usr/local/include)
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/include
+  /usr/local/include
+)
 
 add_library(libmbedcrypto STATIC IMPORTED)
 set(ALMALINUX_LIBMBCRYPTO_PATH /usr/local/lib64/libmbedcrypto.a)
@@ -71,15 +74,7 @@ else()
   message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
 endif()
 
-# Collect header and source files
-file(GLOB_RECURSE headers
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hh
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-file(GLOB_RECURSE sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE headers ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/include/*.h)
 
 nanobind_add_module(
   ${EXTENSION_NAME}
@@ -96,11 +91,10 @@ nanobind_add_module(
   # replace this flag by NB_SHARED to conserve space by
   # reusing a shared libnanobind across libraries
   NB_STATIC
-  ${sources} ${headers}
+  ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/${PROJECT_NAME}_bind.cc
+  ${headers}
 )
 
-# Link OpenSSL libraries
-target_link_libraries(${EXTENSION_NAME} PRIVATE libmbedcrypto)
+target_link_libraries(${EXTENSION_NAME} PRIVATE libmbedcrypto hyperon_das_atomdb_cpp)
 
-# Install directive for scikit-build-core
 install(TARGETS ${EXTENSION_NAME} LIBRARY DESTINATION ${PROJECT_NAME})

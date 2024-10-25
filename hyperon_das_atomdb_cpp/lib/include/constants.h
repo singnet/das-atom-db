@@ -1,7 +1,7 @@
 #pragma once
 
+#include "expression_hasher.h"
 #include "type_aliases.h"
-#include "utils/expression_hasher.h"
 
 using namespace std;
 

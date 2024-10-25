@@ -1,8 +1,7 @@
 #pragma once
 
+#include <hyperon_das_atomdb_cpp/database.h>
 #include <nanobind/trampoline.h>
-
-#include "database.h"
 
 using namespace std;
 using namespace atomdb;

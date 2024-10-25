@@ -1,6 +1,6 @@
 #pragma once
 
-#include "database.h"
+#include <hyperon_das_atomdb_cpp/database.h>
 
 using namespace atomdb;
 

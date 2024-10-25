@@ -1,3 +1,9 @@
+#include <hyperon_das_atomdb_cpp/constants.h>
+#include <hyperon_das_atomdb_cpp/database.h>
+#include <hyperon_das_atomdb_cpp/document_types.h>
+#include <hyperon_das_atomdb_cpp/exceptions.h>
+#include <hyperon_das_atomdb_cpp/ram_only.h>
+#include <hyperon_das_atomdb_cpp/type_aliases.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/map.h>
@@ -11,15 +17,9 @@
 #include <nanobind/stl/variant.h>
 #include <nanobind/stl/vector.h>
 
-#include "adapters/ram_only.h"
 #include "atom_db_publicist.h"
 #include "atom_db_trampoline.h"
 #include "bind_helpers.h"
-#include "constants.h"
-#include "database.h"
-#include "document_types.h"
-#include "exceptions.h"
-#include "type_aliases.h"
 
 using namespace std;
 using namespace atomdb;

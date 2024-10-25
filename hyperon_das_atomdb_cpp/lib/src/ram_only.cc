@@ -3,8 +3,8 @@
 #include <algorithm>
 
 #include "exceptions.h"
-#include "utils/expression_hasher.h"
-#include "utils/patterns.h"
+#include "expression_hasher.h"
+#include "patterns.h"
 
 using namespace std;
 using namespace atomdb;
