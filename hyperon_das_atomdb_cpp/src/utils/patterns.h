@@ -24,8 +24,20 @@ using namespace std;
 
 namespace atomdb {
 
-using IntMatrix = vector<vector<int>>;
+using IntMatrix = vector<vector<unsigned int>>;
 using StringMatrix = vector<vector<string>>;
+
+/**
+ * @brief A cache for binary matrices indexed by integers.
+ *
+ * This unordered map stores precomputed binary matrices (IntMatrix)
+ * associated with integer keys. It is used to optimize performance
+ * by avoiding redundant calculations of the same binary matrix.
+ *
+ * @note The cache is initialized with a default entry where the key is 0
+ * and the value is an empty IntMatrix.
+ */
+unordered_map<int, IntMatrix> BINARY_MATRIX_CACHE = {{0, {{}}}};
 
 /**
  * @brief Generates a binary matrix of the given size.
@@ -33,26 +45,26 @@ using StringMatrix = vector<vector<string>>;
  * This function generates a binary matrix represented as a vector of vectors,
  * where each subvector is a row in the matrix.
  *
- * @param numbers The size of the binary matrix to generate. If numbers
- *                is less than or equal to 0, returns a matrix with an empty vector.
- * @return A binary matrix represented as a vector of vectors.
+ * @param numbers The size of the binary matrix to generate.
+ *                If numbers equal to 0, returns a matrix with an empty vector.
+ * @return A const reference to a binary matrix represented as a vector of vectors.
  */
-IntMatrix generate_binary_matrix(int numbers) {
-    if (numbers <= 0) {
-        return {{}};
-    }
-    IntMatrix smaller_matrix = generate_binary_matrix(numbers - 1);
-    IntMatrix new_matrix;
-    for (const auto& matrix : smaller_matrix) {
-        vector<int> row_with_zero = matrix;
-        row_with_zero.push_back(0);
-        new_matrix.push_back(move(row_with_zero));
+const IntMatrix& generate_binary_matrix(size_t numbers) {
+    if (BINARY_MATRIX_CACHE.find(numbers) == BINARY_MATRIX_CACHE.end()) {
+        auto smaller_matrix = generate_binary_matrix(numbers - 1);
+        IntMatrix new_matrix;
+        for (const auto& matrix : smaller_matrix) {
+            auto row_with_zero = matrix;
+            row_with_zero.push_back(0);
+            new_matrix.push_back(move(row_with_zero));
 
-        vector<int> row_with_one = matrix;
-        row_with_one.push_back(1);
-        new_matrix.push_back(move(row_with_one));
+            auto row_with_one = matrix;
+            row_with_one.push_back(1);
+            new_matrix.push_back(move(row_with_one));
+        }
+        BINARY_MATRIX_CACHE[numbers] = move(new_matrix);
     }
-    return move(new_matrix);
+    return BINARY_MATRIX_CACHE[numbers];
 }
 
 /**
