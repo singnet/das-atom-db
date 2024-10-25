@@ -29,12 +29,12 @@ using StringMatrix = vector<vector<string>>;
 
 /**
  * @brief A cache for binary matrices indexed by integers.
- * 
- * This unordered map stores precomputed binary matrices (IntMatrix) 
- * associated with integer keys. It is used to optimize performance 
+ *
+ * This unordered map stores precomputed binary matrices (IntMatrix)
+ * associated with integer keys. It is used to optimize performance
  * by avoiding redundant calculations of the same binary matrix.
- * 
- * @note The cache is initialized with a default entry where the key is 0 
+ *
+ * @note The cache is initialized with a default entry where the key is 0
  * and the value is an empty IntMatrix.
  */
 unordered_map<int, IntMatrix> BINARY_MATRIX_CACHE = {{0, {{}}}};

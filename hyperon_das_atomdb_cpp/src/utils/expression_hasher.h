@@ -25,8 +25,10 @@
 
 #include <mbedtls/md5.h>
 
-#include <string>
 #include <stdexcept>
+#include <string>
+
+#include "type_aliases.h"
 
 using namespace std;
 
