@@ -35,10 +35,7 @@ class Logger:
         """
 
         if Logger.__instance is not None:
-            # TODO(angelo,andre): raise a more specific type of exception?
-            raise Exception(  # pylint: disable=broad-exception-raised
-                "Invalid re-instantiation of Logger"
-            )
+            raise RuntimeError("Invalid re-instantiation of Logger")
 
         logging.basicConfig(
             filename=LOG_FILE_NAME,

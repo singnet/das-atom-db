@@ -1,6 +1,6 @@
 [project]
 name = "hyperon_das_atomdb_cpp"
-version = "0.0.1"
+version = "0.0.2"
 description = "Atom Space DB for Hyperon DAS"
 readme = "README.md"
 requires-python = ">=3.10"

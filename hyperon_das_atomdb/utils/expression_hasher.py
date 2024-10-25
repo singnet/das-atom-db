@@ -15,9 +15,9 @@ class ExpressionHasher:
     compound_separator = " "
 
     @staticmethod
-    def _compute_hash(
+    def compute_hash(
         text: str,
-    ) -> str:  # TODO(angelo,andre): remove '_' to make method public?
+    ) -> str:
         """
         Compute the MD5 hash of the given text.
 
@@ -47,7 +47,7 @@ class ExpressionHasher:
         Returns:
             str: The MD5 hash of the named type as a hexadecimal string.
         """
-        return ExpressionHasher._compute_hash(name)
+        return ExpressionHasher.compute_hash(name)
 
     @staticmethod
     def terminal_hash(named_type: str, terminal_name: str) -> str:
@@ -65,7 +65,7 @@ class ExpressionHasher:
         Returns:
             str: The MD5 hash of the terminal expression as a hexadecimal string.
         """
-        return ExpressionHasher._compute_hash(
+        return ExpressionHasher.compute_hash(
             ExpressionHasher.compound_separator.join([named_type, terminal_name])
         )
 
@@ -109,7 +109,7 @@ class ExpressionHasher:
             if len(hash_base) == 1:
                 return hash_base[0]
             else:
-                return ExpressionHasher._compute_hash(
+                return ExpressionHasher.compute_hash(
                     ExpressionHasher.compound_separator.join(hash_base)
                 )
         # TODO unreachable
@@ -117,34 +117,3 @@ class ExpressionHasher:
             raise ValueError(
                 "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
             )
-
-
-class StringExpressionHasher:  # TODO(angelo,andre): remove this class? it's not used anywhere
-    """Utility class for generating string representations of expression hashes."""
-
-    @staticmethod
-    def _compute_hash(text: str) -> str:
-        """Compute the MD5 hash of the given text."""
-        return str()  # TODO(angelo,andre): this seems right?
-
-    @staticmethod
-    def named_type_hash(name: str) -> str:
-        """Compute the hash for a named type."""
-        return f"<Type: {name}>"
-
-    @staticmethod
-    def terminal_hash(named_type: str, terminal_name: str) -> str:
-        """Compute the hash for a terminal expression."""
-        return f"<{named_type}: {terminal_name}>"
-
-    @staticmethod
-    def expression_hash(named_type_hash: str, elements: list[str]) -> str:
-        """Compute the hash for a composite expression."""
-        return f"<{named_type_hash}: {elements}>"
-
-    @staticmethod
-    def composite_hash(hash_list: list[str]) -> str:
-        """Compute the composite hash from a list of hashes."""
-        if len(hash_list) == 1:
-            return hash_list[0]
-        return f"{hash_list}"
