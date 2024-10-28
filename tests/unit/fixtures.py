@@ -116,7 +116,7 @@ def redis_mongo_db():
     ):
         db = RedisMongoDB()
 
-    yield db
+        yield db
 
 
 @pytest.fixture

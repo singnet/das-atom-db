@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ${PWD}/scripts/common.sh
+source $(dirname $0)/common.sh
 
 # Build the wheel for MUSL
 docker run --rm \

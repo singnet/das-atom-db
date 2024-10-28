@@ -15,7 +15,7 @@ import re
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Iterable, Mapping, Optional, OrderedDict
+from typing import Any, Iterable, Mapping, Optional, OrderedDict, TypeAlias
 
 from pymongo import ASCENDING, MongoClient
 from pymongo import errors as pymongo_errors
@@ -32,10 +32,7 @@ from hyperon_das_atomdb.database import (
     FieldNames,
     HandleListT,
     HandleSetT,
-    IncomingLinksT,
-    LinkParamsT,
     LinkT,
-    NodeParamsT,
     NodeT,
 )
 from hyperon_das_atomdb.exceptions import (
@@ -46,6 +43,11 @@ from hyperon_das_atomdb.exceptions import (
 from hyperon_das_atomdb.index import Index
 from hyperon_das_atomdb.logger import logger
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
+
+# pylint: disable=invalid-name
+# Type aliases
+DocumentT: TypeAlias = dict[str, Any]
+# pylint: enable=invalid-name
 
 
 def _build_redis_key(prefix: str, key: str) -> str:
@@ -92,7 +94,7 @@ class MongoIndexType(str, Enum):
 class _HashableDocument:
     """Class for making documents hashable."""
 
-    def __init__(self, base: dict[str, Any]):
+    def __init__(self, base: DocumentT):
         self.base = base
 
     def __hash__(self) -> int:
@@ -177,6 +179,7 @@ class RedisMongoDB(AtomDB):
 
     def __init__(self, **kwargs: Optional[dict[str, Any]]) -> None:
         """Initialize an instance of a custom class with Redis and MongoDB connections."""
+        super().__init__()
         self.database_name = "das"
         self.max_pos_size = 4
 
@@ -188,7 +191,7 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
-        self.pattern_index_templates: dict[str, list[dict[str, Any]]] | None = None
+        self.pattern_index_templates: dict[str, list[DocumentT]] | None = None
         self.pattern_templates: list | None = None
         self.mongo_das_config_collection: Collection | None = None
         if MongoCollectionNames.DAS_CONFIG not in self.mongo_db.list_collection_names():
@@ -197,18 +200,10 @@ class RedisMongoDB(AtomDB):
         self.mongo_das_config_collection = self.mongo_db.get_collection(
             MongoCollectionNames.DAS_CONFIG
         )
-
         self._setup_indexes(kwargs)
-        # TODO(angelo,andre): remove '_' from `ExpressionHasher._compute_hash` method?
-        self.wildcard_hash = ExpressionHasher._compute_hash(
-            WILDCARD
-        )  # pylint: disable=protected-access
-        self.typedef_mark_hash = ExpressionHasher._compute_hash(
-            ":"
-        )  # pylint: disable=protected-access
-        self.typedef_base_type_hash = ExpressionHasher._compute_hash(
-            "Type"
-        )  # pylint: disable=protected-access
+        self.wildcard_hash = ExpressionHasher.compute_hash(WILDCARD)
+        self.typedef_mark_hash = ExpressionHasher.compute_hash(":")
+        self.typedef_base_type_hash = ExpressionHasher.compute_hash("Type")
 
         self.named_type_hash: dict[str, str] = {}
         self.hash_length = len(self.typedef_base_type_hash)
@@ -362,7 +357,7 @@ class RedisMongoDB(AtomDB):
         message = (
             f"Connecting to {redis_type} at "
             + (
-                f"{redis_username}:{len(redis_password) * '*'}@"
+                f"{redis_username}:{len(redis_password)*'*'}@"
                 if redis_username and redis_password
                 else ""
             )
@@ -403,12 +398,13 @@ class RedisMongoDB(AtomDB):
 
     def _save_pattern_index(self, pattern_index):
         self._validate_index_templates(pattern_index)
-        self.mongo_das_config_collection.replace_one(
-            {"_id": "pattern_index_templates"},
-            {"_id": "pattern_index_templates", "templates": pattern_index},
-            upsert=True,
-        )
-        self.pattern_templates = pattern_index
+        if self.mongo_das_config_collection is not None:
+            self.mongo_das_config_collection.replace_one(
+                {"_id": "pattern_index_templates"},
+                {"_id": "pattern_index_templates", "templates": pattern_index},
+                upsert=True,
+            )
+            self.pattern_templates = pattern_index
 
     def _load_pattern_index(self, options: dict[str, Any] | None) -> None:
         """
@@ -426,8 +422,13 @@ class RedisMongoDB(AtomDB):
         default_templates = [
             {"field": "named_type", "value": "*", "positions": [0, 1, 2], "arity": 3}
         ]
-        user_templates = options.get("pattern_index_templates", None)
-        found = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})
+        user_templates = None
+        found = None
+        if options is not None:
+            user_templates = options.get("pattern_index_templates", None)
+
+        if self.mongo_das_config_collection is not None:
+            found = self.mongo_das_config_collection.find_one({"_id": "pattern_index_templates"})
 
         if found is not None:
             self.pattern_templates = found.get("templates", None) if found else None
@@ -449,8 +450,10 @@ class RedisMongoDB(AtomDB):
         if any(pos >= template["arity"] for pos in template["positions"]):
             raise ValueError("'positions' parameter must be in range of the arity.")
 
-        if template["field"] != "named_type":
-            target_pos = int(re.search(r"targets\[(\d+)]", template["field"]).group(1))
+        if template["field"] != "named_type" and (
+            found := re.search(r"targets\[(\d+)]", template["field"])
+        ):
+            target_pos = int(found.group(1))
             if target_pos >= template["arity"]:
                 raise ValueError("'target[]' index must be in range of arity.")
         else:
@@ -502,7 +505,7 @@ class RedisMongoDB(AtomDB):
         # NOTE creating index for name search
         self.create_field_index("node", fields=["name"])
 
-    def _retrieve_document(self, handle: str) -> dict[str, Any] | None:
+    def _retrieve_document(self, handle: str) -> DocumentT | None:
         """
         Retrieve a document from the MongoDB collection using the given handle.
 
@@ -514,12 +517,12 @@ class RedisMongoDB(AtomDB):
             handle (str): The unique identifier for the document to be retrieved.
 
         Returns:
-            dict[str, Any] | None: The retrieved document if found, otherwise None.
+            DocumentT | None: The retrieved document if found, otherwise None.
         """
         mongo_filter = {FieldNames.ID_HASH: handle}
         if document := self.mongo_atoms_collection.find_one(mongo_filter):
-            if self._is_document_link(document):
-                document["targets"] = self._get_document_keys(document)
+            if self._is_document_link(document) and FieldNames.TARGETS not in document:
+                document[FieldNames.TARGETS] = self._get_document_keys(document)
             return document
         return None
 
@@ -552,7 +555,7 @@ class RedisMongoDB(AtomDB):
             return [self._build_named_type_hash_template(element) for element in template]
 
     @staticmethod
-    def _get_document_keys(document: dict[str, Any]) -> HandleListT:
+    def _get_document_keys(document: DocumentT) -> HandleListT:
         """
         Retrieve the keys from the given document.
 
@@ -561,18 +564,20 @@ class RedisMongoDB(AtomDB):
         a specific prefix pattern.
 
         Args:
-            document (dict[str, Any]): The document from which to retrieve the keys.
+            document (DocumentT): The document from which to retrieve the keys.
 
         Returns:
             HandleListT: A list of keys extracted from the document.
         """
-        answer: HandleListT | None = document.get(FieldNames.KEYS, None)
-        if answer is not None:
+        answer = document.get(FieldNames.TARGETS, document.get(FieldNames.KEYS, None))
+        if isinstance(answer, list):
             return answer
+        elif isinstance(answer, dict):
+            return list(answer.values())
 
         answer = []
         index = 0
-        while (key := document.get(f"{FieldNames.KEY_PREFIX.value}_{index}", None)) is not None:
+        while (key := document.get(f"{FieldNames.KEY_PREFIX}_{index}", None)) is not None:
             answer.append(key)
             index += 1
         return answer
@@ -594,7 +599,10 @@ class RedisMongoDB(AtomDB):
         return {
             link_handle
             for link_handle in matches
-            if (link := self._retrieve_document(link_handle)) and link.get(FieldNames.IS_TOPLEVEL)
+            if (
+                (link := self._retrieve_document(link_handle))
+                and link.get(FieldNames.IS_TOPLEVEL, False)
+            )
         }
 
     def get_node_handle(self, node_type: str, node_name: str) -> str:
@@ -607,10 +615,7 @@ class RedisMongoDB(AtomDB):
                 f"Failed to retrieve node handle for {node_type}:{node_name}. "
                 f"This node may not exist."
             )
-            raise AtomDoesNotExist(
-                message="Nonexistent atom",
-                details=f"{node_type}:{node_name}",
-            )
+            raise AtomDoesNotExist("Nonexistent atom", f"{node_type}:{node_name}")
 
     def get_node_name(self, node_handle: str) -> str:
         answer = self._retrieve_name(node_handle)
@@ -624,7 +629,7 @@ class RedisMongoDB(AtomDB):
 
     def get_node_type(self, node_handle: str) -> str | None:
         document = self.get_atom(node_handle)
-        return document[FieldNames.TYPE_NAME]
+        return document.named_type if isinstance(document, NodeT) else None  # type: ignore
 
     def get_node_by_name(self, node_type: str, substring: str) -> HandleListT:
         node_type_hash = ExpressionHasher.named_type_hash(node_type)
@@ -647,7 +652,7 @@ class RedisMongoDB(AtomDB):
     def get_atoms_by_index(
         self,
         index_id: str,
-        query: list[OrderedDict[str, str]],
+        query: list[dict[str, Any]],
         cursor: int = 0,
         chunk_size: int = 500,
     ) -> tuple[int, list[AtomT]]:
@@ -693,17 +698,17 @@ class RedisMongoDB(AtomDB):
             for document in self.mongo_atoms_collection.find(mongo_filter)
         ]
 
-    def get_all_nodes(self, node_type: str, names: bool = False) -> list[str]:
-        if names:
-            return [
-                document[FieldNames.NODE_NAME]
-                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
-            ]
-        else:
-            return [
-                document[FieldNames.ID_HASH]
-                for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
-            ]
+    def get_all_nodes_handles(self, node_type: str) -> list[str]:
+        return [
+            document[FieldNames.ID_HASH]
+            for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
+        ]
+
+    def get_all_nodes_names(self, node_type: str) -> list[str]:
+        return [
+            document[FieldNames.NODE_NAME]
+            for document in self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: node_type})
+        ]
 
     def get_all_links(self, link_type: str, **kwargs) -> HandleSetT:
         pymongo_cursor = self.mongo_atoms_collection.find({FieldNames.TYPE_NAME: link_type})
@@ -719,10 +724,7 @@ class RedisMongoDB(AtomDB):
                 f"Failed to retrieve link handle for {link_type}:{target_handles}. "
                 "This link may not exist."
             )
-            raise AtomDoesNotExist(
-                message="Nonexistent atom",
-                details=f"{link_type}:{target_handles}",
-            )
+            raise AtomDoesNotExist("Nonexistent atom", f"{link_type}:{target_handles}")
 
     def get_link_targets(self, link_handle: str) -> HandleListT:
         answer = self._retrieve_outgoing_set(link_handle)
@@ -749,28 +751,26 @@ class RedisMongoDB(AtomDB):
         )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        patterns_matched = self._retrieve_hash_targets_value(
-            KeyPrefix.PATTERNS, pattern_hash, **kwargs
-        )
+        patterns_matched = self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, pattern_hash)
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
         else:
             return patterns_matched
 
-    def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT:
+    def get_incoming_links_handles(self, atom_handle: str, **kwargs) -> HandleListT:
         links = self._retrieve_incoming_set(atom_handle, **kwargs)
+        return list(links)
 
-        if kwargs.get("handles_only", False):
-            return list(links)
-        else:
-            return [self.get_atom(handle, **kwargs) for handle in links]
+    def get_incoming_links_atoms(self, atom_handle: str, **kwargs) -> list[AtomT]:
+        links = self._retrieve_incoming_set(atom_handle, **kwargs)
+        return [self.get_atom(handle, **kwargs) for handle in links]
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         try:
             hash_base: HandleListT = self._build_named_type_hash_template(template)  # type: ignore
             template_hash = ExpressionHasher.composite_hash(hash_base)
             templates_matched = self._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES, template_hash, **kwargs
+                KeyPrefix.TEMPLATES, template_hash
             )
             if kwargs.get("toplevel_only", False):
                 return self._filter_non_toplevel(templates_matched)
@@ -782,9 +782,7 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
-        templates_matched = self._retrieve_hash_targets_value(
-            KeyPrefix.TEMPLATES, named_type_hash, **kwargs
-        )
+        templates_matched = self._retrieve_hash_targets_value(KeyPrefix.TEMPLATES, named_type_hash)
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(templates_matched)
         else:
@@ -792,35 +790,55 @@ class RedisMongoDB(AtomDB):
 
     def get_link_type(self, link_handle: str) -> str | None:
         document = self.get_atom(link_handle)
-        return document[FieldNames.TYPE_NAME]
+        return document.named_type if isinstance(document, LinkT) else None  # type: ignore
+
+    def _build_atom_from_dict(self, document: DocumentT) -> AtomT:
+        """
+        Builds an Atom object from a dictionary.
+
+        Args:
+            document (DocumentT): The dictionary representing the atom.
+
+        Returns:
+            AtomT: The constructed Atom object.
+        """
+        if "targets" in document:
+            link = LinkT(
+                handle=document[FieldNames.ID_HASH],
+                _id=document[FieldNames.ID_HASH],
+                named_type=document[FieldNames.TYPE_NAME],
+                targets=document[FieldNames.TARGETS],
+                composite_type=document[FieldNames.COMPOSITE_TYPE],
+                is_toplevel=document.get(FieldNames.IS_TOPLEVEL, True),
+                named_type_hash=document[FieldNames.TYPE_NAME_HASH],
+                composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
+            )
+            return link
+        elif "name" in document:
+            node = NodeT(
+                handle=document[FieldNames.ID_HASH],
+                _id=document[FieldNames.ID_HASH],
+                named_type=document[FieldNames.TYPE_NAME],
+                name=document[FieldNames.NODE_NAME],
+                composite_type_hash=document[FieldNames.COMPOSITE_TYPE_HASH],
+                custom_attributes=document.get(FieldNames.CUSTOM_ATTRIBUTES, dict()),
+            )
+            return node
+        else:
+            raise ValueError("Invalid atom type")
 
     def _get_atom(self, handle: str) -> AtomT | None:
-        try:
-            return self.get_atom_as_dict(handle)
-        except AtomDoesNotExist:
+        document = self._retrieve_document(handle)
+        if not document:
             return None
+        return self._build_atom_from_dict(document)
 
     def get_atom_type(self, handle: str) -> str | None:
         atom = self._retrieve_document(handle)
         if atom is None:
             return None
         return atom[FieldNames.TYPE_NAME]
-
-    def get_atom_as_dict(self, handle: str, arity: int | None = 0) -> AtomT:
-        document = self._retrieve_document(handle)
-        if document:
-            document["handle"] = document[FieldNames.ID_HASH]
-            document["type"] = document[FieldNames.TYPE_NAME]
-            if "targets" in document:
-                document["targets"] = document["targets"]
-            else:
-                document["name"] = document["name"]
-            return document
-        logger().error(f"Failed to retrieve atom for handle: {handle}. This link may not exist.")
-        raise AtomDoesNotExist(
-            message="Nonexistent atom",
-            details=f"handle: {handle}",
-        )
 
     def count_atoms(self, parameters: dict[str, Any] | None = None) -> dict[str, int]:
         atom_count = self.mongo_atoms_collection.estimated_document_count()
@@ -881,30 +899,36 @@ class RedisMongoDB(AtomDB):
 
                 buffer.clear()
 
-    def add_node(self, node_params: NodeParamsT) -> NodeT | None:
-        _, node = self._build_node(node_params)
-        if sys.getsizeof(node_params["name"]) < self.max_mongo_db_document_size:
+    def add_node(self, node_params: NodeT) -> NodeT | None:
+        node: NodeT = self._build_node(node_params)
+        if sys.getsizeof(node_params.name) < self.max_mongo_db_document_size:
             _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-            buffer.add(_HashableDocument(node))
+            buffer.add(_HashableDocument(node.to_dict()))
             if len(buffer) >= self.mongo_bulk_insertion_limit:
                 self.commit()
             return node
         else:
-            logger().warning("Discarding atom whose name is too large: {node_name}")
+            logger().warning(f"Discarding atom whose name is too large: {node.name}")
             return None
 
-    def add_link(self, link_params: LinkParamsT, toplevel: bool = True) -> LinkT | None:
-        result = self._build_link(link_params, toplevel)
-        if result is None:
+    def _build_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
+        # This is necessary because `_build_link` in the parent class (implemented in C++)
+        # calls back to `add_link`. Without this, `nanobind` is not able to find `add_link`
+        # implementation in the child class, and raises a `RuntimeError` with the message that
+        # it is trying to call an abstract method (virtual pure).
+        return super()._build_link(link_params, toplevel)
+
+    def add_link(self, link_params: LinkT, toplevel: bool = True) -> LinkT | None:
+        link: LinkT | None = self._build_link(link_params, toplevel)
+        if link is None:
             return None
-        link = result[1]
         _, buffer = self.mongo_bulk_insertion_buffer[MongoCollectionNames.ATOMS]
-        buffer.add(_HashableDocument(link))
+        buffer.add(_HashableDocument(link.to_dict()))
         if len(buffer) >= self.mongo_bulk_insertion_limit:
             self.commit()
         return link
 
-    def _get_and_delete_links_by_handles(self, handles: HandleListT) -> list[dict[str, Any]]:
+    def _get_and_delete_links_by_handles(self, handles: HandleListT) -> list[DocumentT]:
         documents = []
         for handle in handles:
             if document := self.mongo_atoms_collection.find_one_and_delete(
@@ -916,7 +940,7 @@ class RedisMongoDB(AtomDB):
     @staticmethod
     def _apply_index_template(
         template: dict[str, Any], named_type: str, targets: HandleListT, arity: int
-    ) -> str:
+    ) -> str | None:
         """
         Apply the index template to generate a Redis key.
 
@@ -969,7 +993,7 @@ class RedisMongoDB(AtomDB):
             HandleSetT: Set of members for the given key
         """
         key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
-        return self._get_redis_members(key, **kwargs)
+        return self._get_redis_members(key)
 
     def _delete_smember_incoming_set(self, handle: str, smember: str) -> None:
         """
@@ -1058,7 +1082,7 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str, **kwargs) -> HandleSetT:
+    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str) -> HandleSetT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 
@@ -1070,13 +1094,12 @@ class RedisMongoDB(AtomDB):
             key_prefix (str): The prefix to be used in the Redis key.
             handle (str): The unique identifier for the atom whose hash targets value is to be
                 retrieved.
-            **kwargs: Additional keyword arguments
 
         Returns:
             HandleSetT: Set of members in the hash targets value.
         """
         key = _build_redis_key(key_prefix, handle)
-        return self._get_redis_members(key, **kwargs)
+        return self._get_redis_members(key)
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
@@ -1136,7 +1159,7 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Unexpected error retrieving custom index with ID {index_id}: {e}")
             raise e
 
-    def _get_redis_members(self, key: str, **kwargs) -> HandleSetT:
+    def _get_redis_members(self, key: str) -> HandleSetT:
         """
         Retrieve members from a Redis set.
 
@@ -1148,7 +1171,7 @@ class RedisMongoDB(AtomDB):
         """
         return set(self.redis.smembers(key))  # type: ignore
 
-    def _update_atom_indexes(self, documents: Iterable[dict[str, Any]], **kwargs) -> None:
+    def _update_atom_indexes(self, documents: Iterable[DocumentT], **kwargs) -> None:
         """
         Update the indexes for the given documents in the database.
 
@@ -1157,7 +1180,7 @@ class RedisMongoDB(AtomDB):
         it updates the node index.
 
         Args:
-            documents (Iterable[dict[str, any]]): An iterable of documents to be indexed.
+            documents (Iterable[DocumentT): An iterable of documents to be indexed.
             **kwargs: Additional keyword arguments for index updates.
         """
         for document in documents:
@@ -1166,7 +1189,7 @@ class RedisMongoDB(AtomDB):
             else:
                 self._update_node_index(document, **kwargs)
 
-    def _update_node_index(self, document: dict[str, Any], **kwargs) -> None:
+    def _update_node_index(self, document: DocumentT, **kwargs) -> None:
         """
         Update the index for the given node document in the database.
 
@@ -1176,7 +1199,7 @@ class RedisMongoDB(AtomDB):
         links for the node.
 
         Args:
-            document (dict[str, Any]): The node document to be indexed.
+            document (DocumentT): The node document to be indexed.
             **kwargs: Additional keyword arguments for index updates. Supports `delete_atom` to
                 indicate whether the node should be deleted from the index.
         """
@@ -1192,7 +1215,7 @@ class RedisMongoDB(AtomDB):
         else:
             self.redis.set(key, node_name)
 
-    def _update_link_index(self, document: dict[str, Any], **kwargs) -> None:
+    def _update_link_index(self, document: DocumentT, **kwargs) -> None:
         """
         Update the index for the given link document in the database.
 
@@ -1202,7 +1225,7 @@ class RedisMongoDB(AtomDB):
         links for the link.
 
         Args:
-            document (dict[str, Any]): The link document to be indexed.
+            document (DocumentT): The link document to be indexed.
             **kwargs: Additional keyword arguments for index updates. Supports `delete_atom` to
                 indicate whether the link should be deleted from the index.
         """
@@ -1271,7 +1294,7 @@ class RedisMongoDB(AtomDB):
                 self.redis.sadd(key, *incoming_buffer[handle])
 
     @staticmethod
-    def _is_document_link(document: dict[str, Any]) -> bool:
+    def _is_document_link(document: DocumentT) -> bool:
         """
         Determine if the given document is a link.
 
@@ -1279,7 +1302,7 @@ class RedisMongoDB(AtomDB):
         indicates that the document is a link.
 
         Args:
-            document (dict[str, Any]): The document to be checked.
+            document (DocumentT): The document to be checked.
 
         Returns:
             bool: True if the document is a link, False otherwise.
@@ -1304,9 +1327,11 @@ class RedisMongoDB(AtomDB):
 
         def calculate_composite_type_hashes(_composite_type: list[Any]) -> HandleListT:
             return [
-                ExpressionHasher.composite_hash(calculate_composite_type_hashes(t))
-                if isinstance(t, list)
-                else ExpressionHasher.named_type_hash(t)
+                (
+                    ExpressionHasher.composite_hash(calculate_composite_type_hashes(t))
+                    if isinstance(t, list)
+                    else ExpressionHasher.named_type_hash(t)
+                )
                 for t in _composite_type
             ]
 
@@ -1315,7 +1340,7 @@ class RedisMongoDB(AtomDB):
 
     def _retrieve_documents_by_index(
         self, collection: Collection, index_id: str, **kwargs
-    ) -> tuple[int, list[dict[str, Any]]]:
+    ) -> tuple[int, list[DocumentT]]:
         """
         Retrieve documents from the specified MongoDB collection using the given index.
 
@@ -1331,7 +1356,7 @@ class RedisMongoDB(AtomDB):
                 - chunk_size (int, optional): The number of documents to retrieve per chunk.
 
         Returns:
-            tuple[int, list[dict[str, Any]]]: A tuple containing the cursor position and a list of
+            tuple[int, list[DocumentT]]: A tuple containing the cursor position and a list of
             retrieved documents.
 
         Raises:
@@ -1373,7 +1398,7 @@ class RedisMongoDB(AtomDB):
         else:
             raise ValueError(f"Index '{index_id}' does not exist in collection '{collection}'")
 
-    def reindex(self, pattern_index_templates: list[dict[str, Any]] | None = None) -> None:
+    def reindex(self, pattern_index_templates: dict[str, list[DocumentT]] | None = None) -> None:
         if isinstance(pattern_index_templates, list):
             self._save_pattern_index(deepcopy(pattern_index_templates))
             self._setup_indexes({'pattern_index_templates': pattern_index_templates})
@@ -1385,9 +1410,7 @@ class RedisMongoDB(AtomDB):
 
         mongo_filter: dict[str, str] = {FieldNames.ID_HASH: handle}
 
-        document: dict[str, Any] | None = self.mongo_atoms_collection.find_one_and_delete(
-            mongo_filter
-        )
+        document: DocumentT | None = self.mongo_atoms_collection.find_one_and_delete(mongo_filter)
 
         if not document:
             logger().error(
@@ -1490,9 +1513,16 @@ class RedisMongoDB(AtomDB):
 
     def retrieve_all_atoms(self) -> list[AtomT]:
         try:
-            return list(self.mongo_atoms_collection.find())
+            all_atoms: list[AtomT] = []
+            document: DocumentT = {}
+            for document in self.mongo_atoms_collection.find():
+                if self._is_document_link(document) and FieldNames.TARGETS not in document:
+                    document[FieldNames.TARGETS] = self._get_document_keys(document)
+                atom = self._build_atom_from_dict(document)
+                all_atoms.append(atom)
+            return all_atoms
         except Exception as e:
-            logger().error(f"Error retrieving all atoms: {str(e)}")
+            logger().error(f"Error retrieving all atoms: {type(e)}: {str(e)}, {document=}")
             raise e
 
     def bulk_insert(self, documents: list[AtomT]) -> None:
@@ -1504,7 +1534,7 @@ class RedisMongoDB(AtomDB):
         Additional keyword arguments can be used to customize the insertion behavior.
 
         Args:
-            documents (list[dict[str, Any]]): A list of documents to be inserted into the collection.
+            documents (list[AtomT]): A list of atoms to be inserted into the collection.
 
         Raises:
             pymongo.errors.BulkWriteError: If there is an error during the bulk write operation.
@@ -1512,8 +1542,9 @@ class RedisMongoDB(AtomDB):
         """
         try:
             _id = FieldNames.ID_HASH
-            for document in documents:
+            docs: list[DocumentT] = [d.to_dict() for d in documents]
+            for document in docs:
                 self.mongo_atoms_collection.replace_one({_id: document[_id]}, document, upsert=True)
-            self._update_atom_indexes(documents)
+            self._update_atom_indexes(docs)
         except Exception as e:  # pylint: disable=broad-except
             logger().error(f"Error bulk inserting documents: {str(e)}")
