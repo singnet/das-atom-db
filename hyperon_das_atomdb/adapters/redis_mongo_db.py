@@ -181,7 +181,7 @@ class RedisMongoDB(AtomDB):
         """Initialize an instance of a custom class with Redis and MongoDB connections."""
         super().__init__()
         self.database_name = "das"
-        self.max_pos_size = 4
+        self.max_pos_size_custom_index_template = 4
 
         self._setup_databases(**kwargs)
 
@@ -444,8 +444,10 @@ class RedisMongoDB(AtomDB):
         if not isinstance(template["arity"], int) or template["arity"] < 0:
             raise ValueError("'arity' must be an integer greater than or equal to zero.")
 
-        if len(template["positions"]) > self.max_pos_size:
-            raise ValueError(f"'positions' array should be less than {self.max_pos_size}.")
+        if len(template["positions"]) > self.max_pos_size_custom_index_template:
+            raise ValueError(
+                f"'positions' array should be less than {self.max_pos_size_custom_index_template}."
+            )
 
         if any(pos >= template["arity"] for pos in template["positions"]):
             raise ValueError("'positions' parameter must be in range of the arity.")
