@@ -785,7 +785,6 @@ class TestRedisMongoDB:
             exec_info.value.args[0]
             == "'pattern_index_templates' value doesn't match with found on database"
         )
-        # assert len(db.default_pattern_index_templates) == expected
 
     @pytest.mark.parametrize(
         "templates,expected",
