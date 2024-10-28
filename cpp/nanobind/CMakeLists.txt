@@ -57,7 +57,7 @@ find_package(nanobind CONFIG REQUIRED)
 
 # Include directories
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   /usr/local/include
 )
 
@@ -74,7 +74,7 @@ else()
   message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
 endif()
 
-file(GLOB_RECURSE headers ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/include/*.h)
+file(GLOB_RECURSE headers ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
 nanobind_add_module(
   ${EXTENSION_NAME}
@@ -91,7 +91,7 @@ nanobind_add_module(
   # replace this flag by NB_SHARED to conserve space by
   # reusing a shared libnanobind across libraries
   NB_STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/nanobind/${PROJECT_NAME}_bind.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}_bind.cc
   ${headers}
 )
 
