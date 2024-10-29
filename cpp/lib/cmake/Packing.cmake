@@ -41,4 +41,3 @@ set(CPACK_DEB_COMPONENT_INSTALL YES)
 
 include(CPack)
 
-message(STATUS "Components to pack: ${CPACK_COMPONENTS_ALL}")

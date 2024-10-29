@@ -55,23 +55,15 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
+# Detect the installed atomdb package and import it into CMake
+set(hyperon_das_atomdb_cpp_DIR "/usr/local/cmake/hyperon_das_atomdb_cpp")
+find_package(hyperon_das_atomdb_cpp CONFIG REQUIRED)
+
 # Include directories
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   /usr/local/include
 )
-
-if(EXISTS /usr/local/lib/libhyperon_das_atomdb_cpp.a)
-  set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib/libhyperon_das_atomdb_cpp.a)
-elseif(EXISTS /usr/local/lib64/libhyperon_das_atomdb_cpp.a)
-  set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib64/libhyperon_das_atomdb_cpp.a)
-else()
-  message(FATAL_ERROR "libhyperon_das_atomdb_cpp.a not found in /usr/local/lib or /usr/local/lib64")
-endif()
-
-add_library(libhyperon_das_atomdb_cpp STATIC IMPORTED)
-set_target_properties(
-  libhyperon_das_atomdb_cpp PROPERTIES IMPORTED_LOCATION ${LIB_HYPERON_DAS_ATOMDB_CPP_PATH})
 
 file(GLOB_RECURSE headers ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 file(GLOB_RECURSE sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
@@ -95,6 +87,6 @@ nanobind_add_module(
   ${headers}
 )
 
-target_link_libraries(${EXTENSION_NAME} PRIVATE libhyperon_das_atomdb_cpp)
+target_link_libraries(${EXTENSION_NAME} PRIVATE atomdb::hyperon_das_atomdb_cpp)
 
 install(TARGETS ${EXTENSION_NAME} LIBRARY DESTINATION ${PROJECT_NAME})

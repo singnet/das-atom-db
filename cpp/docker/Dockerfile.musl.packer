@@ -25,4 +25,4 @@ RUN rm -rf /tmp/deps
 
 WORKDIR /hyperon_das_atomdb_cpp
 
-CMD ["bash", "-x", "./scripts/_build_musl_wheel.sh"]
+CMD ["bash", "-x", "./scripts/_build_musl_packs.sh"]

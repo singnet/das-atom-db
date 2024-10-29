@@ -26,6 +26,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 add_library(${PROJECT_NAME} STATIC)
 
+# Detect the installed mbedtls static library and import it into hyperon_das_atomdb_cpp
 if(EXISTS /usr/local/lib/libmbedcrypto.a)
   set(LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
 elseif(EXISTS /usr/local/lib64/libmbedcrypto.a)
@@ -34,6 +35,11 @@ else()
   message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
 endif()
 
+# This step is required to embed the `mbedtls` library into the `hyperon_das_atomdb_cpp` static
+# library. This is done to avoid the need to install the `mbedtls` library on the target system.
+# Teoretically, it would be possible to do the same with just `CMAKE_CXX_ARCHIVE_CREATE`, but it
+# does not work as expected due to some limitations related to the number of files that can be
+# passed as objects.
 set(MBCRYPTO_SYMBOLS_PATH ${CMAKE_BINARY_DIR}/mbedcrypto_symbols)
 make_directory(${MBCRYPTO_SYMBOLS_PATH})
 execute_process(COMMAND ar x ${LIBMBCRYPTO_PATH} --output=${MBCRYPTO_SYMBOLS_PATH})
