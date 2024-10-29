@@ -51,7 +51,7 @@ find_package(Python 3.10
 
 # Detect the installed nanobind package and import it into CMake
 execute_process(
-  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  COMMAND "${PYTHON_EXECUTABLE}" -m nanobind --cmake_dir
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
@@ -61,20 +61,17 @@ include_directories(
   /usr/local/include
 )
 
-add_library(libmbedcrypto STATIC IMPORTED)
-set(ALMALINUX_LIBMBCRYPTO_PATH /usr/local/lib64/libmbedcrypto.a)
-set(ALPINE_LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
-if(EXISTS "${ALMALINUX_LIBMBCRYPTO_PATH}")
-  set_target_properties(
-    libmbedcrypto PROPERTIES IMPORTED_LOCATION ${ALMALINUX_LIBMBCRYPTO_PATH})
-elseif(EXISTS "${ALPINE_LIBMBCRYPTO_PATH}")
-  set_target_properties(
-    libmbedcrypto PROPERTIES IMPORTED_LOCATION ${ALPINE_LIBMBCRYPTO_PATH})
-else()
-  message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
+set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib/libhyperon_das_atomdb_cpp.a)
+if(NOT EXISTS "${LIB_HYPERON_DAS_ATOMDB_CPP_PATH}")
+  message(FATAL_ERROR "libhyperon_das_atomdb_cpp.a not found in /usr/local/lib")
 endif()
 
+add_library(libhyperon_das_atomdb_cpp STATIC IMPORTED)
+set_target_properties(
+  libhyperon_das_atomdb_cpp PROPERTIES IMPORTED_LOCATION ${LIB_HYPERON_DAS_ATOMDB_CPP_PATH})
+
 file(GLOB_RECURSE headers ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+file(GLOB_RECURSE sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 nanobind_add_module(
   ${EXTENSION_NAME}
@@ -91,10 +88,10 @@ nanobind_add_module(
   # replace this flag by NB_SHARED to conserve space by
   # reusing a shared libnanobind across libraries
   NB_STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}_bind.cc
+  ${sources}
   ${headers}
 )
 
-target_link_libraries(${EXTENSION_NAME} PRIVATE libmbedcrypto hyperon_das_atomdb_cpp)
+target_link_libraries(${EXTENSION_NAME} PRIVATE libhyperon_das_atomdb_cpp)
 
 install(TARGETS ${EXTENSION_NAME} LIBRARY DESTINATION ${PROJECT_NAME})

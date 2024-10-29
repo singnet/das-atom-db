@@ -1,12 +1,11 @@
 format:
-	@find ./lib ./nanobind \
+	@find ./lib/include ./lib/src ./nanobind/include ./nanobind/src \
 		-iname "*.hpp" -o \
 		-iname "*.cpp" -o \
 		-iname "*.hh" -o \
 		-iname "*.cc" -o \
 		-iname "*.h" -o \
 		-iname "*.c" \
-		| grep -Ev '(./lib/build|./nanobind/build)' \
 		| xargs clang-format -verbose -style=file -i
 
 wheeler-images:

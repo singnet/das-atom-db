@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.15...3.30)
 
-set(LIB_VERSION 0.0.1)
 if(DEFINED CMAKE_PROJECT_VERSION AND NOT "${CMAKE_PROJECT_VERSION}" STREQUAL "")
   set(LIB_VERSION ${CMAKE_PROJECT_VERSION})
+else()
+  message(FATAL_ERROR "CMAKE_PROJECT_VERSION is not defined or is empty")
 endif()
 
 set(namespace "atomdb")
@@ -12,21 +13,38 @@ project(
   DESCRIPTION "Atom Space DB for Hyperon DAS"
 )
 
-set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME}-dev")
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}-dev")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Ofast")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 add_library(${PROJECT_NAME} STATIC)
+
+set(LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
+if(NOT EXISTS "${LIBMBCRYPTO_PATH}")
+  message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib")
+endif()
+
+set(MBCRYPTO_SYMBOLS_PATH ${CMAKE_BINARY_DIR}/mbedcrypto_symbols)
+make_directory(${MBCRYPTO_SYMBOLS_PATH})
+execute_process(COMMAND ar x ${LIBMBCRYPTO_PATH} --output=${MBCRYPTO_SYMBOLS_PATH})
+file(GLOB mbedcrypto_symbols ${MBCRYPTO_SYMBOLS_PATH}/*.o)
+set(CREATE_STATIC_LIB_SCRIPT ${PROJECT_SOURCE_DIR}/scripts/_create_static_library.sh)
+set(CMAKE_CXX_CREATE_STATIC_LIBRARY
+  "${CREATE_STATIC_LIB_SCRIPT} <TARGET> <OBJECTS> ${MBCRYPTO_SYMBOLS_PATH}/*o")
 
 file(GLOB_RECURSE sources
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE headers
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hh
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
 
-target_sources(${PROJECT_NAME} PRIVATE ${sources})
+target_sources(${PROJECT_NAME} PRIVATE ${sources} ${headers})
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE
@@ -39,11 +57,6 @@ target_include_directories(${PROJECT_NAME}
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-file(GLOB_RECURSE headers
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hh
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
-
 # without it public headers won't get installed
 set(public_headers ${headers})
 
@@ -53,3 +66,5 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Werror)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(Installing)
 include(Packing)
+
+

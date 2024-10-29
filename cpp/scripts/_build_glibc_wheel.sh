@@ -4,8 +4,19 @@ source $(dirname $0)/common.sh
 
 # This script is used to build a wheel for the current package.
 
-TMP_DEST_DIR="tmp_dist"
-DEST_DIR="dist"
+# Check if the RPM files are present
+if [ ! -e ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm 2>&1 >/dev/null ]; then
+    echo "Error: No RPM files found in ${LIB_DIST_DIR}"
+    exit 1
+fi
+
+# Install the RPM file
+rpm -i ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm
+[ $? -ne 0 ] && exit 1
+
+NANOBIND_ROOT=$(realpath "${PWD}/nanobind")
+TMP_DEST_DIR="${NANOBIND_ROOT}/tmp_dist"
+DEST_DIR="${NANOBIND_ROOT}/dist"
 
 # Remove existing/old wheel files
 rm -rf ${TMP_DEST_DIR}
@@ -16,6 +27,7 @@ mkdir -p ${TMP_DEST_DIR} ${DEST_DIR}
 [ $? -ne 0 ] && exit 1
 
 # Build wheel
+cd ${NANOBIND_ROOT}
 ${PYTHON_EXECUTABLE} -m pip wheel . --wheel-dir ${TMP_DEST_DIR}
 [ $? -ne 0 ] && exit 1
 
