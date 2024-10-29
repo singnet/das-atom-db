@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-# This script is used to build installable packages (DEB, TGZ, etc.) for the current package.
+# This script is used to build installable packages (DEB, RPM, etc.).
 
 LIB_DIR="${PWD}/lib"
 DIST_DIR="${LIB_DIR}/dist"
