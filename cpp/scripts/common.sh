@@ -1,14 +1,15 @@
 # AlmaLinux variables
-WHEELER_GLIBC_CONTAINER_NAME="das-atomdb-cpp-glibc-packer"
-WHEELER_GLIBC_DOCKER_FILE="docker/Dockerfile.glibc.packer"
+PACKER_GLIBC_CONTAINER_NAME="das-atomdb-cpp-glibc-packer"
+PACKER_GLIBC_DOCKER_FILE="docker/Dockerfile.glibc.packer"
 GLIBC_WHEEL_NAME_PATTERN="*manylinux_2_28_x86_64*.whl"
 
 # Alpine variables
-WHEELER_MUSL_CONTAINER_NAME="das-atomdb-cpp-musl-packer"
-WHEELER_MUSL_DOCKER_FILE="docker/Dockerfile.musl.packer"
+PACKER_MUSL_CONTAINER_NAME="das-atomdb-cpp-musl-packer"
+PACKER_MUSL_DOCKER_FILE="docker/Dockerfile.musl.packer"
 MUSL_WHEEL_NAME_PATTERN="*musllinux_1_2_x86_64*.whl"
 
 # common variables
+PACKER_COMMON_DOCKER_FILE="docker/Dockerfile.common.packer"
 NANOBIND_ROOT=$(realpath "$(dirname $0)/../nanobind")
 PYPROJECT_TOML_FILE="${NANOBIND_ROOT}/pyproject.toml"
 PROJECT_VERSION=$(

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 source $(dirname $0)/common.sh
 
@@ -8,7 +8,7 @@ docker run --rm \
     -e _GROUP=$(id -g) \
     -v $PWD:/hyperon_das_atomdb_cpp \
     --workdir /hyperon_das_atomdb_cpp \
-    --name=$WHEELER_GLIBC_CONTAINER_NAME \
-    $WHEELER_GLIBC_CONTAINER_NAME
+    --name=$PACKER_GLIBC_CONTAINER_NAME \
+    $PACKER_GLIBC_CONTAINER_NAME
 
 
