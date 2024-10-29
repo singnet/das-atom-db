@@ -1,8 +1,11 @@
-#!/bin/bash
+#!/bin/bash -x
 
 source $(dirname $0)/common.sh
 
 # This script is used to build a wheel for the current package.
+
+export CMAKE_PROJECT_VERSION=${PROJECT_VERSION}
+$(dirname $0)/_build_atomdb_lib_with_glibc.sh
 
 # Check if the RPM files are present
 if [ ! -e ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm 2>&1 >/dev/null ]; then
@@ -11,7 +14,7 @@ if [ ! -e ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm 2>&1 >/dev/null ]; then
 fi
 
 # Install the RPM file
-rpm -i ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm
+rpm -U --force ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm
 [ $? -ne 0 ] && exit 1
 
 NANOBIND_ROOT=$(realpath "${PWD}/nanobind")
@@ -32,7 +35,7 @@ ${PYTHON_EXECUTABLE} -m pip wheel . --wheel-dir ${TMP_DEST_DIR}
 [ $? -ne 0 ] && exit 1
 
 # Repair wheel - tag as manylinux
-find ${TMP_DEST_DIR} -type f -name "*abi3-linux_x86_64.whl" \
+find ${TMP_DEST_DIR} -type f -name "*.whl" \
   -exec ${PYTHON_EXECUTABLE} -m auditwheel repair {} -w ${DEST_DIR} \;
 [ $? -ne 0 ] && exit 1
 

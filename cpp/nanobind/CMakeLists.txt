@@ -61,9 +61,12 @@ include_directories(
   /usr/local/include
 )
 
-set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib/libhyperon_das_atomdb_cpp.a)
-if(NOT EXISTS "${LIB_HYPERON_DAS_ATOMDB_CPP_PATH}")
-  message(FATAL_ERROR "libhyperon_das_atomdb_cpp.a not found in /usr/local/lib")
+if(EXISTS /usr/local/lib/libhyperon_das_atomdb_cpp.a)
+  set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib/libhyperon_das_atomdb_cpp.a)
+elseif(EXISTS /usr/local/lib64/libhyperon_das_atomdb_cpp.a)
+  set(LIB_HYPERON_DAS_ATOMDB_CPP_PATH /usr/local/lib64/libhyperon_das_atomdb_cpp.a)
+else()
+  message(FATAL_ERROR "libhyperon_das_atomdb_cpp.a not found in /usr/local/lib or /usr/local/lib64")
 endif()
 
 add_library(libhyperon_das_atomdb_cpp STATIC IMPORTED)

@@ -6,6 +6,10 @@ else()
   message(FATAL_ERROR "CMAKE_PROJECT_VERSION is not defined or is empty")
 endif()
 
+if(NOT DEFINED TARGET_TYPE OR "${TARGET_TYPE}" STREQUAL "")
+  message(FATAL_ERROR "TARGET_TYPE is not defined or is empty")
+endif()
+
 set(namespace "atomdb")
 project(
   "hyperon_das_atomdb_cpp"
@@ -22,9 +26,12 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 add_library(${PROJECT_NAME} STATIC)
 
-set(LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
-if(NOT EXISTS "${LIBMBCRYPTO_PATH}")
-  message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib")
+if(EXISTS /usr/local/lib/libmbedcrypto.a)
+  set(LIBMBCRYPTO_PATH /usr/local/lib/libmbedcrypto.a)
+elseif(EXISTS /usr/local/lib64/libmbedcrypto.a)
+  set(LIBMBCRYPTO_PATH /usr/local/lib64/libmbedcrypto.a)
+else()
+  message(FATAL_ERROR "libmbedcrypto.a not found in /usr/local/lib or /usr/local/lib64")
 endif()
 
 set(MBCRYPTO_SYMBOLS_PATH ${CMAKE_BINARY_DIR}/mbedcrypto_symbols)
