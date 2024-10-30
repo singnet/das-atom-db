@@ -65,7 +65,7 @@ jobs:
 
       - name: Update version
         working-directory: hyperon_das_atomdb_cpp
-        run: sed -i 's/version = ".*"/version = "${{ github.event.inputs.version }}"/' pyproject.toml
+        run: sed -i 's/^version = ".*"/version = "${{ github.event.inputs.version }}"/' pyproject.toml
 
       - name: Build Wheels
         working-directory: hyperon_das_atomdb_cpp
