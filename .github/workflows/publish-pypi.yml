@@ -48,7 +48,7 @@ jobs:
 
   publish-cpp:
     needs: tag
-    environment: prod
+    environment: prod-cpp
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
