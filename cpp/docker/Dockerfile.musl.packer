@@ -1,0 +1,4 @@
+# See https://github.com/pypa/manylinux for more information
+FROM quay.io/pypa/musllinux_1_2_x86_64
+
+CMD ["bash", "-x", "./scripts/_build_musl_packs.sh"]

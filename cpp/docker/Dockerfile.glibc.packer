@@ -1,0 +1,6 @@
+# See https://github.com/pypa/manylinux for more information
+FROM quay.io/pypa/manylinux_2_28_x86_64
+
+RUN dnf install -y rpm-build
+
+CMD ["bash", "-x", "./scripts/_build_glibc_packs.sh"]
