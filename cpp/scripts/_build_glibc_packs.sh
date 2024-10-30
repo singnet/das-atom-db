@@ -21,9 +21,10 @@ rpm -U --force ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.rpm
 NANOBIND_ROOT=$(realpath "${PWD}/nanobind")
 TMP_DEST_DIR="${NANOBIND_ROOT}/tmp_dist"
 DEST_DIR="${NANOBIND_ROOT}/dist"
+BUILD_DIR="${NANOBIND_ROOT}/build"
 
 # Remove existing/old wheel files
-rm -rf ${TMP_DEST_DIR}
+rm -rf ${TMP_DEST_DIR} ${BUILD_DIR}
 rm -f ${DEST_DIR}/${GLIBC_WHEEL_NAME_PATTERN}
 
 # Create dirs

@@ -365,4 +365,8 @@ NB_MODULE(ext, m) {
         .def("__setstate__", &helpers::tuple_to_link)
         .def("to_dict", &helpers::link_to_dict);
     // ---------------------------------------------------------------------------------------------
+    // Disabling leak warnings as they can happen on Python interpreter shutdown, even if there are
+    // no actual leaks. This is a known issue related the Python C API, `typing` module and
+    // shared pointers. Re-enable them to run debugs if you suspect a leak in the code.
+    nb::set_leak_warnings(false);
 }
