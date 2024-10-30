@@ -22,29 +22,29 @@ jobs:
       deliverable: Library in PyPI named hyperon-das-atomdb
     secrets: inherit
 
-  publish:
-    needs: tag
-    environment: prod
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  # publish:
+  #   needs: tag
+  #   environment: prod
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ~3.10
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ~3.10
 
-      - name: Install Poetry
-        run: |
-          pip install poetry
-          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+  #     - name: Install Poetry
+  #       run: |
+  #         pip install poetry
+  #         poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
 
-      - name: Build and Publishing library version in PyPI
-        run: |
-          poetry version ${{ github.event.inputs.version }}
-          poetry build
-          poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+  #     - name: Build and Publishing library version in PyPI
+  #       run: |
+  #         poetry version ${{ github.event.inputs.version }}
+  #         poetry build
+  #         poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
 
   publish-cpp:
     needs: tag
