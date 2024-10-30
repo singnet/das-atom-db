@@ -21,9 +21,10 @@ tar zvxf ${LIB_DIST_DIR}/${LIB_NAME_PATTERN}*.tar.gz --strip-components=1 -C /
 NANOBIND_ROOT=$(realpath "${PWD}/nanobind")
 TMP_DEST_DIR="${NANOBIND_ROOT}/tmp_dist"
 DEST_DIR="${NANOBIND_ROOT}/dist"
+BUILD_DIR="${NANOBIND_ROOT}/build"
 
 # Remove existing/old wheel files
-rm -rf ${TMP_DEST_DIR}
+rm -rf ${TMP_DEST_DIR} ${BUILD_DIR}
 rm -f ${DEST_DIR}/${MUSL_WHEEL_NAME_PATTERN}
 
 # Create dirs
