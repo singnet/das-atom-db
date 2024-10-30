@@ -976,6 +976,8 @@ class RedisMongoDB(AtomDB):
             if targets[template["target_position"]] == template["target_value"]:
                 for cursor in range(arity):
                     key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])
+            else:
+                return None
         else:
             for cursor in range(arity):
                 key.append(WILDCARD if cursor in target_selected_pos else targets[cursor])

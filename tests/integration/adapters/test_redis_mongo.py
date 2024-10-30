@@ -1255,7 +1255,7 @@ class TestRedisMongo:
         ]
 
     @pytest.mark.parametrize(
-        "template,metta_link,queries",
+        "template,metta_link,queries,expected",
         [
             (
                 [
@@ -1273,6 +1273,7 @@ class TestRedisMongo:
                     ("Similarity", '"Human"', "*"),
                     ("Similarity", "*", "*"),
                 ],
+                8,
             ),
             (
                 [
@@ -1286,7 +1287,30 @@ class TestRedisMongo:
                 '(transcribed_to (gene "ENSG00000290825") (transcript "ENST00000456328"))',
                 [
                     ("transcribed_to", "*", "*"),
+                    (
+                        "transcribed_to",
+                        ExpressionHasher.composite_hash(
+                            [
+                                ExpressionHasher.named_type_hash("Expression"),
+                                ExpressionHasher.terminal_hash("Symbol", "gene"),
+                                ExpressionHasher.terminal_hash("Symbol", '"ENSG00000290825"'),
+                            ]
+                        ),
+                        "*",
+                    ),
+                    (
+                        "transcribed_to",
+                        "*",
+                        ExpressionHasher.composite_hash(
+                            [
+                                ExpressionHasher.named_type_hash("Expression"),
+                                ExpressionHasher.terminal_hash("Symbol", "transcript"),
+                                ExpressionHasher.terminal_hash("Symbol", '"ENST00000456328"'),
+                            ]
+                        ),
+                    ),
                 ],
+                8,
             ),
             (
                 [
@@ -1301,6 +1325,7 @@ class TestRedisMongo:
                 [
                     ("synonyms", "*", "*"),
                 ],
+                8,
             ),
             (
                 [
@@ -1315,16 +1340,21 @@ class TestRedisMongo:
                 [
                     ("tf_name", "*", "*"),
                 ],
+                8,
             ),
         ],
     )
     def test_index_pattern_generation(
-        self, template, metta_link, queries, _cleanup, redis_mongo_up
+        self, template, metta_link, queries, expected, _cleanup, redis_mongo_up
     ):
         db: RedisMongoDB = self._connect_db({"pattern_index_templates": template})
         db.add_link(dict_to_link_params(metta_to_links(metta_link)))
         db.commit()
         for q in queries:
-            tt = [ExpressionHasher.terminal_hash("Symbol", n) if n != "*" else "*" for n in q]
+            tt = [
+                n if n == "*" or len(n) == 32 else ExpressionHasher.terminal_hash("Symbol", n)
+                for n in q
+            ]
             links: set[str] = db.get_matched_links("*", tt)
             assert len(links) == 1
+        assert len(db.pattern_index_templates) == expected
