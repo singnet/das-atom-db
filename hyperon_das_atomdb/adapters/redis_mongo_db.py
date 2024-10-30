@@ -191,7 +191,7 @@ class RedisMongoDB(AtomDB):
             (MongoCollectionNames.ATOMS, self.mongo_atoms_collection),
             (MongoCollectionNames.ATOM_TYPES, self.mongo_types_collection),
         ]
-        self.pattern_index_templates: dict[str, list[DocumentT]] | None = None
+        self.pattern_index_templates: list[dict[str, Any]] | None = None
         self.pattern_templates: list | None = None
         self.mongo_das_config_collection: Collection | None = None
         if MongoCollectionNames.DAS_CONFIG not in self.mongo_db.list_collection_names():
@@ -476,7 +476,7 @@ class RedisMongoDB(AtomDB):
         if not self.pattern_templates:
             raise ValueError("Index not loaded")
 
-        self.default_pattern_index_templates = []
+        self.pattern_index_templates = []
         for template in self.pattern_templates:
             is_named_type = template["field"] == "named_type"
             p_size = len(template["positions"])
@@ -486,6 +486,7 @@ class RedisMongoDB(AtomDB):
             target_pos = self._validate_template_index_and_get_position(template)
 
             values = itertools.product([True, False], repeat=i_size)
+
             for v in values:
                 if is_wild_card and all(v) and arity == p_size:
                     continue
@@ -503,7 +504,7 @@ class RedisMongoDB(AtomDB):
                         template["positions"][i] for i, pos in enumerate(v[1:]) if pos
                     ],
                 }
-                self.default_pattern_index_templates.append(t)
+                self.pattern_index_templates.append(t)
         # NOTE creating index for name search
         self.create_field_index("node", fields=["name"])
 
@@ -1235,14 +1236,9 @@ class RedisMongoDB(AtomDB):
         targets: HandleListT = self._get_document_keys(document)
         targets_str: str = "".join(targets)
         arity: int = len(targets)
-        named_type: str = document[FieldNames.TYPE_NAME]
         named_type_hash: str = document[FieldNames.TYPE_NAME_HASH]
 
-        index_templates: list[dict[str, Any]]
-        if self.pattern_index_templates:
-            index_templates = self.pattern_index_templates.get(named_type, [])
-        else:
-            index_templates = self.default_pattern_index_templates
+        index_templates = self.pattern_index_templates or []
 
         if kwargs.get("delete_atom", False):
             links_handle = self._retrieve_and_delete_incoming_set(handle)

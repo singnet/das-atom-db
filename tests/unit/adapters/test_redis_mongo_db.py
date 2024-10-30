@@ -737,8 +737,8 @@ class TestRedisMongoDB:
     ):
         self.database_config = {"pattern_index_templates": templates}
         db = database_custom_index(**self.database_config)
-        print(db.default_pattern_index_templates)
-        assert len(db.default_pattern_index_templates) == expected
+        print(db.pattern_index_templates)
+        assert len(db.pattern_index_templates) == expected
 
     @pytest.mark.parametrize(
         "templates,expected",
@@ -775,7 +775,7 @@ class TestRedisMongoDB:
         db = database_custom_index(**self.database_config)
         db._load_pattern_index({})
         assert db.pattern_templates == templates if templates is not None else True
-        assert len(db.default_pattern_index_templates) == expected
+        assert len(db.pattern_index_templates) == expected
 
     @pytest.mark.parametrize(
         "templates,expected",
@@ -943,7 +943,7 @@ class TestRedisMongoDB:
         db = database_custom_index(**self.database_config)
         db._load_pattern_index({})
         assert db.pattern_templates == templates
-        assert len(db.default_pattern_index_templates) == expected
+        assert len(db.pattern_index_templates) == expected
 
     @pytest.mark.parametrize(
         "templates,expected",
@@ -966,9 +966,9 @@ class TestRedisMongoDB:
     ):
         self.database_config = {"pattern_index_templates": templates}
         db: RedisMongoDB = database_custom_index()  # loads the default template
-        assert len(db.default_pattern_index_templates) == 15
+        assert len(db.pattern_index_templates) == 15
         db.reindex(**self.database_config)
-        assert len(db.default_pattern_index_templates) == expected
+        assert len(db.pattern_index_templates) == expected
 
     @pytest.mark.parametrize(
         "templates,link_template,expected_default,expected",
