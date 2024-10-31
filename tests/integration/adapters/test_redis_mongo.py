@@ -1189,7 +1189,6 @@ class TestRedisMongo:
         "node", [({"type": "A", "name": "type_a", "custom_attributes": {"status": "ready"}})]
     )
     def test_get_atoms_by_index_custom_att(self, node, _cleanup, _db: RedisMongoDB):
-        # node = NodeT(**node)
         node = _db.add_node(NodeT(**node))
         _db.commit()
         result = _db.create_field_index("node", fields=["custom_attributes.status"])
