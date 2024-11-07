@@ -4,7 +4,7 @@ import mongomock
 import pytest
 
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoCollectionNames, RedisMongoDB
+from hyperon_das_atomdb.adapters.redis_mongo_db import RedisMongoDB
 
 
 class MockRedis:
@@ -95,10 +95,18 @@ class MockRedis:
         return (new_cursor, elements[start:end])
 
 
-@pytest.fixture()
+def mongo_mock():
+    return mongomock.MongoClient().db
+
+
+def redis_mock():
+    return MockRedis()
+
+
+@pytest.fixture
 def redis_mongo_db():
-    mongo_db = mongomock.MongoClient().db
-    redis_db = MockRedis()
+    mongo_db = mongo_mock()
+    redis_db = redis_mock()
     with mock.patch(
         "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
         return_value=mongo_db,
@@ -107,20 +115,8 @@ def redis_mongo_db():
         return_value=redis_db,
     ):
         db = RedisMongoDB()
-        db.mongo_atoms_collection = mongo_db.collection
-        db.mongo_types_collection = mongo_db.collection
-        db.redis = redis_db
 
-        db.all_mongo_collections = [
-            (MongoCollectionNames.ATOMS, db.mongo_atoms_collection),
-            (MongoCollectionNames.ATOM_TYPES, db.mongo_types_collection),
-        ]
-        db.mongo_bulk_insertion_buffer = {
-            MongoCollectionNames.ATOMS: tuple([db.mongo_atoms_collection, set()]),
-            MongoCollectionNames.ATOM_TYPES: tuple([db.mongo_types_collection, set()]),
-        }
-
-    yield db
+        yield db
 
 
 @pytest.fixture
