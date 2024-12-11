@@ -40,6 +40,26 @@ class TestDatabase:
         for link in all_links:
             db.add_link(dict_to_link_params(link))
 
+    def _load_db_redis_mongo(self, db):
+        import json
+        import pathlib
+
+        path = pathlib.Path(__file__).parent.resolve()
+        with open(f"{path}/adapters/data/atom_mongo_redis.json") as f:
+            atoms = json.load(f)
+            for atom in atoms:
+                if "name" in atom:
+                    db.add_node(dict_to_node_params(atom))
+                else:
+                    # atom.update({"named_type": atom["type"]})
+                    top_level = atom["is_toplevel"]
+                    del atom["is_toplevel"]
+                    db.add_link(dict_to_link_params(atom), toplevel=top_level)
+        try:
+            db.commit()
+        except:  # noqa: F841,E722
+            pass
+
     @pytest.mark.parametrize(
         "expected",
         [
@@ -561,6 +581,93 @@ class TestDatabase:
                     link = link[1] if len(link) > 1 else None
         else:
             assert all([check_handle(link) for link in links])
+
+    @pytest.mark.parametrize(
+        "params,links_len",
+        [
+            ({"link_type": "*", "target_handles": ["*", "*"]}, 2),
+            ({"link_type": "*", "target_handles": ["*"]}, 1),
+            ({"link_type": "Aa", "target_handles": ["123123"]}, 0),
+            ({"link_type": "Aa", "target_handles": ["afdb1c23e7f2da1f33c2a3a91d7959a7"]}, 1),
+            ({"link_type": "*", "target_handles": ["afdb1c23e7f2da1f33c2a3a91d7959a7"]}, 1),
+            (
+                {
+                    "link_type": "Bab",
+                    "target_handles": [
+                        "afdb1c23e7f2da1f33c2a3a91d7959a7",
+                        "762745ca7757082780f428ba4116ea46",
+                    ],
+                },
+                1,
+            ),
+            (
+                {
+                    "link_type": "*",
+                    "target_handles": [
+                        "afdb1c23e7f2da1f33c2a3a91d7959a7",
+                        "762745ca7757082780f428ba4116ea46",
+                    ],
+                },
+                1,
+            ),
+            ({"link_type": "*", "target_handles": ["afdb1c23e7f2da1f33c2a3a91d7959a7", "*"]}, 2),
+            ({"link_type": "*", "target_handles": ["*", "762745ca7757082780f428ba4116ea46"]}, 1),
+            ({"link_type": "*", "target_handles": ["*", "47a0059c63c6943615c232a29a315018"]}, 1),
+            ({"link_type": "CaA", "target_handles": ["*", "47a0059c63c6943615c232a29a315018"]}, 1),
+        ],
+    )
+    def test_get_matched_links_more(self, database, params, links_len, request):
+        db: AtomDB = request.getfixturevalue(database)
+        node_a_d = {"name": "a", "type": "Test"}
+        node_b_d = {"name": "b", "type": "Test"}
+        link_a_d = {"type": "Aa", "targets": [node_a_d]}
+        # afdb1c23e7f2da1f33c2a3a91d7959a7
+        add_node(db, "a", "Test", database)
+        # 762745ca7757082780f428ba4116ea46
+        add_node(db, "b", "Test", database)
+        # 47a0059c63c6943615c232a29a315018
+        add_link(db, "Aa", [dict_to_node_params(node_a_d)], database)
+        # 51255240d91ea1e045260355cf19d3b2
+        add_link(
+            db, "Bab", [dict_to_node_params(node_a_d), dict_to_node_params(node_b_d)], database
+        )
+        # 2b9c92b0b219881f4b6121f08f4850ba
+        add_link(
+            db, "CaA", [dict_to_node_params(node_a_d), dict_to_link_params(link_a_d)], database
+        )
+        links = db.get_matched_links(**params)
+        assert len(links) == links_len
+
+    @pytest.mark.parametrize(
+        "link_type,link_targets,expected_count",
+        [
+            ("*", ["*", "*"], 28),
+            # ("LinkTest", ["*", "*", "*", "*"], 1),
+            ("Similarity", ["*", "af12f10f9ae2002a1607ba0b47ba8407"], 3),
+            ("Similarity", ["af12f10f9ae2002a1607ba0b47ba8407", "*"], 3),
+            (
+                "Inheritance",
+                ["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"],
+                1,
+            ),
+            (
+                "Evaluation",
+                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                1,
+            ),
+            (
+                "Evaluation",
+                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                1,
+            ),
+            ("Evaluation", ["*", "99d18c702e813b07260baf577c60c455"], 1),
+        ],
+    )
+    def test_patterns(self, link_type, link_targets, expected_count, database, request):
+        db: AtomDB = request.getfixturevalue(database)
+        self._load_db_redis_mongo(db)
+        links = db.get_matched_links(link_type, link_targets)
+        assert len(links) == expected_count
 
     @pytest.mark.parametrize(
         "targets,link_type,expected",

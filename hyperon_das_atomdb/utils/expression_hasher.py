@@ -7,6 +7,7 @@ hashes and provides methods for creating composite hashes from lists of elements
 """
 
 from hashlib import md5
+from typing import Any
 
 
 class ExpressionHasher:
@@ -88,7 +89,7 @@ class ExpressionHasher:
         return ExpressionHasher.composite_hash([named_type_hash, *elements])
 
     @staticmethod
-    def composite_hash(hash_base: str | list[str]) -> str:
+    def composite_hash(hash_base: str | list[Any]) -> str:
         """
         Compute the composite hash for the given base.
 

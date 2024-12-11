@@ -50,7 +50,7 @@ DocumentT: TypeAlias = dict[str, Any]
 # pylint: enable=invalid-name
 
 
-def _build_redis_key(prefix: str, key: str) -> str:
+def _build_redis_key(prefix: str, key: str | list[Any]) -> str:
     """
     Build a Redis key by concatenating the given prefix and key with a colon separator.
 
@@ -61,7 +61,7 @@ def _build_redis_key(prefix: str, key: str) -> str:
     Returns:
         str: The concatenated Redis key.
     """
-    return prefix + ":" + key
+    return prefix + ":" + str(key)
 
 
 class MongoCollectionNames(str, Enum):
@@ -547,15 +547,15 @@ class RedisMongoDB(AtomDB):
             str | list[Any]: The processed hash template corresponding to the provided template.
 
         Raises:
-            AssertionError: If the template is not a string or an iterable of strings.
+            ValueError: If the template is not a string or a list of strings.
         """
         if isinstance(template, str):
             return ExpressionHasher.named_type_hash(template)
-        else:
-            assert isinstance(
-                template, collections.abc.Iterable
-            ), "template must be a string or an iterable of anything"
-            return [self._build_named_type_hash_template(element) for element in template]
+        if isinstance(template, list):
+            return ExpressionHasher.composite_hash(
+                [self._build_named_type_hash_template(element) for element in template]
+            )
+        raise ValueError("Template must be a string or an iterable of anything")
 
     @staticmethod
     def _get_document_keys(document: DocumentT) -> HandleListT:
@@ -770,8 +770,7 @@ class RedisMongoDB(AtomDB):
 
     def get_matched_type_template(self, template: list[Any], **kwargs) -> HandleSetT:
         try:
-            hash_base: HandleListT = self._build_named_type_hash_template(template)  # type: ignore
-            template_hash = ExpressionHasher.composite_hash(hash_base)
+            template_hash = self._build_named_type_hash_template(template)
             templates_matched = self._retrieve_hash_targets_value(
                 KeyPrefix.TEMPLATES, template_hash
             )
@@ -1087,7 +1086,7 @@ class RedisMongoDB(AtomDB):
         else:
             return None
 
-    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str) -> HandleSetT:
+    def _retrieve_hash_targets_value(self, key_prefix: str, handle: str | list[Any]) -> HandleSetT:
         """
         Retrieve the hash targets value for the given handle from Redis.
 

@@ -481,5 +481,27 @@
             }
         ],
         "is_toplevel": true
+    },
+        {
+        "type": "LinkTest",
+        "targets": [
+            {
+                "name": "triceratops",
+                "type": "Concept"
+            },
+            {
+                "name": "rhino",
+                "type": "Concept"
+            },
+            {
+                "name": "ent",
+                "type": "Concept"
+            },
+            {
+                "name": "reptile",
+                "type": "Concept"
+            }
+        ],
+        "is_toplevel": false
     }
 ]
