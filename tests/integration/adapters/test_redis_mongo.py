@@ -22,15 +22,40 @@ from .animals_kb import (
 from .helpers import Database, PyMongoFindExplain, _db_down, _db_up, cleanup, mongo_port, redis_port
 
 
+def metta_to_links(input_str):
+    def parse_tokens(tokens):
+        result = []
+        while tokens:
+            token = tokens.pop(0)
+            if token == '(':
+                nested = parse_tokens(tokens)
+                result.append(nested)
+            elif token == ')':
+                break
+            else:
+                result.append({"type": "Symbol", "name": token})
+        return {"type": "Expression", "targets": result}
+
+    input_str = input_str.replace('(', ' ( ').replace(')', ' ) ')
+    tokens = input_str.split()
+    return parse_tokens(tokens)['targets'][0]
+
+
 class TestRedisMongo:
     @pytest.fixture(scope="session", autouse=True)
     def _cleanup(self, request):
         return cleanup(request)
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture()
     def _db(self):
         _db_up(Database.REDIS, Database.MONGO)
         yield self._connect_db()
+        _db_down()
+
+    @pytest.fixture()
+    def redis_mongo_up(self):
+        _db_up(Database.REDIS, Database.MONGO)
+        yield
         _db_down()
 
     def _add_atoms(self, db: RedisMongoDB):
@@ -41,15 +66,18 @@ class TestRedisMongo:
         for link in similarity_docs.values():
             db.add_link(dict_to_link_params(link))
 
-    def _connect_db(self):
-        db = RedisMongoDB(
-            mongo_port=mongo_port,
-            mongo_username="dbadmin",
-            mongo_password="dassecret",
-            redis_port=redis_port,
-            redis_cluster=False,
-            redis_ssl=False,
-        )
+    def _connect_db(self, extra_params: dict | None = None):
+        params = {
+            "mongo_port": mongo_port,
+            "mongo_username": "dbadmin",
+            "mongo_password": "dassecret",
+            "redis_port": redis_port,
+            "redis_cluster": False,
+            "redis_ssl": False,
+        }
+        if extra_params:
+            params.update(extra_params)
+        db = RedisMongoDB(**params)
         return db
 
     def _check_basic_patterns(self, db, toplevel_only=False):
@@ -306,7 +334,7 @@ class TestRedisMongo:
             ]
             keys = set()
             for link in links:
-                for template in db.default_pattern_index_templates:
+                for template in db.pattern_index_templates:
                     key = db._apply_index_template(
                         template,
                         link.named_type_hash,
@@ -803,9 +831,6 @@ class TestRedisMongo:
         )
 
     def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip(
-            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
-        )
         db = _db
         self._add_atoms(db)
         db.commit()
@@ -825,25 +850,33 @@ class TestRedisMongo:
 
         collection = db.mongo_atoms_collection
 
-        response = collection.find({"named_type": "Similarity", "tag": "DAS"}).explain()
+        response = collection.find(
+            {"named_type": "Similarity", "custom_attributes.tag": "DAS"}
+        ).explain()
 
         with pytest.raises(KeyError):
             response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
 
         # Create the index
-        my_index = db.create_field_index(atom_type="link", fields=["tag"], named_type="Similarity")
+        my_index = db.create_field_index(
+            atom_type="link", fields=["custom_attributes.tag"], named_type="Similarity"
+        )
 
         collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
         #
         assert my_index in collection_index_names
 
         # # Using the index
-        response = collection.find({"named_type": "Similarity", "tag": "DAS"}).explain()
+        response = collection.find(
+            {"named_type": "Similarity", "custom_attributes.tag": "DAS"}
+        ).explain()
 
         assert my_index == response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            _, doc = db.get_atoms_by_index(my_index, [{"field": "tag", "value": "DAS"}])
+            _, doc = db.get_atoms_by_index(
+                my_index, [{"field": "custom_attributes.tag", "value": "DAS"}]
+            )
             assert doc[0].handle == ExpressionHasher.expression_hash(
                 ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
             )
@@ -884,13 +917,13 @@ class TestRedisMongo:
         # Create the index
         my_index = db.create_field_index(
             atom_type="link",
-            fields=["tag"],
+            fields=["custom_attributes.tag"],
             named_type="Similarity",
             index_type=FieldIndexType.TOKEN_INVERTED_LIST,
         )
 
         collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
-        #
+        print(my_index)
         assert my_index in collection_index_names
 
     def test_create_compound_index(self, _cleanup, _db: RedisMongoDB):
@@ -913,7 +946,7 @@ class TestRedisMongo:
         # Create the index
         my_index = db.create_field_index(
             atom_type="link",
-            fields=["type", "tag"],
+            fields=["custom_attributes.type", "custom_attributes.tag"],
             named_type="Similarity",
             index_type=FieldIndexType.BINARY_TREE,
         )
@@ -921,9 +954,6 @@ class TestRedisMongo:
         assert my_index in collection_index_names
 
     def test_get_atoms_by_field_no_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip(
-            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
-        )
         db: RedisMongoDB = _db
         self._add_atoms(db)
         db.add_link(
@@ -941,16 +971,16 @@ class TestRedisMongo:
         db.commit()
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_field([{"field": "tag", "value": "DAS"}])
+            result = db.get_atoms_by_field([{"field": "custom_attributes.tag", "value": "DAS"}])
             assert len(result) == 1
             assert explain[0]["executionStats"]["executionSuccess"]
             assert explain[0]["queryPlanner"]["winningPlan"]["stage"] == "COLLSCAN"
             assert explain[0]["executionStats"]["totalKeysExamined"] == 0
 
     def test_get_atoms_by_field_with_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip(
-            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
-        )
+        # pytest.skip(
+        #     "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
+        # )
         db: RedisMongoDB = _db
         self._add_atoms(db)
         db.add_link(
@@ -966,10 +996,10 @@ class TestRedisMongo:
             )
         )
         db.commit()
-        my_index = db.create_field_index(atom_type="link", fields=["tag"])
+        my_index = db.create_field_index(atom_type="link", fields=["custom_attributes.tag"])
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_field([{"field": "tag", "value": "DAS"}])
+            result = db.get_atoms_by_field([{"field": "custom_attributes.tag", "value": "DAS"}])
             assert len(result) == 1
             assert explain[0]["executionStats"]["executionSuccess"]
             assert explain[0]["executionStats"]["nReturned"] == 1
@@ -986,9 +1016,6 @@ class TestRedisMongo:
             )
 
     def test_get_atoms_by_index(self, _cleanup, _db: RedisMongoDB):
-        pytest.skip(
-            "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
-        )
         db: RedisMongoDB = _db
         db.add_link(
             dict_to_link_params(
@@ -1016,10 +1043,14 @@ class TestRedisMongo:
         )
         db.commit()
 
-        my_index = db.create_field_index(atom_type="link", fields=["tag"], named_type="Similarity")
+        my_index = db.create_field_index(
+            atom_type="link", fields=["custom_attributes.tag"], named_type="Similarity"
+        )
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            _, doc = db.get_atoms_by_index(my_index, [{"field": "tag", "value": "DAS2"}])
+            _, doc = db.get_atoms_by_index(
+                my_index, [{"field": "custom_attributes.tag", "value": "DAS2"}]
+            )
             assert doc[0].handle == ExpressionHasher.expression_hash(
                 ExpressionHasher.named_type_hash("Similarity"), [mammal, monkey]
             )
@@ -1061,12 +1092,12 @@ class TestRedisMongo:
 
         db.create_field_index(
             atom_type="node",
-            fields=["name"],
+            fields=["custom_attributes.name"],
             index_type=FieldIndexType.TOKEN_INVERTED_LIST,
         )
 
         with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_text_field("mammal")
+            result = db.get_atoms_by_text_field("custom_attributes.mammal")
             assert len(result) == 1
             assert result[0] == db.get_node_handle("Concept", "mammal")
             assert explain[0]["executionStats"]["executionSuccess"]
@@ -1182,6 +1213,21 @@ class TestRedisMongo:
 
         assert db.get_atom(link_handle).custom_attributes["score"] == 0.5
 
+    @pytest.mark.parametrize(
+        "node", [({"type": "A", "name": "type_a", "custom_attributes": {"status": "ready"}})]
+    )
+    def test_get_atoms_by_index_custom_att(self, node, _cleanup, _db: RedisMongoDB):
+        node = _db.add_node(NodeT(**node))
+        _db.commit()
+        result = _db.create_field_index("node", fields=["custom_attributes.status"])
+        cursor, actual = _db.get_atoms_by_index(
+            result, [{"field": "custom_attributes.status", "value": "ready"}]
+        )
+        assert cursor == 0
+        assert isinstance(actual, list)
+        assert len(actual) == 1
+        assert all([a.handle == node.handle for a in actual])
+
     def test_commit_with_buffer(self, _cleanup, _db: RedisMongoDB):
         db = _db
         assert db.count_atoms() == {"atom_count": 0}
@@ -1225,3 +1271,108 @@ class TestRedisMongo:
             "26d35e45817f4270f2b7cff971b04138",
             "b7db6a9ed2191eb77ee54479570db9a4",
         ]
+
+    @pytest.mark.parametrize(
+        "template,metta_link,queries,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": ExpressionHasher.terminal_hash("Symbol", "Similarity"),
+                        "positions": [1, 2],
+                        "arity": 3,
+                    }
+                ],
+                '(Similarity "Human" "Monkey")',
+                [
+                    ("Similarity", "*", '"Monkey"'),
+                    ("Similarity", '"Human"', "*"),
+                    ("Similarity", '"Human"', "*"),
+                    ("Similarity", "*", "*"),
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": ExpressionHasher.terminal_hash("Symbol", "transcribed_to"),
+                        "positions": [1, 2],
+                        "arity": 3,
+                    }
+                ],
+                '(transcribed_to (gene "ENSG00000290825") (transcript "ENST00000456328"))',
+                [
+                    ("transcribed_to", "*", "*"),
+                    (
+                        "transcribed_to",
+                        ExpressionHasher.composite_hash(
+                            [
+                                ExpressionHasher.named_type_hash("Expression"),
+                                ExpressionHasher.terminal_hash("Symbol", "gene"),
+                                ExpressionHasher.terminal_hash("Symbol", '"ENSG00000290825"'),
+                            ]
+                        ),
+                        "*",
+                    ),
+                    (
+                        "transcribed_to",
+                        "*",
+                        ExpressionHasher.composite_hash(
+                            [
+                                ExpressionHasher.named_type_hash("Expression"),
+                                ExpressionHasher.terminal_hash("Symbol", "transcript"),
+                                ExpressionHasher.terminal_hash("Symbol", '"ENST00000456328"'),
+                            ]
+                        ),
+                    ),
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": ExpressionHasher.terminal_hash("Symbol", "synonyms"),
+                        "positions": [1, 2],
+                        "arity": 3,
+                    }
+                ],
+                '(synonyms (gene ENSG00000278267) (microRNA_6859-1 hsa-mir-6859-1 HGNC:50039 microRNA_mir-6859-1 MIR6859-1))',
+                [
+                    ("synonyms", "*", "*"),
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": ExpressionHasher.terminal_hash("Symbol", "tf_name"),
+                        "positions": [1, 2],
+                        "arity": 3,
+                    }
+                ],
+                '(tf_name (motif ENSG00000156273) BACH1)',
+                [
+                    ("tf_name", "*", "*"),
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_index_pattern_generation(
+        self, template, metta_link, queries, expected, _cleanup, redis_mongo_up
+    ):
+        db: RedisMongoDB = self._connect_db({"pattern_index_templates": template})
+        db.add_link(dict_to_link_params(metta_to_links(metta_link)))
+        db.commit()
+        for q in queries:
+            tt = [
+                n if n == "*" or len(n) == 32 else ExpressionHasher.terminal_hash("Symbol", n)
+                for n in q
+            ]
+            links: set[str] = db.get_matched_links("*", tt)
+            assert len(links) == 1
+        assert len(db.pattern_index_templates) == expected

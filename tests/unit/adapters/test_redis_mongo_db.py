@@ -10,8 +10,8 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames, LinkT
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from tests.helpers import dict_to_link_params, dict_to_node_params
-from tests.unit.fixtures import redis_mongo_db  # noqa: F401
+from tests.helpers import add_node, dict_to_link_params, dict_to_node_params
+from tests.unit.fixtures import mongo_mock, redis_mock, redis_mongo_db  # noqa: F401
 
 FILE_CACHE = {}
 
@@ -27,17 +27,34 @@ def loader(file_name):
 
 
 class TestRedisMongoDB:
-    @pytest.fixture
-    def database(self, redis_mongo_db: RedisMongoDB):  # noqa: F811
+    def _load_database(self, db):
         atoms = loader("atom_mongo_redis.json")
+        self.atom_count = 44
+        self.node_count = 14
+        self.link_count = 30
         for atom in atoms:
             if "name" in atom:
-                redis_mongo_db.add_node(dict_to_node_params(atom))
+                db.add_node(dict_to_node_params(atom))
             else:
                 is_toplevel = atom.pop("is_toplevel", True)
-                redis_mongo_db.add_link(dict_to_link_params(atom), toplevel=is_toplevel)
-        redis_mongo_db.commit()
+                db.add_link(dict_to_link_params(atom), toplevel=is_toplevel)
+        db.commit()
+
+    @pytest.fixture
+    def database(self, redis_mongo_db: RedisMongoDB):  # noqa: F811
+        self._load_database(redis_mongo_db)
         yield redis_mongo_db
+
+    @pytest.fixture
+    def database_custom_index(self):
+        with mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+            return_value=mongo_mock(),
+        ), mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+            return_value=redis_mock(),
+        ):
+            yield RedisMongoDB
 
     def test_node_exists(self, database: RedisMongoDB):
         node_type = "Concept"
@@ -424,6 +441,18 @@ class TestRedisMongoDB:
         assert isinstance(actual, list)
         assert all([a.handle in expected for a in actual])
 
+    @pytest.mark.parametrize("node", [("A", "type_a", "redis_mongo_db", {"status": "ready"})])
+    def test_get_atoms_by_index_custom_att(self, node, database: RedisMongoDB):
+        node = add_node(database, *node)
+        result = database.create_field_index("node", fields=["custom_attributes.status"])
+        cursor, actual = database.get_atoms_by_index(
+            result, [{"field": "custom_attributes.status", "value": "ready"}]
+        )
+        assert cursor == 0
+        assert isinstance(actual, list)
+        assert len(actual) == 1
+        assert all([a.handle == node.handle for a in actual])
+
     @pytest.mark.parametrize(
         "text_value,field,expected",
         [
@@ -484,24 +513,28 @@ class TestRedisMongoDB:
 
     def test_atom_count(self, database: RedisMongoDB):
         response = database.count_atoms({"precise": True})
-        assert response == {"atom_count": 43, "node_count": 14, "link_count": 29}
+        assert response == {
+            "atom_count": self.atom_count,
+            "node_count": self.node_count,
+            "link_count": self.link_count,
+        }
 
     def test_atom_count_fast(self, database: RedisMongoDB):
         response = database.count_atoms()
-        assert response == {"atom_count": 43}
+        assert response == {"atom_count": self.atom_count}
 
     def test_add_node(self, database: RedisMongoDB):
-        assert {"atom_count": 43} == database.count_atoms()
+        assert {"atom_count": self.atom_count} == database.count_atoms()
         all_nodes_before = database.get_all_nodes_handles("Concept")
         database.add_node(dict_to_node_params({"type": "Concept", "name": "lion"}))
         database.commit()
         all_nodes_after = database.get_all_nodes_handles("Concept")
-        assert len(all_nodes_before) == 14
-        assert len(all_nodes_after) == 15
+        assert len(all_nodes_before) == self.node_count
+        assert len(all_nodes_after) == self.node_count + 1
         assert {
-            "atom_count": 44,
-            "node_count": 15,
-            "link_count": 29,
+            "atom_count": self.atom_count + 1,
+            "node_count": self.node_count + 1,
+            "link_count": self.link_count,
         } == database.count_atoms({"precise": True})
         new_node_handle = database.get_node_handle("Concept", "lion")
         assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "lion")
@@ -513,7 +546,7 @@ class TestRedisMongoDB:
         assert new_node.name == "lion"
 
     def test_add_link(self, database: RedisMongoDB):
-        assert {"atom_count": 43} == database.count_atoms()
+        assert {"atom_count": self.atom_count} == database.count_atoms()
 
         all_nodes_before = database.get_all_nodes_handles("Concept")
         similarity = database.get_all_links("Similarity")
@@ -551,14 +584,14 @@ class TestRedisMongoDB:
         inheritance = database.get_all_links("Inheritance")
         evaluation = database.get_all_links("Evaluation")
         all_links_after = similarity.union(inheritance).union(evaluation)
-        assert len(all_nodes_before) == 14
-        assert len(all_nodes_after) == 16
+        assert len(all_nodes_before) == self.node_count
+        assert len(all_nodes_after) == self.node_count + 2
         assert len(all_links_before) == 28
         assert len(all_links_after) == 29
         assert {
-            "atom_count": 52,
+            "atom_count": 53,
             "node_count": 20,
-            "link_count": 32,
+            "link_count": 33,
         } == database.count_atoms({"precise": True})
 
         new_node_handle = database.get_node_handle("Concept", "lion")
@@ -582,8 +615,8 @@ class TestRedisMongoDB:
     @pytest.mark.parametrize(
         "node,expected_count",
         [
-            (("Concept", "human"), 7),
-            (("Concept", "monkey"), 5),
+            (("Concept", "human"), 8),
+            (("Concept", "monkey"), 6),
             (("Concept", "rhino"), 5),
             (("Concept", "reptile"), 4),
         ],
@@ -694,6 +727,503 @@ class TestRedisMongoDB:
         assert len(answer) == len(links) == expected_count
         assert sorted(links) == sorted(answer)
         assert len(links) == expected_count
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
+                    }
+                ],
+                8,
+            ),
+            ([{"field": "named_type", "value": "Similarity", "positions": [], "arity": 0}], 0),
+            ([{"field": "named_type", "value": "*", "positions": [], "arity": 0}], 1),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [0, 1, 2], "arity": 3},
+                ],
+                15,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "b5459e299a5c5e8662c427f7e01b3bf1",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [0, 1, 2],
+                        "arity": 3,
+                    }
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_custom_index_templates_size(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        print(db.pattern_index_templates)
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                4,
+            ),
+            (None, 15),  # Loads default index template
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
+                    }
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_custom_index_templates_load(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        db._load_pattern_index({})
+        assert db.pattern_templates == templates if templates is not None else True
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                15,
+            )
+        ],
+    )
+    def test_custom_index_templates_load_error(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index()  # loads the default template
+        with pytest.raises(ValueError) as exec_info:
+            db._load_pattern_index(self.database_config)  # force new value
+        assert exec_info.type is ValueError
+        assert (
+            exec_info.value.args[0]
+            == "'pattern_index_templates' value doesn't match with found on database"
+        )
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 5],
+                        "arity": 3,
+                    },
+                ],
+                "'positions' parameter must be in range of the arity.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2, 3, 4, 5],
+                        "arity": 10,
+                    },
+                ],
+                "'positions' array should be less than 4.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[5]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                "'target[]' index must be in range of arity.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": -1,
+                    },
+                ],
+                "'arity' must be an integer greater than or equal to zero.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": "-1",
+                    },
+                ],
+                "'arity' must be an integer greater than or equal to zero.",
+            ),
+            (
+                [
+                    {
+                        "field": "type",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": "-1",
+                    },
+                ],
+                "Value 'type' is not supported in 'field'.",
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1, "a"], "arity": 3},
+                ],
+                "Value '[1, 'a']' is not supported in 'positions'.",
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1, 2], "arity": "a"},
+                ],
+                "Value 'a' is not supported in 'arity'.",
+            ),
+        ],
+    )
+    def test_custom_index_templates_error(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        with pytest.raises(ValueError) as exec_info:
+            database_custom_index(**self.database_config)  # loads the default template
+        assert exec_info.type is ValueError
+        assert exec_info.value.args[0] == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
+                    }
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "b5459e299a5c5e8662c427f7e01b3bf1",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [0, 1, 2],
+                        "arity": 3,
+                    }
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_custom_index_templates_target(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        db._load_pattern_index({})
+        assert db.pattern_templates == templates
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                4,
+            )
+        ],
+    )
+    def test_custom_index_templates_reindex(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index()  # loads the default template
+        assert len(db.pattern_index_templates) == 15
+        db.reindex(**self.database_config)
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,link_template,expected_default,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[1]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [0, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                3,
+                3,
+            ),
+        ],
+    )
+    def test_custom_index_templates_reindex_find(
+        self,
+        templates,
+        link_template,
+        expected_default,
+        expected,
+        database_custom_index: RedisMongoDB,
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index()  # loads the default template
+        self._load_database(db)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected_default
+        db.reindex(**self.database_config)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected
+
+    @pytest.mark.parametrize(
+        "templates,link_template,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                0,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                ],
+                ["*", ["*", "*"]],
+                0,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                ],
+                ["Similarity", ["bb34ce95f161a6b37ff54b3d4c817857", "*"]],
+                1,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                ],
+                ["Similarity", ["*", "bb34ce95f161a6b37ff54b3d4c817857"]],
+                0,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "Evaluation", "positions": [0, 1], "arity": 2},
+                ],
+                ["Evaluation", ["*", "*"]],
+                2,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [0, 1], "arity": 2},
+                ],
+                ["Evaluation", ["*", "*"]],
+                2,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "Evaluation", "positions": [0, 1], "arity": 2},
+                ],
+                ["*", ["*", "*"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1], "arity": 2},
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [0, 1], "arity": 2},
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1], "arity": 2},
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[1]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [0, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                3,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [0, 1, 2, 3], "arity": 5},
+                ],
+                ["*", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                1,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "BigLink",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
+                ],
+                ["*", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "BigLink",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
+                ],
+                ["BigLink", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                1,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1, 2, 3, 4], "arity": 5},
+                ],
+                ["*", ["0a32b476852eeb954979b87f5f6cb7af", "*", "*", "*", "*"]],
+                1,
+            ),
+        ],
+    )
+    def test_custom_index_templates_find(
+        self, templates, link_template, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index(
+            **self.database_config
+        )  # loads the default template
+        self._load_database(db)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected
 
     @pytest.mark.parametrize(
         "template_values,expected_count",
