@@ -23,6 +23,7 @@ jobs:
     secrets: inherit
 
   publish:
+    needs: tag
     environment: prod
     runs-on: ubuntu-22.04
     steps:
@@ -32,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ^3.10
+          python-version: ~3.10
 
       - name: Install Poetry
         run: |
@@ -44,3 +45,32 @@ jobs:
           poetry version ${{ github.event.inputs.version }}
           poetry build
           poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-cpp:
+    needs: tag
+    environment: prod
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ~3.10
+
+      - name: Install requirements
+        run: |-
+          pip install twine
+
+      - name: Update version
+        working-directory: hyperon_das_atomdb_cpp
+        run: sed -i 's/version = ".*"/version = "${{ github.event.inputs.version }}"/' pyproject.toml
+
+      - name: Build Wheels
+        working-directory: hyperon_das_atomdb_cpp
+        run: make wheels
+
+      - name: Publish Packages
+        working-directory: hyperon_das_atomdb_cpp/dist
+        run: twine upload *.whl --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} --non-interactive
