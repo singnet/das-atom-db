@@ -13,6 +13,7 @@ from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from tests.helpers import dict_to_link_params, dict_to_node_params
 from tests.unit.fixtures import mongo_mock, redis_mock, redis_mongo_db  # noqa: F401
 
+
 FILE_CACHE = {}
 
 
@@ -416,6 +417,18 @@ class TestRedisMongoDB:
         assert cursor == 0
         assert isinstance(actual, list)
         assert all([a.handle in expected for a in actual])
+
+    @pytest.mark.parametrize("node", [("A", "type_a", "redis_mongo_db", {"status": "ready"})])
+    def test_get_atoms_by_index_custom_att(self, node, database: RedisMongoDB):
+        node = add_node(database, *node)
+        result = database.create_field_index("node", fields=["custom_attributes.status"])
+        cursor, actual = database.get_atoms_by_index(
+            result, [{"field": "custom_attributes.status", "value": "ready"}]
+        )
+        assert cursor == 0
+        assert isinstance(actual, list)
+        assert len(actual) == 1
+        assert all([a.handle == node.handle for a in actual])
 
     @pytest.mark.parametrize(
         "text_value,field,expected",
