@@ -47,12 +47,15 @@ class TestRedisMongoDB:
 
     @pytest.fixture
     def database_custom_index(self):
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-            return_value=mongo_mock(),
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
-            return_value=redis_mock(),
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+                return_value=mongo_mock(),
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+                return_value=redis_mock(),
+            ),
         ):
             yield RedisMongoDB
 
@@ -662,9 +665,11 @@ class TestRedisMongoDB:
         handle = database.get_link_handle(
             link_type,
             [
-                database.get_node_handle(*t)
-                if all([isinstance(tt, str) for tt in t])
-                else database.get_link_handle(*t)
+                (
+                    database.get_node_handle(*t)
+                    if all([isinstance(tt, str) for tt in t])
+                    else database.get_link_handle(*t)
+                )
                 for t in link_targets
             ],
         )
@@ -1289,12 +1294,15 @@ class TestRedisMongoDB:
     def test_create_field_index_node_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="name_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("node", ["name"], "Type")
 
@@ -1308,12 +1316,15 @@ class TestRedisMongoDB:
     def test_create_field_index_link_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("link", ["field"], "Type")
 
@@ -1327,12 +1338,15 @@ class TestRedisMongoDB:
     def test_create_text_index(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", ["field"], index_type=FieldIndexType.TOKEN_INVERTED_LIST
@@ -1346,12 +1360,15 @@ class TestRedisMongoDB:
     def test_create_text_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", ["field"], "Type", index_type=FieldIndexType.TOKEN_INVERTED_LIST
@@ -1367,12 +1384,15 @@ class TestRedisMongoDB:
     def test_create_compound_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("link", fields=["field", "name"])
 
@@ -1385,12 +1405,15 @@ class TestRedisMongoDB:
     def test_create_compound_index_type_filter(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", named_type="Type", fields=["field", "name"]
@@ -1425,12 +1448,15 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.list_indexes.return_value = []
         database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="name_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             database.create_field_index("node", "name", "Type")
         assert database.create_field_index("node", ["name"], "Type") == "name_index_asc"
