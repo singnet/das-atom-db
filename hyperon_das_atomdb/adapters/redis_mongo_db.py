@@ -327,7 +327,9 @@ class RedisMongoDB(AtomDB):
             return self.mongo_db
         except ValueError as e:
             logger().error(f"An error occurred while creating a MongoDB client - Details: {str(e)}")
-            raise ConnectionMongoDBException(message="error creating a MongoClient", details=str(e))
+            raise ConnectionMongoDBException(
+                message="error creating a MongoClient", details=str(e)
+            ) from e
 
     @staticmethod
     def _connection_redis(
@@ -357,7 +359,7 @@ class RedisMongoDB(AtomDB):
         message = (
             f"Connecting to {redis_type} at "
             + (
-                f"{redis_username}:{len(redis_password)*'*'}@"
+                f"{redis_username}:{len(redis_password) * '*'}@"
                 if redis_username and redis_password
                 else ""
             )
@@ -754,7 +756,7 @@ class RedisMongoDB(AtomDB):
         )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        patterns_matched = self._retrieve_hash_targets_value(KeyPrefix.PATTERNS, pattern_hash)
+        patterns_matched = self._retrieve_hash_targets_value_from_sorted_set(KeyPrefix.PATTERNS, pattern_hash)
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
         else:
@@ -780,7 +782,7 @@ class RedisMongoDB(AtomDB):
                 return templates_matched
         except Exception as exception:
             logger().error(f"Failed to get matched type template - Details: {str(exception)}")
-            raise ValueError(str(exception))
+            raise ValueError(str(exception)) from exception
 
     def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -1105,6 +1107,26 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(key_prefix, handle)
         return self._get_redis_members(key)
 
+    def _retrieve_hash_targets_value_from_sorted_set(self, key_prefix: str, handle: str) -> HandleSetT:
+        """
+        Retrieve the hash targets value for the given identifier from a sorted set in Redis
+
+        This method constructs a Redis key using the provided key prefix and handle, and retrieves
+        the members associated with that key.
+        If the members are not found, it returns an empty list.
+
+        Args:
+            key_prefix (str): The prefix to be used in the Redis key.
+            handle (str): The unique identifier for the atom whose hash targets value is to be
+                retrieved.
+
+        Returns:
+            HandleSetT: Set of members in the hash targets value.
+        """
+        key = _build_redis_key(key_prefix, handle)
+        results = self.redis.zrange(key, 0, -1, withscores=True)
+        return set([r[0] for r in results])
+
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
         Remove a specific member from the template set of the given handle in Redis.
@@ -1263,7 +1285,7 @@ class RedisMongoDB(AtomDB):
             for template in index_templates:
                 key = self._apply_index_template(template, named_type_hash, targets, arity)
                 if key:
-                    self.redis.srem(key, handle)
+                    self.redis.zrem(key, handle)
         else:
             incoming_buffer: dict[str, HandleListT] = {}
             key = _build_redis_key(KeyPrefix.OUTGOING_SET, handle)
@@ -1286,7 +1308,11 @@ class RedisMongoDB(AtomDB):
             for template in index_templates:
                 key = self._apply_index_template(template, named_type_hash, targets, arity)
                 if key:
-                    self.redis.sadd(key, handle)
+                    if response := self.redis.zrange(key, -1, -1, withscores=True):
+                        _, score = response[0]
+                        self.redis.zadd(key, {handle: score + 1})
+                    else:
+                        self.redis.zadd(key, {handle: 0.0})
 
             for handle in incoming_buffer:
                 key = _build_redis_key(KeyPrefix.INCOMING_SET, handle)
@@ -1400,7 +1426,7 @@ class RedisMongoDB(AtomDB):
     def reindex(self, pattern_index_templates: dict[str, list[DocumentT]] | None = None) -> None:
         if isinstance(pattern_index_templates, list):
             self._save_pattern_index(deepcopy(pattern_index_templates))
-            self._setup_indexes({'pattern_index_templates': pattern_index_templates})
+            self._setup_indexes({"pattern_index_templates": pattern_index_templates})
         self.redis.flushall()
         self._update_atom_indexes(self.mongo_atoms_collection.find({}))
 
@@ -1472,7 +1498,8 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Error: {str(e)}")
         finally:
             if not index_id:
-                return (  # pylint: disable=lost-exception
+                # B012: `return` inside `finally` blocks cause exceptions to be silenced
+                return (  # noqa: B012
                     f"Index creation failed, Details: {str(exc)}"
                     if exc
                     else "Index creation failed"
