@@ -497,9 +497,11 @@ class RedisMongoDB(AtomDB):
                 if not is_wild_card and not v[0] and is_named_type:
                     continue
                 t = {
-                    FieldNames.TYPE_NAME: v[0]
-                    if is_wild_card or not is_named_type
-                    else ExpressionHasher.named_type_hash(template["value"]),
+                    FieldNames.TYPE_NAME: (
+                        v[0]
+                        if is_wild_card or not is_named_type
+                        else ExpressionHasher.named_type_hash(template["value"])
+                    ),
                     "target_position": target_pos,
                     "target_value": None if is_named_type else template["value"],
                     "selected_positions": [
@@ -756,7 +758,9 @@ class RedisMongoDB(AtomDB):
         )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        patterns_matched = self._retrieve_hash_targets_value_from_sorted_set(KeyPrefix.PATTERNS, pattern_hash)
+        patterns_matched = self._retrieve_hash_targets_value_from_sorted_set(
+            KeyPrefix.PATTERNS, pattern_hash
+        )
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
         else:
@@ -1107,7 +1111,9 @@ class RedisMongoDB(AtomDB):
         key = _build_redis_key(key_prefix, handle)
         return self._get_redis_members(key)
 
-    def _retrieve_hash_targets_value_from_sorted_set(self, key_prefix: str, handle: str) -> HandleSetT:
+    def _retrieve_hash_targets_value_from_sorted_set(
+        self, key_prefix: str, handle: str
+    ) -> HandleSetT:
         """
         Retrieve the hash targets value for the given identifier from a sorted set in Redis
 

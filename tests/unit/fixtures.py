@@ -106,7 +106,7 @@ class MockRedis:
         if end < 0:
             end = length + end
 
-        sliced = sorted_items[start:end + 1]
+        sliced = sorted_items[start : end + 1]
         if withscores:
             return sliced
         else:
@@ -145,12 +145,15 @@ def redis_mock():
 def redis_mongo_db():
     mongo_db = mongo_mock()
     redis_db = redis_mock()
-    with mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-        return_value=mongo_db,
-    ), mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
-        return_value=redis_db,
+    with (
+        mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+            return_value=mongo_db,
+        ),
+        mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+            return_value=redis_db,
+        ),
     ):
         db = RedisMongoDB()
 
